@@ -35,60 +35,50 @@ function get_my_comment($pdo, $item_id, $member_id) {
 }
 
 /**
+ * Rendert eine einzelne Kommentarzeile einheitlich
+ * FORMAT: Vorname Name timestamp: Text (alles in einer Zeile)
+ *
+ * @param array $comment Kommentar mit first_name, last_name, created_at, comment_text
+ * @param string $date_format Format für Timestamp ('full' = d.m.Y H:i, 'time' = H:i)
+ */
+function render_comment_line($comment, $date_format = 'full') {
+    $name = htmlspecialchars($comment['first_name'] . ' ' . $comment['last_name']);
+    $timestamp = $date_format === 'time'
+        ? date('H:i', strtotime($comment['created_at']))
+        : date('d.m.Y H:i', strtotime($comment['created_at']));
+    $text = nl2br(htmlspecialchars($comment['comment_text']));
+
+    ?>
+    <div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
+        <strong style="color: #333;"><?php echo $name; ?></strong>
+        <span style="color: #999; font-size: 11px;"><?php echo $timestamp; ?>:</span>
+        <span style="color: #555;"><?php echo $text; ?></span>
+    </div>
+    <?php
+}
+
+/**
  * Rendert die Kommentar-Liste für einen TOP
- * FORMAT: <b>Name</b> [Datum]: Text - sortiert nach Datum
+ * FORMAT: Vorname Name timestamp: Text - sortiert nach Datum
  */
 function render_comments_list($comments, $current_member_id, $meeting_status, $item_id) {
     // Nur Kommentare mit echtem Inhalt
     $valid_comments = array_filter($comments, function($comment) {
         return !empty(trim($comment['comment_text']));
     });
-    
+
     if (empty($valid_comments)) {
         return; // Keine Box anzeigen
     }
-    
+
     // Nach created_at sortieren
     usort($valid_comments, function($a, $b) {
         return strtotime($a['created_at']) - strtotime($b['created_at']);
     });
-    
-    // Zeilen zählen für Höhe
-    $total_lines = 0;
-    foreach ($valid_comments as $comment) {
-        $text = $comment['comment_text'];
-        $lines = substr_count($text, "\n") + 1;
-        $total_lines += $lines + 1;
-    }
-    $min_height = min($total_lines * 20 + 20, 300);
     ?>
-    <div class="comments-box" style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 8px; margin: 10px 0; min-height: <?php echo $min_height; ?>px; max-height: 300px; overflow-y: auto;">
+    <div class="comments-box" style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 8px; margin: 10px 0; max-height: 300px; overflow-y: auto;">
         <?php foreach ($valid_comments as $comment): ?>
-            <div class="comment" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.4;">
-                <div style="color: #555;">
-                    <b><?php echo htmlspecialchars($comment['first_name'] . ' ' . $comment['last_name']); ?></b>
-                    <span style="color: #999; font-size: 11px;">
-                        [<?php echo date('d.m.Y H:i', strtotime($comment['created_at'])); ?>]:
-                    </span>
-                    <?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?>
-                </div>
-                
-                <?php 
-                // Löschen-Button nur für eigene Kommentare
-                if ($comment['member_id'] == $current_member_id && 
-                    in_array($meeting_status, ['preparation', 'active', 'ended'])):
-                ?>
-                    <form method="POST" action="" style="margin-top: 4px;" 
-                          onsubmit="return confirm('Kommentar wirklich löschen?');">
-                        <input type="hidden" name="delete_comment" value="1">
-                        <input type="hidden" name="comment_id" value="<?php echo $comment['comment_id']; ?>">
-                        <input type="hidden" name="item_id" value="<?php echo $item_id; ?>">
-                        <button type="submit" style="background: #e74c3c; color: white; border: none; padding: 2px 8px; font-size: 11px; cursor: pointer; border-radius: 3px;">
-                            🗑️
-                        </button>
-                    </form>
-                <?php endif; ?>
-            </div>
+            <?php render_comment_line($comment, 'full'); ?>
         <?php endforeach; ?>
     </div>
     <?php

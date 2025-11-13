@@ -79,22 +79,13 @@ foreach ($agenda_items as $item):
                 💬 Diskussionsbeiträge aus Vorbereitung
             </summary>
             <div style="margin-top: 8px; padding: 8px; background: white; border: 1px solid #ddd; border-radius: 4px;">
-                <?php 
+                <?php
                 $prep_comments = get_item_comments($pdo, $item['item_id']);
                 if (!empty($prep_comments)):
-                    foreach ($prep_comments as $comment): 
-                ?>
-                    <div style="padding: 4px; border-bottom: 1px solid #eee; font-size: 12px;">
-                        <strong style="color: #667eea;">
-                            <?php echo htmlspecialchars($comment['first_name'] . ' ' . $comment['last_name']); ?>:
-                        </strong>
-                        <span style="color: #555;">
-                            <?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?>
-                        </span>
-                    </div>
-                <?php 
+                    foreach ($prep_comments as $comment):
+                        render_comment_line($comment, 'full');
                     endforeach;
-                else: 
+                else:
                 ?>
                     <div style="color: #999; font-size: 12px;">Keine Kommentare</div>
                 <?php endif; ?>
@@ -121,17 +112,7 @@ foreach ($agenda_items as $item):
             </summary>
             <div style="margin-top: 8px; padding: 8px; background: white; border: 1px solid #f44336; border-radius: 4px;">
                 <?php foreach ($live_comments as $lc): ?>
-                    <div style="padding: 4px; border-bottom: 1px solid #ffcdd2; font-size: 12px;">
-                        <strong style="color: #c62828;">
-                            <?php echo htmlspecialchars($lc['first_name'] . ' ' . $lc['last_name']); ?>:
-                        </strong>
-                        <span style="color: #555;">
-                            <?php echo nl2br(htmlspecialchars($lc['comment_text'])); ?>
-                        </span>
-                        <small style="color: #999; margin-left: 8px;">
-                            <?php echo date('H:i', strtotime($lc['created_at'])); ?>
-                        </small>
-                    </div>
+                    <?php render_comment_line($lc, 'time'); ?>
                 <?php endforeach; ?>
             </div>
         </details>
@@ -190,17 +171,7 @@ foreach ($agenda_items as $item):
                 ?>
                     <div style="background: white; border: 1px solid #4caf50; border-radius: 4px; padding: 8px; margin-bottom: 10px;">
                         <?php foreach ($post_comments as $pc): ?>
-                            <div style="padding: 6px; border-bottom: 1px solid #c8e6c9; font-size: 13px;">
-                                <strong style="color: #2e7d32;">
-                                    <?php echo htmlspecialchars($pc['first_name'] . ' ' . $pc['last_name']); ?>:
-                                </strong>
-                                <span style="color: #555;">
-                                    <?php echo nl2br(htmlspecialchars($pc['comment_text'])); ?>
-                                </span>
-                                <small style="color: #999; margin-left: 8px;">
-                                    <?php echo date('d.m.Y H:i', strtotime($pc['created_at'])); ?>
-                                </small>
-                            </div>
+                            <?php render_comment_line($pc, 'full'); ?>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>

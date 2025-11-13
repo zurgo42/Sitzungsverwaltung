@@ -154,17 +154,17 @@ function render_agenda_overview($agenda_items, $current_user = null, $current_me
                                     
                                 <td style="padding: 3px; border: 1px solid #ddd; text-align: center;">
 								<?php if ($item['top_number'] <> 0 AND $item['top_number'] <> 99) { ?>
-                                  <input type="number" 
-                                           name="priority[<?php echo $item["item_id"]; ?>]" 
+                                  <input type="number"
+                                           name="priority_rating[<?php echo $item["item_id"]; ?>]"
                                            value="<?php echo htmlspecialchars($user_prio); ?>"
-                                           min="1" max="9" step="1" 
+                                           min="1" max="9" step="1"
                                            style="width: 45px; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"
                                            placeholder="1-9">
 								<?php }
                                 if ($item['top_number'] <> 0) { ?>
                                   <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
-                                    <input type="number" 
-                                           name="duration[<?php echo $item["item_id"]; ?>]" 
+                                    <input type="number"
+                                           name="duration_estimate[<?php echo $item["item_id"]; ?>]"
                                            value="<?php echo htmlspecialchars($user_duration); ?>"
                                            min="1" max="300"
                                            style="width: 40px; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 4px;">

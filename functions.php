@@ -213,16 +213,40 @@ function create_standard_tops($pdo, $meeting_id, $creator_id) {
  */
 function recalculate_item_metrics($pdo, $item_id) {
     try {
-        $stmt = $pdo->prepare("SELECT AVG(priority_rating) as avg_priority, AVG(duration_estimate) as avg_duration
-                FROM agenda_comments WHERE item_id = ? AND priority_rating IS NOT NULL AND duration_estimate IS NOT NULL");
+        // Priorität und Dauer SEPARAT berechnen (nicht nur wo beide gesetzt sind!)
+        $stmt = $pdo->prepare("
+            SELECT
+                AVG(priority_rating) as avg_priority,
+                AVG(duration_estimate) as avg_duration
+            FROM agenda_comments
+            WHERE item_id = ?
+        ");
         $stmt->execute([$item_id]);
         $metrics = $stmt->fetch();
-        
+
+        // Update-Statement vorbereiten
+        $updates = [];
+        $params = [];
+
         if ($metrics['avg_priority'] !== null) {
-            $stmt = $pdo->prepare("UPDATE agenda_items SET priority = ?, estimated_duration = ? WHERE item_id = ?");
-            $stmt->execute([round($metrics['avg_priority'], 2), round($metrics['avg_duration']), $item_id]);
+            $updates[] = "priority = ?";
+            $params[] = round($metrics['avg_priority'], 2);
         }
-        
+
+        if ($metrics['avg_duration'] !== null) {
+            $updates[] = "estimated_duration = ?";
+            $params[] = round($metrics['avg_duration']);
+        }
+
+        // Nur updaten wenn mindestens ein Wert vorhanden
+        if (!empty($updates)) {
+            $sql = "UPDATE agenda_items SET " . implode(", ", $updates) . " WHERE item_id = ?";
+            $params[] = $item_id;
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+        }
+
         return true;
     } catch (PDOException $e) {
         if (DEBUG_MODE) {

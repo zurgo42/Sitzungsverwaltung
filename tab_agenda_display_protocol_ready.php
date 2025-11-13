@@ -83,23 +83,16 @@ foreach ($agenda_items as $item):
                 💬 Alle Diskussionsbeiträge anzeigen
             </summary>
             <div style="margin-top: 8px; padding: 8px; background: white; border: 1px solid #ddd; border-radius: 4px;">
-                <?php 
+                <?php
                 $prep_comments = get_item_comments($pdo, $item['item_id']);
                 if (!empty($prep_comments)):
                 ?>
                     <h5 style="font-size: 12px; color: #667eea; margin: 8px 0 4px 0;">Aus Vorbereitung:</h5>
                     <?php foreach ($prep_comments as $comment): ?>
-                        <div style="padding: 4px; border-bottom: 1px solid #eee; font-size: 12px;">
-                            <strong style="color: #667eea;">
-                                <?php echo htmlspecialchars($comment['first_name'] . ' ' . $comment['last_name']); ?>:
-                            </strong>
-                            <span style="color: #555;">
-                                <?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?>
-                            </span>
-                        </div>
+                        <?php render_comment_line($comment, 'full'); ?>
                     <?php endforeach; ?>
                 <?php endif; ?>
-                
+
                 <?php
                 // Live-Kommentare
                 $stmt = $pdo->prepare("
@@ -111,25 +104,15 @@ foreach ($agenda_items as $item):
                 ");
                 $stmt->execute([$item['item_id']]);
                 $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
+
                 if (!empty($live_comments)):
                 ?>
                     <h5 style="font-size: 12px; color: #f44336; margin: 12px 0 4px 0;">Während Sitzung:</h5>
                     <?php foreach ($live_comments as $lc): ?>
-                        <div style="padding: 4px; border-bottom: 1px solid #ffcdd2; font-size: 12px;">
-                            <strong style="color: #c62828;">
-                                <?php echo htmlspecialchars($lc['first_name'] . ' ' . $lc['last_name']); ?>:
-                            </strong>
-                            <span style="color: #555;">
-                                <?php echo nl2br(htmlspecialchars($lc['comment_text'])); ?>
-                            </span>
-                            <small style="color: #999; margin-left: 8px;">
-                                <?php echo date('H:i', strtotime($lc['created_at'])); ?>
-                            </small>
-                        </div>
+                        <?php render_comment_line($lc, 'time'); ?>
                     <?php endforeach; ?>
                 <?php endif; ?>
-                
+
                 <?php
                 // Nachträgliche Kommentare
                 $stmt = $pdo->prepare("
@@ -141,22 +124,15 @@ foreach ($agenda_items as $item):
                 ");
                 $stmt->execute([$item['item_id']]);
                 $post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
+
                 if (!empty($post_comments)):
                 ?>
                     <h5 style="font-size: 12px; color: #4caf50; margin: 12px 0 4px 0;">Nachträgliche Anmerkungen:</h5>
                     <?php foreach ($post_comments as $pc): ?>
-                        <div style="padding: 4px; border-bottom: 1px solid #c8e6c9; font-size: 12px;">
-                            <strong style="color: #2e7d32;">
-                                <?php echo htmlspecialchars($pc['first_name'] . ' ' . $pc['last_name']); ?>:
-                            </strong>
-                            <span style="color: #555;">
-                                <?php echo nl2br(htmlspecialchars($pc['comment_text'])); ?>
-                            </span>
-                        </div>
+                        <?php render_comment_line($pc, 'full'); ?>
                     <?php endforeach; ?>
                 <?php endif; ?>
-                
+
                 <?php if (empty($prep_comments) && empty($live_comments) && empty($post_comments)): ?>
                     <div style="color: #999; font-size: 12px;">Keine Kommentare</div>
                 <?php endif; ?>
