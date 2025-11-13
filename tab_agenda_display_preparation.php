@@ -2,7 +2,7 @@
 /**
  * tab_agenda_display_preparation.php - Anzeige im Status "preparation"
  * Version 3.0 - 12.11.2025
- * 
+ *
  * ÄNDERUNGEN:
  * - Priorität/Dauer wurden in die Übersicht verschoben
  * - Einzelne Speichern-Buttons pro TOP für Kommentare
@@ -10,16 +10,23 @@
  * - Übersicht nur noch einmal (am Anfang)
  */
 
-// Übersicht mit Bewertungs-Tabelle anzeigen (EINMALIG am Anfang)
+// Module laden
 require_once 'module_agenda_overview.php';
+require_once 'module_comments.php';
+
+// Übersicht mit Bewertungs-Tabelle anzeigen (EINMALIG am Anfang)
 render_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
 ?>
 
+
+
+<h3>XXX Dies ist eine weitere Änderung, um GitHub auszuprobieren XXX</h3>
+
+
 <!-- Formular zum Hinzufügen neuer TOPs -->
-<?php if ($can_edit_meeting): ?>
 <details style="margin: 20px 0; border: 2px solid #4caf50; border-radius: 8px; overflow: hidden;">
     <summary style="padding: 15px; background: #4caf50; color: white; font-size: 16px; font-weight: 600; cursor: pointer; list-style: none;">
-        <span style="display: inline-block; width: 20px;">▶</span> ➕ Neuen TOP hinzufügen
+        <span style="display: inline-block; width: 20px;">▶</span> ➕ Einen neuen TOP hinzufügen
     </summary>
     
     <div style="padding: 15px; background: #f1f8e9;">
@@ -78,7 +85,6 @@ details[open] summary span {
     display: inline-block;
 }
 </style>
-<?php endif; ?>
 
 <!-- TOPs anzeigen -->
 <?php 
@@ -265,37 +271,12 @@ foreach ($agenda_items as $item):
         <!-- Kommentare -->
         <div style="margin-top: 15px;">
             <strong style="display: block; margin-bottom: 10px; color: #333;">💬 Kommentare & Diskussion:</strong>
-            
+
             <!-- Bestehende Kommentare anzeigen -->
             <?php if (!empty($comments)): ?>
-                <div style="margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 5px; border-left: 4px solid #2c5aa0;">
+                <div style="margin-bottom: 15px; background: white; border: 1px solid #ddd; border-radius: 5px; padding: 8px;">
                     <?php foreach ($comments as $comment): ?>
-                        <div style="margin-bottom: 10px; padding: 8px; background: white; border-radius: 4px; border: 1px solid #e0e0e0;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
-                                <strong style="color: #2c5aa0;">
-                                    <?php echo htmlspecialchars($comment['first_name'] . ' ' . $comment['last_name']); ?>
-                                </strong>
-                                <div style="display: flex; gap: 10px; align-items: center;">
-                                    <span style="font-size: 0.85em; color: #666;">
-                                        <?php echo date('d.m.Y H:i', strtotime($comment['created_at'])); ?>
-                                    </span>
-                                    <?php if ($comment['member_id'] == $current_user['member_id']): ?>
-                                        <form method="POST" style="display: inline; margin: 0;">
-                                            <input type="hidden" name="comment_id" value="<?php echo $comment['comment_id']; ?>">
-                                            <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
-                                            <button type="submit" name="delete_comment" value="1" 
-                                                    onclick="return confirm('Kommentar wirklich löschen?')"
-                                                    style="background: #f44336; color: white; padding: 3px 8px; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">
-                                                🗑️
-                                            </button>
-                                        </form>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <div style="color: #333;">
-                                <?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?>
-                            </div>
-                        </div>
+                        <?php render_comment_line($comment, 'full'); ?>
                     <?php endforeach; ?>
                 </div>
             <?php else: ?>
