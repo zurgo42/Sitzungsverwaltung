@@ -257,20 +257,13 @@ foreach ($agenda_items as $item):
         <!-- Diskussionsbeiträge aus Vorbereitung -->
         <div style="margin-top: 12px;">
             <h4 style="font-size: 14px; color: #666; margin-bottom: 8px;">💬 Diskussionsbeiträge (Vorbereitung)</h4>
-            <?php 
+            <?php
             $prep_comments = get_item_comments($pdo, $item['item_id']);
             if (!empty($prep_comments)):
             ?>
                 <div style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 8px; max-height: 150px; overflow-y: auto;">
                     <?php foreach ($prep_comments as $comment): ?>
-                        <div style="padding: 4px; border-bottom: 1px solid #eee; font-size: 12px;">
-                            <strong style="color: #667eea;">
-                                <?php echo htmlspecialchars($comment['first_name'] . ' ' . $comment['last_name']); ?>:
-                            </strong>
-                            <span style="color: #555;">
-                                <?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?>
-                            </span>
-                        </div>
+                        <?php render_comment_line($comment, 'full'); ?>
                     <?php endforeach; ?>
                 </div>
             <?php else: ?>
@@ -299,17 +292,7 @@ foreach ($agenda_items as $item):
                 ?>
                     <div id="live-comments-<?php echo $item['item_id']; ?>" style="background: white; border: 1px solid #f44336; border-radius: 4px; padding: 8px; margin-bottom: 10px; max-height: 120px; overflow-y: auto;">
                         <?php foreach ($live_comments as $lc): ?>
-                            <div style="padding: 4px; border-bottom: 1px solid #ffcdd2; font-size: 13px;">
-                                <strong style="color: #c62828;">
-                                    <?php echo htmlspecialchars($lc['first_name'] . ' ' . $lc['last_name']); ?>:
-                                </strong>
-                                <span style="color: #555;">
-                                    <?php echo nl2br(htmlspecialchars($lc['comment_text'])); ?>
-                                </span>
-                                <small style="color: #999; margin-left: 8px;">
-                                    <?php echo date('H:i', strtotime($lc['created_at'])); ?>
-                                </small>
-                            </div>
+                            <?php render_comment_line($lc, 'time'); ?>
                         <?php endforeach; ?>
                     </div>
                 <?php else: ?>
@@ -551,10 +534,10 @@ function updateProtocol(itemId) {
                     let html = '';
                     data.live_comments.forEach(comment => {
                         const time = new Date(comment.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
-                        html += `<div style="padding: 4px; border-bottom: 1px solid #ffcdd2; font-size: 12px;">
-                            <strong style="color: #c62828;">${comment.first_name} ${comment.last_name}:</strong>
+                        html += `<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
+                            <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong>
+                            <span style="color: #999; font-size: 11px;">${time}:</span>
                             <span style="color: #555;">${comment.comment_text}</span>
-                            <small style="color: #999; margin-left: 8px;">${time}</small>
                         </div>`;
                     });
                     commentsDiv.innerHTML = html || '<div style="color: #999; font-size: 12px; padding: 4px;">Noch keine Kommentare</div>';
