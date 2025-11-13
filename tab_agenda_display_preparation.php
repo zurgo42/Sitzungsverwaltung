@@ -2,12 +2,14 @@
 /**
  * tab_agenda_display_preparation.php - Anzeige im Status "preparation"
  * Version 3.0 - 12.11.2025
- * 
+ *
  * ÄNDERUNGEN:
  * - Priorität/Dauer wurden in die Übersicht verschoben
  * - Einzelne Speichern-Buttons pro TOP für Kommentare
  * - Kein globaler "Alle Eingaben speichern" Button mehr
  * - Übersicht nur noch einmal (am Anfang)
+ *
+ * GitHub-Übung: Lerne den Git-Workflow
  */
 
 // Übersicht mit Bewertungs-Tabelle anzeigen (EINMALIG am Anfang)
