@@ -50,9 +50,7 @@ function render_comment_line($comment, $date_format = 'full') {
 
     ?>
     <div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
-        <strong style="color: #333;"><?php echo $name; ?></strong>
-        <span style="color: #999; font-size: 11px;"><?php echo $timestamp; ?>:</span>
-        <span style="color: #555;"><?php echo $text; ?></span>
+        <strong style="color: #333;"><?php echo $name; ?></strong> <span style="color: #999; font-size: 11px;"><?php echo $timestamp; ?>:</span> <span style="color: #555;"><?php echo $text; ?></span>
     </div>
     <?php
 }

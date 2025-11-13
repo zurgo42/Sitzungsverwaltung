@@ -535,9 +535,7 @@ function updateProtocol(itemId) {
                     data.live_comments.forEach(comment => {
                         const time = new Date(comment.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
                         html += `<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
-                            <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong>
-                            <span style="color: #999; font-size: 11px;">${time}:</span>
-                            <span style="color: #555;">${comment.comment_text}</span>
+                            <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${comment.comment_text}</span>
                         </div>`;
                     });
                     commentsDiv.innerHTML = html || '<div style="color: #999; font-size: 12px; padding: 4px;">Noch keine Kommentare</div>';
