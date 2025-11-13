@@ -19,7 +19,6 @@ render_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
 ?>
 
 <!-- Formular zum Hinzufügen neuer TOPs -->
-<?php if ($can_edit_meeting): ?>
 <details style="margin: 20px 0; border: 2px solid #4caf50; border-radius: 8px; overflow: hidden;">
     <summary style="padding: 15px; background: #4caf50; color: white; font-size: 16px; font-weight: 600; cursor: pointer; list-style: none;">
         <span style="display: inline-block; width: 20px;">▶</span> ➕ Neuen TOP hinzufügen
@@ -81,7 +80,6 @@ details[open] summary span {
     display: inline-block;
 }
 </style>
-<?php endif; ?>
 
 <!-- TOPs anzeigen -->
 <?php 
