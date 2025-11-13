@@ -18,10 +18,15 @@ require_once 'module_comments.php';
 render_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
 ?>
 
+
+
+<h3>XXX Dies ist eine weitere Änderung, um GitHub auszuprobieren XXX</h3>
+
+
 <!-- Formular zum Hinzufügen neuer TOPs -->
 <details style="margin: 20px 0; border: 2px solid #4caf50; border-radius: 8px; overflow: hidden;">
     <summary style="padding: 15px; background: #4caf50; color: white; font-size: 16px; font-weight: 600; cursor: pointer; list-style: none;">
-        <span style="display: inline-block; width: 20px;">▶</span> ➕ Neuen TOP hinzufügen
+        <span style="display: inline-block; width: 20px;">▶</span> ➕ Einen neuen TOP hinzufügen
     </summary>
     
     <div style="padding: 15px; background: #f1f8e9;">
