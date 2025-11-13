@@ -108,10 +108,15 @@ function render_agenda_overview($agenda_items, $current_user = null, $current_me
 							if ($item['is_confidential'] && !$can_see_confidential) {
 								continue;
 							}
+
+							// TOP 999 nicht in Übersicht anzeigen
+							if ($item['top_number'] == 999) {
+								continue;
+							}
+
                             $top_display = '';
                             if ($item['top_number'] == 0) $top_display = '';
                             elseif ($item['top_number'] == 99) $top_display = ' ';
-                            elseif ($item['top_number'] == 999) $top_display = 'Diverses';
                             else $top_display = $item['top_number'];
                             
                             // Kategorie-Daten aus globaler Definition holen
@@ -242,11 +247,15 @@ function render_simple_agenda_overview($agenda_items, $current_user = null, $cur
                     if ($item['is_confidential'] && !$can_see_confidential) {
                         continue;
                     }
-                    
+
+                    // TOP 999 nicht in Übersicht anzeigen
+                    if ($item['top_number'] == 999) {
+                        continue;
+                    }
+
                     $top_display = '';
                     if ($item['top_number'] == 0) $top_display = 'TOP 0';
                     elseif ($item['top_number'] == 99) $top_display = 'Sonstiges';
-                    elseif ($item['top_number'] == 999) $top_display = 'Diverses';
                     else $top_display = 'TOP ' . $item['top_number'];
                     
                     // Kategorie-Icon aus globaler Definition holen
