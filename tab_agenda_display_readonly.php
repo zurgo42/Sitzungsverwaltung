@@ -22,9 +22,14 @@ $can_see_confidential = (
     $is_chairman
 );
 
-foreach ($agenda_items as $item): 
+foreach ($agenda_items as $item):
     // Vertrauliche TOPs nur für berechtigte User
     if ($item['is_confidential'] && !$can_see_confidential) {
+        continue;
+    }
+
+    // TOP 999 nicht anzeigen (nur Steuerungselement)
+    if ($item['top_number'] == 999) {
         continue;
     }
 ?>

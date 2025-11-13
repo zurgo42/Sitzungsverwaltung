@@ -91,20 +91,23 @@ $can_see_confidential = (
     $is_chairman
 );
 
-foreach ($agenda_items as $item): 
+foreach ($agenda_items as $item):
     // Vertrauliche TOPs nur für berechtigte User
     if ($item['is_confidential'] && !$can_see_confidential) {
         continue;
     }
-    
+
+    // TOP 999 nicht anzeigen (nur Steuerungselement)
+    if ($item['top_number'] == 999) {
+        continue;
+    }
+
     // TOP-Nummer formatieren
     $top_display = '';
     if ($item['top_number'] == 0) {
         $top_display = 'TOP 0: Eröffnung / Organisatorisches';
     } elseif ($item['top_number'] == 99) {
         $top_display = 'Sonstiges';
-    } elseif ($item['top_number'] == 999) {
-        $top_display = 'Diverses';
     } else {
         $top_display = 'TOP ' . $item['top_number'];
     }
