@@ -263,8 +263,9 @@ if (isset($_POST['add_member'])) {
     $email = trim($_POST['email'] ?? '');
     $role = $_POST['role'] ?? '';
     $is_admin = isset($_POST['is_admin']) ? 1 : 0;
+    $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
     $password = $_POST['password'] ?? '';
-    
+
     // Validierung
     if (!$first_name || !$last_name || !$email || !$role || !$password) {
         $error_message = "Pflichtfelder fehlen.";
@@ -272,24 +273,25 @@ if (isset($_POST['add_member'])) {
         try {
             // Passwort hashen
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
-            
+
             // Mitglied einfügen
             $stmt = $pdo->prepare("
-                INSERT INTO members 
-                (first_name, last_name, email, role, is_admin, password_hash) 
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO members
+                (first_name, last_name, email, role, is_admin, is_confidential, password_hash)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
-                $first_name, 
-                $last_name, 
-                $email, 
-                $role, 
-                $is_admin, 
+                $first_name,
+                $last_name,
+                $email,
+                $role,
+                $is_admin,
+                $is_confidential,
                 $password_hash
             ]);
-            
+
             $new_member_id = $pdo->lastInsertId();
-            
+
             // Admin-Log
             log_admin_action(
                 $pdo,
@@ -304,7 +306,8 @@ if (isset($_POST['add_member'])) {
                     'last_name' => $last_name,
                     'email' => $email,
                     'role' => $role,
-                    'is_admin' => $is_admin
+                    'is_admin' => $is_admin,
+                    'is_confidential' => $is_confidential
                 ]
             );
             
@@ -341,7 +344,8 @@ if (isset($_POST['edit_member'])) {
     $email = trim($_POST['email'] ?? '');
     $role = $_POST['role'] ?? '';
     $is_admin = isset($_POST['is_admin']) ? 1 : 0;
-    
+    $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
+
     // Validierung
     if (!$member_id || !$first_name || !$last_name || !$email || !$role) {
         $error_message = "Pflichtfelder fehlen.";
@@ -351,22 +355,23 @@ if (isset($_POST['edit_member'])) {
             $stmt = $pdo->prepare("SELECT * FROM members WHERE member_id = ?");
             $stmt->execute([$member_id]);
             $old_member = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if (!$old_member) {
                 $error_message = "Mitglied nicht gefunden.";
             } else {
                 // Mitglied aktualisieren
                 $stmt = $pdo->prepare("
-                    UPDATE members 
-                    SET first_name = ?, last_name = ?, email = ?, role = ?, is_admin = ? 
+                    UPDATE members
+                    SET first_name = ?, last_name = ?, email = ?, role = ?, is_admin = ?, is_confidential = ?
                     WHERE member_id = ?
                 ");
                 $stmt->execute([
-                    $first_name, 
-                    $last_name, 
-                    $email, 
-                    $role, 
-                    $is_admin, 
+                    $first_name,
+                    $last_name,
+                    $email,
+                    $role,
+                    $is_admin,
+                    $is_confidential,
                     $member_id
                 ]);
                 
@@ -386,6 +391,7 @@ if (isset($_POST['edit_member'])) {
                     'email' => $email,
                     'role' => $role,
                     'is_admin' => $is_admin,
+                    'is_confidential' => $is_confidential,
                     'password_changed' => $password_changed
                 ];
                 

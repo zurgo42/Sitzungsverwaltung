@@ -148,15 +148,43 @@ foreach ($agenda_items as $item):
                 </div>
             <?php endif; ?>
 
+            <!-- Nachträgliche Kommentare für Protokollführer anzeigen -->
+            <?php
+            $stmt = $pdo->prepare("
+                SELECT apc.*, m.first_name, m.last_name
+                FROM agenda_post_comments apc
+                JOIN members m ON apc.member_id = m.member_id
+                WHERE apc.item_id = ?
+                ORDER BY apc.created_at ASC
+            ");
+            $stmt->execute([$item['item_id']]);
+            $all_post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($all_post_comments)):
+            ?>
+                <div style="margin-top: 15px; padding: 12px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 6px;">
+                    <h4 style="color: #e65100; margin-bottom: 8px;">💭 Nachträgliche Anmerkungen der Teilnehmer</h4>
+                    <div style="background: white; padding: 10px; border-radius: 4px;">
+                        <?php foreach ($all_post_comments as $pc): ?>
+                            <div style="padding: 6px 0; border-bottom: 1px solid #eee; font-size: 13px;">
+                                <strong style="color: #333;"><?php echo htmlspecialchars($pc['first_name'] . ' ' . $pc['last_name']); ?></strong>
+                                <span style="color: #999; font-size: 11px;"><?php echo date('d.m.Y H:i', strtotime($pc['created_at'])); ?>:</span>
+                                <span style="color: #555;"><?php echo htmlspecialchars($pc['comment_text']); ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <!-- Protokollant kann editieren -->
             <div style="margin-top: 15px; padding: 12px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 6px;">
                 <h4 style="color: #1976d2; margin-bottom: 10px;">📝 Protokoll (editierbar)</h4>
-                
+
                 <div class="form-group">
                     <label style="font-weight: 600;">Protokollnotizen:</label>
-                    <textarea name="protocol_text[<?php echo $item['item_id']; ?>]" 
-                              rows="6" 
-                              placeholder="Notizen zu diesem TOP..." 
+                    <textarea name="protocol_text[<?php echo $item['item_id']; ?>]"
+                              rows="6"
+                              placeholder="Notizen zu diesem TOP..."
                               style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
                 </div>
                 

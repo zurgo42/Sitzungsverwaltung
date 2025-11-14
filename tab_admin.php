@@ -184,6 +184,12 @@ require_once 'process_admin.php';
                 </div>
             </div>
             <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="is_confidential" value="1">
+                    <span>Darf vertrauliche TOPs sehen</span>
+                </label>
+            </div>
+            <div class="form-group">
                 <label>Passwort:</label>
                 <input type="password" name="password" required>
             </div>
@@ -200,6 +206,7 @@ require_once 'process_admin.php';
                 <th>E-Mail</th>
                 <th>Rolle</th>
                 <th>Admin</th>
+                <th>Vertraulich</th>
                 <th>Aktionen</th>
             </tr>
         </thead>
@@ -211,6 +218,7 @@ require_once 'process_admin.php';
                     <td><?php echo htmlspecialchars($member['email']); ?></td>
                     <td><?php echo htmlspecialchars($member['role']); ?></td>
                     <td><?php echo $member['is_admin'] ? '✅' : '❌'; ?></td>
+                    <td><?php echo $member['is_confidential'] ? '✅' : '❌'; ?></td>
                     <td class="action-buttons">
                         <button class="btn-view" onclick="editMember(<?php echo $member['member_id']; ?>)">✏️</button>
                         <form method="POST" onsubmit="return confirm('Mitglied wirklich löschen?');">
@@ -259,6 +267,12 @@ require_once 'process_admin.php';
                             <span>Admin-Rechte</span>
                         </label>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="is_confidential" id="edit_is_confidential" value="1">
+                        <span>Darf vertrauliche TOPs sehen</span>
+                    </label>
                 </div>
                 <div class="form-group">
                     <label>Neues Passwort (leer lassen um nicht zu ändern):</label>
@@ -411,7 +425,7 @@ function closeEditMeetingModal() {
 function editMember(memberId) {
     const members = <?php echo json_encode($members); ?>;
     const member = members.find(m => m.member_id == memberId);
-    
+
     if (member) {
         document.getElementById('edit_member_id').value = member.member_id;
         document.getElementById('edit_first_name').value = member.first_name;
@@ -419,6 +433,7 @@ function editMember(memberId) {
         document.getElementById('edit_email').value = member.email;
         document.getElementById('edit_role').value = member.role;
         document.getElementById('edit_is_admin').checked = member.is_admin == 1;
+        document.getElementById('edit_is_confidential').checked = member.is_confidential == 1;
         document.getElementById('edit_password').value = '';
         document.getElementById('edit-member-modal').classList.add('show');
     }
