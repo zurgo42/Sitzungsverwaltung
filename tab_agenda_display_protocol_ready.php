@@ -77,67 +77,73 @@ foreach ($agenda_items as $item):
             </div>
         <?php endif; ?>
         
-        <!-- Diskussionsbeiträge (zugeklappt) -->
-        <details style="margin-top: 10px;">
-            <summary style="cursor: pointer; color: #667eea; font-weight: 600; padding: 6px; background: #f9f9f9; border-radius: 4px; font-size: 13px;">
-                💬 Alle Diskussionsbeiträge anzeigen
-            </summary>
-            <div style="margin-top: 8px; padding: 8px; background: white; border: 1px solid #ddd; border-radius: 4px;">
-                <?php
-                $prep_comments = get_item_comments($pdo, $item['item_id']);
-                if (!empty($prep_comments)):
-                ?>
-                    <h5 style="font-size: 12px; color: #667eea; margin: 8px 0 4px 0;">Aus Vorbereitung:</h5>
-                    <?php foreach ($prep_comments as $comment): ?>
-                        <?php render_comment_line($comment, 'full'); ?>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+        <!-- Diskussionsbeiträge (zugeklappt, nur wenn vorhanden) -->
+        <?php
+        // Alle Kommentare laden
+        $prep_comments = get_item_comments($pdo, $item['item_id']);
 
-                <?php
-                // Live-Kommentare
-                $stmt = $pdo->prepare("
-                    SELECT alc.*, m.first_name, m.last_name
-                    FROM agenda_live_comments alc
-                    JOIN members m ON alc.member_id = m.member_id
-                    WHERE alc.item_id = ?
-                    ORDER BY alc.created_at ASC
-                ");
-                $stmt->execute([$item['item_id']]);
-                $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $pdo->prepare("
+            SELECT alc.*, m.first_name, m.last_name
+            FROM agenda_live_comments alc
+            JOIN members m ON alc.member_id = m.member_id
+            WHERE alc.item_id = ?
+            ORDER BY alc.created_at ASC
+        ");
+        $stmt->execute([$item['item_id']]);
+        $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                if (!empty($live_comments)):
-                ?>
-                    <h5 style="font-size: 12px; color: #f44336; margin: 12px 0 4px 0;">Während Sitzung:</h5>
-                    <?php foreach ($live_comments as $lc): ?>
-                        <?php render_comment_line($lc, 'time'); ?>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+        $stmt = $pdo->prepare("
+            SELECT apc.*, m.first_name, m.last_name
+            FROM agenda_post_comments apc
+            JOIN members m ON apc.member_id = m.member_id
+            WHERE apc.item_id = ?
+            ORDER BY apc.created_at ASC
+        ");
+        $stmt->execute([$item['item_id']]);
+        $post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                <?php
-                // Nachträgliche Kommentare
-                $stmt = $pdo->prepare("
-                    SELECT apc.*, m.first_name, m.last_name
-                    FROM agenda_post_comments apc
-                    JOIN members m ON apc.member_id = m.member_id
-                    WHERE apc.item_id = ?
-                    ORDER BY apc.created_at ASC
-                ");
-                $stmt->execute([$item['item_id']]);
-                $post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Nur anzeigen wenn mindestens eine Kommentarart vorhanden
+        if (!empty($prep_comments) || !empty($live_comments) || !empty($post_comments)):
+        ?>
+            <details style="margin-top: 10px;">
+                <summary style="cursor: pointer; color: #667eea; font-weight: 600; padding: 6px; background: #f9f9f9; border-radius: 4px; font-size: 13px;">
+                    💬 Alle Diskussionsbeiträge anzeigen
+                </summary>
+                <div style="margin-top: 8px; padding: 8px; background: white; border: 1px solid #ddd; border-radius: 4px;">
+                    <?php if (!empty($prep_comments)): ?>
+                        <h5 style="font-size: 12px; color: #667eea; margin: 8px 0 4px 0;">Aus Vorbereitung:</h5>
+                        <?php foreach ($prep_comments as $comment): ?>
+                            <?php render_comment_line($comment, 'full'); ?>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
 
-                if (!empty($post_comments)):
-                ?>
-                    <h5 style="font-size: 12px; color: #4caf50; margin: 12px 0 4px 0;">Nachträgliche Anmerkungen:</h5>
-                    <?php foreach ($post_comments as $pc): ?>
-                        <?php render_comment_line($pc, 'full'); ?>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                    <?php if (!empty($live_comments)): ?>
+                        <h5 style="font-size: 12px; color: #f44336; margin: 12px 0 4px 0;">Während Sitzung:</h5>
+                        <?php foreach ($live_comments as $lc): ?>
+                            <?php render_comment_line($lc, 'time'); ?>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
 
-                <?php if (empty($prep_comments) && empty($live_comments) && empty($post_comments)): ?>
-                    <div style="color: #999; font-size: 12px;">Keine Kommentare</div>
-                <?php endif; ?>
-            </div>
-        </details>
+                    <?php if (!empty($post_comments)): ?>
+                        <h5 style="font-size: 12px; color: #4caf50; margin: 12px 0 4px 0;">Nachträgliche Anmerkungen:</h5>
+                        <?php foreach ($post_comments as $pc): ?>
+                            <?php
+                            // Sitzungsleiter-Kommentare in rot
+                            if ($pc['member_id'] == $meeting['chairman_member_id']) {
+                                echo '<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">';
+                                echo '<strong style="color: #c62828;">' . htmlspecialchars($pc['first_name'] . ' ' . $pc['last_name']) . ' (Sitzungsleiter)</strong> ';
+                                echo '<span style="color: #999; font-size: 11px;">' . date('d.m.Y H:i', strtotime($pc['created_at'])) . ':</span> ';
+                                echo '<span style="color: #c62828;">' . htmlspecialchars($pc['comment_text']) . '</span>';
+                                echo '</div>';
+                            } else {
+                                render_comment_line($pc, 'full');
+                            }
+                            ?>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </details>
+        <?php endif; ?>
         
         <!-- PROTOKOLL -->
         <?php if ($is_secretary): ?>
@@ -233,7 +239,21 @@ foreach ($agenda_items as $item):
             <?php display_protocol($protocols['confidential']); ?>
         <?php endif; ?>
     </div>
-    
+
+    <!-- PROTOKOLLÄNDERUNG ANFORDERN -->
+    <div style="margin-top: 20px; padding: 15px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px;">
+        <h4 style="color: #e65100; margin-bottom: 10px;">📝 Protokolländerung anfordern</h4>
+        <p style="color: #666; margin-bottom: 10px;">
+            Falls Sie Änderungen am Protokoll wünschen, können Sie dem Protokollanten eine Überarbeitungsanfrage senden.
+        </p>
+        <form method="POST" action="" onsubmit="return confirm('Überarbeitungsanfrage wirklich senden? Der Protokollant erhält ein entsprechendes ToDo.');">
+            <input type="hidden" name="request_protocol_revision" value="1">
+            <button type="submit" style="background: #ff9800; color: white; padding: 10px 20px; font-size: 16px; font-weight: 600; border: none; border-radius: 4px; cursor: pointer;">
+                📝 Protokolländerung anfordern
+            </button>
+        </form>
+    </div>
+
     <!-- GENEHMIGEN -->
     <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border: 2px solid #4caf50; border-radius: 8px;">
         <h4 style="color: #2e7d32; margin-bottom: 10px;">✅ Protokoll genehmigen</h4>

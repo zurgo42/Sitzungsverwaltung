@@ -73,24 +73,24 @@ foreach ($agenda_items as $item):
             </div>
         <?php endif; ?>
         
-        <!-- Diskussionsbeiträge aus Vorbereitung (zugeklappt) -->
-        <details style="margin-top: 10px;">
-            <summary style="cursor: pointer; color: #667eea; font-weight: 600; padding: 6px; background: #f9f9f9; border-radius: 4px; font-size: 13px;">
-                💬 Diskussionsbeiträge aus Vorbereitung
-            </summary>
-            <div style="margin-top: 8px; padding: 8px; background: white; border: 1px solid #ddd; border-radius: 4px;">
-                <?php
-                $prep_comments = get_item_comments($pdo, $item['item_id']);
-                if (!empty($prep_comments)):
+        <!-- Diskussionsbeiträge aus Vorbereitung (zugeklappt, nur wenn vorhanden) -->
+        <?php
+        $prep_comments = get_item_comments($pdo, $item['item_id']);
+        if (!empty($prep_comments)):
+        ?>
+            <details style="margin-top: 10px;">
+                <summary style="cursor: pointer; color: #667eea; font-weight: 600; padding: 6px; background: #f9f9f9; border-radius: 4px; font-size: 13px;">
+                    💬 Diskussionsbeiträge aus Vorbereitung
+                </summary>
+                <div style="margin-top: 8px; padding: 8px; background: white; border: 1px solid #ddd; border-radius: 4px;">
+                    <?php
                     foreach ($prep_comments as $comment):
                         render_comment_line($comment, 'full');
                     endforeach;
-                else:
-                ?>
-                    <div style="color: #999; font-size: 12px;">Keine Kommentare</div>
-                <?php endif; ?>
-            </div>
-        </details>
+                    ?>
+                </div>
+            </details>
+        <?php endif; ?>
         
         <!-- Live-Kommentare (zugeklappt, falls vorhanden) -->
         <?php

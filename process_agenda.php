@@ -1737,4 +1737,80 @@ if (isset($_POST['approve_protocol']) && $is_chairman && $meeting['status'] === 
     }
 }
 
+/**
+ * Protokolländerung anfordern (Sitzungsleiter)
+ */
+if (isset($_POST['request_protocol_revision']) && $is_chairman && $meeting['status'] === 'protocol_ready') {
+    try {
+        $todo_title = "Protokoll überarbeiten: " . $meeting['meeting_name'] . " vom " . date('d.m.Y', strtotime($meeting['meeting_date']));
+        $todo_description = "Der Sitzungsleiter hat Änderungen am Protokoll angefordert. Bitte prüfen Sie Ihre Anmerkungen und überarbeiten Sie das Protokoll entsprechend.\n\nLink: " . get_full_meeting_link($current_meeting_id);
+
+        $stmt = $pdo->prepare("
+            INSERT INTO todos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id, entry_date)
+            VALUES (?, ?, ?, ?, DATE_ADD(CURDATE(), INTERVAL 3 DAY), 'open', ?, CURDATE())
+        ");
+        $stmt->execute([
+            $current_meeting_id,
+            $meeting['secretary_member_id'],
+            $todo_title,
+            $todo_description,
+            $current_user['member_id']
+        ]);
+
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
+        exit;
+    } catch (PDOException $e) {
+        error_log("Fehler beim Anfordern der Protokolländerung: " . $e->getMessage());
+    }
+}
+
+/**
+ * Sitzungsleiter-Kommentar speichern (protocol_ready)
+ */
+if (isset($_POST['save_chairman_comment']) && $is_chairman && $meeting['status'] === 'protocol_ready') {
+    $item_id = intval($_POST['item_id'] ?? 0);
+    $comment_text = trim($_POST['comment_text'] ?? '');
+
+    if ($item_id) {
+        try {
+            // Prüfen ob bereits ein Kommentar existiert
+            $stmt = $pdo->prepare("
+                SELECT comment_id
+                FROM agenda_post_comments
+                WHERE item_id = ? AND member_id = ?
+            ");
+            $stmt->execute([$item_id, $current_user['member_id']]);
+            $existing = $stmt->fetch();
+
+            if ($existing) {
+                // Update
+                if (!empty($comment_text)) {
+                    $stmt = $pdo->prepare("
+                        UPDATE agenda_post_comments
+                        SET comment_text = ?, created_at = NOW()
+                        WHERE comment_id = ?
+                    ");
+                    $stmt->execute([$comment_text, $existing['comment_id']]);
+                } else {
+                    // Löschen wenn leer
+                    $stmt = $pdo->prepare("DELETE FROM agenda_post_comments WHERE comment_id = ?");
+                    $stmt->execute([$existing['comment_id']]);
+                }
+            } elseif (!empty($comment_text)) {
+                // Insert
+                $stmt = $pdo->prepare("
+                    INSERT INTO agenda_post_comments (item_id, member_id, comment_text, created_at)
+                    VALUES (?, ?, ?, NOW())
+                ");
+                $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+            }
+
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
+            exit;
+        } catch (PDOException $e) {
+            error_log("Fehler beim Speichern des Sitzungsleiter-Kommentars: " . $e->getMessage());
+        }
+    }
+}
+
 ?>
