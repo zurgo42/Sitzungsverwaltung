@@ -11,6 +11,37 @@ $all_meetings = get_all_meetings($pdo);
 $all_members = get_all_members($pdo);
 ?>
 
+<style>
+/* Kompaktere Meeting-Cards */
+.meeting-card {
+    padding: 12px !important;
+    margin-bottom: 15px !important;
+}
+.meeting-card-header {
+    padding: 0 !important;
+}
+.meeting-card-content {
+    padding: 0 !important;
+    margin-bottom: 8px !important;
+}
+.agenda-title {
+    margin-bottom: 8px !important;
+}
+.agenda-meta {
+    margin-top: 4px !important;
+    line-height: 1.4 !important;
+}
+.meeting-card-actions {
+    margin-top: 10px !important;
+    gap: 8px !important;
+}
+.meeting-edit-section,
+.meeting-start-section {
+    padding: 12px !important;
+    margin-top: 12px !important;
+}
+</style>
+
 <h2>📅 Meetings verwalten</h2>
 
 <?php if (isset($_GET['success'])): ?>
@@ -133,14 +164,21 @@ $all_members = get_all_members($pdo);
 <?php if (empty($all_meetings)): ?>
     <div class="info-box">Noch keine Meetings vorhanden.</div>
 <?php else: ?>
-    <?php foreach ($all_meetings as $m): 
+    <?php foreach ($all_meetings as $m):
         $status_class = 'meeting-card status-' . $m['status'];
         $is_creator = ($m['invited_by_member_id'] == $current_user['member_id']);
         $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
         $can_edit = ($is_creator || $is_admin) && $m['status'] === 'preparation';
+
+        // Rote Umrandung für ausstehende Aufgaben
+        $is_secretary = ($m['secretary_member_id'] == $current_user['member_id']);
+        $is_chairman = ($m['chairman_member_id'] == $current_user['member_id']);
+        $needs_protocol_completion = ($m['status'] === 'ended' && $is_secretary);
+        $needs_protocol_approval = ($m['status'] === 'protocol_ready' && $is_chairman);
+        $red_border_style = ($needs_protocol_completion || $needs_protocol_approval) ? ' style="border: 3px solid #f44336;"' : '';
     ?>
-        
-        <div class="<?php echo $status_class; ?>">
+
+        <div class="<?php echo $status_class; ?>"<?php echo $red_border_style; ?>>
             <div class="meeting-card-header">
                 <div class="meeting-card-content">
                     <div class="agenda-title">
@@ -148,7 +186,9 @@ $all_members = get_all_members($pdo);
                             <strong><?php echo htmlspecialchars($m['meeting_name']); ?></strong><br>
                         <?php endif; ?>
                         Termin am <?php echo date('d.m.Y H:i', strtotime($m['meeting_date'])); ?>
-                        <?php if (!empty($m['expected_end_date'])): ?>
+                        <?php if (in_array($m['status'], ['ended', 'protocol_ready', 'archived']) && !empty($m['meeting_end_date'])): ?>
+                            <br><small>Ende der Sitzung: <?php echo date('d.m.Y H:i', strtotime($m['meeting_end_date'])); ?></small>
+                        <?php elseif (!empty($m['expected_end_date'])): ?>
                             <br><small>Voraussichtliches Ende: <?php echo date('d.m.Y H:i', strtotime($m['expected_end_date'])); ?></small>
                         <?php endif; ?>
                     </div>
@@ -164,9 +204,9 @@ $all_members = get_all_members($pdo);
                             echo '<br>Eingeladen von: ' . htmlspecialchars($m['first_name'] . ' ' . $m['last_name']);
                         }
                         ?>
-                        <br><strong>Status:</strong> 
+                        <br><strong>Status:</strong>
                         <span class="meeting-status-badge <?php echo $m['status']; ?>">
-                            <?php 
+                            <?php
                             switch($m['status']) {
                                 case 'preparation': echo '📝 In Vorbereitung'; break;
                                 case 'active': echo '🟢 Sitzung läuft'; break;
@@ -177,6 +217,11 @@ $all_members = get_all_members($pdo);
                             }
                             ?>
                         </span>
+                        <?php if ($needs_protocol_completion): ?>
+                            <br><strong style="color: #f44336;">⚠️ Fertigstellung des Protokolls steht aus</strong>
+                        <?php elseif ($needs_protocol_approval): ?>
+                            <br><strong style="color: #f44336;">⚠️ Genehmigung des Protokolls steht aus</strong>
+                        <?php endif; ?>
                     </div>
                 </div>
                 
