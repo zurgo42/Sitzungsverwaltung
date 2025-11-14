@@ -379,7 +379,7 @@ require_once 'process_admin.php';
                         <td><?php echo htmlspecialchars($todo['first_name'] . ' ' . $todo['last_name']); ?></td>
                         <td><?php echo $todo['due_date'] ? date('d.m.Y', strtotime($todo['due_date'])) : '-'; ?></td>
                         <td class="action-buttons">
-                            <button class="btn-view" onclick="alert('ToDo-Editierung: Bitte in der ToDo-Übersicht (Tab Todos) bearbeiten')">✏️</button>
+                            <button class="btn-view" onclick="editTodo(<?php echo $todo['todo_id']; ?>)">✏️</button>
                             <form method="POST" onsubmit="return confirm('ToDo als erledigt markieren?');" style="display: inline;">
                                 <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
                                 <button type="submit" name="close_todo" class="btn-primary">✓ Erledigt</button>
@@ -453,6 +453,56 @@ require_once 'process_admin.php';
         </table>
     <?php endif; ?>
     </div> <!-- End admin-section-content -->
+</div>
+
+<!-- Edit ToDo Modal -->
+<div id="edit-todo-modal" class="modal">
+    <div class="modal-content">
+        <h3>ToDo bearbeiten</h3>
+        <form method="POST" id="edit-todo-form">
+            <input type="hidden" name="todo_id" id="edit_todo_id">
+            <div class="form-group">
+                <label>Titel:</label>
+                <input type="text" name="title" id="edit_todo_title" required>
+            </div>
+            <div class="form-group">
+                <label>Beschreibung:</label>
+                <textarea name="description" id="edit_todo_description" rows="4" required></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Zugewiesen an:</label>
+                    <select name="assigned_to_member_id" id="edit_todo_assigned_to" required>
+                        <option value="">Bitte wählen...</option>
+                        <?php foreach ($members as $m): ?>
+                            <option value="<?php echo $m['member_id']; ?>">
+                                <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Status:</label>
+                    <select name="status" id="edit_todo_status" required>
+                        <option value="open">Offen</option>
+                        <option value="done">Erledigt</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Eintrittsdatum:</label>
+                    <input type="date" name="entry_date" id="edit_todo_entry_date">
+                </div>
+                <div class="form-group">
+                    <label>Fälligkeitsdatum:</label>
+                    <input type="date" name="due_date" id="edit_todo_due_date">
+                </div>
+            </div>
+            <button type="submit" name="edit_todo" class="btn-primary">Speichern</button>
+            <button type="button" onclick="closeEditTodoModal()" class="btn-secondary">Abbrechen</button>
+        </form>
+    </div>
 </div>
 
 <!-- Log-Details Modal -->
@@ -556,6 +606,27 @@ function toggleSection(header) {
     header.classList.toggle('collapsed');
     const content = header.nextElementSibling;
     content.classList.toggle('collapsed');
+}
+
+// ToDo bearbeiten
+function editTodo(todoId) {
+    const todos = <?php echo json_encode($open_todos); ?>;
+    const todo = todos.find(t => t.todo_id == todoId);
+
+    if (todo) {
+        document.getElementById('edit_todo_id').value = todo.todo_id;
+        document.getElementById('edit_todo_title').value = todo.title || '';
+        document.getElementById('edit_todo_description').value = todo.description || '';
+        document.getElementById('edit_todo_assigned_to').value = todo.assigned_to_member_id || '';
+        document.getElementById('edit_todo_status').value = todo.status || 'open';
+        document.getElementById('edit_todo_entry_date').value = todo.entry_date || '';
+        document.getElementById('edit_todo_due_date').value = todo.due_date || '';
+        document.getElementById('edit-todo-modal').classList.add('show');
+    }
+}
+
+function closeEditTodoModal() {
+    document.getElementById('edit-todo-modal').classList.remove('show');
 }
 
 // Initialize: Start with all sections expanded

@@ -71,8 +71,8 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
     
     // === TOPs DURCHGEHEN ===
     foreach ($agenda_items as $item) {
-        // TOP 99 und 999 überspringen (NICHT TOP 0!)
-        if (in_array($item['top_number'], [99, 999])) {
+        // Nur TOP 999 überspringen (technischer Marker für Ende)
+        if ($item['top_number'] == 999) {
             continue;
         }
         

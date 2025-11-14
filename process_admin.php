@@ -531,6 +531,89 @@ if (isset($_POST['close_todo'])) {
 }
 
 /**
+ * ToDo bearbeiten
+ *
+ * POST-Parameter:
+ * - edit_todo: 1
+ * - todo_id: Int (required)
+ * - title: String
+ * - description: String
+ * - assigned_to_member_id: Int
+ * - status: String
+ * - entry_date: Date
+ * - due_date: Date
+ *
+ * Aktion:
+ * - ToDo aktualisieren
+ * - Admin-Aktion protokollieren
+ */
+if (isset($_POST['edit_todo'])) {
+    $todo_id = intval($_POST['todo_id'] ?? 0);
+    $title = trim($_POST['title'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $assigned_to_member_id = intval($_POST['assigned_to_member_id'] ?? 0);
+    $status = $_POST['status'] ?? 'open';
+    $entry_date = $_POST['entry_date'] ?? null;
+    $due_date = $_POST['due_date'] ?? null;
+
+    if (!$todo_id || !$title || !$description || !$assigned_to_member_id) {
+        $error_message = "Pflichtfelder fehlen.";
+    } else {
+        try {
+            // Alte Daten für Log abrufen
+            $stmt = $pdo->prepare("SELECT * FROM todos WHERE todo_id = ?");
+            $stmt->execute([$todo_id]);
+            $old_todo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$old_todo) {
+                $error_message = "ToDo nicht gefunden.";
+            } else {
+                // ToDo aktualisieren
+                $stmt = $pdo->prepare("
+                    UPDATE todos
+                    SET title = ?, description = ?, assigned_to_member_id = ?,
+                        status = ?, entry_date = ?, due_date = ?
+                    WHERE todo_id = ?
+                ");
+                $stmt->execute([
+                    $title,
+                    $description,
+                    $assigned_to_member_id,
+                    $status,
+                    $entry_date ?: null,
+                    $due_date ?: null,
+                    $todo_id
+                ]);
+
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'todo_edit',
+                    "ToDo bearbeitet: $title",
+                    'todo',
+                    $todo_id,
+                    $old_todo,
+                    [
+                        'title' => $title,
+                        'description' => $description,
+                        'assigned_to_member_id' => $assigned_to_member_id,
+                        'status' => $status,
+                        'entry_date' => $entry_date,
+                        'due_date' => $due_date
+                    ]
+                );
+
+                $success_message = "✅ ToDo erfolgreich aktualisiert!";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim ToDo-Aktualisieren: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Aktualisieren: " . $e->getMessage();
+        }
+    }
+}
+
+/**
  * ToDo löschen
  *
  * POST-Parameter:
