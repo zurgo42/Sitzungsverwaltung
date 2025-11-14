@@ -177,6 +177,37 @@ foreach ($agenda_items as $item):
             </div>
         <?php endif; ?>
 
+        <!-- NACHTRÄGLICHE KOMMENTARE FÜR PROTOKOLLFÜHRER -->
+        <?php if ($is_secretary): ?>
+            <?php
+            // Nachträgliche Kommentare laden
+            $stmt = $pdo->prepare("
+                SELECT apc.*, m.first_name, m.last_name
+                FROM agenda_post_comments apc
+                JOIN members m ON apc.member_id = m.member_id
+                WHERE apc.item_id = ?
+                ORDER BY apc.created_at ASC
+            ");
+            $stmt->execute([$item['item_id']]);
+            $all_post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($all_post_comments)):
+            ?>
+                <div style="margin-top: 15px; padding: 12px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 6px;">
+                    <h4 style="color: #e65100; margin-bottom: 8px;">💭 Nachträgliche Anmerkungen der Teilnehmer</h4>
+                    <div style="background: white; padding: 10px; border-radius: 4px;">
+                        <?php foreach ($all_post_comments as $pc): ?>
+                            <div style="padding: 6px 0; border-bottom: 1px solid #eee; font-size: 13px;">
+                                <strong style="color: #333;"><?php echo htmlspecialchars($pc['first_name'] . ' ' . $pc['last_name']); ?></strong>
+                                <span style="color: #999; font-size: 11px;"><?php echo date('d.m.Y H:i', strtotime($pc['created_at'])); ?>:</span>
+                                <span style="color: #555;"><?php echo htmlspecialchars($pc['comment_text']); ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+
         <!-- KOMMENTARFELD FÜR SITZUNGSLEITER -->
         <?php if ($is_chairman): ?>
             <div style="margin-top: 15px; padding: 12px; background: #ffebee; border: 2px solid #f44336; border-radius: 6px;">
