@@ -250,6 +250,28 @@ foreach ($agenda_items as $item):
 </form>
 <?php endif; ?>
 
+<?php if ($is_secretary): ?>
+    <!-- KURZPROTOKOLL FÜR PROTOKOLLFÜHRER -->
+    <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 2px solid #2196f3; border-radius: 8px;">
+        <h3 style="color: #1976d2; margin-bottom: 15px;">📋 Kurzprotokoll (Vorschau)</h3>
+
+        <?php
+        // Protokoll generieren
+        $protocols = generate_protocol($pdo, $meeting, $agenda_items, $participants);
+
+        if (!empty($protocols['public'])):
+        ?>
+            <h4 style="color: #666; margin: 15px 0 10px 0;">Öffentliches Protokoll:</h4>
+            <?php display_protocol($protocols['public']); ?>
+        <?php endif; ?>
+
+        <?php if (!empty($protocols['confidential'])): ?>
+            <h4 style="color: #666; margin: 25px 0 10px 0;">Vertrauliches Protokoll:</h4>
+            <?php display_protocol($protocols['confidential']); ?>
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
+
 <?php if ($is_chairman): ?>
     <!-- KURZPROTOKOLL FÜR SITZUNGSLEITER -->
     <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 2px solid #2196f3; border-radius: 8px;">
