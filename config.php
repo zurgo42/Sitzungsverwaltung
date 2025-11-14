@@ -29,7 +29,7 @@ define('MAIL_FROM_NAME', 'Meeting-System');
 
 // ============= WEITERE EINSTELLUNGEN =============
 define('TOP_CONFIDENTIAL_START', 101);  // Ab welcher TOP-Nummer ist es vertraulich
-define('DEBUG_MODE', true);  // Fehler-Ausgabe aktivieren (in Entwicklung auf true)
+define('DEBUG_MODE', false);  // Fehler-Ausgabe aktivieren (in Entwicklung auf true)
 
 // Rollen-Definitionen
 define('ROLES_CONFIDENTIAL_ACCESS', ['vorstand', 'gf', 'assistenz']); // Rollen mit Zugriff auf vertrauliche TOPs
