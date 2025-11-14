@@ -207,13 +207,13 @@ function display_protocol($protocol_html) {
         echo '<div style="color: #999; padding: 20px; text-align: center;">Noch kein Protokoll vorhanden</div>';
         return;
     }
-    
+
     // HTML-Entities dekodieren für Anzeige
     $decoded = html_entity_decode($protocol_html);
-    // <tr> und <td> Tags durch divs ersetzen für bessere Darstellung
-    $decoded = str_replace(['&lt;tr class=&quot;mitr&quot;&gt;', '&lt;/tr&gt;'], ['<div>', '</div>'], $decoded);
-    $decoded = str_replace(['&lt;td class=&quot;mitr&quot;&gt;', '&lt;/td&gt;'], ['', ''], $decoded);
-    
+    // <tr> und <td> Tags durch divs ersetzen für bessere Darstellung (nach dem Dekodieren!)
+    $decoded = str_replace(['<tr class="mitr">', '</tr>'], ['<div>', '</div>'], $decoded);
+    $decoded = str_replace(['<td class="mitr">', '</td>'], ['', ''], $decoded);
+
     echo '<div style="background: white; padding: 20px; border: 1px solid #ddd; border-radius: 8px; line-height: 1.8;">';
     echo $decoded;
     echo '</div>';
