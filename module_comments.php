@@ -42,6 +42,12 @@ function get_my_comment($pdo, $item_id, $member_id) {
  * @param string $date_format Format für Timestamp ('full' = d.m.Y H:i, 'time' = H:i)
  */
 function render_comment_line($comment, $date_format = 'full') {
+    // Leere Kommentare oder solche mit nur '-' nicht anzeigen
+    $text_trimmed = trim($comment['comment_text'] ?? '');
+    if ($text_trimmed === '' || $text_trimmed === '-') {
+        return;
+    }
+
     $name = htmlspecialchars($comment['first_name'] . ' ' . $comment['last_name']);
     $timestamp = $date_format === 'time'
         ? date('H:i', strtotime($comment['created_at']))
