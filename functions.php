@@ -5,6 +5,8 @@
 
 // Datenbankverbindung erstellen
 require_once("config.php");
+require_once("config_adapter.php");   // Konfiguration für Mitgliederquelle
+require_once("member_functions.php"); // Prozedurale Wrapper-Funktionen
 try {
     $pdo = new PDO(
         "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
@@ -33,15 +35,14 @@ function require_login() {
 
 /**
  * Gibt aktuellen eingeloggten User zurück
+ * Nutzt Wrapper-Funktion (funktioniert mit members ODER berechtigte)
  */
 function get_current_member() {
     global $pdo;
     if (!isset($_SESSION['member_id'])) {
         return null;
     }
-    $stmt = $pdo->prepare("SELECT * FROM members WHERE member_id = ?");
-    $stmt->execute([$_SESSION['member_id']]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+    return get_member_by_id($pdo, $_SESSION['member_id']);
 }
 
 /**
@@ -64,18 +65,11 @@ function get_all_meetings($pdo) {
 
 /**
  * Lädt alle Mitglieder
+ * HINWEIS: Diese Funktion ist jetzt in member_functions.php definiert
+ * und wird automatisch von dort geladen. Sie funktioniert mit members
+ * ODER berechtigte Tabelle (siehe config_adapter.php).
  */
-function get_all_members($pdo) {
-    try {
-        $stmt = $pdo->query("SELECT * FROM members ORDER BY last_name, first_name");
-        return $stmt->fetchAll();
-    } catch (PDOException $e) {
-        if (DEBUG_MODE) {
-            die("Fehler in get_all_members(): " . $e->getMessage());
-        }
-        return [];
-    }
-}
+// function get_all_members() wurde nach member_functions.php verschoben
 
 /**
  * Lädt Meeting-Details

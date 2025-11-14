@@ -15,8 +15,10 @@
 session_start();
 
 // Konfiguration und Hilfsfunktionen laden
-require_once 'config.php';      // Datenbankverbindung und Konstanten
-require_once 'functions.php';    // Wiederverwendbare Funktionen
+require_once 'config.php';           // Datenbankverbindung und Konstanten
+require_once 'config_adapter.php';   // Konfiguration für Mitgliederquelle
+require_once 'member_functions.php'; // Prozedurale Wrapper-Funktionen für Mitglieder
+require_once 'functions.php';        // Wiederverwendbare Funktionen
 
 // ============================================
 // LOGOUT-VERARBEITUNG
@@ -37,37 +39,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $email = trim($_POST['email']);
     $password = $_POST['password'];
     
-    // Benutzer in Datenbank suchen
-    $stmt = $pdo->prepare("SELECT * FROM members WHERE email = ?");
-    $stmt->execute([$email]);
-    $user = $stmt->fetch();
-    
-    // Wenn Benutzer gefunden wurde
+    // Authentifizierung über Wrapper-Funktion
+    // Funktioniert mit members ODER berechtigte Tabelle (siehe config_adapter.php)
+    $user = authenticate_member($pdo, $email, $password);
+
+    // Bei erfolgreichem Login
     if ($user) {
-        // Passwort-Prüfung (mit Unterstützung für gehashte und Plain-Text-Passwörter)
-        $password_valid = false;
-        
-        // Prüfe ob Passwort gehasht ist (production)
-        if (password_get_info($user['password_hash'])['algo'] !== null) {
-            // Gehashtes Passwort mit password_verify prüfen
-            $password_valid = password_verify($password, $user['password_hash']);
-        } else {
-            // Für Demo/Entwicklung: Direkter Vergleich (nicht für Production!)
-            $password_valid = ($password === $user['password_hash'] || $password === 'test123');
-        }
-        
-        // Bei erfolgreichem Login
-        if ($password_valid) {
-            // Session-Variablen setzen
-            $_SESSION['member_id'] = $user['member_id'];
-            $_SESSION['role'] = $user['role'];
-            
-            // Zur Hauptseite weiterleiten
-            header('Location: index.php');
-            exit;
-        } else {
-            $login_error = "Ungültige Anmeldedaten";
-        }
+        // Session-Variablen setzen
+        $_SESSION['member_id'] = $user['member_id'];
+        $_SESSION['role'] = $user['role'];
+
+        // Zur Hauptseite weiterleiten
+        header('Location: index.php');
+        exit;
     } else {
         $login_error = "Ungültige Anmeldedaten";
     }
@@ -121,9 +105,8 @@ if (!isset($_SESSION['member_id'])) {
 // ============================================
 
 // Aktuellen Benutzer aus Datenbank laden
-$stmt = $pdo->prepare("SELECT * FROM members WHERE member_id = ?");
-$stmt->execute([$_SESSION['member_id']]);
-$current_user = $stmt->fetch();
+// Nutzt Wrapper-Funktion (funktioniert mit members ODER berechtigte)
+$current_user = get_member_by_id($pdo, $_SESSION['member_id']);
 
 // Aktiven Tab aus URL ermitteln (Standard: 'meetings')
 $active_tab = $_GET['tab'] ?? 'meetings';

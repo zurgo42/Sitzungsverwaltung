@@ -926,9 +926,8 @@ if (isset($_POST['save_protocol'])) {
                 $is_private = isset($todo_arrays['private'][$item_id]) && $todo_arrays['private'][$item_id] == 1 ? 1 : 0;
                 
                 // ToDo in Protokoll-Text einfügen
-                $stmt = $pdo->prepare("SELECT first_name, last_name FROM members WHERE member_id = ?");
-                $stmt->execute([$assigned_to]);
-                $member = $stmt->fetch();
+                // Mitglied über Wrapper-Funktion laden
+                $member = get_member_by_id($pdo, $assigned_to);
                 
                 if ($member) {
                     $member_name = $member['first_name'] . ' ' . $member['last_name'];

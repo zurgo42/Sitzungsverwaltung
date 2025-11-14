@@ -274,23 +274,16 @@ if (isset($_POST['add_member'])) {
             // Passwort hashen
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-            // Mitglied einfügen
-            $stmt = $pdo->prepare("
-                INSERT INTO members
-                (first_name, last_name, email, role, is_admin, is_confidential, password_hash)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ");
-            $stmt->execute([
-                $first_name,
-                $last_name,
-                $email,
-                $role,
-                $is_admin,
-                $is_confidential,
-                $password_hash
+            // Mitglied einfügen (über Wrapper-Funktion)
+            $new_member_id = create_member($pdo, [
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'email' => $email,
+                'role' => $role,
+                'is_admin' => $is_admin,
+                'is_confidential' => $is_confidential,
+                'password_hash' => $password_hash
             ]);
-
-            $new_member_id = $pdo->lastInsertId();
 
             // Admin-Log
             log_admin_action(
@@ -351,28 +344,20 @@ if (isset($_POST['edit_member'])) {
         $error_message = "Pflichtfelder fehlen.";
     } else {
         try {
-            // Alte Daten für Log abrufen
-            $stmt = $pdo->prepare("SELECT * FROM members WHERE member_id = ?");
-            $stmt->execute([$member_id]);
-            $old_member = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Alte Daten für Log abrufen (über Wrapper-Funktion)
+            $old_member = get_member_by_id($pdo, $member_id);
 
             if (!$old_member) {
                 $error_message = "Mitglied nicht gefunden.";
             } else {
-                // Mitglied aktualisieren
-                $stmt = $pdo->prepare("
-                    UPDATE members
-                    SET first_name = ?, last_name = ?, email = ?, role = ?, is_admin = ?, is_confidential = ?
-                    WHERE member_id = ?
-                ");
-                $stmt->execute([
-                    $first_name,
-                    $last_name,
-                    $email,
-                    $role,
-                    $is_admin,
-                    $is_confidential,
-                    $member_id
+                // Mitglied aktualisieren (über Wrapper-Funktion)
+                update_member($pdo, $member_id, [
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
+                    'email' => $email,
+                    'role' => $role,
+                    'is_admin' => $is_admin,
+                    'is_confidential' => $is_confidential
                 ]);
                 
                 // Passwort ändern falls angegeben
@@ -437,17 +422,14 @@ if (isset($_POST['delete_member'])) {
         $error_message = "Ungültige Mitglieds-ID.";
     } else {
         try {
-            // Alte Daten für Log abrufen
-            $stmt = $pdo->prepare("SELECT * FROM members WHERE member_id = ?");
-            $stmt->execute([$member_id]);
-            $old_member = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+            // Alte Daten für Log abrufen (über Wrapper-Funktion)
+            $old_member = get_member_by_id($pdo, $member_id);
+
             if (!$old_member) {
                 $error_message = "Mitglied nicht gefunden.";
             } else {
-                // Mitglied löschen
-                $stmt = $pdo->prepare("DELETE FROM members WHERE member_id = ?");
-                $stmt->execute([$member_id]);
+                // Mitglied löschen (über Wrapper-Funktion)
+                delete_member($pdo, $member_id);
                 
                 // Admin-Log
                 log_admin_action(
@@ -680,11 +662,9 @@ $meetings = $pdo->query("
     ORDER BY m.meeting_date DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-// Alle Mitglieder laden
-$members = $pdo->query("
-    SELECT * FROM members 
-    ORDER BY last_name, first_name
-")->fetchAll(PDO::FETCH_ASSOC);
+// Alle Mitglieder laden (über Wrapper-Funktion)
+// Funktioniert mit members ODER berechtigte Tabelle (siehe config_adapter.php)
+$members = get_all_members($pdo);
 
 // Offene ToDos laden
 $open_todos = $pdo->query("

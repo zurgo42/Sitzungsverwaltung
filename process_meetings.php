@@ -30,10 +30,8 @@ if (!isset($_SESSION['member_id'])) {
     exit;
 }
 
-// User-Daten laden
-$stmt = $pdo->prepare("SELECT * FROM members WHERE member_id = ?");
-$stmt->execute([$_SESSION['member_id']]);
-$current_user = $stmt->fetch();
+// User-Daten laden (über Wrapper-Funktion)
+$current_user = get_member_by_id($pdo, $_SESSION['member_id']);
 
 if (!$current_user) {
     session_destroy();
@@ -455,19 +453,15 @@ if (isset($_POST['start_meeting'])) {
         $stmt->execute([$meeting_id]);
         
         // 3. TOP 0 Protokoll initialisieren
-        // Namen der Rollen laden
-        $stmt_chairman = $pdo->prepare("SELECT first_name, last_name FROM members WHERE member_id = ?");
-        $stmt_chairman->execute([$chairman_member_id]);
-        $chairman_data = $stmt_chairman->fetch();
-        $chairman_name = $chairman_data ? 
-            $chairman_data['first_name'] . ' ' . $chairman_data['last_name'] : 
+        // Namen der Rollen laden (über Wrapper-Funktion)
+        $chairman_data = get_member_by_id($pdo, $chairman_member_id);
+        $chairman_name = $chairman_data ?
+            $chairman_data['first_name'] . ' ' . $chairman_data['last_name'] :
             'Unbekannt';
-        
-        $stmt_secretary = $pdo->prepare("SELECT first_name, last_name FROM members WHERE member_id = ?");
-        $stmt_secretary->execute([$secretary_member_id]);
-        $secretary_data = $stmt_secretary->fetch();
-        $secretary_name = $secretary_data ? 
-            $secretary_data['first_name'] . ' ' . $secretary_data['last_name'] : 
+
+        $secretary_data = get_member_by_id($pdo, $secretary_member_id);
+        $secretary_name = $secretary_data ?
+            $secretary_data['first_name'] . ' ' . $secretary_data['last_name'] :
             'Unbekannt';
         
         // Protokolltext erstellen
