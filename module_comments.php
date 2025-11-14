@@ -52,7 +52,7 @@ function render_comment_line($comment, $date_format = 'full') {
     $timestamp = $date_format === 'time'
         ? date('H:i', strtotime($comment['created_at']))
         : date('d.m.Y H:i', strtotime($comment['created_at']));
-    $text = nl2br(htmlspecialchars($comment['comment_text']));
+    $text = htmlspecialchars($comment['comment_text']);
 
     ?>
     <div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
