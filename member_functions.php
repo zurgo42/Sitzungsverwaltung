@@ -136,6 +136,28 @@ function get_member_by_email($pdo, $email) {
     return $adapter->getMemberByEmail($email);
 }
 
+/**
+ * Holt EIN Mitglied nach Mitgliedsnummer
+ *
+ * @param PDO $pdo Datenbankverbindung
+ * @param string $membership_number Mitgliedsnummer (z.B. '0495018')
+ * @return array|null Mitgliedsdaten oder null wenn nicht gefunden
+ *
+ * BEISPIEL:
+ * $member = get_member_by_membership_number($pdo, '0495018');
+ * if ($member) {
+ *     echo $member['first_name'] . ' ' . $member['last_name'];
+ * }
+ *
+ * VERWENDUNG für SSO:
+ * Wenn Benutzer bereits extern authentifiziert ist, holen Sie das
+ * Mitglied über die Mitgliedsnummer statt Email/Passwort.
+ */
+function get_member_by_membership_number($pdo, $membership_number) {
+    $adapter = get_member_adapter($pdo);
+    return $adapter->getMemberByMembershipNumber($membership_number);
+}
+
 // ============================================
 // ERSTELLEN (CREATE)
 // ============================================

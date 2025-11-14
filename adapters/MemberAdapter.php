@@ -10,6 +10,7 @@ interface MemberAdapterInterface {
     public function getMemberById($id);
     public function getAllMembers();
     public function getMemberByEmail($email);
+    public function getMemberByMembershipNumber($mnr);  // NEU für SSO
     public function createMember($data);
     public function updateMember($id, $data);
     public function deleteMember($id);
@@ -39,6 +40,12 @@ class StandardMemberAdapter implements MemberAdapterInterface {
     public function getMemberByEmail($email) {
         $stmt = $this->pdo->prepare("SELECT * FROM members WHERE email = ?");
         $stmt->execute([$email]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getMemberByMembershipNumber($mnr) {
+        $stmt = $this->pdo->prepare("SELECT * FROM members WHERE membership_number = ?");
+        $stmt->execute([$mnr]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -114,42 +121,28 @@ class BerechtigteAdapter implements MemberAdapterInterface {
             'first_name' => $row['Vorname'],
             'last_name' => $row['Name'],
             'email' => $row['eMail'],
-            'role' => $this->mapRoleFromFunktion($row['Funktion']),
-            'is_admin' => $this->isAdmin($row['Funktion']),
+            'role' => $row['funktionsbeschreibung'] ?? 'Mitglied',  // Direkt übernehmen
+            'is_admin' => $this->isAdmin($row['aktiv'], $row['MNr']),
             'is_confidential' => $this->isConfidential($row['aktiv']),
-            'password_hash' => null, // Falls vorhanden in anderer Tabelle
+            'password_hash' => '', // Kein Passwort bei SSO
             'created_at' => $row['angelegt'] ?? null
         ];
     }
 
     /**
-     * Mappt die "Funktion" auf die Standard-Rollen
+     * Prüft Admin-Rechte
+     * Admin wenn: aktiv == 18 ODER MNr == 0495018
      */
-    private function mapRoleFromFunktion($funktion) {
-        $mapping = [
-            'Vorstand' => 'vorstand',
-            'Geschäftsführung' => 'gf',
-            'Assistenz' => 'assistenz',
-            'Führungsteam' => 'fuehrungsteam',
-            // Fügen Sie hier weitere Mappings hinzu
-        ];
-        return $mapping[$funktion] ?? 'Mitglied';
-    }
-
-    /**
-     * Prüft Admin-Rechte basierend auf Funktion
-     */
-    private function isAdmin($funktion) {
-        return in_array($funktion, ['Vorstand', 'Geschäftsführung']) ? 1 : 0;
+    private function isAdmin($aktiv, $mnr) {
+        return ($aktiv == 18 || $mnr == '0495018') ? 1 : 0;
     }
 
     /**
      * Mappt "aktiv" auf "is_confidential"
-     * ANPASSEN: Ihre Logik für Vertraulichkeitsrechte
+     * Vertraulich wenn: aktiv > 17
      */
     private function isConfidential($aktiv) {
-        // Beispiel: aktiv >= 2 bedeutet Zugriff auf vertrauliche TOPs
-        return ($aktiv >= 2) ? 1 : 0;
+        return ($aktiv > 17) ? 1 : 0;
     }
 
     public function getMemberById($id) {
@@ -171,6 +164,12 @@ class BerechtigteAdapter implements MemberAdapterInterface {
     public function getMemberByEmail($email) {
         $stmt = $this->pdo->prepare("SELECT * FROM berechtigte WHERE eMail = ? AND aktiv > 0");
         $stmt->execute([$email]);
+        return $this->mapToStandard($stmt->fetch(PDO::FETCH_ASSOC));
+    }
+
+    public function getMemberByMembershipNumber($mnr) {
+        $stmt = $this->pdo->prepare("SELECT * FROM berechtigte WHERE MNr = ? AND aktiv > 0");
+        $stmt->execute([$mnr]);
         return $this->mapToStandard($stmt->fetch(PDO::FETCH_ASSOC));
     }
 
