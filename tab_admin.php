@@ -2,7 +2,7 @@
 /**
  * tab_admin.php - Admin-Verwaltung (Präsentation)
  * Bereinigt: 29.10.2025 02:45 MEZ
- * 
+ *
  * Zeigt Admin-Verwaltung an (nur für Admins)
  * Nur Darstellung - alle Verarbeitungen in process_admin.php
  */
@@ -10,6 +10,54 @@
 // Logik einbinden
 require_once 'process_admin.php';
 ?>
+
+<style>
+/* Hellere, besser lesbare Überschriften */
+.admin-section-header {
+    color: #fff !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    padding: 12px 20px !important;
+    border-radius: 8px !important;
+    margin-bottom: 15px !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.admin-section-header:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+}
+
+.admin-section-header::after {
+    content: '▼';
+    transition: transform 0.3s;
+}
+
+.admin-section-header.collapsed::after {
+    transform: rotate(-90deg);
+}
+
+.admin-section-content {
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.admin-section-content.collapsed {
+    max-height: 0;
+}
+
+/* Kompaktere Logfile-Darstellung */
+.compact-log-table {
+    font-size: 12px !important;
+}
+
+.compact-log-table td {
+    padding: 6px 8px !important;
+}
+</style>
 
 <h2>⚙️ Admin-Verwaltung</h2>
 
@@ -39,8 +87,9 @@ require_once 'process_admin.php';
 
 <!-- Meeting-Verwaltung -->
 <div id="admin-meetings" class="admin-section">
-    <h3 class="admin-section-header">📅 Meeting-Verwaltung</h3>
-    
+    <h3 class="admin-section-header" onclick="toggleSection(this)">📅 Meeting-Verwaltung</h3>
+
+    <div class="admin-section-content">
     <table class="admin-table">
         <thead>
             <tr>
@@ -140,12 +189,15 @@ require_once 'process_admin.php';
             </form>
         </div>
     </div>
+    </div> <!-- End admin-section-content -->
 </div>
 
 <!-- Mitgliederverwaltung -->
 <div id="admin-members" class="admin-section">
-    <h3 class="admin-section-header">👥 Mitgliederverwaltung</h3>
-    
+    <h3 class="admin-section-header" onclick="toggleSection(this)">👥 Mitgliederverwaltung</h3>
+
+    <div class="admin-section-content">
+
     <button onclick="showAddMemberForm()" class="btn-primary">+ Neues Mitglied</button>
     
     <!-- Add Member Form -->
@@ -283,12 +335,15 @@ require_once 'process_admin.php';
             </form>
         </div>
     </div>
+    </div> <!-- End admin-section-content -->
 </div>
 
 <!-- Offene ToDos -->
 <div id="admin-todos" class="admin-section">
-    <h3 class="admin-section-header">📝 Offene ToDos</h3>
-    
+    <h3 class="admin-section-header" onclick="toggleSection(this)">📝 Offene ToDos</h3>
+
+    <div class="admin-section-content">
+
     <?php if (empty($open_todos)): ?>
         <div class="info-box">Keine offenen ToDos vorhanden.</div>
     <?php else: ?>
@@ -323,10 +378,15 @@ require_once 'process_admin.php';
                         </td>
                         <td><?php echo htmlspecialchars($todo['first_name'] . ' ' . $todo['last_name']); ?></td>
                         <td><?php echo $todo['due_date'] ? date('d.m.Y', strtotime($todo['due_date'])) : '-'; ?></td>
-                        <td>
-                            <form method="POST" onsubmit="return confirm('ToDo als erledigt markieren?');">
+                        <td class="action-buttons">
+                            <button class="btn-view" onclick="alert('ToDo-Editierung: Bitte in der ToDo-Übersicht (Tab Todos) bearbeiten')">✏️</button>
+                            <form method="POST" onsubmit="return confirm('ToDo als erledigt markieren?');" style="display: inline;">
                                 <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
                                 <button type="submit" name="close_todo" class="btn-primary">✓ Erledigt</button>
+                            </form>
+                            <form method="POST" onsubmit="return confirm('ToDo wirklich löschen?');" style="display: inline;">
+                                <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
+                                <button type="submit" name="delete_todo" class="btn-delete">🗑️</button>
                             </form>
                         </td>
                     </tr>
@@ -334,16 +394,19 @@ require_once 'process_admin.php';
             </tbody>
         </table>
     <?php endif; ?>
+    </div> <!-- End admin-section-content -->
 </div>
 
 <!-- Admin-Protokoll -->
 <div id="admin-log" class="admin-section">
-    <h3 class="admin-section-header">📋 Admin-Protokoll (letzte 50 Aktionen)</h3>
-    
+    <h3 class="admin-section-header" onclick="toggleSection(this)">📋 Admin-Protokoll (letzte 50 Aktionen)</h3>
+
+    <div class="admin-section-content">
+
     <?php if (empty($admin_logs)): ?>
         <div class="info-box">Keine Admin-Aktionen protokolliert.</div>
     <?php else: ?>
-        <table class="admin-table">
+        <table class="admin-table compact-log-table">
             <thead>
                 <tr>
                     <th>Zeitpunkt</th>
@@ -389,6 +452,7 @@ require_once 'process_admin.php';
             </tbody>
         </table>
     <?php endif; ?>
+    </div> <!-- End admin-section-content -->
 </div>
 
 <!-- Log-Details Modal -->
@@ -486,4 +550,20 @@ function showLogDetails(logId) {
 function closeLogDetailsModal() {
     document.getElementById('log-details-modal').classList.remove('show');
 }
+
+// Akkordion-Funktionalität
+function toggleSection(header) {
+    header.classList.toggle('collapsed');
+    const content = header.nextElementSibling;
+    content.classList.toggle('collapsed');
+}
+
+// Initialize: Start with all sections expanded
+document.addEventListener('DOMContentLoaded', function() {
+    // Logfile-Sektion initial eingeklappt
+    const logSection = document.querySelector('#admin-log .admin-section-header');
+    if (logSection) {
+        toggleSection(logSection);
+    }
+});
 </script>

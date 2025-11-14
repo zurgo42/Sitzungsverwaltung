@@ -530,6 +530,57 @@ if (isset($_POST['close_todo'])) {
     }
 }
 
+/**
+ * ToDo löschen
+ *
+ * POST-Parameter:
+ * - delete_todo: 1
+ * - todo_id: Int (required)
+ *
+ * Aktion:
+ * - ToDo aus DB löschen
+ * - Admin-Aktion protokollieren
+ */
+if (isset($_POST['delete_todo'])) {
+    $todo_id = intval($_POST['todo_id'] ?? 0);
+
+    if (!$todo_id) {
+        $error_message = "Ungültige ToDo-ID.";
+    } else {
+        try {
+            // ToDo-Daten für Log abrufen
+            $stmt = $pdo->prepare("SELECT * FROM todos WHERE todo_id = ?");
+            $stmt->execute([$todo_id]);
+            $old_todo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$old_todo) {
+                $error_message = "ToDo nicht gefunden.";
+            } else {
+                // ToDo löschen
+                $stmt = $pdo->prepare("DELETE FROM todos WHERE todo_id = ?");
+                $stmt->execute([$todo_id]);
+
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'todo_delete',
+                    "ToDo gelöscht: " . ($old_todo['description'] ?? 'Unbenannt'),
+                    'todo',
+                    $todo_id,
+                    $old_todo,
+                    null
+                );
+
+                $success_message = "✅ ToDo erfolgreich gelöscht!";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim ToDo-Löschen: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Löschen: " . $e->getMessage();
+        }
+    }
+}
+
 // ============================================
 // 4. DATEN LADEN
 // ============================================
