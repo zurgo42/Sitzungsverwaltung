@@ -404,7 +404,7 @@ foreach ($agenda_items as $item):
                             <label style="font-size: 13px;">Sitzung auswählen:</label>
                             <select name="resubmit_meeting_id" 
                                     style="width: 100%; padding: 6px; border: 1px solid #90caf9; border-radius: 4px; font-size: 13px;">
-                                <option value="">-- Nicht wiedervorgeben --</option>
+                                <option value="">-- keine --</option>
                                 <?php foreach ($future_meetings as $fm): ?>
                                     <option value="<?php echo $fm['meeting_id']; ?>">
                                         <?php 

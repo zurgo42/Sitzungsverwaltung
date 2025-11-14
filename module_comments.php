@@ -54,9 +54,22 @@ function render_comment_line($comment, $date_format = 'full') {
         : date('d.m.Y H:i', strtotime($comment['created_at']));
     $text = htmlspecialchars($comment['comment_text']);
 
+    // Bewertungen anzeigen (falls vorhanden)
+    $rating_text = '';
+    if (!empty($comment['priority_rating']) || !empty($comment['duration_estimate'])) {
+        $rating_parts = [];
+        if (!empty($comment['priority_rating'])) {
+            $rating_parts[] = 'Prio: ' . htmlspecialchars($comment['priority_rating']);
+        }
+        if (!empty($comment['duration_estimate'])) {
+            $rating_parts[] = 'Dauer: ' . htmlspecialchars($comment['duration_estimate']) . ' Min';
+        }
+        $rating_text = ' <span style="color: #2196f3; font-size: 11px;">[' . implode(', ', $rating_parts) . ']</span>';
+    }
+
     ?>
     <div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
-        <strong style="color: #333;"><?php echo $name; ?></strong> <span style="color: #999; font-size: 11px;"><?php echo $timestamp; ?>:</span> <span style="color: #555;"><?php echo $text; ?></span>
+        <strong style="color: #333;"><?php echo $name; ?></strong> <span style="color: #999; font-size: 11px;"><?php echo $timestamp; ?>:</span><?php echo $rating_text; ?> <span style="color: #555;"><?php echo $text; ?></span>
     </div>
     <?php
 }

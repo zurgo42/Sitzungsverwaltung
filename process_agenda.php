@@ -5,13 +5,21 @@
  * Erweitert: 07.11.2025 - v2.1
  * Bugfix: 12.11.2025 - Fehlende Funktionen und Handler hinzugefügt
  * Bugfix: 12.11.2025 14:00 - get_member_name() entfernt (existiert in module_helpers.php)
- * 
+ *
  * Diese Datei verarbeitet alle POST-Anfragen aus tab_agenda.php
  * Trennung von Business-Logik und Präsentation (MVC-Prinzip)
- * 
+ *
  * WICHTIG: Diese Datei wird in index.php NACH dem Laden von functions.php eingebunden
  * Voraussetzungen: $pdo, $current_user, recalculate_item_metrics(), get_next_top_number()
  */
+
+// Hilfsfunktion: Vollständigen Link zur Sitzung generieren
+function get_full_meeting_link($meeting_id) {
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'];
+    $script = $_SERVER['SCRIPT_NAME'];
+    return $protocol . $host . $script . "?tab=agenda&meeting_id=" . $meeting_id;
+}
 
 // Berechtigungen ermitteln (falls Meeting geladen)
 $is_secretary = false;
@@ -930,7 +938,7 @@ if (isset($_POST['save_protocol'])) {
                     $stmt->execute([$updated_protocol, $item_id]);
 
                     // ToDo-Beschreibung mit Meeting-Link erweitern
-                    $todo_description_with_link = $todo_desc . "\n\nLink zur Sitzung: ?tab=agenda&meeting_id=$current_meeting_id";
+                    $todo_description_with_link = $todo_desc . "\n\nLink zur Sitzung: " . get_full_meeting_link($current_meeting_id);
 
                     // ToDo in Datenbank speichern
                     $stmt = $pdo->prepare("
@@ -1417,10 +1425,10 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
         $end_timestamp = $end_time_query->fetchColumn();
         $end_time = $end_timestamp ? date('H:i', strtotime($end_timestamp)) : '?';
         
-        $todo_title = "Protokoll fertigstellen: " . $meeting['meeting_name'];
-        $todo_description = "Sitzung vom " . date('d.m.Y', strtotime($meeting['meeting_date'])) . 
+        $todo_title = "Protokoll fertigstellen: " . $meeting['meeting_name'] . " vom " . date('d.m.Y', strtotime($meeting['meeting_date']));
+        $todo_description = "Sitzung vom " . date('d.m.Y', strtotime($meeting['meeting_date'])) .
                            " (" . $start_time . "-" . $end_time . " Uhr)\n" .
-                           "Link: ?tab=agenda&meeting_id=$current_meeting_id";
+                           "Link: " . get_full_meeting_link($current_meeting_id);
         
         $stmt = $pdo->prepare("
             INSERT INTO todos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id)
@@ -1584,10 +1592,10 @@ if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] ===
         $end_timestamp = $end_time_query->fetchColumn();
         $end_time = $end_timestamp ? date('H:i', strtotime($end_timestamp)) : '?';
         
-        $todo_title = "Protokoll genehmigen: " . $meeting['meeting_name'];
-        $todo_description = "Sitzung vom " . date('d.m.Y', strtotime($meeting['meeting_date'])) . 
+        $todo_title = "Protokoll genehmigen: " . $meeting['meeting_name'] . " vom " . date('d.m.Y', strtotime($meeting['meeting_date']));
+        $todo_description = "Sitzung vom " . date('d.m.Y', strtotime($meeting['meeting_date'])) .
                            " (" . $start_time . "-" . $end_time . " Uhr)\n" .
-                           "Link: ?tab=agenda&meeting_id=$current_meeting_id";
+                           "Link: " . get_full_meeting_link($current_meeting_id);
         
         $stmt = $pdo->prepare("
             INSERT INTO todos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id)

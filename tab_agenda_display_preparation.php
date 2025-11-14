@@ -108,9 +108,9 @@ foreach ($agenda_items as $item):
     // TOP-Nummer formatieren
     $top_display = '';
     if ($item['top_number'] == 0) {
-        $top_display = 'TOP 0: Eröffnung / Organisatorisches';
+        $top_display = ''; // Leer lassen für TOP 0
     } elseif ($item['top_number'] == 99) {
-        $top_display = 'Sonstiges';
+        $top_display = ''; // Leer lassen für TOP 99
     } else {
         $top_display = 'TOP ' . $item['top_number'];
     }
