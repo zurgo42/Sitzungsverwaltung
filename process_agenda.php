@@ -907,19 +907,22 @@ if (isset($_POST['save_protocol'])) {
                     $due_date_formatted = $due_date ? date('d.m.Y', strtotime($due_date)) : 'offen';
                     
                     $todo_text = "\n\nToDo für {$member_name}: {$todo_desc} bis {$due_date_formatted}";
-                    
+
                     // Protokoll mit ToDo aktualisieren
                     $updated_protocol = $protocol_text . $todo_text;
                     $stmt = $pdo->prepare("
-                        UPDATE agenda_items 
-                        SET protocol_notes = ? 
+                        UPDATE agenda_items
+                        SET protocol_notes = ?
                         WHERE item_id = ?
                     ");
                     $stmt->execute([$updated_protocol, $item_id]);
-                    
+
+                    // ToDo-Beschreibung mit Meeting-Link erweitern
+                    $todo_description_with_link = $todo_desc . "\n\nLink zur Sitzung: ?tab=agenda&meeting_id=$current_meeting_id";
+
                     // ToDo in Datenbank speichern
                     $stmt = $pdo->prepare("
-                        INSERT INTO todos 
+                        INSERT INTO todos
                         (meeting_id, item_id, assigned_to_member_id, title, description, status, is_private, due_date, entry_date, created_by_member_id)
                         VALUES (?, ?, ?, ?, ?, 'open', ?, ?, CURDATE(), ?)
                     ");
@@ -928,7 +931,7 @@ if (isset($_POST['save_protocol'])) {
                         $item_id,
                         $assigned_to,
                         $todo_desc,
-                        $todo_desc,
+                        $todo_description_with_link,
                         $is_private,
                         $due_date,
                         $current_user['member_id']

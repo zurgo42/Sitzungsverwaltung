@@ -13,14 +13,35 @@ if (empty($agenda_items)) {
     return;
 }
 
-// Übersicht anzeigen
-render_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
+// Übersicht anzeigen (read-only während aktiver Sitzung)
+render_simple_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
 
 // Aktiven TOP ermitteln
 $stmt = $pdo->prepare("SELECT active_item_id FROM meetings WHERE meeting_id = ?");
 $stmt->execute([$current_meeting_id]);
 $active_item_id = $stmt->fetchColumn();
 ?>
+
+<style>
+/* Mobile-responsive live-comment form */
+.live-comment-form {
+    display: flex;
+    gap: 8px;
+    align-items: end;
+}
+
+@media (max-width: 768px) {
+    .live-comment-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .live-comment-form button {
+        width: 100%;
+        margin-top: 4px;
+    }
+}
+</style>
 
 <h3 style="margin: 20px 0 15px 0;">🟢 Laufende Sitzung - Tagesordnungspunkte</h3>
 
@@ -302,7 +323,7 @@ foreach ($agenda_items as $item):
                 <?php endif; ?>
                 
                 <!-- Neuen Live-Kommentar hinzufügen -->
-                <form method="POST" action="" style="display: flex; gap: 8px; align-items: end;">
+                <form method="POST" action="" class="live-comment-form">
                     <input type="hidden" name="add_live_comment" value="1">
                     <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                     

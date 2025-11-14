@@ -41,8 +41,16 @@ function render_agenda_overview($agenda_items, $current_user = null, $current_me
         return;
     }
     
-    // Meeting-Details laden für Berechtigungs-Prüfung
-    $stmt = $pdo->prepare("SELECT secretary_member_id, chairman_member_id FROM meetings WHERE meeting_id = ?");
+    // Meeting-Details laden für Berechtigungs-Prüfung und Anzeige
+    $stmt = $pdo->prepare("
+        SELECT m.secretary_member_id, m.chairman_member_id, m.meeting_date,
+               sec.first_name AS secretary_first, sec.last_name AS secretary_last,
+               chair.first_name AS chairman_first, chair.last_name AS chairman_last
+        FROM meetings m
+        LEFT JOIN members sec ON m.secretary_member_id = sec.member_id
+        LEFT JOIN members chair ON m.chairman_member_id = chair.member_id
+        WHERE m.meeting_id = ?
+    ");
     $stmt->execute([$current_meeting_id]);
     $meeting_data = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -85,6 +93,15 @@ function render_agenda_overview($agenda_items, $current_user = null, $current_me
         </summary>
         
         <div style="margin-top: 15px;">
+            <!-- Meeting-Leitung und Protokoll -->
+            <div style="margin-bottom: 15px; padding: 10px; background: white; border-left: 4px solid #2c5aa0; border-radius: 4px;">
+                <strong>Vorgesehene Sitzungsleitung:</strong>
+                <?php echo $meeting_data['chairman_first'] ? htmlspecialchars($meeting_data['chairman_first'] . ' ' . $meeting_data['chairman_last']) : '<em>nicht festgelegt</em>'; ?>
+                <br>
+                <strong>Protokoll:</strong>
+                <?php echo $meeting_data['secretary_first'] ? htmlspecialchars($meeting_data['secretary_first'] . ' ' . $meeting_data['secretary_last']) : '<em>nicht festgelegt</em>'; ?>
+            </div>
+
             <p style="margin-bottom: 10px; color: #555;">
                 <strong>Hinweis:</strong> Hier können Sie alle TOPs auf einen Blick sehen und Ihre Bewertungen (Priorität & geschätzte Dauer) eingeben.
             </p>
