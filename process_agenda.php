@@ -575,20 +575,28 @@ if (isset($_POST['end_meeting'])) {
                 $stmt->execute([$current_meeting_id, $current_user['member_id']]);
             }
             
-            // 3. ToDo für Sekretär erstellen (Protokoll fertigstellen)
-            $feedback_hours = 72; //intval($meeting['feedback_deadline_hours'] ?? 72);
+            // 3. ToDo für Sekretär erstellen (Protokoll fertigstellen) mit Datum und Link
+            $feedback_hours = 72;
             $due_date = date('Y-m-d', strtotime("+$feedback_hours hours +1 day"));
-            
+
+            // Meeting-Daten für ToDo holen
+            $stmt_meeting = $pdo->prepare("SELECT meeting_name, meeting_date FROM meetings WHERE meeting_id = ?");
+            $stmt_meeting->execute([$current_meeting_id]);
+            $meeting_data = $stmt_meeting->fetch();
+
+            $todo_title = "Protokoll fertigstellen: " . ($meeting_data['meeting_name'] ?? 'Sitzung') . " vom " . date('d.m.Y', strtotime($meeting_data['meeting_date']));
+            $todo_description = "Bitte das Protokoll vervollständigen und zur Genehmigung freigeben.\n\nLink: " . get_full_meeting_link($current_meeting_id);
+
             $stmt = $pdo->prepare("
-                INSERT INTO todos 
+                INSERT INTO todos
                 (meeting_id, assigned_to_member_id, title, description, status, due_date, created_by_member_id, entry_date)
                 VALUES (?, ?, ?, ?, 'open', ?, ?, CURDATE())
             ");
             $stmt->execute([
                 $current_meeting_id,
                 $meeting['secretary_member_id'],
-                'Protokoll fertigstellen',
-                'Bitte das Protokoll vervollständigen und zur Genehmigung freigeben.',
+                $todo_title,
+                $todo_description,
                 $due_date,
                 $current_user['member_id']
             ]);

@@ -231,17 +231,12 @@ foreach ($agenda_items as $item):
                 
                 <div style="margin-bottom: 10px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">Kategorie:</label>
-                    <select name="category" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-                        <option value="information" <?php echo $item['category'] === 'information' ? 'selected' : ''; ?>>📢 Information</option>
-                        <option value="diskussion" <?php echo $item['category'] === 'diskussion' ? 'selected' : ''; ?>>💬 Diskussion</option>
-                        <option value="antrag_beschluss" <?php echo $item['category'] === 'antrag_beschluss' ? 'selected' : ''; ?>>📜 Antrag / Beschluss</option>
-                        <option value="bericht" <?php echo $item['category'] === 'bericht' ? 'selected' : ''; ?>>📊 Bericht</option>
-                    </select>
+                    <?php render_category_select('category', 'edit_category_' . $item['item_id'], $item['category'], 'toggleProposalField("edit_' . $item['item_id'] . '")'); ?>
                 </div>
-                
-                <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Antragstext (nur bei Antrag/Beschluss):</label>
-                    <textarea name="proposal_text" rows="3" 
+
+                <div style="margin-bottom: 10px;" id="edit_<?php echo $item['item_id']; ?>_proposal" style="display: <?php echo $item['category'] === 'antrag_beschluss' ? 'block' : 'none'; ?>;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">📄 Antragstext:</label>
+                    <textarea name="proposal_text" rows="3"
                               style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"><?php echo htmlspecialchars($item['proposal_text'] ?? ''); ?></textarea>
                 </div>
                 
@@ -300,7 +295,7 @@ foreach ($agenda_items as $item):
 <!-- Sitzung starten Button -->
 <?php if ($can_edit_meeting): ?>
     <div style="margin: 30px 0; padding: 20px; background: #4CAF50; border-radius: 8px; text-align: center;">
-        <form method="POST" action="" onsubmit="return confirm('Sitzung jetzt starten? Danach können keine TOPs mehr hinzugefügt werden.');">
+        <form method="POST" action="" onsubmit="return confirm('Sitzung jetzt starten? Danach kann nur der Protokollführer neue TOPs hinzufügen.');">
             <input type="hidden" name="start_meeting" value="1">
             <button type="submit" style="background: white; color: #4CAF50; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 1.2em; font-weight: bold;">
                 ▶️ Sitzung starten
