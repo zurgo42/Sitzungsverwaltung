@@ -256,7 +256,24 @@ foreach ($agenda_items as $item):
         <?php if ($item['top_number'] != 999): ?>
             <div style="font-size: 12px; color: #999; margin: 8px 0;">
                 Eingetragen von: <?php echo htmlspecialchars($item['creator_first'] . ' ' . $item['creator_last']); ?> |
-                Priorität: <?php echo $item['priority']; ?> |
+
+                <!-- Priorität (editierbar für Sekretär bei aktivem TOP) -->
+                <?php if ($is_active && $is_secretary): ?>
+                    <form method="POST" action="" style="display: inline;">
+                        <input type="hidden" name="update_active_priority" value="1">
+                        <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                        <label>Priorität:</label>
+                        <input type="number" name="priority" value="<?php echo htmlspecialchars($item['priority']); ?>"
+                               min="1" max="10" step="0.1"
+                               style="width: 50px; padding: 2px; border: 1px solid #2196f3; border-radius: 3px;">
+                        <button type="submit" style="background: #2196f3; color: white; padding: 2px 8px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">
+                            💾
+                        </button>
+                    </form>
+                <?php else: ?>
+                    Priorität: <?php echo $item['priority']; ?>
+                <?php endif; ?>
+                |
                 Dauer: <?php echo $item['estimated_duration']; ?> Min.
                 
                 <?php 

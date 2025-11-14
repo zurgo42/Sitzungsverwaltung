@@ -1189,6 +1189,30 @@ if (isset($_POST['toggle_confidential']) && $is_secretary && $meeting['status'] 
 }
 
 /**
+ * Priorität des aktiven TOP aktualisieren (nur Sekretär)
+ */
+if (isset($_POST['update_active_priority']) && $is_secretary && $meeting['status'] === 'active') {
+    $item_id = intval($_POST['item_id'] ?? 0);
+    $priority = floatval($_POST['priority'] ?? 5.0);
+
+    if ($item_id && $priority >= 1 && $priority <= 10) {
+        try {
+            $stmt = $pdo->prepare("
+                UPDATE agenda_items
+                SET priority = ?
+                WHERE item_id = ? AND meeting_id = ?
+            ");
+            $stmt->execute([$priority, $item_id, $current_meeting_id]);
+
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
+            exit;
+        } catch (PDOException $e) {
+            error_log("Fehler beim Aktualisieren der Priorität: " . $e->getMessage());
+        }
+    }
+}
+
+/**
  * Live-Kommentar während aktiver Sitzung hinzufügen
  */
 if (isset($_POST['add_live_comment']) && $meeting['status'] === 'active') {

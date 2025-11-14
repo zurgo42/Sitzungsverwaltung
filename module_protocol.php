@@ -86,11 +86,6 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
             continue;
         }
         
-        // Nur TOPs mit Protokollnotizen
-        if (empty($item['protocol_notes'])) {
-            continue;
-        }
-        
         // Vertrauliche TOPs in separates Protokoll
         if ($item['is_confidential']) {
             if ($protokoll_intern_exist == 0) {
@@ -117,16 +112,21 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
                 $protokoll_intern_exist = 1;
             }
             
-            $protokoll_intern .= '&lt;br&gt;&lt;br&gt;&lt;strong&gt;TOP ' . $item['top_number'] . ': ' . 
+            $protokoll_intern .= '&lt;br&gt;&lt;br&gt;&lt;strong&gt;TOP ' . $item['top_number'] . ': ' .
                                htmlspecialchars($item['title']) . '&lt;/strong&gt;&lt;br&gt;';
-            
+
             // Antragstext bei Antrag/Beschluss
             if ($item['category'] === 'antrag_beschluss' && !empty($item['proposal_text'])) {
-                $protokoll_intern .= '&lt;em&gt;Antragstext: ' . 
+                $protokoll_intern .= '&lt;em&gt;Antragstext: ' .
                                    htmlspecialchars($item['proposal_text']) . '&lt;/em&gt;&lt;br&gt;';
             }
-            
-            $protokoll_intern .= htmlspecialchars($item['protocol_notes']);
+
+            // Protokolltext oder Hinweis
+            if (!empty($item['protocol_notes'])) {
+                $protokoll_intern .= htmlspecialchars($item['protocol_notes']);
+            } else {
+                $protokoll_intern .= '&lt;em style=&quot;color: #999;&quot;&gt;(noch kein Protokoll)&lt;/em&gt;';
+            }
             
             // Abstimmungsergebnis
             if (!empty($item['vote_result'])) {
@@ -144,16 +144,21 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
             
         } else {
             // Öffentliches Protokoll
-            $protokoll .= '&lt;br&gt;&lt;br&gt;&lt;strong&gt;TOP ' . $item['top_number'] . ': ' . 
+            $protokoll .= '&lt;br&gt;&lt;br&gt;&lt;strong&gt;TOP ' . $item['top_number'] . ': ' .
                          htmlspecialchars($item['title']) . '&lt;/strong&gt;&lt;br&gt;';
-            
+
             // Antragstext bei Antrag/Beschluss
             if ($item['category'] === 'antrag_beschluss' && !empty($item['proposal_text'])) {
-                $protokoll .= '&lt;em&gt;Antragstext: ' . 
+                $protokoll .= '&lt;em&gt;Antragstext: ' .
                              htmlspecialchars($item['proposal_text']) . '&lt;/em&gt;&lt;br&gt;';
             }
-            
-            $protokoll .= htmlspecialchars($item['protocol_notes']);
+
+            // Protokolltext oder Hinweis
+            if (!empty($item['protocol_notes'])) {
+                $protokoll .= htmlspecialchars($item['protocol_notes']);
+            } else {
+                $protokoll .= '&lt;em style=&quot;color: #999;&quot;&gt;(noch kein Protokoll)&lt;/em&gt;';
+            }
             
             // Abstimmungsergebnis
             if (!empty($item['vote_result'])) {

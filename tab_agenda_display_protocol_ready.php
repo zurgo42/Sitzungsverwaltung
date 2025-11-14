@@ -170,6 +170,38 @@ foreach ($agenda_items as $item):
                 <?php render_voting_result($item); ?>
             </div>
         <?php endif; ?>
+
+        <!-- KOMMENTARFELD FÜR SITZUNGSLEITER -->
+        <?php if ($is_chairman): ?>
+            <div style="margin-top: 15px; padding: 12px; background: #ffebee; border: 2px solid #f44336; border-radius: 6px;">
+                <h4 style="color: #c62828; margin-bottom: 8px;">💭 Ihre Anmerkungen als Sitzungsleiter</h4>
+
+                <?php
+                // Bestehende Kommentare des Sitzungsleiters laden
+                $stmt = $pdo->prepare("
+                    SELECT apc.*, m.first_name, m.last_name
+                    FROM agenda_post_comments apc
+                    JOIN members m ON apc.member_id = m.member_id
+                    WHERE apc.item_id = ? AND apc.member_id = ?
+                    ORDER BY apc.created_at DESC
+                    LIMIT 1
+                ");
+                $stmt->execute([$item['item_id'], $current_user['member_id']]);
+                $my_chairman_comment = $stmt->fetch(PDO::FETCH_ASSOC);
+                ?>
+
+                <form method="POST" action="" style="margin-top: 8px;">
+                    <input type="hidden" name="save_chairman_comment" value="1">
+                    <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                    <textarea name="comment_text" rows="3"
+                              placeholder="Ihre Anmerkung zum Protokoll..."
+                              style="width: 100%; padding: 6px; border: 1px solid #f44336; border-radius: 4px; font-size: 13px;"><?php echo htmlspecialchars($my_chairman_comment['comment_text'] ?? ''); ?></textarea>
+                    <button type="submit" style="background: #f44336; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 4px;">
+                        💾 Speichern
+                    </button>
+                </form>
+            </div>
+        <?php endif; ?>
         
     </div>
 <?php endforeach; ?>
