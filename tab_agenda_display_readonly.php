@@ -4,6 +4,9 @@
  * Wird in Status "ended", "protocol_ready", "archived" eingebunden
  */
 
+// Module laden
+require_once 'module_comments.php';
+
 if (empty($agenda_items)) {
     echo '<div class="info-box">Keine Tagesordnungspunkte vorhanden.</div>';
     return;
@@ -62,22 +65,13 @@ foreach ($agenda_items as $item):
                 💬 Diskussionsbeiträge anzeigen
             </summary>
             <div style="margin-top: 8px; padding: 8px; background: white; border: 1px solid #ddd; border-radius: 4px;">
-                <?php 
+                <?php
                 $comments = get_item_comments($pdo, $item['item_id']);
                 if (!empty($comments)):
-                    foreach ($comments as $comment): 
-                ?>
-                    <div style="padding: 6px; border-bottom: 1px solid #eee;">
-                        <strong style="color: #667eea;">
-                            <?php echo htmlspecialchars($comment['first_name'] . ' ' . $comment['last_name']); ?>:
-                        </strong>
-                        <span style="color: #555; font-size: 13px;">
-                            <?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?>
-                        </span>
-                    </div>
-                <?php 
+                    foreach ($comments as $comment):
+                        render_comment_line($comment, 'full');
                     endforeach;
-                else: 
+                else:
                 ?>
                     <div style="color: #999; font-size: 13px;">Keine Kommentare</div>
                 <?php endif; ?>

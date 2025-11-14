@@ -104,40 +104,52 @@ if (isset($_POST['edit_agenda_item'])) {
     $description = trim($_POST['description'] ?? '');
     $category = $_POST['category'] ?? 'information';
     $proposal_text = ($category === 'antrag_beschluss') ? trim($_POST['proposal_text'] ?? '') : '';
-    
+
+    // Debug-Log
+    error_log("EDIT TOP: item_id=$item_id, category=$category, title=$title");
+
     if ($item_id && $title) {
         try {
             // Prüfen ob User der Ersteller ist
             $stmt = $pdo->prepare("
-                SELECT ai.created_by_member_id, ai.meeting_id, m.status
+                SELECT ai.created_by_member_id, ai.meeting_id, m.status, ai.category as old_category
                 FROM agenda_items ai
                 JOIN meetings m ON ai.meeting_id = m.meeting_id
                 WHERE ai.item_id = ?
             ");
             $stmt->execute([$item_id]);
             $item = $stmt->fetch();
-            
+
+            error_log("EDIT TOP Check: is_creator=" . ($item && $item['created_by_member_id'] == $current_user['member_id'] ? 'YES' : 'NO') .
+                      ", status=" . ($item['status'] ?? 'NULL') .
+                      ", old_category=" . ($item['old_category'] ?? 'NULL'));
+
             // Nur editierbar wenn Ersteller UND Meeting in Vorbereitung
-            if ($item && 
+            if ($item &&
                 $item['created_by_member_id'] == $current_user['member_id'] &&
                 $item['status'] === 'preparation') {
-                
+
                 $stmt = $pdo->prepare("
-                    UPDATE agenda_items 
+                    UPDATE agenda_items
                     SET title = ?, description = ?, category = ?, proposal_text = ?
                     WHERE item_id = ?
                 ");
                 $stmt->execute([$title, $description, $category, $proposal_text, $item_id]);
-                
+
+                error_log("EDIT TOP Success: Updated category from {$item['old_category']} to $category");
+
                 header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}#top-$item_id");
                 exit;
+            } else {
+                error_log("EDIT TOP FAILED: Berechtigung verweigert oder falscher Status");
             }
         } catch (PDOException $e) {
             error_log("Fehler beim Editieren des TOP: " . $e->getMessage());
         }
+    } else {
+        error_log("EDIT TOP FAILED: Missing item_id or title");
     }
 }
-
 /**
  * Alle TOP-Änderungen speichern
  * 
