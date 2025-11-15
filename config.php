@@ -4,11 +4,51 @@
  * Hier stehen alle individuellen Einstellungen
  */
 
+// ============= UMGEBUNGS-ERKENNUNG =============
+/**
+ * Erkennt automatisch, ob die Anwendung lokal (XAMPP) oder auf dem Produktivserver läuft
+ *
+ * @return bool true wenn lokal (XAMPP), false wenn Produktivserver
+ */
+function is_local_environment() {
+    // Prüfe verschiedene Indikatoren für lokale Entwicklung
+    $local_indicators = [
+        // Prüfe Server-Name (localhost, 127.0.0.1, ::1)
+        isset($_SERVER['SERVER_NAME']) && in_array($_SERVER['SERVER_NAME'], ['localhost', '127.0.0.1', '::1']),
+
+        // Prüfe HTTP-Host
+        isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false,
+
+        // Prüfe Server-Adresse
+        isset($_SERVER['SERVER_ADDR']) && in_array($_SERVER['SERVER_ADDR'], ['127.0.0.1', '::1']),
+
+        // Prüfe ob im XAMPP-Pfad
+        stripos(__FILE__, 'xampp') !== false,
+
+        // Prüfe ob im htdocs-Pfad (typisch für XAMPP)
+        stripos(__FILE__, 'htdocs') !== false
+    ];
+
+    return in_array(true, $local_indicators, true);
+}
+
+// Umgebung setzen
+define('IS_LOCAL', is_local_environment());
+
 // ============= DATENBANK-ZUGANGSDATEN =============
-define('DB_HOST', '91.204.46.74');
-define('DB_USER', 'k126904_hm');
-define('DB_PASS', '1Pkigg!n');
-define('DB_NAME', 'k126904_div');  // für Testphase
+if (IS_LOCAL) {
+    // XAMPP / Lokale Entwicklungsumgebung
+    define('DB_HOST', 'localhost');
+    define('DB_USER', 'root');
+    define('DB_PASS', '');  // XAMPP Standard: kein Passwort
+    define('DB_NAME', 'k126904_div');  // Lokale Datenbank
+} else {
+    // Produktivserver
+    define('DB_HOST', '91.204.46.74');
+    define('DB_USER', 'k126904_hm');
+    define('DB_PASS', '1Pkigg!n');
+    define('DB_NAME', 'k126904_div');
+}
 
 // ============= SYSTEM-EINSTELLUNGEN =============
 define('TIMEZONE', 'Europe/Berlin');
@@ -29,7 +69,7 @@ define('MAIL_FROM_NAME', 'Meeting-System');
 
 // ============= WEITERE EINSTELLUNGEN =============
 define('TOP_CONFIDENTIAL_START', 101);  // Ab welcher TOP-Nummer ist es vertraulich
-define('DEBUG_MODE', false);  // Fehler-Ausgabe aktivieren (in Entwicklung auf true)
+define('DEBUG_MODE', IS_LOCAL);  // Automatisch aktiviert in lokaler Umgebung
 
 // Rollen-Definitionen
 define('ROLES_CONFIDENTIAL_ACCESS', ['vorstand', 'gf', 'assistenz']); // Rollen mit Zugriff auf vertrauliche TOPs
