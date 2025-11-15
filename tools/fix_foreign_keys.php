@@ -129,25 +129,28 @@ try {
         echo '<h2>📋 Bestehende Foreign Keys</h2>';
 
         try {
+            // ALLE Tabellen durchsuchen, die Foreign Keys auf members haben
             $stmt = $pdo->query("
-                SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
+                SELECT TABLE_NAME, CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
                 FROM information_schema.KEY_COLUMN_USAGE
                 WHERE TABLE_SCHEMA = '" . DB_NAME . "'
-                AND TABLE_NAME = 'meetings'
-                AND REFERENCED_TABLE_NAME IS NOT NULL
+                AND REFERENCED_TABLE_NAME = 'members'
+                ORDER BY TABLE_NAME, CONSTRAINT_NAME
             ");
             $fks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (!empty($fks)) {
                 echo '<table style="width: 100%; border-collapse: collapse;">';
                 echo '<tr style="background-color: #f0f0f0;">';
+                echo '<th style="padding: 10px; text-align: left;">Tabelle</th>';
                 echo '<th style="padding: 10px; text-align: left;">Constraint Name</th>';
-                echo '<th style="padding: 10px; text-align: left;">Column</th>';
-                echo '<th style="padding: 10px; text-align: left;">References</th>';
+                echo '<th style="padding: 10px; text-align: left;">Spalte</th>';
+                echo '<th style="padding: 10px; text-align: left;">Referenz</th>';
                 echo '</tr>';
 
                 foreach ($fks as $fk) {
                     echo '<tr>';
+                    echo '<td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>' . htmlspecialchars($fk['TABLE_NAME']) . '</strong></td>';
                     echo '<td style="padding: 10px; border-bottom: 1px solid #ddd;">' . htmlspecialchars($fk['CONSTRAINT_NAME']) . '</td>';
                     echo '<td style="padding: 10px; border-bottom: 1px solid #ddd;"><code>' . htmlspecialchars($fk['COLUMN_NAME']) . '</code></td>';
                     echo '<td style="padding: 10px; border-bottom: 1px solid #ddd;"><code>' . htmlspecialchars($fk['REFERENCED_TABLE_NAME']) . '(' . htmlspecialchars($fk['REFERENCED_COLUMN_NAME']) . ')</code></td>';
@@ -168,31 +171,32 @@ try {
         // Bestätigungsformular
         echo '<div class="warning">';
         echo '<h3>⚠️ Warnung</h3>';
-        echo '<p>Dieses Skript wird die folgenden Foreign Key Constraints entfernen:</p>';
+        echo '<p>Dieses Skript wird <strong>ALLE</strong> Foreign Key Constraints entfernen, die auf die <code>members</code>-Tabelle verweisen.</p>';
+        echo '<p>Dies betrifft typischerweise:</p>';
         echo '<ul>';
-        echo '<li><code>meetings_ibfk_1</code> (chairman_member_id)</li>';
-        echo '<li><code>meetings_ibfk_2</code> (secretary_member_id)</li>';
-        echo '<li><code>meetings_ibfk_3</code> (invited_by_member_id)</li>';
+        echo '<li>Tabelle <code>meetings</code></li>';
+        echo '<li>Tabelle <code>meeting_participants</code></li>';
+        echo '<li>Weitere Tabellen mit Referenzen auf <code>members</code></li>';
         echo '</ul>';
         echo '<p><strong>Hinweis:</strong> Die referentielle Integrität wird weiterhin durch die Anwendungslogik sichergestellt.</p>';
         echo '<form method="post">';
         echo '<input type="hidden" name="confirm" value="yes">';
-        echo '<button type="submit" class="btn btn-danger">🔧 Foreign Keys entfernen</button>';
+        echo '<button type="submit" class="btn btn-danger">🔧 Alle Foreign Keys auf members entfernen</button>';
         echo '</form>';
         echo '</div>';
 
     } else {
         // Foreign Keys entfernen
         try {
-            // Zuerst alle existierenden Foreign Keys auf members ermitteln
+            // ALLE Foreign Keys auf members aus ALLEN Tabellen ermitteln
             $stmt = $pdo->query("
-                SELECT CONSTRAINT_NAME
+                SELECT TABLE_NAME, CONSTRAINT_NAME
                 FROM information_schema.KEY_COLUMN_USAGE
                 WHERE TABLE_SCHEMA = '" . DB_NAME . "'
-                AND TABLE_NAME = 'meetings'
                 AND REFERENCED_TABLE_NAME = 'members'
+                ORDER BY TABLE_NAME, CONSTRAINT_NAME
             ");
-            $existing_constraints = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $existing_constraints = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($existing_constraints)) {
                 echo '<div class="success">';
@@ -206,13 +210,16 @@ try {
             $pdo->beginTransaction();
             $dropped = [];
 
-            foreach ($existing_constraints as $constraint) {
+            foreach ($existing_constraints as $fk) {
+                $table = $fk['TABLE_NAME'];
+                $constraint = $fk['CONSTRAINT_NAME'];
+
                 try {
-                    $pdo->exec("ALTER TABLE meetings DROP FOREIGN KEY `$constraint`");
-                    $dropped[] = $constraint;
+                    $pdo->exec("ALTER TABLE `$table` DROP FOREIGN KEY `$constraint`");
+                    $dropped[] = "$table.$constraint";
                 } catch (PDOException $e) {
                     // Fehler loggen, aber weitermachen
-                    error_log("Fehler beim Löschen von Constraint $constraint: " . $e->getMessage());
+                    error_log("Fehler beim Löschen von Constraint $table.$constraint: " . $e->getMessage());
                 }
             }
 
