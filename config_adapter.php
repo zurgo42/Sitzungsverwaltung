@@ -5,6 +5,7 @@
  * Hier definieren Sie, welchen Adapter das System verwenden soll
  */
 
+//<<<<<<< Updated upstream
 // ============================================
 // MITGLIEDER-DATENQUELLE
 // ============================================
@@ -12,6 +13,11 @@
 // Welche Tabelle soll für Mitgliederdaten verwendet werden?
 // Optionen: 'members' (interne Tabelle) oder 'berechtigte' (externe Tabelle)
 define('MEMBER_SOURCE', 'members');  // ÄNDERN auf 'berechtigte' für externe Tabelle
+=======
+// Welcher Adapter soll verwendet werden?
+// Optionen: 'standard' (members Tabelle) oder 'berechtigte' (Ihre externe Tabelle)
+define('MEMBER_ADAPTER_TYPE', 'berechtigte');  // ÄNDERN SIE DIES auf 'berechtigte' wenn Sie Ihre Tabelle nutzen
+//>>>>>>> Stashed changes
 
 // Alternative: Umgebungsvariable oder automatische Erkennung
 // define('MEMBER_SOURCE', getenv('MEMBER_SOURCE') ?: 'members');
