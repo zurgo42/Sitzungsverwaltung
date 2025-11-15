@@ -74,12 +74,12 @@ function is_authorized_for_meeting($meeting, $current_user, $allowed_statuses = 
  * @param int $creator_member_id
  */
 function create_default_tops($pdo, $meeting_id, $creator_member_id) {
-    // TOP 0: Wahl der Sitzungsleitung und Protokollführung
+    // TOP 0: Wahl der Sitzungsleitung und Protokollführung - Kategorie: wahl
     $stmt = $pdo->prepare("
-        INSERT INTO agenda_items 
-        (meeting_id, top_number, title, description, priority, estimated_duration, 
+        INSERT INTO agenda_items
+        (meeting_id, top_number, title, description, category, priority, estimated_duration,
          is_confidential, is_active, created_by_member_id, created_at)
-        VALUES (?, 0, ?, ?, NULL, NULL, 0, 0, ?, NOW())
+        VALUES (?, 0, ?, ?, 'wahl', NULL, NULL, 0, 0, ?, NOW())
     ");
     $stmt->execute([
         $meeting_id,
@@ -87,13 +87,13 @@ function create_default_tops($pdo, $meeting_id, $creator_member_id) {
         'Formale Wahl, Organisatorisches',
         $creator_member_id
     ]);
-    
-    // TOP 99: Verschiedenes
+
+    // TOP 99: Verschiedenes - Kategorie: sonstiges
     $stmt = $pdo->prepare("
-        INSERT INTO agenda_items 
-        (meeting_id, top_number, title, description, priority, estimated_duration, 
+        INSERT INTO agenda_items
+        (meeting_id, top_number, title, description, category, priority, estimated_duration,
          is_confidential, is_active, created_by_member_id, created_at)
-        VALUES (?, 99, ?, ?, NULL, NULL, 0, 0, ?, NOW())
+        VALUES (?, 99, ?, ?, 'sonstiges', NULL, NULL, 0, 0, ?, NOW())
     ");
     $stmt->execute([
         $meeting_id,
@@ -157,23 +157,8 @@ if (isset($_POST['create_meeting'])) {
     $expected_end_date = !empty($_POST['expected_end_date']) ? $_POST['expected_end_date'] : null;
     $location = trim($_POST['location'] ?? '');
     $video_link = trim($_POST['video_link'] ?? '');
-
-    // WICHTIG: chairman_member_id und secretary_member_id haben Foreign Keys auf members-Tabelle
-    // Wenn berechtigte-Tabelle verwendet wird, müssen diese NULL sein (inkompatible IDs)
-    // Nach dem Entfernen der Foreign Keys (tools/fix_foreign_keys.php) können diese wieder gesetzt werden
-    $using_berechtigte = (defined('MEMBER_SOURCE') && MEMBER_SOURCE === 'berechtigte');
-
-    if ($using_berechtigte) {
-        // Bei berechtigte-Tabelle: Setze auf NULL wegen Foreign Key Constraints
-        // TODO: Nach dem Ausführen von tools/fix_foreign_keys.php können diese Zeilen entfernt werden
-        $chairman_member_id = null;
-        $secretary_member_id = null;
-    } else {
-        // Bei members-Tabelle: IDs normal verwenden
-        $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
-        $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
-    }
-
+    $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
+    $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
 
     // Validierung
@@ -275,18 +260,8 @@ if (isset($_POST['edit_meeting'])) {
     $expected_end_date = !empty($_POST['expected_end_date']) ? $_POST['expected_end_date'] : null;
     $location = trim($_POST['location'] ?? '');
     $video_link = trim($_POST['video_link'] ?? '');
-
-    // Gleiche Logik wie bei create_meeting: NULL wenn berechtigte-Tabelle verwendet wird
-    $using_berechtigte = (defined('MEMBER_SOURCE') && MEMBER_SOURCE === 'berechtigte');
-
-    if ($using_berechtigte) {
-        $chairman_member_id = null;
-        $secretary_member_id = null;
-    } else {
-        $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
-        $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
-    }
-
+    $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
+    $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
 
     if (empty($meeting_name) || empty($meeting_date)) {

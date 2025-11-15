@@ -47,14 +47,34 @@ function get_current_member() {
 
 /**
  * Lädt alle Meetings
+ * Kompatibel mit members UND berechtigte Tabelle
  */
 function get_all_meetings($pdo) {
     try {
-        $stmt = $pdo->query("SELECT m.*, mem.first_name, mem.last_name 
-                FROM meetings m 
-                LEFT JOIN members mem ON m.invited_by_member_id = mem.member_id 
+        // Nur Meeting-Daten holen, OHNE JOIN auf members
+        $stmt = $pdo->query("SELECT m.*
+                FROM meetings m
                 ORDER BY FIELD(status, 'active', 'preparation', 'ended', 'protocol_ready', 'archived'), meeting_date ASC");
-        return $stmt->fetchAll();
+        $meetings = $stmt->fetchAll();
+
+        // Mitglieder-Namen über Adapter ergänzen (funktioniert mit members ODER berechtigte)
+        foreach ($meetings as &$meeting) {
+            if ($meeting['invited_by_member_id']) {
+                $inviter = get_member_by_id($pdo, $meeting['invited_by_member_id']);
+                if ($inviter) {
+                    $meeting['first_name'] = $inviter['first_name'];
+                    $meeting['last_name'] = $inviter['last_name'];
+                } else {
+                    $meeting['first_name'] = 'Unbekannt';
+                    $meeting['last_name'] = '';
+                }
+            } else {
+                $meeting['first_name'] = 'Unbekannt';
+                $meeting['last_name'] = '';
+            }
+        }
+
+        return $meetings;
     } catch (PDOException $e) {
         if (DEBUG_MODE) {
             die("Fehler in get_all_meetings(): " . $e->getMessage());
@@ -73,23 +93,45 @@ function get_all_meetings($pdo) {
 
 /**
  * Lädt Meeting-Details
+ * Kompatibel mit members UND berechtigte Tabelle
  */
 function get_meeting_details($pdo, $meeting_id) {
     try {
-        $stmt = $pdo->prepare("SELECT m.*, 
-                mem_inv.first_name as inviter_first_name, 
-                mem_inv.last_name as inviter_last_name,
-                mem_chair.first_name as chairman_first_name,
-                mem_chair.last_name as chairman_last_name,
-                mem_sec.first_name as secretary_first_name,
-                mem_sec.last_name as secretary_last_name
-                FROM meetings m
-                LEFT JOIN members mem_inv ON m.invited_by_member_id = mem_inv.member_id
-                LEFT JOIN members mem_chair ON m.chairman_member_id = mem_chair.member_id
-                LEFT JOIN members mem_sec ON m.secretary_member_id = mem_sec.member_id
-                WHERE m.meeting_id = ?");
+        // Nur Meeting-Daten holen, OHNE JOIN auf members
+        $stmt = $pdo->prepare("SELECT m.* FROM meetings m WHERE m.meeting_id = ?");
         $stmt->execute([$meeting_id]);
-        return $stmt->fetch();
+        $meeting = $stmt->fetch();
+
+        if (!$meeting) {
+            return null;
+        }
+
+        // Mitglieder-Namen über Adapter ergänzen
+        if ($meeting['invited_by_member_id']) {
+            $inviter = get_member_by_id($pdo, $meeting['invited_by_member_id']);
+            if ($inviter) {
+                $meeting['inviter_first_name'] = $inviter['first_name'];
+                $meeting['inviter_last_name'] = $inviter['last_name'];
+            }
+        }
+
+        if ($meeting['chairman_member_id']) {
+            $chairman = get_member_by_id($pdo, $meeting['chairman_member_id']);
+            if ($chairman) {
+                $meeting['chairman_first_name'] = $chairman['first_name'];
+                $meeting['chairman_last_name'] = $chairman['last_name'];
+            }
+        }
+
+        if ($meeting['secretary_member_id']) {
+            $secretary = get_member_by_id($pdo, $meeting['secretary_member_id']);
+            if ($secretary) {
+                $meeting['secretary_first_name'] = $secretary['first_name'];
+                $meeting['secretary_last_name'] = $secretary['last_name'];
+            }
+        }
+
+        return $meeting;
     } catch (PDOException $e) {
         if (DEBUG_MODE) {
             die("Fehler in get_meeting_details(): " . $e->getMessage());
