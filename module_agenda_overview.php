@@ -43,16 +43,23 @@ function render_agenda_overview($agenda_items, $current_user = null, $current_me
     
     // Meeting-Details laden für Berechtigungs-Prüfung und Anzeige
     $stmt = $pdo->prepare("
-        SELECT m.secretary_member_id, m.chairman_member_id, m.meeting_date,
-               sec.first_name AS secretary_first, sec.last_name AS secretary_last,
-               chair.first_name AS chairman_first, chair.last_name AS chairman_last
-        FROM meetings m
-        LEFT JOIN members sec ON m.secretary_member_id = sec.member_id
-        LEFT JOIN members chair ON m.chairman_member_id = chair.member_id
-        WHERE m.meeting_id = ?
+        SELECT secretary_member_id, chairman_member_id, meeting_date
+        FROM meetings
+        WHERE meeting_id = ?
     ");
     $stmt->execute([$current_meeting_id]);
     $meeting_data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Namen über Adapter holen (nicht über JOIN!)
+    if ($meeting_data) {
+        $chairman = get_member_by_id($pdo, $meeting_data['chairman_member_id']);
+        $secretary = get_member_by_id($pdo, $meeting_data['secretary_member_id']);
+
+        $meeting_data['chairman_first'] = $chairman['first_name'] ?? null;
+        $meeting_data['chairman_last'] = $chairman['last_name'] ?? null;
+        $meeting_data['secretary_first'] = $secretary['first_name'] ?? null;
+        $meeting_data['secretary_last'] = $secretary['last_name'] ?? null;
+    }
     
     // Berechtigung für vertrauliche TOPs prüfen
     $is_secretary = ($meeting_data && $meeting_data['secretary_member_id'] == $current_user['member_id']);
