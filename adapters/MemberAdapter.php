@@ -198,11 +198,22 @@ class BerechtigteAdapter implements MemberAdapterInterface {
 
     /**
      * Prüft ob ein Datensatz inkludiert werden soll
-     * Filter: aktiv > 17 ODER Funktion IN ('RL', 'SV', 'AD', 'FP', 'GF')
+     * Filter: aktiv > 17 ODER Funktion IN ('RL', 'SV', 'AD', 'FP', 'GF') ODER spezielle Admin-MNr
      */
     private function shouldInclude($row) {
         $aktiv = $row['aktiv'] ?? 0;
         $funktion = $row['Funktion'] ?? '';
+        $mnr = $row['MNr'] ?? '';
+
+        // Spezielle Admin-MNr immer inkludieren (z.B. Test-User oder Super-Admin)
+        // Prüft sowohl TEST_MEMBERSHIP_NUMBER als auch hartcodierte Admin-MNr
+        $special_admin_mnrs = ['0495018'];
+        if (defined('TEST_MEMBERSHIP_NUMBER') && TEST_MEMBERSHIP_NUMBER) {
+            $special_admin_mnrs[] = TEST_MEMBERSHIP_NUMBER;
+        }
+        if (in_array($mnr, $special_admin_mnrs)) {
+            return true;
+        }
 
         return ($aktiv > 17) || in_array($funktion, ['RL', 'SV', 'AD', 'FP', 'GF']);
     }

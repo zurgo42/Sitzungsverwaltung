@@ -204,6 +204,12 @@ if (isset($_POST['create_meeting'])) {
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Fehler beim Meeting-Erstellen: " . $e->getMessage());
+
+        // Im Debug-Modus detaillierte Fehlermeldung anzeigen
+        if (defined('DEBUG_MODE') && DEBUG_MODE) {
+            die("Fehler beim Meeting-Erstellen: " . $e->getMessage() . "<br><br>Trace:<br>" . nl2br($e->getTraceAsString()));
+        }
+
         header("Location: index.php?tab=meetings&error=create_failed");
         exit;
     }
