@@ -142,12 +142,18 @@ $all_members = get_all_members($pdo);
                 <label>Teilnehmer auswählen:</label>
                 <div class="participant-buttons">
                     <button type="button" onclick="toggleAllParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
-                    <button type="button" onclick="toggleAllParticipants(false)" class="btn-secondary" style="padding: 5px 10px;">✗ Alle abwählen</button>
+                    <button type="button" onclick="toggleAllParticipants(false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
+                    <button type="button" onclick="toggleLeadershipRoles()" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
+                    <button type="button" onclick="toggleTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
                 </div>
                 <div class="participants-selector">
                     <?php foreach ($all_members as $member): ?>
                         <label class="participant-label">
-                            <input type="checkbox" name="participant_ids[]" value="<?php echo $member['member_id']; ?>" class="participant-checkbox">
+                            <input type="checkbox"
+                                   name="participant_ids[]"
+                                   value="<?php echo $member['member_id']; ?>"
+                                   class="participant-checkbox"
+                                   data-role="<?php echo htmlspecialchars($member['role']); ?>">
                             <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')'); ?>
                         </label>
                     <?php endforeach; ?>
@@ -308,19 +314,26 @@ $all_members = get_all_members($pdo);
                             <label>Teilnehmer auswählen:</label>
                             <div class="participant-buttons">
                                 <button type="button" onclick="toggleAllParticipantsEdit(<?php echo $m['meeting_id']; ?>, true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
-                                <button type="button" onclick="toggleAllParticipantsEdit(<?php echo $m['meeting_id']; ?>, false)" class="btn-secondary" style="padding: 5px 10px;">✗ Alle abwählen</button>
+                                <button type="button" onclick="toggleAllParticipantsEdit(<?php echo $m['meeting_id']; ?>, false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
+                                <button type="button" onclick="toggleLeadershipRolesEdit(<?php echo $m['meeting_id']; ?>)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
+                                <button type="button" onclick="toggleTopManagementEdit(<?php echo $m['meeting_id']; ?>)" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
                             </div>
                             <div class="participants-selector">
-                                <?php 
+                                <?php
                                 $stmt_current_participants = $pdo->prepare("SELECT member_id FROM meeting_participants WHERE meeting_id = ?");
                                 $stmt_current_participants->execute([$m['meeting_id']]);
                                 $current_participant_ids = $stmt_current_participants->fetchAll(PDO::FETCH_COLUMN);
-                                
-                                foreach ($all_members as $member): 
+
+                                foreach ($all_members as $member):
                                     $is_participant = in_array($member['member_id'], $current_participant_ids);
                                 ?>
                                     <label class="participant-label">
-                                        <input type="checkbox" name="participant_ids[]" value="<?php echo $member['member_id']; ?>" class="participant-checkbox-<?php echo $m['meeting_id']; ?>" <?php echo $is_participant ? 'checked' : ''; ?>>
+                                        <input type="checkbox"
+                                               name="participant_ids[]"
+                                               value="<?php echo $member['member_id']; ?>"
+                                               class="participant-checkbox-<?php echo $m['meeting_id']; ?>"
+                                               data-role="<?php echo htmlspecialchars($member['role']); ?>"
+                                               <?php echo $is_participant ? 'checked' : ''; ?>>
                                         <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')'); ?>
                                     </label>
                                 <?php endforeach; ?>
@@ -398,6 +411,42 @@ function toggleAllParticipants(checked) {
 function toggleAllParticipantsEdit(meetingId, checked) {
     const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
     checkboxes.forEach(cb => cb.checked = checked);
+}
+
+// Wählt nur Führungsrollen aus (alle außer "Mitglied")
+function toggleLeadershipRoles() {
+    const checkboxes = document.querySelectorAll('.participant-checkbox');
+    checkboxes.forEach(cb => {
+        const role = cb.getAttribute('data-role');
+        cb.checked = (role !== 'Mitglied');
+    });
+}
+
+function toggleLeadershipRolesEdit(meetingId) {
+    const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
+    checkboxes.forEach(cb => {
+        const role = cb.getAttribute('data-role');
+        cb.checked = (role !== 'Mitglied');
+    });
+}
+
+// Wählt nur Vorstand, Geschäftsführung und Assistenz aus
+function toggleTopManagement() {
+    const checkboxes = document.querySelectorAll('.participant-checkbox');
+    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz'];
+    checkboxes.forEach(cb => {
+        const role = cb.getAttribute('data-role');
+        cb.checked = topRoles.includes(role);
+    });
+}
+
+function toggleTopManagementEdit(meetingId) {
+    const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
+    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz'];
+    checkboxes.forEach(cb => {
+        const role = cb.getAttribute('data-role');
+        cb.checked = topRoles.includes(role);
+    });
 }
 
 function combineDateTime() {

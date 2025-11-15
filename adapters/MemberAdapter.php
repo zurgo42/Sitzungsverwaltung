@@ -115,62 +115,152 @@ class BerechtigteAdapter implements MemberAdapterInterface {
     private function mapToStandard($row) {
         if (!$row) return null;
 
+        $funktion = $row['Funktion'] ?? '';
+        $aktiv = $row['aktiv'] ?? 0;
+
         return [
             'member_id' => $row['ID'],
             'membership_number' => $row['MNr'],
             'first_name' => $row['Vorname'],
             'last_name' => $row['Name'],
             'email' => $row['eMail'],
-            'role' => $row['funktionsbeschreibung'] ?? 'Mitglied',  // Direkt übernehmen
-            'is_admin' => $this->isAdmin($row['aktiv'], $row['MNr']),
-            'is_confidential' => $this->isConfidential($row['aktiv']),
+            'role' => $this->mapRole($funktion, $aktiv),
+            'is_admin' => $this->isAdmin($funktion, $row['MNr']),
+            'is_confidential' => $this->isConfidential($funktion, $aktiv),
             'password_hash' => '', // Kein Passwort bei SSO
-            'created_at' => $row['angelegt'] ?? null
+            'created_at' => $row['angelegt'] ?? null,
+            'role_priority' => $this->getRolePriority($funktion, $aktiv) // Für Sortierung
         ];
     }
 
     /**
-     * Prüft Admin-Rechte
-     * Admin wenn: aktiv == 18 ODER MNr == 0495018
+     * Mappt Funktion und aktiv auf Rollenbeschreibung
+     *
+     * Regeln:
+     * - aktiv=19 → Vorstand
+     * - Funktion=GF → Geschäftsführung
+     * - Funktion=SV → Assistenz
+     * - Funktion=RL → Führungsteam
+     * - Funktion=AD → Mitglied
+     * - Funktion=FP → Mitglied
      */
-    private function isAdmin($aktiv, $mnr) {
-        return ($aktiv == 18 || $mnr == '0495018') ? 1 : 0;
+    private function mapRole($funktion, $aktiv) {
+        // Vorstand hat höchste Priorität
+        if ($aktiv == 19) {
+            return 'Vorstand';
+        }
+
+        // Dann Funktions-basierte Rollen
+        $roleMapping = [
+            'GF' => 'Geschäftsführung',
+            'SV' => 'Assistenz',
+            'RL' => 'Führungsteam',
+            'AD' => 'Mitglied',
+            'FP' => 'Mitglied'
+        ];
+
+        return $roleMapping[$funktion] ?? 'Mitglied';
     }
 
     /**
-     * Mappt "aktiv" auf "is_confidential"
-     * Vertraulich wenn: aktiv > 17
+     * Gibt Sortier-Priorität für Rollen zurück
+     * Niedriger = höhere Priorität (oben)
      */
-    private function isConfidential($aktiv) {
-        return ($aktiv > 17) ? 1 : 0;
+    private function getRolePriority($funktion, $aktiv) {
+        if ($aktiv == 19) return 1; // Vorstand
+
+        $priorityMapping = [
+            'GF' => 2, // Geschäftsführung
+            'SV' => 3, // Assistenz
+            'RL' => 4, // Führungsteam
+            'AD' => 5, // Mitglied
+            'FP' => 5  // Mitglied
+        ];
+
+        return $priorityMapping[$funktion] ?? 6;
+    }
+
+    /**
+     * Prüft Admin-Rechte
+     * Admin wenn: Funktion=GF ODER Funktion=SV ODER MNr='0495018'
+     */
+    private function isAdmin($funktion, $mnr) {
+        return (in_array($funktion, ['GF', 'SV']) || $mnr == '0495018') ? 1 : 0;
+    }
+
+    /**
+     * Prüft vertraulichen Zugriff
+     * Vertraulich wenn: aktiv=19 ODER Funktion=GF ODER Funktion=SV
+     */
+    private function isConfidential($funktion, $aktiv) {
+        return ($aktiv == 19 || in_array($funktion, ['GF', 'SV'])) ? 1 : 0;
+    }
+
+    /**
+     * Prüft ob ein Datensatz inkludiert werden soll
+     * Filter: aktiv > 17 ODER Funktion IN ('RL', 'SV', 'AD', 'FP', 'GF')
+     */
+    private function shouldInclude($row) {
+        $aktiv = $row['aktiv'] ?? 0;
+        $funktion = $row['Funktion'] ?? '';
+
+        return ($aktiv > 17) || in_array($funktion, ['RL', 'SV', 'AD', 'FP', 'GF']);
     }
 
     public function getMemberById($id) {
-        $stmt = $this->pdo->prepare("SELECT * FROM berechtigte WHERE ID = ? AND aktiv > 0");
+        $stmt = $this->pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
         $stmt->execute([$id]);
-        return $this->mapToStandard($stmt->fetch(PDO::FETCH_ASSOC));
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($row && $this->shouldInclude($row)) {
+            return $this->mapToStandard($row);
+        }
+        return null;
     }
 
     public function getAllMembers() {
         $rows = $this->pdo->query("
             SELECT * FROM berechtigte
-            WHERE aktiv > 0
             ORDER BY Name, Vorname
         ")->fetchAll(PDO::FETCH_ASSOC);
 
-        return array_map([$this, 'mapToStandard'], $rows);
+        // Filter anwenden
+        $filtered = array_filter($rows, [$this, 'shouldInclude']);
+
+        // Zu Standard-Format konvertieren
+        $members = array_map([$this, 'mapToStandard'], $filtered);
+
+        // Nach role_priority sortieren, dann nach Name
+        usort($members, function($a, $b) {
+            if ($a['role_priority'] !== $b['role_priority']) {
+                return $a['role_priority'] - $b['role_priority'];
+            }
+            return strcmp($a['last_name'], $b['last_name']);
+        });
+
+        return $members;
     }
 
     public function getMemberByEmail($email) {
-        $stmt = $this->pdo->prepare("SELECT * FROM berechtigte WHERE eMail = ? AND aktiv > 0");
+        $stmt = $this->pdo->prepare("SELECT * FROM berechtigte WHERE eMail = ?");
         $stmt->execute([$email]);
-        return $this->mapToStandard($stmt->fetch(PDO::FETCH_ASSOC));
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($row && $this->shouldInclude($row)) {
+            return $this->mapToStandard($row);
+        }
+        return null;
     }
 
     public function getMemberByMembershipNumber($mnr) {
-        $stmt = $this->pdo->prepare("SELECT * FROM berechtigte WHERE MNr = ? AND aktiv > 0");
+        $stmt = $this->pdo->prepare("SELECT * FROM berechtigte WHERE MNr = ?");
         $stmt->execute([$mnr]);
-        return $this->mapToStandard($stmt->fetch(PDO::FETCH_ASSOC));
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($row && $this->shouldInclude($row)) {
+            return $this->mapToStandard($row);
+        }
+        return null;
     }
 
     public function createMember($data) {
