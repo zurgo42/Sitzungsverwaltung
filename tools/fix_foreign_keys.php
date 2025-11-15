@@ -184,34 +184,56 @@ try {
     } else {
         // Foreign Keys entfernen
         try {
-            $pdo->beginTransaction();
+            // Zuerst alle existierenden Foreign Keys auf members ermitteln
+            $stmt = $pdo->query("
+                SELECT CONSTRAINT_NAME
+                FROM information_schema.KEY_COLUMN_USAGE
+                WHERE TABLE_SCHEMA = '" . DB_NAME . "'
+                AND TABLE_NAME = 'meetings'
+                AND REFERENCED_TABLE_NAME = 'members'
+            ");
+            $existing_constraints = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-            $constraints_to_drop = ['meetings_ibfk_1', 'meetings_ibfk_2', 'meetings_ibfk_3'];
+            if (empty($existing_constraints)) {
+                echo '<div class="success">';
+                echo '<h3>✅ Bereits erledigt!</h3>';
+                echo '<p>Es gibt keine Foreign Key Constraints auf die members-Tabelle mehr.</p>';
+                echo '<p><a href="../index.php" class="btn">➡️ Zur Anwendung</a></p>';
+                echo '</div>';
+                exit;
+            }
+
+            $pdo->beginTransaction();
             $dropped = [];
 
-            foreach ($constraints_to_drop as $constraint) {
+            foreach ($existing_constraints as $constraint) {
                 try {
-                    $pdo->exec("ALTER TABLE meetings DROP FOREIGN KEY $constraint");
+                    $pdo->exec("ALTER TABLE meetings DROP FOREIGN KEY `$constraint`");
                     $dropped[] = $constraint;
                 } catch (PDOException $e) {
-                    // Constraint existiert möglicherweise nicht - ignorieren
-                    if (strpos($e->getMessage(), "check that column/key exists") === false) {
-                        throw $e;
-                    }
+                    // Fehler loggen, aber weitermachen
+                    error_log("Fehler beim Löschen von Constraint $constraint: " . $e->getMessage());
                 }
             }
 
             $pdo->commit();
 
-            echo '<div class="success">';
-            echo '<h3>✅ Erfolgreich!</h3>';
-            echo '<p>Folgende Foreign Key Constraints wurden entfernt:</p>';
-            echo '<ul>';
-            foreach ($dropped as $constraint) {
-                echo '<li><code>' . htmlspecialchars($constraint) . '</code></li>';
+            if (!empty($dropped)) {
+                echo '<div class="success">';
+                echo '<h3>✅ Erfolgreich!</h3>';
+                echo '<p>Folgende Foreign Key Constraints wurden entfernt:</p>';
+                echo '<ul>';
+                foreach ($dropped as $constraint) {
+                    echo '<li><code>' . htmlspecialchars($constraint) . '</code></li>';
+                }
+                echo '</ul>';
+                echo '</div>';
+            } else {
+                echo '<div class="warning">';
+                echo '<h3>⚠️ Warnung</h3>';
+                echo '<p>Es konnten keine Constraints entfernt werden. Möglicherweise existieren sie bereits nicht mehr.</p>';
+                echo '</div>';
             }
-            echo '</ul>';
-            echo '</div>';
 
             echo '<div class="info">';
             echo '<h3>📋 Nächste Schritte</h3>';
@@ -225,7 +247,10 @@ try {
             echo '</div>';
 
         } catch (PDOException $e) {
-            $pdo->rollBack();
+            // Nur rollBack wenn Transaktion aktiv ist
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
 
             echo '<div class="error">';
             echo '<h3>❌ Fehler</h3>';
