@@ -125,19 +125,28 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
     <h1>♻️ Demo-Daten Import &amp; Reset</h1>
 
     <div class="environment-badge <?php echo IS_LOCAL ? 'env-local' : 'env-production'; ?>">
-        <?php echo IS_LOCAL ? '🏠 LOKALE UMGEBUNG' : '🌐 PRODUKTIVSERVER'; ?>
+        <?php echo IS_LOCAL ? '🏠 LOKALE UMGEBUNG' : '🌐 REMOTE SERVER'; ?>
     </div>
 
-    <?php if (!IS_LOCAL): ?>
+    <div class="environment-badge" style="background-color: #ffc107; color: #000; margin-left: 10px;">
+        🎭 DEMO-MODUS AKTIV
+    </div>
+
+    <?php if (!DEMO_MODE_ENABLED): ?>
         <div class="error">
-            <h3>🚫 Produktivserver erkannt!</h3>
+            <h3>🚫 Demo-Modus deaktiviert!</h3>
             <p>
-                Dieses Skript sollte <strong>NICHT</strong> auf dem Produktivserver ausgeführt werden!<br>
-                Es würde alle Meeting-Daten löschen.
+                Dieses Skript ist nur verfügbar, wenn <code>DEMO_MODE_ENABLED = true</code> in der <code>config.php</code> gesetzt ist.<br>
+                Dies ist eine Sicherheitsmaßnahme, um versehentliches Löschen von Produktivdaten zu verhindern.
             </p>
             <p>
-                Wenn Sie dies wirklich tun möchten, müssen Sie den Code manuell anpassen.
+                <strong>Für den echten Produktivbetrieb sollte DEMO_MODE_ENABLED = false sein!</strong>
             </p>
+            <p>
+                Wenn Sie auf einem Demo-Server oder in einer Entwicklungsumgebung arbeiten und die Demo-Funktionen nutzen möchten,
+                setzen Sie in der <code>config.php</code>:
+            </p>
+            <pre>define('DEMO_MODE_ENABLED', true);</pre>
         </div>
         <?php exit; ?>
     <?php endif; ?>

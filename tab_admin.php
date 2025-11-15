@@ -455,6 +455,66 @@ require_once 'process_admin.php';
     </div> <!-- End admin-section-content -->
 </div>
 
+<!-- System & Demo-Funktionen -->
+<?php if (DEMO_MODE_ENABLED): ?>
+<div id="admin-demo" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">🎭 System &amp; Demo-Funktionen</h3>
+
+    <div class="admin-section-content">
+        <div class="warning" style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
+            <h4 style="margin-top: 0;">⚠️ Demo-Modus aktiv</h4>
+            <p>
+                Der Demo-Modus ist aktiviert. Diese Funktionen erlauben es, die Datenbank auf einen
+                definierten Demo-Stand zurückzusetzen - ideal für Präsentationen und Tests.
+            </p>
+            <p style="margin-bottom: 0;">
+                <strong>WICHTIG:</strong> Für den echten Produktivbetrieb sollte in der <code>config.php</code>
+                die Einstellung <code>DEMO_MODE_ENABLED = false</code> gesetzt werden!
+            </p>
+        </div>
+
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4>🔄 Demo-Daten-Verwaltung</h4>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <!-- Demo Export -->
+                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+                    <h5 style="margin-top: 0; color: #007bff;">📦 Demo-Daten exportieren</h5>
+                    <p style="font-size: 14px; color: #666;">
+                        Exportiert den aktuellen Datenbankstand als Demo-Daten-Datei.
+                        Nützlich wenn Sie einen neuen Demo-Stand erstellen möchten.
+                    </p>
+                    <a href="tools/demo_export.php" class="btn" style="background-color: #007bff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank">
+                        📦 Export starten
+                    </a>
+                </div>
+
+                <!-- Demo Import/Reset -->
+                <div style="border: 1px solid #dc3545; padding: 15px; border-radius: 5px; background-color: #fff5f5;">
+                    <h5 style="margin-top: 0; color: #dc3545;">♻️ Datenbank auf Demo-Stand zurücksetzen</h5>
+                    <p style="font-size: 14px; color: #666;">
+                        <strong>ACHTUNG:</strong> Löscht ALLE aktuellen Daten und lädt Demo-Daten ein.
+                        Dieser Vorgang kann nicht rückgängig gemacht werden!
+                    </p>
+                    <a href="tools/demo_import.php" class="btn btn-danger" style="background-color: #dc3545; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank" onclick="return confirm('WARNUNG: Dies löscht ALLE aktuellen Daten!\n\nMöchten Sie wirklich fortfahren?');">
+                        ♻️ Demo-Reset durchführen
+                    </a>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background-color: #e7f3ff; border-left: 4px solid #0c5460; border-radius: 5px;">
+                <h5 style="margin-top: 0;">💡 Workflow</h5>
+                <ol style="font-size: 14px; margin: 0;">
+                    <li>Erstellen Sie in der Anwendung verschiedene Meetings, TODOs, Kommentare etc.</li>
+                    <li>Exportieren Sie diese als Demo-Daten (erzeugt <code>demo_data.json</code>)</li>
+                    <li>Wenn Sie den Demo-Stand wiederherstellen möchten, nutzen Sie "Demo-Reset"</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <!-- Edit ToDo Modal -->
 <div id="edit-todo-modal" class="modal">
     <div class="modal-content">
@@ -635,6 +695,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const logSection = document.querySelector('#admin-log .admin-section-header');
     if (logSection) {
         toggleSection(logSection);
+    }
+
+    // Demo-Sektion initial eingeklappt
+    const demoSection = document.querySelector('#admin-demo .admin-section-header');
+    if (demoSection) {
+        toggleSection(demoSection);
     }
 });
 </script>

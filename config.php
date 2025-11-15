@@ -71,6 +71,12 @@ define('MAIL_FROM_NAME', 'Meeting-System');
 define('TOP_CONFIDENTIAL_START', 101);  // Ab welcher TOP-Nummer ist es vertraulich
 define('DEBUG_MODE', IS_LOCAL);  // Automatisch aktiviert in lokaler Umgebung
 
+// ============= DEMO-MODUS =============
+// WICHTIG: Auf dem echten Produktivserver auf false setzen!
+// true  = Demo-Funktionen sind verfügbar (Datenbank-Reset-Button, Demo-Daten-Import)
+// false = Produktivbetrieb, keine Demo-Funktionen
+define('DEMO_MODE_ENABLED', true);  // ÄNDERN SIE DIES AUF false FÜR PRODUKTIVBETRIEB!
+
 // Rollen-Definitionen
 define('ROLES_CONFIDENTIAL_ACCESS', ['vorstand', 'gf', 'assistenz']); // Rollen mit Zugriff auf vertrauliche TOPs
 
