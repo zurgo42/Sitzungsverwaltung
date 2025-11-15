@@ -150,15 +150,11 @@ function get_agenda_with_comments($pdo, $meeting_id, $user_role) {
             $confidential_filter = "AND ai.is_confidential = 0";
         }
         
-        $stmt = $pdo->prepare("SELECT ai.*, 
-                mem.first_name as creator_first_name, 
-                mem.last_name as creator_last_name,
-                mem.member_id as creator_member_id
+        $stmt = $pdo->prepare("SELECT ai.*
                 FROM agenda_items ai
-                LEFT JOIN members mem ON ai.created_by_member_id = mem.member_id
                 WHERE ai.meeting_id = ? $confidential_filter
-                ORDER BY 
-                    CASE 
+                ORDER BY
+                    CASE
                         WHEN ai.top_number = 0 THEN 0
                         WHEN ai.top_number = 99 THEN 999
                         WHEN ai.is_confidential = 1 THEN ai.top_number + 1000
@@ -166,16 +162,40 @@ function get_agenda_with_comments($pdo, $meeting_id, $user_role) {
                     END");
         $stmt->execute([$meeting_id]);
         $agenda = $stmt->fetchAll();
-        
-        // Kommentare für jeden TOP laden
+
+        // Creator-Namen über Adapter holen
         foreach ($agenda as &$item) {
-            $stmt = $pdo->prepare("SELECT ac.*, m.first_name, m.last_name
+            if ($item['created_by_member_id']) {
+                $creator = get_member_by_id($pdo, $item['created_by_member_id']);
+                $item['creator_first_name'] = $creator['first_name'] ?? null;
+                $item['creator_last_name'] = $creator['last_name'] ?? null;
+                $item['creator_member_id'] = $item['created_by_member_id'];
+            } else {
+                $item['creator_first_name'] = null;
+                $item['creator_last_name'] = null;
+                $item['creator_member_id'] = null;
+            }
+        }
+        unset($item);
+        
+        // Kommentare für jeden TOP laden (ohne JOIN!)
+        foreach ($agenda as &$item) {
+            $stmt = $pdo->prepare("SELECT ac.*
                     FROM agenda_comments ac
-                    JOIN members m ON ac.member_id = m.member_id
                     WHERE ac.item_id = ?
                     ORDER BY ac.created_at ASC");
             $stmt->execute([$item['item_id']]);
-            $item['comments'] = $stmt->fetchAll();
+            $comments = $stmt->fetchAll();
+
+            // Kommentator-Namen über Adapter holen
+            foreach ($comments as &$comment) {
+                $commenter = get_member_by_id($pdo, $comment['member_id']);
+                $comment['first_name'] = $commenter['first_name'] ?? 'Unbekannt';
+                $comment['last_name'] = $commenter['last_name'] ?? '';
+            }
+            unset($comment);
+
+            $item['comments'] = $comments;
         }
         
         return $agenda;

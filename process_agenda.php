@@ -1575,24 +1575,40 @@ if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] ===
         require_once 'module_protocol.php';
         require_once 'module_helpers.php';
         
-        // Alle Daten laden
+        // Alle Daten laden (ohne JOINs!)
         $stmt = $pdo->prepare("
-            SELECT ai.*, m.first_name as creator_first, m.last_name as creator_last
+            SELECT ai.*
             FROM agenda_items ai
-            LEFT JOIN members m ON ai.created_by_member_id = m.member_id
             WHERE ai.meeting_id = ?
             ORDER BY ai.top_number
         ");
         $stmt->execute([$current_meeting_id]);
         $all_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
+        // Creator-Namen über Adapter holen
+        foreach ($all_items as &$item) {
+            if ($item['created_by_member_id']) {
+                $creator = get_member_by_id($pdo, $item['created_by_member_id']);
+                $item['creator_first'] = $creator['first_name'] ?? null;
+                $item['creator_last'] = $creator['last_name'] ?? null;
+            }
+        }
+        unset($item);
+
+        // Teilnehmer über Adapter laden
         $stmt = $pdo->prepare("
-            SELECT m.* FROM members m
-            JOIN meeting_participants mp ON m.member_id = mp.member_id
-            WHERE mp.meeting_id = ?
+            SELECT member_id FROM meeting_participants WHERE meeting_id = ?
         ");
         $stmt->execute([$current_meeting_id]);
-        $all_participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $participant_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $all_participants = [];
+        foreach ($participant_ids as $member_id) {
+            $member = get_member_by_id($pdo, $member_id);
+            if ($member) {
+                $all_participants[] = $member;
+            }
+        }
         
         $protocols = generate_protocol($pdo, $meeting, $all_items, $all_participants);
         
@@ -1697,24 +1713,41 @@ if (isset($_POST['approve_protocol']) && $is_chairman && $meeting['status'] === 
         require_once 'module_protocol.php';
         require_once 'module_helpers.php';
         
+        // Alle Daten laden (ohne JOINs!)
         $stmt = $pdo->prepare("
-            SELECT ai.*, m.first_name as creator_first, m.last_name as creator_last
+            SELECT ai.*
             FROM agenda_items ai
-            LEFT JOIN members m ON ai.created_by_member_id = m.member_id
             WHERE ai.meeting_id = ?
             ORDER BY ai.top_number
         ");
         $stmt->execute([$current_meeting_id]);
         $all_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
+        // Creator-Namen über Adapter holen
+        foreach ($all_items as &$item) {
+            if ($item['created_by_member_id']) {
+                $creator = get_member_by_id($pdo, $item['created_by_member_id']);
+                $item['creator_first'] = $creator['first_name'] ?? null;
+                $item['creator_last'] = $creator['last_name'] ?? null;
+            }
+        }
+        unset($item);
+
+        // Teilnehmer über Adapter laden
         $stmt = $pdo->prepare("
-            SELECT m.* FROM members m
-            JOIN meeting_participants mp ON m.member_id = mp.member_id
-            WHERE mp.meeting_id = ?
+            SELECT member_id FROM meeting_participants WHERE meeting_id = ?
         ");
         $stmt->execute([$current_meeting_id]);
-        $all_participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+        $participant_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $all_participants = [];
+        foreach ($participant_ids as $member_id) {
+            $member = get_member_by_id($pdo, $member_id);
+            if ($member) {
+                $all_participants[] = $member;
+            }
+        }
+
         $protocols = generate_protocol($pdo, $meeting, $all_items, $all_participants);
         
         // Meeting archivieren

@@ -8,17 +8,27 @@
 
 /**
  * Lädt alle Kommentare für einen TOP (sortiert nach Datum)
+ * Verwendet den Adapter für Member-Namen
  */
 function get_item_comments($pdo, $item_id) {
     $stmt = $pdo->prepare("
-        SELECT ac.*, m.first_name, m.last_name
+        SELECT ac.*
         FROM agenda_comments ac
-        JOIN members m ON ac.member_id = m.member_id
         WHERE ac.item_id = ?
         ORDER BY ac.created_at ASC
     ");
     $stmt->execute([$item_id]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Member-Namen über Adapter holen
+    foreach ($comments as &$comment) {
+        $member = get_member_by_id($pdo, $comment['member_id']);
+        $comment['first_name'] = $member['first_name'] ?? 'Unbekannt';
+        $comment['last_name'] = $member['last_name'] ?? '';
+    }
+    unset($comment);
+
+    return $comments;
 }
 
 /**
@@ -135,18 +145,81 @@ function render_editable_comment_form($item_id, $my_comment, $meeting_status) {
 function render_comment_module($pdo, $item_id, $current_member_id, $meeting_status) {
     // Alle Kommentare laden
     $comments = get_item_comments($pdo, $item_id);
-    
+
     // Eigenen Kommentar laden
     $my_comment = get_my_comment($pdo, $item_id, $current_member_id);
-    
+
     ?>
     <div class="comment-module" style="margin-top: 12px;">
         <h4 style="font-size: 14px; color: #666; margin-bottom: 8px;">💬 Diskussionsbeiträge</h4>
-        
+
         <?php render_comments_list($comments, $current_member_id, $meeting_status, $item_id); ?>
-        
+
         <?php render_editable_comment_form($item_id, $my_comment, $meeting_status); ?>
     </div>
     <?php
+}
+
+/**
+ * Lädt Live-Kommentare für einen TOP (während der Sitzung)
+ * Verwendet den Adapter für Member-Namen
+ */
+function get_live_comments($pdo, $item_id) {
+    $stmt = $pdo->prepare("
+        SELECT alc.*
+        FROM agenda_live_comments alc
+        WHERE alc.item_id = ?
+        ORDER BY alc.created_at ASC
+    ");
+    $stmt->execute([$item_id]);
+    $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Member-Namen über Adapter holen
+    foreach ($comments as &$comment) {
+        $member = get_member_by_id($pdo, $comment['member_id']);
+        $comment['first_name'] = $member['first_name'] ?? 'Unbekannt';
+        $comment['last_name'] = $member['last_name'] ?? '';
+    }
+    unset($comment);
+
+    return $comments;
+}
+
+/**
+ * Lädt Post-Kommentare für einen TOP (nach der Sitzung)
+ * Verwendet den Adapter für Member-Namen
+ */
+function get_post_comments($pdo, $item_id, $member_id = null) {
+    if ($member_id !== null) {
+        // Nur eigene Post-Kommentare
+        $stmt = $pdo->prepare("
+            SELECT apc.*
+            FROM agenda_post_comments apc
+            WHERE apc.item_id = ? AND apc.member_id = ?
+            ORDER BY apc.created_at DESC
+        ");
+        $stmt->execute([$item_id, $member_id]);
+    } else {
+        // Alle Post-Kommentare
+        $stmt = $pdo->prepare("
+            SELECT apc.*
+            FROM agenda_post_comments apc
+            WHERE apc.item_id = ?
+            ORDER BY apc.created_at ASC
+        ");
+        $stmt->execute([$item_id]);
+    }
+
+    $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Member-Namen über Adapter holen
+    foreach ($comments as &$comment) {
+        $member = get_member_by_id($pdo, $comment['member_id']);
+        $comment['first_name'] = $member['first_name'] ?? 'Unbekannt';
+        $comment['last_name'] = $member['last_name'] ?? '';
+    }
+    unset($comment);
+
+    return $comments;
 }
 ?>
