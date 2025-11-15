@@ -11,7 +11,7 @@
 
 // Welche Tabelle soll für Mitgliederdaten verwendet werden?
 // Optionen: 'members' (interne Tabelle) oder 'berechtigte' (externe Tabelle)
-define('MEMBER_SOURCE', 'members');  // ÄNDERN auf 'berechtigte' für externe Tabelle
+define('MEMBER_SOURCE', 'berechtigte');  // GEÄNDERT: Externe Tabelle verwenden
 
 // Alternative: Umgebungsvariable oder automatische Erkennung
 // define('MEMBER_SOURCE', getenv('MEMBER_SOURCE') ?: 'members');
@@ -24,7 +24,7 @@ define('MEMBER_SOURCE', 'members');  // ÄNDERN auf 'berechtigte' für externe T
 // Soll ein Login-Formular angezeigt werden?
 // true  = Normaler Modus mit Login-Formular (Email/Passwort)
 // false = SSO-Modus (Single Sign-On) - Benutzer ist bereits extern authentifiziert
-define('REQUIRE_LOGIN', true);
+define('REQUIRE_LOGIN', false);  // GEÄNDERT: SSO-Modus aktiviert!
 
 // SSO-Modus: Woher kommt die Mitgliedsnummer?
 // 'hardcoded' = Aus TEST_MEMBERSHIP_NUMBER (nur für Tests!)
