@@ -157,10 +157,25 @@ if (isset($_POST['create_meeting'])) {
     $expected_end_date = !empty($_POST['expected_end_date']) ? $_POST['expected_end_date'] : null;
     $location = trim($_POST['location'] ?? '');
     $video_link = trim($_POST['video_link'] ?? '');
-    $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
-    $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
+
+    // WICHTIG: chairman_member_id und secretary_member_id haben Foreign Keys auf members-Tabelle
+    // Wenn berechtigte-Tabelle verwendet wird, müssen diese NULL sein (inkompatible IDs)
+    // Nach dem Entfernen der Foreign Keys (tools/fix_foreign_keys.php) können diese wieder gesetzt werden
+    $using_berechtigte = (defined('MEMBER_SOURCE') && MEMBER_SOURCE === 'berechtigte');
+
+    if ($using_berechtigte) {
+        // Bei berechtigte-Tabelle: Setze auf NULL wegen Foreign Key Constraints
+        // TODO: Nach dem Ausführen von tools/fix_foreign_keys.php können diese Zeilen entfernt werden
+        $chairman_member_id = null;
+        $secretary_member_id = null;
+    } else {
+        // Bei members-Tabelle: IDs normal verwenden
+        $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
+        $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
+    }
+
     $participant_ids = $_POST['participant_ids'] ?? [];
-    
+
     // Validierung
     if (empty($meeting_name) || empty($meeting_date)) {
         header("Location: index.php?tab=meetings&error=missing_data");
@@ -260,10 +275,20 @@ if (isset($_POST['edit_meeting'])) {
     $expected_end_date = !empty($_POST['expected_end_date']) ? $_POST['expected_end_date'] : null;
     $location = trim($_POST['location'] ?? '');
     $video_link = trim($_POST['video_link'] ?? '');
-    $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
-    $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
+
+    // Gleiche Logik wie bei create_meeting: NULL wenn berechtigte-Tabelle verwendet wird
+    $using_berechtigte = (defined('MEMBER_SOURCE') && MEMBER_SOURCE === 'berechtigte');
+
+    if ($using_berechtigte) {
+        $chairman_member_id = null;
+        $secretary_member_id = null;
+    } else {
+        $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
+        $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
+    }
+
     $participant_ids = $_POST['participant_ids'] ?? [];
-    
+
     if (empty($meeting_name) || empty($meeting_date)) {
         header("Location: index.php?tab=meetings&error=missing_data&meeting_id=$meeting_id");
         exit;
