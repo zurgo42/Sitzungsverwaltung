@@ -163,6 +163,18 @@ require_once 'process_admin.php';
                     <input type="datetime-local" name="meeting_date" id="edit_meeting_date" required>
                 </div>
                 <div class="form-group">
+                    <label>Voraussichtliches Ende:</label>
+                    <input type="datetime-local" name="expected_end_date" id="edit_expected_end_date">
+                </div>
+                <div class="form-group">
+                    <label>Ort:</label>
+                    <input type="text" name="location" id="edit_location">
+                </div>
+                <div class="form-group">
+                    <label>Videokonferenz-Link:</label>
+                    <input type="url" name="video_link" id="edit_video_link">
+                </div>
+                <div class="form-group">
                     <label>Status:</label>
                     <select name="status" id="edit_status" required>
                         <option value="preparation">Vorbereitung</option>
@@ -201,6 +213,17 @@ require_once 'process_admin.php';
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Teilnehmer:</label>
+                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                        <?php foreach ($members as $m): ?>
+                            <label style="display: block; margin-bottom: 5px;">
+                                <input type="checkbox" name="participant_ids[]" value="<?php echo $m['member_id']; ?>" class="edit-participant-checkbox">
+                                <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name']); ?>
+                            </label>
+                        <?php endforeach; ?>
                     </div>
                 </div>
                 <button type="submit" name="edit_meeting" class="btn-primary">Speichern</button>
@@ -650,15 +673,30 @@ require_once 'process_admin.php';
 function editMeeting(meetingId) {
     const meetings = <?php echo json_encode($meetings); ?>;
     const meeting = meetings.find(m => m.meeting_id == meetingId);
-    
+
     if (meeting) {
         document.getElementById('edit_meeting_id').value = meeting.meeting_id;
         document.getElementById('edit_meeting_name').value = meeting.meeting_name;
         document.getElementById('edit_meeting_date').value = meeting.meeting_date.replace(' ', 'T').substring(0, 16);
+        document.getElementById('edit_expected_end_date').value = meeting.expected_end_date ? meeting.expected_end_date.replace(' ', 'T').substring(0, 16) : '';
+        document.getElementById('edit_location').value = meeting.location || '';
+        document.getElementById('edit_video_link').value = meeting.video_link || '';
         document.getElementById('edit_status').value = meeting.status;
         document.getElementById('edit_visibility_type').value = meeting.visibility_type || 'invited_only';
         document.getElementById('edit_chairman_id').value = meeting.chairman_member_id || '';
         document.getElementById('edit_secretary_id').value = meeting.secretary_member_id || '';
+
+        // Alle Checkboxen zurücksetzen
+        document.querySelectorAll('.edit-participant-checkbox').forEach(cb => cb.checked = false);
+
+        // Teilnehmer markieren
+        if (meeting.participant_ids && Array.isArray(meeting.participant_ids)) {
+            meeting.participant_ids.forEach(memberId => {
+                const checkbox = document.querySelector(`.edit-participant-checkbox[value="${memberId}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+        }
+
         document.getElementById('edit-meeting-modal').classList.add('show');
     }
 }

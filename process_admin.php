@@ -92,10 +92,14 @@ if (isset($_POST['edit_meeting'])) {
     $meeting_id = intval($_POST['meeting_id'] ?? 0);
     $meeting_name = trim($_POST['meeting_name'] ?? '');
     $meeting_date = $_POST['meeting_date'] ?? '';
+    $expected_end_date = !empty($_POST['expected_end_date']) ? $_POST['expected_end_date'] : null;
+    $location = trim($_POST['location'] ?? '');
+    $video_link = trim($_POST['video_link'] ?? '');
     $status = $_POST['status'] ?? '';
     $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
     $chairman_id = !empty($_POST['chairman_id']) ? intval($_POST['chairman_id']) : null;
     $secretary_id = !empty($_POST['secretary_id']) ? intval($_POST['secretary_id']) : null;
+    $participant_ids = $_POST['participant_ids'] ?? [];
 
     // Validierung
     if (!$meeting_id || !$meeting_name || !$meeting_date || !$status) {
@@ -115,6 +119,9 @@ if (isset($_POST['edit_meeting'])) {
                     UPDATE meetings
                     SET meeting_name = ?,
                         meeting_date = ?,
+                        expected_end_date = ?,
+                        location = ?,
+                        video_link = ?,
                         status = ?,
                         visibility_type = ?,
                         chairman_member_id = ?,
@@ -124,21 +131,42 @@ if (isset($_POST['edit_meeting'])) {
                 $stmt->execute([
                     $meeting_name,
                     $meeting_date,
+                    $expected_end_date,
+                    $location,
+                    $video_link,
                     $status,
                     $visibility_type,
                     $chairman_id,
                     $secretary_id,
                     $meeting_id
                 ]);
+
+                // Teilnehmer aktualisieren
+                $stmt = $pdo->prepare("DELETE FROM meeting_participants WHERE meeting_id = ?");
+                $stmt->execute([$meeting_id]);
+
+                if (!empty($participant_ids)) {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO meeting_participants (meeting_id, member_id, attendance_status)
+                        VALUES (?, ?, 'absent')
+                    ");
+                    foreach ($participant_ids as $member_id) {
+                        $stmt->execute([$meeting_id, intval($member_id)]);
+                    }
+                }
                 
                 // Neue Daten für Log
                 $new_meeting = [
                     'meeting_name' => $meeting_name,
                     'meeting_date' => $meeting_date,
+                    'expected_end_date' => $expected_end_date,
+                    'location' => $location,
+                    'video_link' => $video_link,
                     'status' => $status,
                     'visibility_type' => $visibility_type,
                     'chairman_member_id' => $chairman_id,
-                    'secretary_member_id' => $secretary_id
+                    'secretary_member_id' => $secretary_id,
+                    'participant_count' => count($participant_ids)
                 ];
                 
                 // Admin-Log
@@ -663,8 +691,8 @@ if (isset($_POST['delete_todo'])) {
 
 // Alle Meetings laden
 $meetings = $pdo->query("
-    SELECT m.*, 
-        mem_inv.first_name as inviter_first_name, 
+    SELECT m.*,
+        mem_inv.first_name as inviter_first_name,
         mem_inv.last_name as inviter_last_name,
         (SELECT COUNT(*) FROM meeting_participants WHERE meeting_id = m.meeting_id) as participant_count,
         (SELECT COUNT(*) FROM agenda_items WHERE meeting_id = m.meeting_id) as agenda_count
@@ -672,6 +700,13 @@ $meetings = $pdo->query("
     LEFT JOIN members mem_inv ON m.invited_by_member_id = mem_inv.member_id
     ORDER BY m.meeting_date DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
+
+// Teilnehmer für jedes Meeting laden
+foreach ($meetings as &$meeting) {
+    $stmt = $pdo->prepare("SELECT member_id FROM meeting_participants WHERE meeting_id = ?");
+    $stmt->execute([$meeting['meeting_id']]);
+    $meeting['participant_ids'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
 
 // Alle Mitglieder laden (über Wrapper-Funktion)
 // Funktioniert mit members ODER berechtigte Tabelle (siehe config_adapter.php)
