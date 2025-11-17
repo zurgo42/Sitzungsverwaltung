@@ -11,21 +11,44 @@
 $view = $_GET['view'] ?? 'dashboard';
 $poll_id = intval($_GET['poll_id'] ?? 0);
 
-// Alle Umfragen laden
-$stmt = $pdo->prepare("
-    SELECT p.*,
-           m.first_name as creator_first_name,
-           m.last_name as creator_last_name,
-           COUNT(DISTINCT pd.date_id) as date_count,
-           COUNT(DISTINCT pr.member_id) as response_count
-    FROM polls p
-    LEFT JOIN members m ON p.created_by_member_id = m.member_id
-    LEFT JOIN poll_dates pd ON p.poll_id = pd.poll_id
-    LEFT JOIN poll_responses pr ON p.poll_id = pr.poll_id
-    GROUP BY p.poll_id
-    ORDER BY p.created_at DESC
-");
-$stmt->execute();
+// Umfragen laden (nur die, bei denen User Teilnehmer oder Ersteller ist)
+$is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
+
+if ($is_admin) {
+    // Admins sehen alle Umfragen
+    $stmt = $pdo->prepare("
+        SELECT p.*,
+               m.first_name as creator_first_name,
+               m.last_name as creator_last_name,
+               COUNT(DISTINCT pd.date_id) as date_count,
+               COUNT(DISTINCT pr.member_id) as response_count
+        FROM polls p
+        LEFT JOIN members m ON p.created_by_member_id = m.member_id
+        LEFT JOIN poll_dates pd ON p.poll_id = pd.poll_id
+        LEFT JOIN poll_responses pr ON p.poll_id = pr.poll_id
+        GROUP BY p.poll_id
+        ORDER BY p.created_at DESC
+    ");
+    $stmt->execute();
+} else {
+    // Normale User sehen nur Umfragen, bei denen sie Teilnehmer sind
+    $stmt = $pdo->prepare("
+        SELECT DISTINCT p.*,
+               m.first_name as creator_first_name,
+               m.last_name as creator_last_name,
+               COUNT(DISTINCT pd.date_id) as date_count,
+               COUNT(DISTINCT pr.member_id) as response_count
+        FROM polls p
+        LEFT JOIN members m ON p.created_by_member_id = m.member_id
+        LEFT JOIN poll_dates pd ON p.poll_id = pd.poll_id
+        LEFT JOIN poll_responses pr ON p.poll_id = pr.poll_id
+        INNER JOIN poll_participants pp ON p.poll_id = pp.poll_id
+        WHERE pp.member_id = ?
+        GROUP BY p.poll_id
+        ORDER BY p.created_at DESC
+    ");
+    $stmt->execute([$current_user['member_id']]);
+}
 $all_polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Meetings für Dropdown laden
@@ -101,20 +124,6 @@ $all_members = get_all_members($pdo);
     display: flex;
     gap: 10px;
     margin-top: 15px;
-}
-
-.date-suggestions-grid {
-    display: grid;
-    grid-template-columns: 150px 80px 80px 200px auto 60px;
-    gap: 10px;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.date-suggestions-grid.header {
-    font-weight: bold;
-    border-bottom: 2px solid #ddd;
-    padding-bottom: 5px;
 }
 
 .vote-matrix {
@@ -215,12 +224,14 @@ $all_members = get_all_members($pdo);
     cursor: pointer;
     font-size: 16px;
     font-weight: bold;
+    color: #333;
     border-radius: 5px;
     transition: background 0.3s;
 }
 
 .accordion-button:hover {
     background: #e0e0e0;
+    color: #000;
 }
 
 .accordion-content {
@@ -268,34 +279,100 @@ function selectVote(button, dateId, voteValue) {
     }
 }
 
+// Teilnehmer-Auswahl für Umfragen
+function toggleAllPollParticipants(checked) {
+    const checkboxes = document.querySelectorAll('.poll-participant-checkbox');
+    checkboxes.forEach(cb => cb.checked = checked);
+}
+
+function togglePollLeadershipRoles() {
+    const checkboxes = document.querySelectorAll('.poll-participant-checkbox');
+    checkboxes.forEach(cb => {
+        const role = cb.getAttribute('data-role');
+        cb.checked = (role !== 'Mitglied');
+    });
+}
+
+function togglePollTopManagement() {
+    const checkboxes = document.querySelectorAll('.poll-participant-checkbox');
+    const topRoles = ['vorstand', 'gf', 'assistenz'];
+    checkboxes.forEach(cb => {
+        const role = cb.getAttribute('data-role');
+        cb.checked = topRoles.includes(role);
+    });
+}
+
 // Add More Date Suggestions
-let dateCount = 5; // Initial anzuzeigende Felder
-function addMoreDates() {
+let pollDateCount = 5;
+function addMorePollDates() {
     const container = document.getElementById('date-suggestions-container');
     const maxDates = 20;
 
-    if (dateCount >= maxDates) {
+    if (pollDateCount >= maxDates) {
         alert('Maximal ' + maxDates + ' Terminvorschläge möglich');
         return;
     }
 
-    dateCount++;
+    pollDateCount++;
     const newRow = document.createElement('div');
-    newRow.className = 'date-suggestions-grid';
+    newRow.style.cssText = 'display: grid; grid-template-columns: 150px 100px 100px 60px; gap: 10px; align-items: center; margin-bottom: 8px;';
     newRow.innerHTML = `
-        <input type="date" name="date_${dateCount}" placeholder="Datum">
-        <input type="time" name="time_start_${dateCount}" placeholder="Beginn">
-        <input type="time" name="time_end_${dateCount}" placeholder="Ende">
-        <input type="text" name="location_${dateCount}" placeholder="Ort (optional)">
-        <input type="text" name="notes_${dateCount}" placeholder="Notiz (optional)">
-        <button type="button" onclick="this.parentElement.remove(); dateCount--;" style="background: #f44336; color: white; border: none; padding: 8px; cursor: pointer; border-radius: 4px;">×</button>
+        <input type="date" name="date_${pollDateCount}" id="poll_date_${pollDateCount}" onchange="autoFillNextDate(${pollDateCount})" style="width: 100%;">
+        <input type="time" name="time_start_${pollDateCount}" id="poll_time_start_${pollDateCount}" onchange="autoFillNextTime(${pollDateCount})" style="width: 100%;">
+        <input type="time" name="time_end_${pollDateCount}" id="poll_time_end_${pollDateCount}" style="width: 100%;">
+        <button type="button" onclick="this.parentElement.remove(); pollDateCount--;" style="background: #f44336; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px;">×</button>
     `;
     container.appendChild(newRow);
 }
 
-// Auto-set date field on change
-function updateDateSuggestions() {
-    // Optional: Auto-fill logic
+// Auto-Vorschlag: Folgetag mit gleicher Uhrzeit
+function autoFillNextDate(currentIndex) {
+    const currentDateInput = document.getElementById('poll_date_' + currentIndex);
+    const currentTimeStartInput = document.getElementById('poll_time_start_' + currentIndex);
+    const nextDateInput = document.getElementById('poll_date_' + (currentIndex + 1));
+    const nextTimeStartInput = document.getElementById('poll_time_start_' + (currentIndex + 1));
+
+    if (currentDateInput && currentDateInput.value && nextDateInput && !nextDateInput.value) {
+        // Folgetag berechnen
+        const currentDate = new Date(currentDateInput.value);
+        currentDate.setDate(currentDate.getDate() + 1);
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        nextDateInput.value = `${year}-${month}-${day}`;
+
+        // Uhrzeit übernehmen wenn vorhanden
+        if (currentTimeStartInput && currentTimeStartInput.value && nextTimeStartInput && !nextTimeStartInput.value) {
+            nextTimeStartInput.value = currentTimeStartInput.value;
+        }
+    }
+}
+
+function autoFillNextTime(currentIndex) {
+    const currentTimeStartInput = document.getElementById('poll_time_start_' + currentIndex);
+    const currentTimeEndInput = document.getElementById('poll_time_end_' + currentIndex);
+    const nextTimeStartInput = document.getElementById('poll_time_start_' + (currentIndex + 1));
+    const nextTimeEndInput = document.getElementById('poll_time_end_' + (currentIndex + 1));
+
+    // Ende-Zeit basierend auf globaler Dauer berechnen (falls vorhanden)
+    const durationInput = document.querySelector('input[name="poll_duration"]');
+    if (currentTimeStartInput && currentTimeStartInput.value && currentTimeEndInput && !currentTimeEndInput.value && durationInput && durationInput.value) {
+        const [hours, minutes] = currentTimeStartInput.value.split(':');
+        const startTime = new Date();
+        startTime.setHours(parseInt(hours), parseInt(minutes), 0);
+        startTime.setMinutes(startTime.getMinutes() + parseInt(durationInput.value));
+        const endHours = String(startTime.getHours()).padStart(2, '0');
+        const endMinutes = String(startTime.getMinutes()).padStart(2, '0');
+        currentTimeEndInput.value = `${endHours}:${endMinutes}`;
+    }
+
+    // Uhrzeit zum nächsten Feld übernehmen
+    if (currentTimeStartInput && currentTimeStartInput.value && nextTimeStartInput && !nextTimeStartInput.value) {
+        nextTimeStartInput.value = currentTimeStartInput.value;
+    }
+    if (currentTimeEndInput && currentTimeEndInput.value && nextTimeEndInput && !nextTimeEndInput.value) {
+        nextTimeEndInput.value = currentTimeEndInput.value;
+    }
 }
 </script>
 
@@ -321,7 +398,7 @@ if (isset($_SESSION['error'])) {
     <div style="margin-bottom: 30px;">
         <button class="accordion-button" onclick="toggleAccordion(this)">➕ Neue Terminumfrage erstellen</button>
         <div class="accordion-content">
-            <form method="POST" action="process_termine.php">
+            <form method="POST" action="process_termine.php" id="poll-create-form">
                 <input type="hidden" name="action" value="create_poll">
 
                 <div class="form-group">
@@ -349,33 +426,72 @@ if (isset($_SESSION['error'])) {
                     </small>
                 </div>
 
+                <!-- Globale Angaben für alle Termine -->
+                <h3 style="margin-top: 25px; margin-bottom: 15px;">Rahmeninformationen (für alle Terminvorschläge)</h3>
+
                 <div class="form-group">
-                    <label><strong>Terminvorschläge:</strong></label>
-                    <div class="date-suggestions-grid header">
+                    <label>Ort:</label>
+                    <input type="text" name="poll_location" placeholder="z.B. Konferenzraum A">
+                </div>
+
+                <div class="form-group">
+                    <label>Videokonferenz-Link:</label>
+                    <input type="url" name="poll_video_link" placeholder="https://...">
+                </div>
+
+                <div class="form-group">
+                    <label>Voraussichtliche Dauer (Minuten):</label>
+                    <input type="number" name="poll_duration" placeholder="z.B. 120" min="15" step="15">
+                </div>
+
+                <!-- Teilnehmer auswählen -->
+                <div class="form-group">
+                    <label>Teilnehmer auswählen (nur diese sehen die Umfrage):*</label>
+                    <div class="participant-buttons">
+                        <button type="button" onclick="toggleAllPollParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
+                        <button type="button" onclick="toggleAllPollParticipants(false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
+                        <button type="button" onclick="togglePollLeadershipRoles()" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
+                        <button type="button" onclick="togglePollTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
+                    </div>
+                    <div class="participants-selector">
+                        <?php foreach ($all_members as $member): ?>
+                            <label class="participant-label">
+                                <input type="checkbox"
+                                       name="participant_ids[]"
+                                       value="<?php echo $member['member_id']; ?>"
+                                       class="poll-participant-checkbox"
+                                       data-role="<?php echo htmlspecialchars($member['role']); ?>">
+                                <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')'); ?>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <!-- Terminvorschläge -->
+                <h3 style="margin-top: 25px; margin-bottom: 15px;">Terminvorschläge</h3>
+
+                <div class="form-group">
+                    <div style="display: grid; grid-template-columns: 150px 100px 100px 60px; gap: 10px; align-items: center; margin-bottom: 10px; font-weight: bold; border-bottom: 2px solid #ddd; padding-bottom: 5px;">
                         <div>Datum</div>
                         <div>Beginn</div>
                         <div>Ende</div>
-                        <div>Ort</div>
-                        <div>Notiz</div>
                         <div></div>
                     </div>
 
                     <div id="date-suggestions-container">
                         <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <div class="date-suggestions-grid">
-                            <input type="date" name="date_<?php echo $i; ?>" placeholder="Datum">
-                            <input type="time" name="time_start_<?php echo $i; ?>" placeholder="Beginn">
-                            <input type="time" name="time_end_<?php echo $i; ?>" placeholder="Ende">
-                            <input type="text" name="location_<?php echo $i; ?>" placeholder="Ort (optional)">
-                            <input type="text" name="notes_<?php echo $i; ?>" placeholder="Notiz (optional)">
+                        <div style="display: grid; grid-template-columns: 150px 100px 100px 60px; gap: 10px; align-items: center; margin-bottom: 8px;">
+                            <input type="date" name="date_<?php echo $i; ?>" id="poll_date_<?php echo $i; ?>" onchange="autoFillNextDate(<?php echo $i; ?>)" style="width: 100%;">
+                            <input type="time" name="time_start_<?php echo $i; ?>" id="poll_time_start_<?php echo $i; ?>" onchange="autoFillNextTime(<?php echo $i; ?>)" style="width: 100%;">
+                            <input type="time" name="time_end_<?php echo $i; ?>" id="poll_time_end_<?php echo $i; ?>" style="width: 100%;">
                             <span></span>
                         </div>
                         <?php endfor; ?>
                     </div>
 
-                    <button type="button" onclick="addMoreDates()" class="btn-secondary" style="margin-top: 10px;">+ Weiteren Termin hinzufügen</button>
+                    <button type="button" onclick="addMorePollDates()" class="btn-secondary" style="margin-top: 10px;">+ Weiteren Termin hinzufügen</button>
                     <small style="display: block; margin-top: 10px; color: #666;">
-                        Sie können bis zu 20 Terminvorschläge hinzufügen
+                        Sie können bis zu 20 Terminvorschläge hinzufügen. Nach Eingabe von Datum/Uhrzeit wird automatisch der Folgetag vorgeschlagen.
                     </small>
                 </div>
 

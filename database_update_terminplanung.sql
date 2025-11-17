@@ -22,6 +22,10 @@ CREATE TABLE IF NOT EXISTS polls (
     description TEXT,
     created_by_member_id INT NOT NULL,
     meeting_id INT DEFAULT NULL,
+    -- Globale Angaben für alle Terminvorschläge
+    location VARCHAR(255) DEFAULT NULL,
+    video_link VARCHAR(500) DEFAULT NULL,
+    duration INT DEFAULT NULL,
     -- Status der Umfrage
     status ENUM('open', 'closed', 'finalized') DEFAULT 'open',
     -- Finaler gewählter Termin (falls ausgewählt)
@@ -99,7 +103,30 @@ CREATE TABLE IF NOT EXISTS poll_responses (
     INDEX idx_vote (vote)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 4. Foreign Key für final_date_id in polls Tabelle
+-- 4. Tabelle für Umfrage-Teilnehmer
+-- --------------------------------------------
+-- Definiert, wer die Umfrage sehen/bearbeiten darf
+
+CREATE TABLE IF NOT EXISTS poll_participants (
+    participant_id INT PRIMARY KEY AUTO_INCREMENT,
+    poll_id INT NOT NULL,
+    member_id INT NOT NULL,
+    -- Zeitstempel
+    invited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- Foreign Keys
+    FOREIGN KEY (poll_id) REFERENCES polls(poll_id) ON DELETE CASCADE,
+    FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+
+    -- Ein Mitglied kann nur einmal zu einer Umfrage eingeladen werden
+    UNIQUE KEY unique_poll_participant (poll_id, member_id),
+
+    -- Indizes
+    INDEX idx_poll (poll_id),
+    INDEX idx_member (member_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 5. Foreign Key für final_date_id in polls Tabelle
 -- --------------------------------------------
 -- (Wird nach Erstellung der poll_dates Tabelle hinzugefügt)
 
@@ -107,7 +134,7 @@ ALTER TABLE polls
 ADD CONSTRAINT fk_final_date
 FOREIGN KEY (final_date_id) REFERENCES poll_dates(date_id) ON DELETE SET NULL;
 
--- 5. Verifizierung
+-- 6. Verifizierung
 -- --------------------------------------------
 
 -- Prüfen ob alle Tabellen erstellt wurden
@@ -115,10 +142,11 @@ SELECT
     'Tabellenprüfung' as check_type,
     COUNT(CASE WHEN TABLE_NAME = 'polls' THEN 1 END) as has_polls,
     COUNT(CASE WHEN TABLE_NAME = 'poll_dates' THEN 1 END) as has_poll_dates,
-    COUNT(CASE WHEN TABLE_NAME = 'poll_responses' THEN 1 END) as has_poll_responses
+    COUNT(CASE WHEN TABLE_NAME = 'poll_responses' THEN 1 END) as has_poll_responses,
+    COUNT(CASE WHEN TABLE_NAME = 'poll_participants' THEN 1 END) as has_poll_participants
 FROM information_schema.TABLES
 WHERE TABLE_SCHEMA = DATABASE()
-AND TABLE_NAME IN ('polls', 'poll_dates', 'poll_responses');
+AND TABLE_NAME IN ('polls', 'poll_dates', 'poll_responses', 'poll_participants');
 
 -- 6. Beispieldaten (optional, nur für Tests)
 -- --------------------------------------------
