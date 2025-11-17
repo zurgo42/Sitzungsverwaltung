@@ -191,6 +191,16 @@ require_once 'process_admin.php';
                         <option value="public">🌐 Öffentlich</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label>Eingeladen von:</label>
+                    <select name="invited_by_member_id" id="edit_invited_by_member_id" required>
+                        <?php foreach ($members as $m): ?>
+                            <option value="<?php echo $m['member_id']; ?>">
+                                <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Sitzungsleitung:</label>
@@ -683,6 +693,7 @@ function editMeeting(meetingId) {
         document.getElementById('edit_video_link').value = meeting.video_link || '';
         document.getElementById('edit_status').value = meeting.status;
         document.getElementById('edit_visibility_type').value = meeting.visibility_type || 'invited_only';
+        document.getElementById('edit_invited_by_member_id').value = meeting.invited_by_member_id || '';
         document.getElementById('edit_chairman_id').value = meeting.chairman_member_id || '';
         document.getElementById('edit_secretary_id').value = meeting.secretary_member_id || '';
 
