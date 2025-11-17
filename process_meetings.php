@@ -162,32 +162,39 @@ if (isset($_POST['create_meeting'])) {
     $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
     $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
-    
+    $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
+
     // Validierung
     if (empty($meeting_name) || empty($meeting_date)) {
         header("Location: index.php?tab=meetings&error=missing_data");
         exit;
     }
-    
+
+    // Sichtbarkeitstyp validieren
+    if (!in_array($visibility_type, ['public', 'authenticated', 'invited_only'])) {
+        $visibility_type = 'invited_only';
+    }
+
     try {
         $pdo->beginTransaction();
-        
+
         // 1. Meeting erstellen
         $stmt = $pdo->prepare("
-            INSERT INTO meetings 
-            (meeting_name, meeting_date, expected_end_date, location, video_link, 
-             chairman_member_id, secretary_member_id, invited_by_member_id, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
+            INSERT INTO meetings
+            (meeting_name, meeting_date, expected_end_date, location, video_link,
+             chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
         ");
         $stmt->execute([
-            $meeting_name, 
-            $meeting_date, 
-            $expected_end_date, 
-            $location, 
+            $meeting_name,
+            $meeting_date,
+            $expected_end_date,
+            $location,
             $video_link,
-            $chairman_member_id, 
-            $secretary_member_id, 
-            $current_user['member_id']
+            $chairman_member_id,
+            $secretary_member_id,
+            $current_user['member_id'],
+            $visibility_type
         ]);
         
         $meeting_id = $pdo->lastInsertId();
@@ -259,30 +266,37 @@ if (isset($_POST['edit_meeting'])) {
     $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
     $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
-    
+    $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
+
     if (empty($meeting_name) || empty($meeting_date)) {
         header("Location: index.php?tab=meetings&error=missing_data&meeting_id=$meeting_id");
         exit;
     }
-    
+
+    // Sichtbarkeitstyp validieren
+    if (!in_array($visibility_type, ['public', 'authenticated', 'invited_only'])) {
+        $visibility_type = 'invited_only';
+    }
+
     try {
         $pdo->beginTransaction();
-        
+
         // 1. Meeting aktualisieren
         $stmt = $pdo->prepare("
-            UPDATE meetings 
-            SET meeting_name = ?, meeting_date = ?, expected_end_date = ?, 
-                location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?
+            UPDATE meetings
+            SET meeting_name = ?, meeting_date = ?, expected_end_date = ?,
+                location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?, visibility_type = ?
             WHERE meeting_id = ?
         ");
         $stmt->execute([
-            $meeting_name, 
-            $meeting_date, 
-            $expected_end_date, 
-            $location, 
+            $meeting_name,
+            $meeting_date,
+            $expected_end_date,
+            $location,
             $video_link,
-            $chairman_member_id, 
-            $secretary_member_id, 
+            $chairman_member_id,
+            $secretary_member_id,
+            $visibility_type,
             $meeting_id
         ]);
         
@@ -357,11 +371,18 @@ if (isset($_POST['delete_meeting'])) {
         
         // 2. Kommentare löschen (über Agenda Items)
         $stmt = $pdo->prepare("
-            DELETE FROM agenda_comments 
+            DELETE FROM agenda_comments
             WHERE item_id IN (SELECT item_id FROM agenda_items WHERE meeting_id = ?)
         ");
         $stmt->execute([$meeting_id]);
-        
+
+        // 2b. Post-Kommentare löschen (über Agenda Items)
+        $stmt = $pdo->prepare("
+            DELETE FROM agenda_post_comments
+            WHERE item_id IN (SELECT item_id FROM agenda_items WHERE meeting_id = ?)
+        ");
+        $stmt->execute([$meeting_id]);
+
         // 3. Agenda Items löschen
         $stmt = $pdo->prepare("DELETE FROM agenda_items WHERE meeting_id = ?");
         $stmt->execute([$meeting_id]);

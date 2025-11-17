@@ -7,7 +7,8 @@
  * Nur Darstellung - alle Verarbeitungen in process_meetings.php
  */
 
-$all_meetings = get_all_meetings($pdo);
+// Nur sichtbare Meetings laden (basierend auf Sichtbarkeitstyp)
+$all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
 $all_members = get_all_members($pdo);
 ?>
 
@@ -108,6 +109,20 @@ $all_members = get_all_members($pdo);
             </div>
             
             <div class="form-group">
+                <label>Sichtbarkeit:</label>
+                <select name="visibility_type">
+                    <option value="invited_only">Nur Eingeladene</option>
+                    <option value="authenticated">Alle angemeldeten Mitglieder</option>
+                    <option value="public">Öffentlich (nur für User "Mitglied alle")</option>
+                </select>
+                <small style="display: block; margin-top: 5px; color: #666;">
+                    • <strong>Nur Eingeladene:</strong> Nur ausgewählte Teilnehmer sehen diese Sitzung<br>
+                    • <strong>Alle angemeldeten:</strong> Alle Members sehen diese Sitzung<br>
+                    • <strong>Öffentlich:</strong> Nur der Spezial-User "Mitglied alle" sieht diese Sitzung (read-only)
+                </small>
+            </div>
+
+            <div class="form-group">
                 <label>Teilnehmer auswählen:</label>
                 <div class="participant-buttons">
                     <button type="button" onclick="toggleAllParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
@@ -122,7 +137,7 @@ $all_members = get_all_members($pdo);
                     <?php endforeach; ?>
                 </div>
             </div>
-            
+
             <button type="submit">Meeting erstellen</button>
         </form>
     </div>
@@ -258,7 +273,21 @@ $all_members = get_all_members($pdo);
                                 </select>
                             </div>
                         </div>
-                        
+
+                        <div class="form-group">
+                            <label>Sichtbarkeit:</label>
+                            <select name="visibility_type">
+                                <option value="invited_only" <?php echo ($m['visibility_type'] ?? 'invited_only') === 'invited_only' ? 'selected' : ''; ?>>Nur Eingeladene</option>
+                                <option value="authenticated" <?php echo ($m['visibility_type'] ?? 'invited_only') === 'authenticated' ? 'selected' : ''; ?>>Alle angemeldeten Mitglieder</option>
+                                <option value="public" <?php echo ($m['visibility_type'] ?? 'invited_only') === 'public' ? 'selected' : ''; ?>>Öffentlich (nur für User "Mitglied alle")</option>
+                            </select>
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                • <strong>Nur Eingeladene:</strong> Nur ausgewählte Teilnehmer sehen diese Sitzung<br>
+                                • <strong>Alle angemeldeten:</strong> Alle Members sehen diese Sitzung<br>
+                                • <strong>Öffentlich:</strong> Nur der Spezial-User "Mitglied alle" sieht diese Sitzung (read-only)
+                            </small>
+                        </div>
+
                         <div class="form-group">
                             <label>Teilnehmer auswählen:</label>
                             <div class="participant-buttons">
