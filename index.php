@@ -232,16 +232,21 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             </a>
         <?php endif; ?>
         
+        <!-- Termine-Tab (immer sichtbar) -->
+        <a href="?tab=termine" class="<?php echo $active_tab === 'termine' ? 'active' : ''; ?>">
+            📅 Termine
+        </a>
+
         <!-- ToDos-Tab (immer sichtbar) -->
         <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
             ✅ Meine ToDos
         </a>
-        
+
         <!-- Protokolle-Tab (immer sichtbar) -->
         <a href="?tab=protokolle" class="<?php echo $active_tab === 'protokolle' ? 'active' : ''; ?>">
             📋 Protokolle
         </a>
-        
+
         <!-- Admin-Tab (nur für Vorstand und GF sichtbar) -->
         <?php //if (in_array($current_user['role'], ['vorstand', 'gf'])): 
 		if ($current_user['is_admin']):
@@ -271,16 +276,21 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
                 include 'tab_agenda.php';
                 break;
             
+            case 'termine':
+                // Terminplanung/Umfragen anzeigen
+                include 'tab_termine.php';
+                break;
+
             case 'todos':
                 // ToDo-Liste anzeigen
                 include 'tab_todos.php';
                 break;
-            
+
             case 'protokolle':
                 // Protokoll-Sammlung anzeigen
                 include 'tab_protokolle.php';
                 break;
-            
+
             case 'admin':
                 // Admin-Panel anzeigen (nur für berechtigte Benutzer)
                 if ($current_user['is_admin']) {

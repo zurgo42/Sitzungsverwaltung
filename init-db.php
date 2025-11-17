@@ -1,7 +1,7 @@
 <?php
 /**
  * init-db.php - Datenbank initialisieren
- * Aktualisiert: 28.10.2025 01:18 Uhr MEZ
+ * Aktualisiert: 17.11.2025 - Terminplanung + visibility_type + is_active
  * Vollständige Datenbankstruktur für Portabilität
  */
 
@@ -37,11 +37,13 @@ try {
         last_name VARCHAR(100) NOT NULL,
         role ENUM('vorstand', 'gf', 'assistenz', 'fuehrungsteam', 'Mitglied') NOT NULL,
         is_admin TINYINT(1) DEFAULT 0,
+        is_active TINYINT(1) DEFAULT 1,
         is_confidential TINYINT UNSIGNED DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY membership_number (membership_number),
         INDEX idx_email (email),
-        INDEX idx_role (role)
+        INDEX idx_role (role),
+        INDEX idx_is_active (is_active)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     
     // Meetings-Tabelle
@@ -60,6 +62,7 @@ try {
         started_at DATETIME DEFAULT NULL,
         ended_at DATETIME DEFAULT NULL,
         status ENUM('preparation', 'active', 'ended', 'protocol_ready', 'archived') DEFAULT 'preparation',
+        visibility_type ENUM('public', 'authenticated', 'invited_only') DEFAULT 'invited_only',
         protokoll TEXT DEFAULT NULL,
         prot_intern TEXT DEFAULT NULL,
         protocol_intern TEXT NOT NULL DEFAULT '',
@@ -69,6 +72,7 @@ try {
         FOREIGN KEY (secretary_member_id) REFERENCES members(member_id) ON DELETE SET NULL,
         INDEX idx_meeting_date (meeting_date),
         INDEX idx_status (status),
+        INDEX idx_visibility (visibility_type),
         INDEX idx_protokoll (protokoll(768))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     
@@ -221,7 +225,65 @@ try {
         INDEX idx_target_type (target_type),
         INDEX idx_created_at (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
+
+    // Umfragen/Terminplanung-Tabelle
+    $tables[] = "CREATE TABLE IF NOT EXISTS polls (
+        poll_id INT PRIMARY KEY AUTO_INCREMENT,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        created_by_member_id INT NOT NULL,
+        meeting_id INT DEFAULT NULL,
+        status ENUM('open', 'closed', 'finalized') DEFAULT 'open',
+        final_date_id INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        finalized_at DATETIME DEFAULT NULL,
+        FOREIGN KEY (created_by_member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (meeting_id) REFERENCES meetings(meeting_id) ON DELETE SET NULL,
+        INDEX idx_status (status),
+        INDEX idx_created_by (created_by_member_id),
+        INDEX idx_meeting (meeting_id),
+        INDEX idx_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Terminvorschläge-Tabelle
+    $tables[] = "CREATE TABLE IF NOT EXISTS poll_dates (
+        date_id INT PRIMARY KEY AUTO_INCREMENT,
+        poll_id INT NOT NULL,
+        suggested_date DATETIME NOT NULL,
+        suggested_end_date DATETIME DEFAULT NULL,
+        location VARCHAR(255) DEFAULT NULL,
+        notes TEXT,
+        sort_order INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (poll_id) REFERENCES polls(poll_id) ON DELETE CASCADE,
+        INDEX idx_poll (poll_id),
+        INDEX idx_suggested_date (suggested_date),
+        INDEX idx_sort_order (sort_order)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Teilnehmer-Antworten-Tabelle
+    $tables[] = "CREATE TABLE IF NOT EXISTS poll_responses (
+        response_id INT PRIMARY KEY AUTO_INCREMENT,
+        poll_id INT NOT NULL,
+        date_id INT NOT NULL,
+        member_id INT DEFAULT NULL,
+        participant_name VARCHAR(255) DEFAULT NULL,
+        participant_email VARCHAR(255) DEFAULT NULL,
+        vote TINYINT NOT NULL DEFAULT 0,
+        comment TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (poll_id) REFERENCES polls(poll_id) ON DELETE CASCADE,
+        FOREIGN KEY (date_id) REFERENCES poll_dates(date_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        UNIQUE KEY unique_response (poll_id, date_id, member_id, participant_email),
+        INDEX idx_poll (poll_id),
+        INDEX idx_date (date_id),
+        INDEX idx_member (member_id),
+        INDEX idx_vote (vote)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
     // Tabellen erstellen
     foreach ($tables as $sql) {
         $pdo->exec($sql);
