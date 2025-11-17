@@ -364,8 +364,137 @@ function render_agenda_item($item, $meeting, $current_user, $can_edit = false, $
  */
 function show_message($message, $type = 'success') {
     if (empty($message)) return;
-    
+
     $class = $type === 'error' ? 'error-message' : 'message';
     echo '<div class="' . $class . '">' . htmlspecialchars($message) . '</div>';
+}
+
+/**
+ * Prüft ob ein User Zugriff auf ein Meeting hat basierend auf Sichtbarkeitstyp
+ *
+ * @param PDO $pdo Datenbankverbindung
+ * @param int $meeting_id Meeting-ID
+ * @param int $member_id User-ID
+ * @return bool true wenn Zugriff erlaubt, sonst false
+ */
+function can_user_access_meeting($pdo, $meeting_id, $member_id) {
+    try {
+        // Meeting-Details laden
+        $stmt = $pdo->prepare("SELECT visibility_type FROM meetings WHERE meeting_id = ?");
+        $stmt->execute([$meeting_id]);
+        $meeting = $stmt->fetch();
+
+        if (!$meeting) {
+            return false;
+        }
+
+        // User-Details laden
+        $stmt = $pdo->prepare("SELECT email FROM members WHERE member_id = ?");
+        $stmt->execute([$member_id]);
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            return false;
+        }
+
+        $visibility = $meeting['visibility_type'] ?? 'invited_only';
+
+        // Öffentliche Meetings: Nur User "Mitglied alle"
+        if ($visibility === 'public') {
+            return $user['email'] === 'oeffentlich@system.local';
+        }
+
+        // Angemeldete: Alle eingeloggten User
+        if ($visibility === 'authenticated') {
+            return true;
+        }
+
+        // Eingeladene: Nur invited participants
+        if ($visibility === 'invited_only') {
+            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM meeting_participants WHERE meeting_id = ? AND member_id = ?");
+            $stmt->execute([$meeting_id, $member_id]);
+            $result = $stmt->fetch();
+            return $result['count'] > 0;
+        }
+
+        return false;
+    } catch (PDOException $e) {
+        if (DEBUG_MODE) {
+            error_log("Fehler in can_user_access_meeting(): " . $e->getMessage());
+        }
+        return false;
+    }
+}
+
+/**
+ * Lädt alle Meetings die für den User sichtbar sind
+ *
+ * @param PDO $pdo Datenbankverbindung
+ * @param int $member_id User-ID
+ * @return array Array mit sichtbaren Meetings
+ */
+function get_visible_meetings($pdo, $member_id) {
+    try {
+        // User-Details laden
+        $stmt = $pdo->prepare("SELECT email FROM members WHERE member_id = ?");
+        $stmt->execute([$member_id]);
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            return [];
+        }
+
+        $is_public_user = ($user['email'] === 'oeffentlich@system.local');
+
+        if ($is_public_user) {
+            // Öffentlicher User sieht nur public meetings
+            $stmt = $pdo->query("
+                SELECT m.*, mem.first_name, mem.last_name
+                FROM meetings m
+                LEFT JOIN members mem ON m.invited_by_member_id = mem.member_id
+                WHERE m.visibility_type = 'public'
+                ORDER BY FIELD(status, 'active', 'preparation', 'ended', 'protocol_ready', 'archived'), meeting_date ASC
+            ");
+            return $stmt->fetchAll();
+        } else {
+            // Normale User sehen:
+            // - authenticated meetings
+            // - invited_only meetings wo sie participant sind
+            $stmt = $pdo->prepare("
+                SELECT DISTINCT m.*, mem.first_name, mem.last_name
+                FROM meetings m
+                LEFT JOIN members mem ON m.invited_by_member_id = mem.member_id
+                LEFT JOIN meeting_participants mp ON m.meeting_id = mp.meeting_id AND mp.member_id = ?
+                WHERE m.visibility_type = 'authenticated'
+                   OR (m.visibility_type = 'invited_only' AND mp.member_id IS NOT NULL)
+                ORDER BY FIELD(m.status, 'active', 'preparation', 'ended', 'protocol_ready', 'archived'), m.meeting_date ASC
+            ");
+            $stmt->execute([$member_id]);
+            return $stmt->fetchAll();
+        }
+    } catch (PDOException $e) {
+        if (DEBUG_MODE) {
+            die("Fehler in get_visible_meetings(): " . $e->getMessage());
+        }
+        return [];
+    }
+}
+
+/**
+ * Prüft ob User Read-Only Zugriff hat (nur öffentliche User)
+ *
+ * @param int $member_id User-ID
+ * @return bool true wenn read-only
+ */
+function is_readonly_user($pdo, $member_id) {
+    try {
+        $stmt = $pdo->prepare("SELECT email FROM members WHERE member_id = ?");
+        $stmt->execute([$member_id]);
+        $user = $stmt->fetch();
+
+        return ($user && $user['email'] === 'oeffentlich@system.local');
+    } catch (PDOException $e) {
+        return false;
+    }
 }
 ?>
