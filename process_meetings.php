@@ -30,8 +30,10 @@ if (!isset($_SESSION['member_id'])) {
     exit;
 }
 
-// User-Daten laden (über Wrapper-Funktion)
-$current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+// User-Daten laden
+$stmt = $pdo->prepare("SELECT * FROM members WHERE member_id = ?");
+$stmt->execute([$_SESSION['member_id']]);
+$current_user = $stmt->fetch();
 
 if (!$current_user) {
     session_destroy();
@@ -74,12 +76,12 @@ function is_authorized_for_meeting($meeting, $current_user, $allowed_statuses = 
  * @param int $creator_member_id
  */
 function create_default_tops($pdo, $meeting_id, $creator_member_id) {
-    // TOP 0: Wahl der Sitzungsleitung und Protokollführung - Kategorie: wahl
+    // TOP 0: Wahl der Sitzungsleitung und Protokollführung
     $stmt = $pdo->prepare("
-        INSERT INTO agenda_items
-        (meeting_id, top_number, title, description, category, priority, estimated_duration,
+        INSERT INTO agenda_items 
+        (meeting_id, top_number, title, description, priority, estimated_duration, 
          is_confidential, is_active, created_by_member_id, created_at)
-        VALUES (?, 0, ?, ?, 'wahl', NULL, NULL, 0, 0, ?, NOW())
+        VALUES (?, 0, ?, ?, NULL, NULL, 0, 0, ?, NOW())
     ");
     $stmt->execute([
         $meeting_id,
@@ -87,13 +89,13 @@ function create_default_tops($pdo, $meeting_id, $creator_member_id) {
         'Formale Wahl, Organisatorisches',
         $creator_member_id
     ]);
-
-    // TOP 99: Verschiedenes - Kategorie: sonstiges
+    
+    // TOP 99: Verschiedenes
     $stmt = $pdo->prepare("
-        INSERT INTO agenda_items
-        (meeting_id, top_number, title, description, category, priority, estimated_duration,
+        INSERT INTO agenda_items 
+        (meeting_id, top_number, title, description, priority, estimated_duration, 
          is_confidential, is_active, created_by_member_id, created_at)
-        VALUES (?, 99, ?, ?, 'sonstiges', NULL, NULL, 0, 0, ?, NOW())
+        VALUES (?, 99, ?, ?, NULL, NULL, 0, 0, ?, NOW())
     ");
     $stmt->execute([
         $meeting_id,
@@ -160,32 +162,39 @@ if (isset($_POST['create_meeting'])) {
     $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
     $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
+    $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
 
     // Validierung
     if (empty($meeting_name) || empty($meeting_date)) {
         header("Location: index.php?tab=meetings&error=missing_data");
         exit;
     }
-    
+
+    // Sichtbarkeitstyp validieren
+    if (!in_array($visibility_type, ['public', 'authenticated', 'invited_only'])) {
+        $visibility_type = 'invited_only';
+    }
+
     try {
         $pdo->beginTransaction();
-        
+
         // 1. Meeting erstellen
         $stmt = $pdo->prepare("
-            INSERT INTO meetings 
-            (meeting_name, meeting_date, expected_end_date, location, video_link, 
-             chairman_member_id, secretary_member_id, invited_by_member_id, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
+            INSERT INTO meetings
+            (meeting_name, meeting_date, expected_end_date, location, video_link,
+             chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
         ");
         $stmt->execute([
-            $meeting_name, 
-            $meeting_date, 
-            $expected_end_date, 
-            $location, 
+            $meeting_name,
+            $meeting_date,
+            $expected_end_date,
+            $location,
             $video_link,
-            $chairman_member_id, 
-            $secretary_member_id, 
-            $current_user['member_id']
+            $chairman_member_id,
+            $secretary_member_id,
+            $current_user['member_id'],
+            $visibility_type
         ]);
         
         $meeting_id = $pdo->lastInsertId();
@@ -204,12 +213,6 @@ if (isset($_POST['create_meeting'])) {
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Fehler beim Meeting-Erstellen: " . $e->getMessage());
-
-        // Im Debug-Modus detaillierte Fehlermeldung anzeigen
-        if (defined('DEBUG_MODE') && DEBUG_MODE) {
-            die("Fehler beim Meeting-Erstellen: " . $e->getMessage() . "<br><br>Trace:<br>" . nl2br($e->getTraceAsString()));
-        }
-
         header("Location: index.php?tab=meetings&error=create_failed");
         exit;
     }
@@ -263,30 +266,37 @@ if (isset($_POST['edit_meeting'])) {
     $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
     $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
+    $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
 
     if (empty($meeting_name) || empty($meeting_date)) {
         header("Location: index.php?tab=meetings&error=missing_data&meeting_id=$meeting_id");
         exit;
     }
-    
+
+    // Sichtbarkeitstyp validieren
+    if (!in_array($visibility_type, ['public', 'authenticated', 'invited_only'])) {
+        $visibility_type = 'invited_only';
+    }
+
     try {
         $pdo->beginTransaction();
-        
+
         // 1. Meeting aktualisieren
         $stmt = $pdo->prepare("
-            UPDATE meetings 
-            SET meeting_name = ?, meeting_date = ?, expected_end_date = ?, 
-                location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?
+            UPDATE meetings
+            SET meeting_name = ?, meeting_date = ?, expected_end_date = ?,
+                location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?, visibility_type = ?
             WHERE meeting_id = ?
         ");
         $stmt->execute([
-            $meeting_name, 
-            $meeting_date, 
-            $expected_end_date, 
-            $location, 
+            $meeting_name,
+            $meeting_date,
+            $expected_end_date,
+            $location,
             $video_link,
-            $chairman_member_id, 
-            $secretary_member_id, 
+            $chairman_member_id,
+            $secretary_member_id,
+            $visibility_type,
             $meeting_id
         ]);
         
@@ -361,11 +371,18 @@ if (isset($_POST['delete_meeting'])) {
         
         // 2. Kommentare löschen (über Agenda Items)
         $stmt = $pdo->prepare("
-            DELETE FROM agenda_comments 
+            DELETE FROM agenda_comments
             WHERE item_id IN (SELECT item_id FROM agenda_items WHERE meeting_id = ?)
         ");
         $stmt->execute([$meeting_id]);
-        
+
+        // 2b. Post-Kommentare löschen (über Agenda Items)
+        $stmt = $pdo->prepare("
+            DELETE FROM agenda_post_comments
+            WHERE item_id IN (SELECT item_id FROM agenda_items WHERE meeting_id = ?)
+        ");
+        $stmt->execute([$meeting_id]);
+
         // 3. Agenda Items löschen
         $stmt = $pdo->prepare("DELETE FROM agenda_items WHERE meeting_id = ?");
         $stmt->execute([$meeting_id]);
@@ -459,15 +476,19 @@ if (isset($_POST['start_meeting'])) {
         $stmt->execute([$meeting_id]);
         
         // 3. TOP 0 Protokoll initialisieren
-        // Namen der Rollen laden (über Wrapper-Funktion)
-        $chairman_data = get_member_by_id($pdo, $chairman_member_id);
-        $chairman_name = $chairman_data ?
-            $chairman_data['first_name'] . ' ' . $chairman_data['last_name'] :
+        // Namen der Rollen laden
+        $stmt_chairman = $pdo->prepare("SELECT first_name, last_name FROM members WHERE member_id = ?");
+        $stmt_chairman->execute([$chairman_member_id]);
+        $chairman_data = $stmt_chairman->fetch();
+        $chairman_name = $chairman_data ? 
+            $chairman_data['first_name'] . ' ' . $chairman_data['last_name'] : 
             'Unbekannt';
-
-        $secretary_data = get_member_by_id($pdo, $secretary_member_id);
-        $secretary_name = $secretary_data ?
-            $secretary_data['first_name'] . ' ' . $secretary_data['last_name'] :
+        
+        $stmt_secretary = $pdo->prepare("SELECT first_name, last_name FROM members WHERE member_id = ?");
+        $stmt_secretary->execute([$secretary_member_id]);
+        $secretary_data = $stmt_secretary->fetch();
+        $secretary_name = $secretary_data ? 
+            $secretary_data['first_name'] . ' ' . $secretary_data['last_name'] : 
             'Unbekannt';
         
         // Protokolltext erstellen

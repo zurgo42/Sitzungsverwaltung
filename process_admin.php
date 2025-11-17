@@ -196,11 +196,18 @@ if (isset($_POST['delete_meeting'])) {
                 
                 // 2. Kommentare löschen (über Agenda Items)
                 $stmt = $pdo->prepare("
-                    DELETE FROM agenda_comments 
+                    DELETE FROM agenda_comments
                     WHERE item_id IN (SELECT item_id FROM agenda_items WHERE meeting_id = ?)
                 ");
                 $stmt->execute([$meeting_id]);
-                
+
+                // 2b. Post-Kommentare löschen (über Agenda Items)
+                $stmt = $pdo->prepare("
+                    DELETE FROM agenda_post_comments
+                    WHERE item_id IN (SELECT item_id FROM agenda_items WHERE meeting_id = ?)
+                ");
+                $stmt->execute([$meeting_id]);
+
                 // 3. Agenda Items löschen
                 $stmt = $pdo->prepare("DELETE FROM agenda_items WHERE meeting_id = ?");
                 $stmt->execute([$meeting_id]);

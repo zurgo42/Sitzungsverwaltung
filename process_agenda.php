@@ -1130,6 +1130,46 @@ if (isset($_POST['update_attendance']) && $is_secretary && $meeting['status'] ==
 }
 
 /**
+ * Nicht eingeladene Teilnehmer hinzufügen
+ * - Im active Status: Nur Secretary
+ * - Im preparation Status: Nur Admins
+ */
+if (isset($_POST['add_uninvited_participant'])) {
+    $new_participant_id = intval($_POST['new_participant_id'] ?? 0);
+
+    // Berechtigung prüfen
+    $is_allowed = false;
+    if ($meeting['status'] === 'active' && $is_secretary) {
+        $is_allowed = true;
+    } elseif ($meeting['status'] === 'preparation' && $current_user['is_admin'] == 1) {
+        $is_allowed = true;
+    }
+
+    if ($is_allowed && $new_participant_id > 0) {
+        try {
+            // Prüfen ob Teilnehmer bereits eingeladen ist
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM meeting_participants WHERE meeting_id = ? AND member_id = ?");
+            $stmt->execute([$current_meeting_id, $new_participant_id]);
+            $already_invited = $stmt->fetchColumn() > 0;
+
+            if (!$already_invited) {
+                // Teilnehmer hinzufügen mit Status invited und present
+                $stmt = $pdo->prepare("
+                    INSERT INTO meeting_participants (meeting_id, member_id, attendance_status)
+                    VALUES (?, ?, 'present')
+                ");
+                $stmt->execute([$current_meeting_id, $new_participant_id]);
+            }
+
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
+            exit;
+        } catch (PDOException $e) {
+            error_log("Fehler beim Hinzufügen des Teilnehmers: " . $e->getMessage());
+        }
+    }
+}
+
+/**
  * TOP auf aktiv setzen
  */
 if (isset($_POST['set_active_top']) && $is_secretary && $meeting['status'] === 'active') {
