@@ -5,6 +5,8 @@
 
 session_start();
 require_once 'config.php';
+require_once 'config_adapter.php';  // Konfiguration für Mitgliederquelle
+require_once 'member_functions.php';  // Prozedurale Wrapper-Funktionen
 
 // PDO-Verbindung für login.php
 try {
@@ -42,38 +44,23 @@ if (isset($_SESSION['member_id'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = isset($_POST['email']) ? trim($_POST['email']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
-    
+
     try {
-        // Benutzer aus Datenbank suchen
-        $stmt = $pdo->prepare("SELECT member_id, email, first_name, last_name, role, password_hash FROM members WHERE email = ?");
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
-        
+        // Authentifizierung über Wrapper-Funktion
+        // Funktioniert mit members ODER berechtigte Tabelle (siehe config_adapter.php)
+        $user = authenticate_member($pdo, $email, $password);
+
         if ($user) {
-            // Passwort-Prüfung (mit password_verify für gehashte Passwörter)
-            $password_valid = false;
-            
-            // Prüfe ob Passwort gehasht ist
-            if (password_get_info($user['password_hash'])['algo'] !== null) {
-                $password_valid = password_verify($password, $user['password_hash']);
-            } else {
-                // Für Demo/Entwicklung: Direkter Vergleich
-                $password_valid = ($password === $user['password_hash'] || $password === 'test123');
-            }
-            
-            if ($password_valid) {
-                $_SESSION['member_id'] = $user['member_id'];
-                $_SESSION['first_name'] = $user['first_name'];
-                $_SESSION['last_name'] = $user['last_name'];
-                $_SESSION['email'] = $user['email'];
-                $_SESSION['role'] = $user['role'];
-                $_SESSION['login_time'] = time();
-                
-                header('Location: index.php');
-                exit;
-            } else {
-                $error = 'Email oder Passwort ist falsch!';
-            }
+            // Login erfolgreich - Session setzen
+            $_SESSION['member_id'] = $user['member_id'];
+            $_SESSION['first_name'] = $user['first_name'];
+            $_SESSION['last_name'] = $user['last_name'];
+            $_SESSION['email'] = $user['email'];
+            $_SESSION['role'] = $user['role'];
+            $_SESSION['login_time'] = time();
+
+            header('Location: index.php');
+            exit;
         } else {
             $error = 'Email oder Passwort ist falsch!';
         }

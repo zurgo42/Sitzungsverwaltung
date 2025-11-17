@@ -2,7 +2,7 @@
 /**
  * tab_admin.php - Admin-Verwaltung (Präsentation)
  * Bereinigt: 29.10.2025 02:45 MEZ
- * 
+ *
  * Zeigt Admin-Verwaltung an (nur für Admins)
  * Nur Darstellung - alle Verarbeitungen in process_admin.php
  */
@@ -10,6 +10,54 @@
 // Logik einbinden
 require_once 'process_admin.php';
 ?>
+
+<style>
+/* Hellere, besser lesbare Überschriften */
+.admin-section-header {
+    color: #fff !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    padding: 12px 20px !important;
+    border-radius: 8px !important;
+    margin-bottom: 15px !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.admin-section-header:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+}
+
+.admin-section-header::after {
+    content: '▼';
+    transition: transform 0.3s;
+}
+
+.admin-section-header.collapsed::after {
+    transform: rotate(-90deg);
+}
+
+.admin-section-content {
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.admin-section-content.collapsed {
+    max-height: 0;
+}
+
+/* Kompaktere Logfile-Darstellung */
+.compact-log-table {
+    font-size: 12px !important;
+}
+
+.compact-log-table td {
+    padding: 6px 8px !important;
+}
+</style>
 
 <h2>⚙️ Admin-Verwaltung</h2>
 
@@ -39,8 +87,9 @@ require_once 'process_admin.php';
 
 <!-- Meeting-Verwaltung -->
 <div id="admin-meetings" class="admin-section">
-    <h3 class="admin-section-header">📅 Meeting-Verwaltung</h3>
-    
+    <h3 class="admin-section-header" onclick="toggleSection(this)">📅 Meeting-Verwaltung</h3>
+
+    <div class="admin-section-content">
     <table class="admin-table">
         <thead>
             <tr>
@@ -140,12 +189,15 @@ require_once 'process_admin.php';
             </form>
         </div>
     </div>
+    </div> <!-- End admin-section-content -->
 </div>
 
 <!-- Mitgliederverwaltung -->
 <div id="admin-members" class="admin-section">
-    <h3 class="admin-section-header">👥 Mitgliederverwaltung</h3>
-    
+    <h3 class="admin-section-header" onclick="toggleSection(this)">👥 Mitgliederverwaltung</h3>
+
+    <div class="admin-section-content">
+
     <button onclick="showAddMemberForm()" class="btn-primary">+ Neues Mitglied</button>
     
     <!-- Add Member Form -->
@@ -184,6 +236,12 @@ require_once 'process_admin.php';
                 </div>
             </div>
             <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="is_confidential" value="1">
+                    <span>Darf vertrauliche TOPs sehen</span>
+                </label>
+            </div>
+            <div class="form-group">
                 <label>Passwort:</label>
                 <input type="password" name="password" required>
             </div>
@@ -200,6 +258,7 @@ require_once 'process_admin.php';
                 <th>E-Mail</th>
                 <th>Rolle</th>
                 <th>Admin</th>
+                <th>Vertraulich</th>
                 <th>Aktionen</th>
             </tr>
         </thead>
@@ -211,6 +270,7 @@ require_once 'process_admin.php';
                     <td><?php echo htmlspecialchars($member['email']); ?></td>
                     <td><?php echo htmlspecialchars($member['role']); ?></td>
                     <td><?php echo $member['is_admin'] ? '✅' : '❌'; ?></td>
+                    <td><?php echo $member['is_confidential'] ? '✅' : '❌'; ?></td>
                     <td class="action-buttons">
                         <button class="btn-view" onclick="editMember(<?php echo $member['member_id']; ?>)">✏️</button>
                         <form method="POST" onsubmit="return confirm('Mitglied wirklich löschen?');">
@@ -261,6 +321,12 @@ require_once 'process_admin.php';
                     </div>
                 </div>
                 <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="is_confidential" id="edit_is_confidential" value="1">
+                        <span>Darf vertrauliche TOPs sehen</span>
+                    </label>
+                </div>
+                <div class="form-group">
                     <label>Neues Passwort (leer lassen um nicht zu ändern):</label>
                     <input type="password" name="password" id="edit_password">
                 </div>
@@ -269,12 +335,15 @@ require_once 'process_admin.php';
             </form>
         </div>
     </div>
+    </div> <!-- End admin-section-content -->
 </div>
 
 <!-- Offene ToDos -->
 <div id="admin-todos" class="admin-section">
-    <h3 class="admin-section-header">📝 Offene ToDos</h3>
-    
+    <h3 class="admin-section-header" onclick="toggleSection(this)">📝 Offene ToDos</h3>
+
+    <div class="admin-section-content">
+
     <?php if (empty($open_todos)): ?>
         <div class="info-box">Keine offenen ToDos vorhanden.</div>
     <?php else: ?>
@@ -309,10 +378,15 @@ require_once 'process_admin.php';
                         </td>
                         <td><?php echo htmlspecialchars($todo['first_name'] . ' ' . $todo['last_name']); ?></td>
                         <td><?php echo $todo['due_date'] ? date('d.m.Y', strtotime($todo['due_date'])) : '-'; ?></td>
-                        <td>
-                            <form method="POST" onsubmit="return confirm('ToDo als erledigt markieren?');">
+                        <td class="action-buttons">
+                            <button class="btn-view" onclick="editTodo(<?php echo $todo['todo_id']; ?>)">✏️</button>
+                            <form method="POST" onsubmit="return confirm('ToDo als erledigt markieren?');" style="display: inline;">
                                 <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
                                 <button type="submit" name="close_todo" class="btn-primary">✓ Erledigt</button>
+                            </form>
+                            <form method="POST" onsubmit="return confirm('ToDo wirklich löschen?');" style="display: inline;">
+                                <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
+                                <button type="submit" name="delete_todo" class="btn-delete">🗑️</button>
                             </form>
                         </td>
                     </tr>
@@ -320,16 +394,19 @@ require_once 'process_admin.php';
             </tbody>
         </table>
     <?php endif; ?>
+    </div> <!-- End admin-section-content -->
 </div>
 
 <!-- Admin-Protokoll -->
 <div id="admin-log" class="admin-section">
-    <h3 class="admin-section-header">📋 Admin-Protokoll (letzte 50 Aktionen)</h3>
-    
+    <h3 class="admin-section-header" onclick="toggleSection(this)">📋 Admin-Protokoll (letzte 50 Aktionen)</h3>
+
+    <div class="admin-section-content">
+
     <?php if (empty($admin_logs)): ?>
         <div class="info-box">Keine Admin-Aktionen protokolliert.</div>
     <?php else: ?>
-        <table class="admin-table">
+        <table class="admin-table compact-log-table">
             <thead>
                 <tr>
                     <th>Zeitpunkt</th>
@@ -375,6 +452,169 @@ require_once 'process_admin.php';
             </tbody>
         </table>
     <?php endif; ?>
+    </div> <!-- End admin-section-content -->
+</div>
+
+<!-- System & Demo-Funktionen -->
+<?php if (DEMO_MODE_ENABLED): ?>
+<div id="admin-demo" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">🎭 System &amp; Demo-Funktionen</h3>
+
+    <div class="admin-section-content">
+        <div class="warning" style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
+            <h4 style="margin-top: 0;">⚠️ Demo-Modus aktiv</h4>
+            <p>
+                Der Demo-Modus ist aktiviert. Diese Funktionen erlauben es, die Datenbank auf einen
+                definierten Demo-Stand zurückzusetzen - ideal für Präsentationen und Tests.
+            </p>
+            <p style="margin-bottom: 0;">
+                <strong>WICHTIG:</strong> Für den echten Produktivbetrieb sollte in der <code>config.php</code>
+                die Einstellung <code>DEMO_MODE_ENABLED = false</code> gesetzt werden!
+            </p>
+        </div>
+
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4>🔄 Demo-Daten-Verwaltung</h4>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <!-- Demo Export -->
+                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+                    <h5 style="margin-top: 0; color: #007bff;">📦 Demo-Daten exportieren</h5>
+                    <p style="font-size: 14px; color: #666;">
+                        Exportiert den aktuellen Datenbankstand als Demo-Daten-Datei.
+                        Nützlich wenn Sie einen neuen Demo-Stand erstellen möchten.
+                    </p>
+                    <a href="tools/demo_export.php" class="btn" style="background-color: #007bff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank">
+                        📦 Export starten
+                    </a>
+                </div>
+
+                <!-- Demo Import/Reset -->
+                <div style="border: 1px solid #dc3545; padding: 15px; border-radius: 5px; background-color: #fff5f5;">
+                    <h5 style="margin-top: 0; color: #dc3545;">♻️ Datenbank auf Demo-Stand zurücksetzen</h5>
+                    <p style="font-size: 14px; color: #666;">
+                        <strong>ACHTUNG:</strong> Löscht ALLE aktuellen Daten und lädt Demo-Daten ein.
+                        Dieser Vorgang kann nicht rückgängig gemacht werden!
+                    </p>
+                    <a href="tools/demo_import.php" class="btn btn-danger" style="background-color: #dc3545; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank" onclick="return confirm('WARNUNG: Dies löscht ALLE aktuellen Daten!\n\nMöchten Sie wirklich fortfahren?');">
+                        ♻️ Demo-Reset durchführen
+                    </a>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background-color: #e7f3ff; border-left: 4px solid #0c5460; border-radius: 5px;">
+                <h5 style="margin-top: 0;">💡 Workflow</h5>
+                <ol style="font-size: 14px; margin: 0;">
+                    <li>Erstellen Sie in der Anwendung verschiedene Meetings, TODOs, Kommentare etc.</li>
+                    <li>Exportieren Sie diese als Demo-Daten (erzeugt <code>demo_data.json</code>)</li>
+                    <li>Wenn Sie den Demo-Stand wiederherstellen möchten, nutzen Sie "Demo-Reset"</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- Datenbank-Wartung -->
+<div id="admin-database" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">🔧 Datenbank-Wartung</h3>
+
+    <div class="admin-section-content">
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4>🔗 Foreign Key Constraints</h4>
+
+            <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
+                <p style="margin: 0;">
+                    <strong>Hinweis:</strong> Foreign Key Constraints können bei der Verwendung der berechtigte-Tabelle
+                    zu Problemen führen. Diese Tools entfernen die Constraints, damit die Anwendung reibungslos funktioniert.
+                </p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <!-- FK auf members entfernen -->
+                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+                    <h5 style="margin-top: 0; color: #007bff;">🔗 Foreign Keys auf members entfernen</h5>
+                    <p style="font-size: 14px; color: #666;">
+                        Entfernt nur die Foreign Key Constraints, die auf die <code>members</code>-Tabelle zeigen.
+                        Nützlich bei der Verwendung der berechtigte-Tabelle.
+                    </p>
+                    <a href="tools/fix_foreign_keys.php" class="btn" style="background-color: #007bff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank">
+                        🔧 FK auf members entfernen
+                    </a>
+                </div>
+
+                <!-- Alle FK entfernen -->
+                <div style="border: 1px solid #dc3545; padding: 15px; border-radius: 5px; background-color: #fff5f5;">
+                    <h5 style="margin-top: 0; color: #dc3545;">🔗 ALLE Foreign Keys entfernen</h5>
+                    <p style="font-size: 14px; color: #666;">
+                        <strong>Empfohlen:</strong> Entfernt ALLE Foreign Key Constraints aus der gesamten Datenbank.
+                        Löst Probleme beim Löschen von Meetings und bei der berechtigte-Integration.
+                    </p>
+                    <a href="tools/fix_all_foreign_keys.php" class="btn btn-danger" style="background-color: #dc3545; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank">
+                        🔧 Alle FK entfernen
+                    </a>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background-color: #e7f3ff; border-left: 4px solid #0c5460; border-radius: 5px;">
+                <h5 style="margin-top: 0;">💡 Wann welches Tool?</h5>
+                <ul style="font-size: 14px; margin: 0;">
+                    <li><strong>FK auf members:</strong> Wenn nur Probleme mit chairman/secretary auftreten</li>
+                    <li><strong>Alle FK:</strong> Wenn auch Fehler beim Löschen von Meetings auftreten (empfohlen)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit ToDo Modal -->
+<div id="edit-todo-modal" class="modal">
+    <div class="modal-content">
+        <h3>ToDo bearbeiten</h3>
+        <form method="POST" id="edit-todo-form">
+            <input type="hidden" name="todo_id" id="edit_todo_id">
+            <div class="form-group">
+                <label>Titel:</label>
+                <input type="text" name="title" id="edit_todo_title" required>
+            </div>
+            <div class="form-group">
+                <label>Beschreibung:</label>
+                <textarea name="description" id="edit_todo_description" rows="4" required></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Zugewiesen an:</label>
+                    <select name="assigned_to_member_id" id="edit_todo_assigned_to" required>
+                        <option value="">Bitte wählen...</option>
+                        <?php foreach ($members as $m): ?>
+                            <option value="<?php echo $m['member_id']; ?>">
+                                <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Status:</label>
+                    <select name="status" id="edit_todo_status" required>
+                        <option value="open">Offen</option>
+                        <option value="done">Erledigt</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Eintrittsdatum:</label>
+                    <input type="date" name="entry_date" id="edit_todo_entry_date">
+                </div>
+                <div class="form-group">
+                    <label>Fälligkeitsdatum:</label>
+                    <input type="date" name="due_date" id="edit_todo_due_date">
+                </div>
+            </div>
+            <button type="submit" name="edit_todo" class="btn-primary">Speichern</button>
+            <button type="button" onclick="closeEditTodoModal()" class="btn-secondary">Abbrechen</button>
+        </form>
+    </div>
 </div>
 
 <!-- Log-Details Modal -->
@@ -411,7 +651,7 @@ function closeEditMeetingModal() {
 function editMember(memberId) {
     const members = <?php echo json_encode($members); ?>;
     const member = members.find(m => m.member_id == memberId);
-    
+
     if (member) {
         document.getElementById('edit_member_id').value = member.member_id;
         document.getElementById('edit_first_name').value = member.first_name;
@@ -419,6 +659,7 @@ function editMember(memberId) {
         document.getElementById('edit_email').value = member.email;
         document.getElementById('edit_role').value = member.role;
         document.getElementById('edit_is_admin').checked = member.is_admin == 1;
+        document.getElementById('edit_is_confidential').checked = member.is_confidential == 1;
         document.getElementById('edit_password').value = '';
         document.getElementById('edit-member-modal').classList.add('show');
     }
@@ -471,4 +712,47 @@ function showLogDetails(logId) {
 function closeLogDetailsModal() {
     document.getElementById('log-details-modal').classList.remove('show');
 }
+
+// Akkordion-Funktionalität
+function toggleSection(header) {
+    header.classList.toggle('collapsed');
+    const content = header.nextElementSibling;
+    content.classList.toggle('collapsed');
+}
+
+// ToDo bearbeiten
+function editTodo(todoId) {
+    const todos = <?php echo json_encode($open_todos); ?>;
+    const todo = todos.find(t => t.todo_id == todoId);
+
+    if (todo) {
+        document.getElementById('edit_todo_id').value = todo.todo_id;
+        document.getElementById('edit_todo_title').value = todo.title || '';
+        document.getElementById('edit_todo_description').value = todo.description || '';
+        document.getElementById('edit_todo_assigned_to').value = todo.assigned_to_member_id || '';
+        document.getElementById('edit_todo_status').value = todo.status || 'open';
+        document.getElementById('edit_todo_entry_date').value = todo.entry_date || '';
+        document.getElementById('edit_todo_due_date').value = todo.due_date || '';
+        document.getElementById('edit-todo-modal').classList.add('show');
+    }
+}
+
+function closeEditTodoModal() {
+    document.getElementById('edit-todo-modal').classList.remove('show');
+}
+
+// Initialize: Start with all sections expanded
+document.addEventListener('DOMContentLoaded', function() {
+    // Logfile-Sektion initial eingeklappt
+    const logSection = document.querySelector('#admin-log .admin-section-header');
+    if (logSection) {
+        toggleSection(logSection);
+    }
+
+    // Demo-Sektion initial eingeklappt
+    const demoSection = document.querySelector('#admin-demo .admin-section-header');
+    if (demoSection) {
+        toggleSection(demoSection);
+    }
+});
 </script>

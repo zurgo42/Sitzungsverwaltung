@@ -71,8 +71,8 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
     
     // === TOPs DURCHGEHEN ===
     foreach ($agenda_items as $item) {
-        // TOP 99 und 999 überspringen (NICHT TOP 0!)
-        if (in_array($item['top_number'], [99, 999])) {
+        // Nur TOP 999 überspringen (technischer Marker für Ende)
+        if ($item['top_number'] == 999) {
             continue;
         }
         
@@ -83,11 +83,6 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
                 $protokoll .= '&lt;br&gt;&lt;br&gt;&lt;strong&gt;Eröffnung:&lt;/strong&gt;&lt;br&gt;';
                 $protokoll .= nl2br(htmlspecialchars($item['protocol_notes']));
             }
-            continue;
-        }
-        
-        // Nur TOPs mit Protokollnotizen
-        if (empty($item['protocol_notes'])) {
             continue;
         }
         
@@ -117,16 +112,21 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
                 $protokoll_intern_exist = 1;
             }
             
-            $protokoll_intern .= '&lt;br&gt;&lt;br&gt;&lt;strong&gt;TOP ' . $item['top_number'] . ': ' . 
+            $protokoll_intern .= '&lt;br&gt;&lt;br&gt;&lt;strong&gt;TOP ' . $item['top_number'] . ': ' .
                                htmlspecialchars($item['title']) . '&lt;/strong&gt;&lt;br&gt;';
-            
+
             // Antragstext bei Antrag/Beschluss
             if ($item['category'] === 'antrag_beschluss' && !empty($item['proposal_text'])) {
-                $protokoll_intern .= '&lt;em&gt;Antragstext: ' . 
+                $protokoll_intern .= '&lt;em&gt;Antragstext: ' .
                                    htmlspecialchars($item['proposal_text']) . '&lt;/em&gt;&lt;br&gt;';
             }
-            
-            $protokoll_intern .= htmlspecialchars($item['protocol_notes']);
+
+            // Protokolltext oder Hinweis
+            if (!empty($item['protocol_notes'])) {
+                $protokoll_intern .= htmlspecialchars($item['protocol_notes']);
+            } else {
+                $protokoll_intern .= '&lt;em style=&quot;color: #999;&quot;&gt;(noch kein Protokoll)&lt;/em&gt;';
+            }
             
             // Abstimmungsergebnis
             if (!empty($item['vote_result'])) {
@@ -144,16 +144,21 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
             
         } else {
             // Öffentliches Protokoll
-            $protokoll .= '&lt;br&gt;&lt;br&gt;&lt;strong&gt;TOP ' . $item['top_number'] . ': ' . 
+            $protokoll .= '&lt;br&gt;&lt;br&gt;&lt;strong&gt;TOP ' . $item['top_number'] . ': ' .
                          htmlspecialchars($item['title']) . '&lt;/strong&gt;&lt;br&gt;';
-            
+
             // Antragstext bei Antrag/Beschluss
             if ($item['category'] === 'antrag_beschluss' && !empty($item['proposal_text'])) {
-                $protokoll .= '&lt;em&gt;Antragstext: ' . 
+                $protokoll .= '&lt;em&gt;Antragstext: ' .
                              htmlspecialchars($item['proposal_text']) . '&lt;/em&gt;&lt;br&gt;';
             }
-            
-            $protokoll .= htmlspecialchars($item['protocol_notes']);
+
+            // Protokolltext oder Hinweis
+            if (!empty($item['protocol_notes'])) {
+                $protokoll .= htmlspecialchars($item['protocol_notes']);
+            } else {
+                $protokoll .= '&lt;em style=&quot;color: #999;&quot;&gt;(noch kein Protokoll)&lt;/em&gt;';
+            }
             
             // Abstimmungsergebnis
             if (!empty($item['vote_result'])) {
@@ -202,13 +207,13 @@ function display_protocol($protocol_html) {
         echo '<div style="color: #999; padding: 20px; text-align: center;">Noch kein Protokoll vorhanden</div>';
         return;
     }
-    
+
     // HTML-Entities dekodieren für Anzeige
     $decoded = html_entity_decode($protocol_html);
-    // <tr> und <td> Tags durch divs ersetzen für bessere Darstellung
-    $decoded = str_replace(['&lt;tr class=&quot;mitr&quot;&gt;', '&lt;/tr&gt;'], ['<div>', '</div>'], $decoded);
-    $decoded = str_replace(['&lt;td class=&quot;mitr&quot;&gt;', '&lt;/td&gt;'], ['', ''], $decoded);
-    
+    // <tr> und <td> Tags durch divs ersetzen für bessere Darstellung (nach dem Dekodieren!)
+    $decoded = str_replace(['<tr class="mitr">', '</tr>'], ['<div>', '</div>'], $decoded);
+    $decoded = str_replace(['<td class="mitr">', '</td>'], ['', ''], $decoded);
+
     echo '<div style="background: white; padding: 20px; border: 1px solid #ddd; border-radius: 8px; line-height: 1.8;">';
     echo $decoded;
     echo '</div>';

@@ -270,8 +270,9 @@ if (isset($_POST['add_member'])) {
     $email = trim($_POST['email'] ?? '');
     $role = $_POST['role'] ?? '';
     $is_admin = isset($_POST['is_admin']) ? 1 : 0;
+    $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
     $password = $_POST['password'] ?? '';
-    
+
     // Validierung
     if (!$first_name || !$last_name || !$email || !$role || !$password) {
         $error_message = "Pflichtfelder fehlen.";
@@ -279,24 +280,18 @@ if (isset($_POST['add_member'])) {
         try {
             // Passwort hashen
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
-            
-            // Mitglied einfügen
-            $stmt = $pdo->prepare("
-                INSERT INTO members 
-                (first_name, last_name, email, role, is_admin, password_hash) 
-                VALUES (?, ?, ?, ?, ?, ?)
-            ");
-            $stmt->execute([
-                $first_name, 
-                $last_name, 
-                $email, 
-                $role, 
-                $is_admin, 
-                $password_hash
+
+            // Mitglied einfügen (über Wrapper-Funktion)
+            $new_member_id = create_member($pdo, [
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'email' => $email,
+                'role' => $role,
+                'is_admin' => $is_admin,
+                'is_confidential' => $is_confidential,
+                'password_hash' => $password_hash
             ]);
-            
-            $new_member_id = $pdo->lastInsertId();
-            
+
             // Admin-Log
             log_admin_action(
                 $pdo,
@@ -311,7 +306,8 @@ if (isset($_POST['add_member'])) {
                     'last_name' => $last_name,
                     'email' => $email,
                     'role' => $role,
-                    'is_admin' => $is_admin
+                    'is_admin' => $is_admin,
+                    'is_confidential' => $is_confidential
                 ]
             );
             
@@ -348,33 +344,27 @@ if (isset($_POST['edit_member'])) {
     $email = trim($_POST['email'] ?? '');
     $role = $_POST['role'] ?? '';
     $is_admin = isset($_POST['is_admin']) ? 1 : 0;
-    
+    $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
+
     // Validierung
     if (!$member_id || !$first_name || !$last_name || !$email || !$role) {
         $error_message = "Pflichtfelder fehlen.";
     } else {
         try {
-            // Alte Daten für Log abrufen
-            $stmt = $pdo->prepare("SELECT * FROM members WHERE member_id = ?");
-            $stmt->execute([$member_id]);
-            $old_member = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+            // Alte Daten für Log abrufen (über Wrapper-Funktion)
+            $old_member = get_member_by_id($pdo, $member_id);
+
             if (!$old_member) {
                 $error_message = "Mitglied nicht gefunden.";
             } else {
-                // Mitglied aktualisieren
-                $stmt = $pdo->prepare("
-                    UPDATE members 
-                    SET first_name = ?, last_name = ?, email = ?, role = ?, is_admin = ? 
-                    WHERE member_id = ?
-                ");
-                $stmt->execute([
-                    $first_name, 
-                    $last_name, 
-                    $email, 
-                    $role, 
-                    $is_admin, 
-                    $member_id
+                // Mitglied aktualisieren (über Wrapper-Funktion)
+                update_member($pdo, $member_id, [
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
+                    'email' => $email,
+                    'role' => $role,
+                    'is_admin' => $is_admin,
+                    'is_confidential' => $is_confidential
                 ]);
                 
                 // Passwort ändern falls angegeben
@@ -393,6 +383,7 @@ if (isset($_POST['edit_member'])) {
                     'email' => $email,
                     'role' => $role,
                     'is_admin' => $is_admin,
+                    'is_confidential' => $is_confidential,
                     'password_changed' => $password_changed
                 ];
                 
@@ -438,17 +429,14 @@ if (isset($_POST['delete_member'])) {
         $error_message = "Ungültige Mitglieds-ID.";
     } else {
         try {
-            // Alte Daten für Log abrufen
-            $stmt = $pdo->prepare("SELECT * FROM members WHERE member_id = ?");
-            $stmt->execute([$member_id]);
-            $old_member = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+            // Alte Daten für Log abrufen (über Wrapper-Funktion)
+            $old_member = get_member_by_id($pdo, $member_id);
+
             if (!$old_member) {
                 $error_message = "Mitglied nicht gefunden.";
             } else {
-                // Mitglied löschen
-                $stmt = $pdo->prepare("DELETE FROM members WHERE member_id = ?");
-                $stmt->execute([$member_id]);
+                // Mitglied löschen (über Wrapper-Funktion)
+                delete_member($pdo, $member_id);
                 
                 // Admin-Log
                 log_admin_action(
@@ -531,6 +519,140 @@ if (isset($_POST['close_todo'])) {
     }
 }
 
+/**
+ * ToDo bearbeiten
+ *
+ * POST-Parameter:
+ * - edit_todo: 1
+ * - todo_id: Int (required)
+ * - title: String
+ * - description: String
+ * - assigned_to_member_id: Int
+ * - status: String
+ * - entry_date: Date
+ * - due_date: Date
+ *
+ * Aktion:
+ * - ToDo aktualisieren
+ * - Admin-Aktion protokollieren
+ */
+if (isset($_POST['edit_todo'])) {
+    $todo_id = intval($_POST['todo_id'] ?? 0);
+    $title = trim($_POST['title'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $assigned_to_member_id = intval($_POST['assigned_to_member_id'] ?? 0);
+    $status = $_POST['status'] ?? 'open';
+    $entry_date = $_POST['entry_date'] ?? null;
+    $due_date = $_POST['due_date'] ?? null;
+
+    if (!$todo_id || !$title || !$description || !$assigned_to_member_id) {
+        $error_message = "Pflichtfelder fehlen.";
+    } else {
+        try {
+            // Alte Daten für Log abrufen
+            $stmt = $pdo->prepare("SELECT * FROM todos WHERE todo_id = ?");
+            $stmt->execute([$todo_id]);
+            $old_todo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$old_todo) {
+                $error_message = "ToDo nicht gefunden.";
+            } else {
+                // ToDo aktualisieren
+                $stmt = $pdo->prepare("
+                    UPDATE todos
+                    SET title = ?, description = ?, assigned_to_member_id = ?,
+                        status = ?, entry_date = ?, due_date = ?
+                    WHERE todo_id = ?
+                ");
+                $stmt->execute([
+                    $title,
+                    $description,
+                    $assigned_to_member_id,
+                    $status,
+                    $entry_date ?: null,
+                    $due_date ?: null,
+                    $todo_id
+                ]);
+
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'todo_edit',
+                    "ToDo bearbeitet: $title",
+                    'todo',
+                    $todo_id,
+                    $old_todo,
+                    [
+                        'title' => $title,
+                        'description' => $description,
+                        'assigned_to_member_id' => $assigned_to_member_id,
+                        'status' => $status,
+                        'entry_date' => $entry_date,
+                        'due_date' => $due_date
+                    ]
+                );
+
+                $success_message = "✅ ToDo erfolgreich aktualisiert!";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim ToDo-Aktualisieren: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Aktualisieren: " . $e->getMessage();
+        }
+    }
+}
+
+/**
+ * ToDo löschen
+ *
+ * POST-Parameter:
+ * - delete_todo: 1
+ * - todo_id: Int (required)
+ *
+ * Aktion:
+ * - ToDo aus DB löschen
+ * - Admin-Aktion protokollieren
+ */
+if (isset($_POST['delete_todo'])) {
+    $todo_id = intval($_POST['todo_id'] ?? 0);
+
+    if (!$todo_id) {
+        $error_message = "Ungültige ToDo-ID.";
+    } else {
+        try {
+            // ToDo-Daten für Log abrufen
+            $stmt = $pdo->prepare("SELECT * FROM todos WHERE todo_id = ?");
+            $stmt->execute([$todo_id]);
+            $old_todo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$old_todo) {
+                $error_message = "ToDo nicht gefunden.";
+            } else {
+                // ToDo löschen
+                $stmt = $pdo->prepare("DELETE FROM todos WHERE todo_id = ?");
+                $stmt->execute([$todo_id]);
+
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'todo_delete',
+                    "ToDo gelöscht: " . ($old_todo['description'] ?? 'Unbenannt'),
+                    'todo',
+                    $todo_id,
+                    $old_todo,
+                    null
+                );
+
+                $success_message = "✅ ToDo erfolgreich gelöscht!";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim ToDo-Löschen: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Löschen: " . $e->getMessage();
+        }
+    }
+}
+
 // ============================================
 // 4. DATEN LADEN
 // ============================================
@@ -547,11 +669,9 @@ $meetings = $pdo->query("
     ORDER BY m.meeting_date DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-// Alle Mitglieder laden
-$members = $pdo->query("
-    SELECT * FROM members 
-    ORDER BY last_name, first_name
-")->fetchAll(PDO::FETCH_ASSOC);
+// Alle Mitglieder laden (über Wrapper-Funktion)
+// Funktioniert mit members ODER berechtigte Tabelle (siehe config_adapter.php)
+$members = get_all_members($pdo);
 
 // Offene ToDos laden
 $open_todos = $pdo->query("

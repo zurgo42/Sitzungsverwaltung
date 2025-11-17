@@ -30,10 +30,8 @@ if (!isset($_SESSION['member_id'])) {
     exit;
 }
 
-// User-Daten laden
-$stmt = $pdo->prepare("SELECT * FROM members WHERE member_id = ?");
-$stmt->execute([$_SESSION['member_id']]);
-$current_user = $stmt->fetch();
+// User-Daten laden (über Wrapper-Funktion)
+$current_user = get_member_by_id($pdo, $_SESSION['member_id']);
 
 if (!$current_user) {
     session_destroy();
@@ -76,12 +74,12 @@ function is_authorized_for_meeting($meeting, $current_user, $allowed_statuses = 
  * @param int $creator_member_id
  */
 function create_default_tops($pdo, $meeting_id, $creator_member_id) {
-    // TOP 0: Wahl der Sitzungsleitung und Protokollführung
+    // TOP 0: Wahl der Sitzungsleitung und Protokollführung - Kategorie: wahl
     $stmt = $pdo->prepare("
-        INSERT INTO agenda_items 
-        (meeting_id, top_number, title, description, priority, estimated_duration, 
+        INSERT INTO agenda_items
+        (meeting_id, top_number, title, description, category, priority, estimated_duration,
          is_confidential, is_active, created_by_member_id, created_at)
-        VALUES (?, 0, ?, ?, NULL, NULL, 0, 0, ?, NOW())
+        VALUES (?, 0, ?, ?, 'wahl', NULL, NULL, 0, 0, ?, NOW())
     ");
     $stmt->execute([
         $meeting_id,
@@ -89,13 +87,13 @@ function create_default_tops($pdo, $meeting_id, $creator_member_id) {
         'Formale Wahl, Organisatorisches',
         $creator_member_id
     ]);
-    
-    // TOP 99: Verschiedenes
+
+    // TOP 99: Verschiedenes - Kategorie: sonstiges
     $stmt = $pdo->prepare("
-        INSERT INTO agenda_items 
-        (meeting_id, top_number, title, description, priority, estimated_duration, 
+        INSERT INTO agenda_items
+        (meeting_id, top_number, title, description, category, priority, estimated_duration,
          is_confidential, is_active, created_by_member_id, created_at)
-        VALUES (?, 99, ?, ?, NULL, NULL, 0, 0, ?, NOW())
+        VALUES (?, 99, ?, ?, 'sonstiges', NULL, NULL, 0, 0, ?, NOW())
     ");
     $stmt->execute([
         $meeting_id,
@@ -213,6 +211,12 @@ if (isset($_POST['create_meeting'])) {
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Fehler beim Meeting-Erstellen: " . $e->getMessage());
+
+        // Im Debug-Modus detaillierte Fehlermeldung anzeigen
+        if (defined('DEBUG_MODE') && DEBUG_MODE) {
+            die("Fehler beim Meeting-Erstellen: " . $e->getMessage() . "<br><br>Trace:<br>" . nl2br($e->getTraceAsString()));
+        }
+
         header("Location: index.php?tab=meetings&error=create_failed");
         exit;
     }
@@ -476,19 +480,15 @@ if (isset($_POST['start_meeting'])) {
         $stmt->execute([$meeting_id]);
         
         // 3. TOP 0 Protokoll initialisieren
-        // Namen der Rollen laden
-        $stmt_chairman = $pdo->prepare("SELECT first_name, last_name FROM members WHERE member_id = ?");
-        $stmt_chairman->execute([$chairman_member_id]);
-        $chairman_data = $stmt_chairman->fetch();
-        $chairman_name = $chairman_data ? 
-            $chairman_data['first_name'] . ' ' . $chairman_data['last_name'] : 
+        // Namen der Rollen laden (über Wrapper-Funktion)
+        $chairman_data = get_member_by_id($pdo, $chairman_member_id);
+        $chairman_name = $chairman_data ?
+            $chairman_data['first_name'] . ' ' . $chairman_data['last_name'] :
             'Unbekannt';
-        
-        $stmt_secretary = $pdo->prepare("SELECT first_name, last_name FROM members WHERE member_id = ?");
-        $stmt_secretary->execute([$secretary_member_id]);
-        $secretary_data = $stmt_secretary->fetch();
-        $secretary_name = $secretary_data ? 
-            $secretary_data['first_name'] . ' ' . $secretary_data['last_name'] : 
+
+        $secretary_data = get_member_by_id($pdo, $secretary_member_id);
+        $secretary_name = $secretary_data ?
+            $secretary_data['first_name'] . ' ' . $secretary_data['last_name'] :
             'Unbekannt';
         
         // Protokolltext erstellen
