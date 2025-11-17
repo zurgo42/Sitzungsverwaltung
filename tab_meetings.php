@@ -12,6 +12,37 @@ $all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
 $all_members = get_all_members($pdo);
 ?>
 
+<style>
+/* Kompaktere Meeting-Cards */
+.meeting-card {
+    padding: 12px !important;
+    margin-bottom: 15px !important;
+}
+.meeting-card-header {
+    padding: 0 !important;
+}
+.meeting-card-content {
+    padding: 0 !important;
+    margin-bottom: 8px !important;
+}
+.agenda-title {
+    margin-bottom: 8px !important;
+}
+.agenda-meta {
+    margin-top: 4px !important;
+    line-height: 1.4 !important;
+}
+.meeting-card-actions {
+    margin-top: 10px !important;
+    gap: 8px !important;
+}
+.meeting-edit-section,
+.meeting-start-section {
+    padding: 12px !important;
+    margin-top: 12px !important;
+}
+</style>
+
 <h2>📅 Meetings verwalten</h2>
 
 <?php if (isset($_GET['success'])): ?>
@@ -126,12 +157,18 @@ $all_members = get_all_members($pdo);
                 <label>Teilnehmer auswählen:</label>
                 <div class="participant-buttons">
                     <button type="button" onclick="toggleAllParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
-                    <button type="button" onclick="toggleAllParticipants(false)" class="btn-secondary" style="padding: 5px 10px;">✗ Alle abwählen</button>
+                    <button type="button" onclick="toggleAllParticipants(false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
+                    <button type="button" onclick="toggleLeadershipRoles()" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
+                    <button type="button" onclick="toggleTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
                 </div>
                 <div class="participants-selector">
                     <?php foreach ($all_members as $member): ?>
                         <label class="participant-label">
-                            <input type="checkbox" name="participant_ids[]" value="<?php echo $member['member_id']; ?>" class="participant-checkbox">
+                            <input type="checkbox"
+                                   name="participant_ids[]"
+                                   value="<?php echo $member['member_id']; ?>"
+                                   class="participant-checkbox"
+                                   data-role="<?php echo htmlspecialchars($member['role']); ?>">
                             <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')'); ?>
                         </label>
                     <?php endforeach; ?>
@@ -148,14 +185,21 @@ $all_members = get_all_members($pdo);
 <?php if (empty($all_meetings)): ?>
     <div class="info-box">Noch keine Meetings vorhanden.</div>
 <?php else: ?>
-    <?php foreach ($all_meetings as $m): 
+    <?php foreach ($all_meetings as $m):
         $status_class = 'meeting-card status-' . $m['status'];
         $is_creator = ($m['invited_by_member_id'] == $current_user['member_id']);
         $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
         $can_edit = ($is_creator || $is_admin) && $m['status'] === 'preparation';
+
+        // Rote Umrandung für ausstehende Aufgaben
+        $is_secretary = ($m['secretary_member_id'] == $current_user['member_id']);
+        $is_chairman = ($m['chairman_member_id'] == $current_user['member_id']);
+        $needs_protocol_completion = ($m['status'] === 'ended' && $is_secretary);
+        $needs_protocol_approval = ($m['status'] === 'protocol_ready' && $is_chairman);
+        $red_border_style = ($needs_protocol_completion || $needs_protocol_approval) ? ' style="border: 3px solid #f44336;"' : '';
     ?>
-        
-        <div class="<?php echo $status_class; ?>">
+
+        <div class="<?php echo $status_class; ?>"<?php echo $red_border_style; ?>>
             <div class="meeting-card-header">
                 <div class="meeting-card-content">
                     <div class="agenda-title">
@@ -163,7 +207,9 @@ $all_members = get_all_members($pdo);
                             <strong><?php echo htmlspecialchars($m['meeting_name']); ?></strong><br>
                         <?php endif; ?>
                         Termin am <?php echo date('d.m.Y H:i', strtotime($m['meeting_date'])); ?>
-                        <?php if (!empty($m['expected_end_date'])): ?>
+                        <?php if (in_array($m['status'], ['ended', 'protocol_ready', 'archived']) && !empty($m['meeting_end_date'])): ?>
+                            <br><small>Ende der Sitzung: <?php echo date('d.m.Y H:i', strtotime($m['meeting_end_date'])); ?></small>
+                        <?php elseif (!empty($m['expected_end_date'])): ?>
                             <br><small>Voraussichtliches Ende: <?php echo date('d.m.Y H:i', strtotime($m['expected_end_date'])); ?></small>
                         <?php endif; ?>
                     </div>
@@ -179,9 +225,9 @@ $all_members = get_all_members($pdo);
                             echo '<br>Eingeladen von: ' . htmlspecialchars($m['first_name'] . ' ' . $m['last_name']);
                         }
                         ?>
-                        <br><strong>Status:</strong> 
+                        <br><strong>Status:</strong>
                         <span class="meeting-status-badge <?php echo $m['status']; ?>">
-                            <?php 
+                            <?php
                             switch($m['status']) {
                                 case 'preparation': echo '📝 In Vorbereitung'; break;
                                 case 'active': echo '🟢 Sitzung läuft'; break;
@@ -192,6 +238,11 @@ $all_members = get_all_members($pdo);
                             }
                             ?>
                         </span>
+                        <?php if ($needs_protocol_completion): ?>
+                            <br><strong style="color: #f44336;">⚠️ Fertigstellung des Protokolls steht aus</strong>
+                        <?php elseif ($needs_protocol_approval): ?>
+                            <br><strong style="color: #f44336;">⚠️ Genehmigung des Protokolls steht aus</strong>
+                        <?php endif; ?>
                     </div>
                 </div>
                 
@@ -292,19 +343,26 @@ $all_members = get_all_members($pdo);
                             <label>Teilnehmer auswählen:</label>
                             <div class="participant-buttons">
                                 <button type="button" onclick="toggleAllParticipantsEdit(<?php echo $m['meeting_id']; ?>, true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
-                                <button type="button" onclick="toggleAllParticipantsEdit(<?php echo $m['meeting_id']; ?>, false)" class="btn-secondary" style="padding: 5px 10px;">✗ Alle abwählen</button>
+                                <button type="button" onclick="toggleAllParticipantsEdit(<?php echo $m['meeting_id']; ?>, false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
+                                <button type="button" onclick="toggleLeadershipRolesEdit(<?php echo $m['meeting_id']; ?>)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
+                                <button type="button" onclick="toggleTopManagementEdit(<?php echo $m['meeting_id']; ?>)" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
                             </div>
                             <div class="participants-selector">
-                                <?php 
+                                <?php
                                 $stmt_current_participants = $pdo->prepare("SELECT member_id FROM meeting_participants WHERE meeting_id = ?");
                                 $stmt_current_participants->execute([$m['meeting_id']]);
                                 $current_participant_ids = $stmt_current_participants->fetchAll(PDO::FETCH_COLUMN);
-                                
-                                foreach ($all_members as $member): 
+
+                                foreach ($all_members as $member):
                                     $is_participant = in_array($member['member_id'], $current_participant_ids);
                                 ?>
                                     <label class="participant-label">
-                                        <input type="checkbox" name="participant_ids[]" value="<?php echo $member['member_id']; ?>" class="participant-checkbox-<?php echo $m['meeting_id']; ?>" <?php echo $is_participant ? 'checked' : ''; ?>>
+                                        <input type="checkbox"
+                                               name="participant_ids[]"
+                                               value="<?php echo $member['member_id']; ?>"
+                                               class="participant-checkbox-<?php echo $m['meeting_id']; ?>"
+                                               data-role="<?php echo htmlspecialchars($member['role']); ?>"
+                                               <?php echo $is_participant ? 'checked' : ''; ?>>
                                         <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')'); ?>
                                     </label>
                                 <?php endforeach; ?>
@@ -382,6 +440,42 @@ function toggleAllParticipants(checked) {
 function toggleAllParticipantsEdit(meetingId, checked) {
     const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
     checkboxes.forEach(cb => cb.checked = checked);
+}
+
+// Wählt nur Führungsrollen aus (alle außer "Mitglied")
+function toggleLeadershipRoles() {
+    const checkboxes = document.querySelectorAll('.participant-checkbox');
+    checkboxes.forEach(cb => {
+        const role = cb.getAttribute('data-role');
+        cb.checked = (role !== 'Mitglied');
+    });
+}
+
+function toggleLeadershipRolesEdit(meetingId) {
+    const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
+    checkboxes.forEach(cb => {
+        const role = cb.getAttribute('data-role');
+        cb.checked = (role !== 'Mitglied');
+    });
+}
+
+// Wählt nur Vorstand, Geschäftsführung und Assistenz aus
+function toggleTopManagement() {
+    const checkboxes = document.querySelectorAll('.participant-checkbox');
+    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz'];
+    checkboxes.forEach(cb => {
+        const role = cb.getAttribute('data-role');
+        cb.checked = topRoles.includes(role);
+    });
+}
+
+function toggleTopManagementEdit(meetingId) {
+    const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
+    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz'];
+    checkboxes.forEach(cb => {
+        const role = cb.getAttribute('data-role');
+        cb.checked = topRoles.includes(role);
+    });
 }
 
 function combineDateTime() {

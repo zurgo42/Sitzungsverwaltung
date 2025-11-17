@@ -41,10 +41,25 @@ function render_agenda_overview($agenda_items, $current_user = null, $current_me
         return;
     }
     
-    // Meeting-Details laden für Berechtigungs-Prüfung
-    $stmt = $pdo->prepare("SELECT secretary_member_id, chairman_member_id FROM meetings WHERE meeting_id = ?");
+    // Meeting-Details laden für Berechtigungs-Prüfung und Anzeige
+    $stmt = $pdo->prepare("
+        SELECT secretary_member_id, chairman_member_id, meeting_date
+        FROM meetings
+        WHERE meeting_id = ?
+    ");
     $stmt->execute([$current_meeting_id]);
     $meeting_data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Namen über Adapter holen (nicht über JOIN!)
+    if ($meeting_data) {
+        $chairman = get_member_by_id($pdo, $meeting_data['chairman_member_id']);
+        $secretary = get_member_by_id($pdo, $meeting_data['secretary_member_id']);
+
+        $meeting_data['chairman_first'] = $chairman['first_name'] ?? null;
+        $meeting_data['chairman_last'] = $chairman['last_name'] ?? null;
+        $meeting_data['secretary_first'] = $secretary['first_name'] ?? null;
+        $meeting_data['secretary_last'] = $secretary['last_name'] ?? null;
+    }
     
     // Berechtigung für vertrauliche TOPs prüfen
     $is_secretary = ($meeting_data && $meeting_data['secretary_member_id'] == $current_user['member_id']);
@@ -85,6 +100,15 @@ function render_agenda_overview($agenda_items, $current_user = null, $current_me
         </summary>
         
         <div style="margin-top: 15px;">
+            <!-- Meeting-Leitung und Protokoll -->
+            <div style="margin-bottom: 15px; padding: 10px; background: white; border-left: 4px solid #2c5aa0; border-radius: 4px;">
+                <strong>Vorgesehene Sitzungsleitung:</strong>
+                <?php echo $meeting_data['chairman_first'] ? htmlspecialchars($meeting_data['chairman_first'] . ' ' . $meeting_data['chairman_last']) : '<em>nicht festgelegt</em>'; ?>
+                <br>
+                <strong>Protokoll:</strong>
+                <?php echo $meeting_data['secretary_first'] ? htmlspecialchars($meeting_data['secretary_first'] . ' ' . $meeting_data['secretary_last']) : '<em>nicht festgelegt</em>'; ?>
+            </div>
+
             <p style="margin-bottom: 10px; color: #555;">
                 <strong>Hinweis:</strong> Hier können Sie alle TOPs auf einen Blick sehen und Ihre Bewertungen (Priorität & geschätzte Dauer) eingeben.
             </p>

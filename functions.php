@@ -5,6 +5,8 @@
 
 // Datenbankverbindung erstellen
 require_once("config.php");
+require_once("config_adapter.php");   // Konfiguration für Mitgliederquelle
+require_once("member_functions.php"); // Prozedurale Wrapper-Funktionen
 try {
     $pdo = new PDO(
         "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
@@ -33,27 +35,46 @@ function require_login() {
 
 /**
  * Gibt aktuellen eingeloggten User zurück
+ * Nutzt Wrapper-Funktion (funktioniert mit members ODER berechtigte)
  */
 function get_current_member() {
     global $pdo;
     if (!isset($_SESSION['member_id'])) {
         return null;
     }
-    $stmt = $pdo->prepare("SELECT * FROM members WHERE member_id = ?");
-    $stmt->execute([$_SESSION['member_id']]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+    return get_member_by_id($pdo, $_SESSION['member_id']);
 }
 
 /**
  * Lädt alle Meetings
+ * Kompatibel mit members UND berechtigte Tabelle
  */
 function get_all_meetings($pdo) {
     try {
-        $stmt = $pdo->query("SELECT m.*, mem.first_name, mem.last_name 
-                FROM meetings m 
-                LEFT JOIN members mem ON m.invited_by_member_id = mem.member_id 
+        // Nur Meeting-Daten holen, OHNE JOIN auf members
+        $stmt = $pdo->query("SELECT m.*
+                FROM meetings m
                 ORDER BY FIELD(status, 'active', 'preparation', 'ended', 'protocol_ready', 'archived'), meeting_date ASC");
-        return $stmt->fetchAll();
+        $meetings = $stmt->fetchAll();
+
+        // Mitglieder-Namen über Adapter ergänzen (funktioniert mit members ODER berechtigte)
+        foreach ($meetings as &$meeting) {
+            if ($meeting['invited_by_member_id']) {
+                $inviter = get_member_by_id($pdo, $meeting['invited_by_member_id']);
+                if ($inviter) {
+                    $meeting['first_name'] = $inviter['first_name'];
+                    $meeting['last_name'] = $inviter['last_name'];
+                } else {
+                    $meeting['first_name'] = 'Unbekannt';
+                    $meeting['last_name'] = '';
+                }
+            } else {
+                $meeting['first_name'] = 'Unbekannt';
+                $meeting['last_name'] = '';
+            }
+        }
+
+        return $meetings;
     } catch (PDOException $e) {
         if (DEBUG_MODE) {
             die("Fehler in get_all_meetings(): " . $e->getMessage());
@@ -64,38 +85,53 @@ function get_all_meetings($pdo) {
 
 /**
  * Lädt alle Mitglieder
+ * HINWEIS: Diese Funktion ist jetzt in member_functions.php definiert
+ * und wird automatisch von dort geladen. Sie funktioniert mit members
+ * ODER berechtigte Tabelle (siehe config_adapter.php).
  */
-function get_all_members($pdo) {
-    try {
-        $stmt = $pdo->query("SELECT * FROM members ORDER BY last_name, first_name");
-        return $stmt->fetchAll();
-    } catch (PDOException $e) {
-        if (DEBUG_MODE) {
-            die("Fehler in get_all_members(): " . $e->getMessage());
-        }
-        return [];
-    }
-}
+// function get_all_members() wurde nach member_functions.php verschoben
 
 /**
  * Lädt Meeting-Details
+ * Kompatibel mit members UND berechtigte Tabelle
  */
 function get_meeting_details($pdo, $meeting_id) {
     try {
-        $stmt = $pdo->prepare("SELECT m.*, 
-                mem_inv.first_name as inviter_first_name, 
-                mem_inv.last_name as inviter_last_name,
-                mem_chair.first_name as chairman_first_name,
-                mem_chair.last_name as chairman_last_name,
-                mem_sec.first_name as secretary_first_name,
-                mem_sec.last_name as secretary_last_name
-                FROM meetings m
-                LEFT JOIN members mem_inv ON m.invited_by_member_id = mem_inv.member_id
-                LEFT JOIN members mem_chair ON m.chairman_member_id = mem_chair.member_id
-                LEFT JOIN members mem_sec ON m.secretary_member_id = mem_sec.member_id
-                WHERE m.meeting_id = ?");
+        // Nur Meeting-Daten holen, OHNE JOIN auf members
+        $stmt = $pdo->prepare("SELECT m.* FROM meetings m WHERE m.meeting_id = ?");
         $stmt->execute([$meeting_id]);
-        return $stmt->fetch();
+        $meeting = $stmt->fetch();
+
+        if (!$meeting) {
+            return null;
+        }
+
+        // Mitglieder-Namen über Adapter ergänzen
+        if ($meeting['invited_by_member_id']) {
+            $inviter = get_member_by_id($pdo, $meeting['invited_by_member_id']);
+            if ($inviter) {
+                $meeting['inviter_first_name'] = $inviter['first_name'];
+                $meeting['inviter_last_name'] = $inviter['last_name'];
+            }
+        }
+
+        if ($meeting['chairman_member_id']) {
+            $chairman = get_member_by_id($pdo, $meeting['chairman_member_id']);
+            if ($chairman) {
+                $meeting['chairman_first_name'] = $chairman['first_name'];
+                $meeting['chairman_last_name'] = $chairman['last_name'];
+            }
+        }
+
+        if ($meeting['secretary_member_id']) {
+            $secretary = get_member_by_id($pdo, $meeting['secretary_member_id']);
+            if ($secretary) {
+                $meeting['secretary_first_name'] = $secretary['first_name'];
+                $meeting['secretary_last_name'] = $secretary['last_name'];
+            }
+        }
+
+        return $meeting;
     } catch (PDOException $e) {
         if (DEBUG_MODE) {
             die("Fehler in get_meeting_details(): " . $e->getMessage());
@@ -114,15 +150,11 @@ function get_agenda_with_comments($pdo, $meeting_id, $user_role) {
             $confidential_filter = "AND ai.is_confidential = 0";
         }
         
-        $stmt = $pdo->prepare("SELECT ai.*, 
-                mem.first_name as creator_first_name, 
-                mem.last_name as creator_last_name,
-                mem.member_id as creator_member_id
+        $stmt = $pdo->prepare("SELECT ai.*
                 FROM agenda_items ai
-                LEFT JOIN members mem ON ai.created_by_member_id = mem.member_id
                 WHERE ai.meeting_id = ? $confidential_filter
-                ORDER BY 
-                    CASE 
+                ORDER BY
+                    CASE
                         WHEN ai.top_number = 0 THEN 0
                         WHEN ai.top_number = 99 THEN 999
                         WHEN ai.is_confidential = 1 THEN ai.top_number + 1000
@@ -130,16 +162,40 @@ function get_agenda_with_comments($pdo, $meeting_id, $user_role) {
                     END");
         $stmt->execute([$meeting_id]);
         $agenda = $stmt->fetchAll();
-        
-        // Kommentare für jeden TOP laden
+
+        // Creator-Namen über Adapter holen
         foreach ($agenda as &$item) {
-            $stmt = $pdo->prepare("SELECT ac.*, m.first_name, m.last_name
+            if ($item['created_by_member_id']) {
+                $creator = get_member_by_id($pdo, $item['created_by_member_id']);
+                $item['creator_first_name'] = $creator['first_name'] ?? null;
+                $item['creator_last_name'] = $creator['last_name'] ?? null;
+                $item['creator_member_id'] = $item['created_by_member_id'];
+            } else {
+                $item['creator_first_name'] = null;
+                $item['creator_last_name'] = null;
+                $item['creator_member_id'] = null;
+            }
+        }
+        unset($item);
+        
+        // Kommentare für jeden TOP laden (ohne JOIN!)
+        foreach ($agenda as &$item) {
+            $stmt = $pdo->prepare("SELECT ac.*
                     FROM agenda_comments ac
-                    JOIN members m ON ac.member_id = m.member_id
                     WHERE ac.item_id = ?
                     ORDER BY ac.created_at ASC");
             $stmt->execute([$item['item_id']]);
-            $item['comments'] = $stmt->fetchAll();
+            $comments = $stmt->fetchAll();
+
+            // Kommentator-Namen über Adapter holen
+            foreach ($comments as &$comment) {
+                $commenter = get_member_by_id($pdo, $comment['member_id']);
+                $comment['first_name'] = $commenter['first_name'] ?? 'Unbekannt';
+                $comment['last_name'] = $commenter['last_name'] ?? '';
+            }
+            unset($comment);
+
+            $item['comments'] = $comments;
         }
         
         return $agenda;

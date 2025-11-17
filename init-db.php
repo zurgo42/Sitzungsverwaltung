@@ -94,7 +94,7 @@ try {
         top_number INT NOT NULL,
         title VARCHAR(255) NOT NULL,
         description TEXT,
-        category ENUM('information', 'klaerung', 'aussprache', 'antrag_beschluss', 'sonstiges') DEFAULT 'information',
+        category ENUM('information', 'klaerung', 'diskussion', 'aussprache', 'antrag_beschluss', 'wahl', 'bericht', 'sonstiges') DEFAULT 'information',
         proposal_text TEXT,
         vote_yes INT DEFAULT NULL,
         vote_no INT DEFAULT NULL,

@@ -5,13 +5,21 @@
  * Erweitert: 07.11.2025 - v2.1
  * Bugfix: 12.11.2025 - Fehlende Funktionen und Handler hinzugefügt
  * Bugfix: 12.11.2025 14:00 - get_member_name() entfernt (existiert in module_helpers.php)
- * 
+ *
  * Diese Datei verarbeitet alle POST-Anfragen aus tab_agenda.php
  * Trennung von Business-Logik und Präsentation (MVC-Prinzip)
- * 
+ *
  * WICHTIG: Diese Datei wird in index.php NACH dem Laden von functions.php eingebunden
  * Voraussetzungen: $pdo, $current_user, recalculate_item_metrics(), get_next_top_number()
  */
+
+// Hilfsfunktion: Vollständigen Link zur Sitzung generieren
+function get_full_meeting_link($meeting_id) {
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'];
+    $script = $_SERVER['SCRIPT_NAME'];
+    return $protocol . $host . $script . "?tab=agenda&meeting_id=" . $meeting_id;
+}
 
 // Berechtigungen ermitteln (falls Meeting geladen)
 $is_secretary = false;
@@ -567,20 +575,28 @@ if (isset($_POST['end_meeting'])) {
                 $stmt->execute([$current_meeting_id, $current_user['member_id']]);
             }
             
-            // 3. ToDo für Sekretär erstellen (Protokoll fertigstellen)
-            $feedback_hours = 72; //intval($meeting['feedback_deadline_hours'] ?? 72);
+            // 3. ToDo für Sekretär erstellen (Protokoll fertigstellen) mit Datum und Link
+            $feedback_hours = 72;
             $due_date = date('Y-m-d', strtotime("+$feedback_hours hours +1 day"));
-            
+
+            // Meeting-Daten für ToDo holen
+            $stmt_meeting = $pdo->prepare("SELECT meeting_name, meeting_date FROM meetings WHERE meeting_id = ?");
+            $stmt_meeting->execute([$current_meeting_id]);
+            $meeting_data = $stmt_meeting->fetch();
+
+            $todo_title = "Protokoll fertigstellen: " . ($meeting_data['meeting_name'] ?? 'Sitzung') . " vom " . date('d.m.Y', strtotime($meeting_data['meeting_date']));
+            $todo_description = "Bitte das Protokoll vervollständigen und zur Genehmigung freigeben.\n\nLink: " . get_full_meeting_link($current_meeting_id);
+
             $stmt = $pdo->prepare("
-                INSERT INTO todos 
+                INSERT INTO todos
                 (meeting_id, assigned_to_member_id, title, description, status, due_date, created_by_member_id, entry_date)
                 VALUES (?, ?, ?, ?, 'open', ?, ?, CURDATE())
             ");
             $stmt->execute([
                 $current_meeting_id,
                 $meeting['secretary_member_id'],
-                'Protokoll fertigstellen',
-                'Bitte das Protokoll vervollständigen und zur Genehmigung freigeben.',
+                $todo_title,
+                $todo_description,
                 $due_date,
                 $current_user['member_id']
             ]);
@@ -910,28 +926,30 @@ if (isset($_POST['save_protocol'])) {
                 $is_private = isset($todo_arrays['private'][$item_id]) && $todo_arrays['private'][$item_id] == 1 ? 1 : 0;
                 
                 // ToDo in Protokoll-Text einfügen
-                $stmt = $pdo->prepare("SELECT first_name, last_name FROM members WHERE member_id = ?");
-                $stmt->execute([$assigned_to]);
-                $member = $stmt->fetch();
+                // Mitglied über Wrapper-Funktion laden
+                $member = get_member_by_id($pdo, $assigned_to);
                 
                 if ($member) {
                     $member_name = $member['first_name'] . ' ' . $member['last_name'];
                     $due_date_formatted = $due_date ? date('d.m.Y', strtotime($due_date)) : 'offen';
                     
                     $todo_text = "\n\nToDo für {$member_name}: {$todo_desc} bis {$due_date_formatted}";
-                    
+
                     // Protokoll mit ToDo aktualisieren
                     $updated_protocol = $protocol_text . $todo_text;
                     $stmt = $pdo->prepare("
-                        UPDATE agenda_items 
-                        SET protocol_notes = ? 
+                        UPDATE agenda_items
+                        SET protocol_notes = ?
                         WHERE item_id = ?
                     ");
                     $stmt->execute([$updated_protocol, $item_id]);
-                    
+
+                    // ToDo-Beschreibung mit Meeting-Link erweitern
+                    $todo_description_with_link = $todo_desc . "\n\nLink zur Sitzung: " . get_full_meeting_link($current_meeting_id);
+
                     // ToDo in Datenbank speichern
                     $stmt = $pdo->prepare("
-                        INSERT INTO todos 
+                        INSERT INTO todos
                         (meeting_id, item_id, assigned_to_member_id, title, description, status, is_private, due_date, entry_date, created_by_member_id)
                         VALUES (?, ?, ?, ?, ?, 'open', ?, ?, CURDATE(), ?)
                     ");
@@ -940,7 +958,7 @@ if (isset($_POST['save_protocol'])) {
                         $item_id,
                         $assigned_to,
                         $todo_desc,
-                        $todo_desc,
+                        $todo_description_with_link,
                         $is_private,
                         $due_date,
                         $current_user['member_id']
@@ -1218,6 +1236,30 @@ if (isset($_POST['toggle_confidential']) && $is_secretary && $meeting['status'] 
 }
 
 /**
+ * Priorität des aktiven TOP aktualisieren (nur Sekretär)
+ */
+if (isset($_POST['update_active_priority']) && $is_secretary && $meeting['status'] === 'active') {
+    $item_id = intval($_POST['item_id'] ?? 0);
+    $priority = floatval($_POST['priority'] ?? 5.0);
+
+    if ($item_id && $priority >= 1 && $priority <= 10) {
+        try {
+            $stmt = $pdo->prepare("
+                UPDATE agenda_items
+                SET priority = ?
+                WHERE item_id = ? AND meeting_id = ?
+            ");
+            $stmt->execute([$priority, $item_id, $current_meeting_id]);
+
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
+            exit;
+        } catch (PDOException $e) {
+            error_log("Fehler beim Aktualisieren der Priorität: " . $e->getMessage());
+        }
+    }
+}
+
+/**
  * Live-Kommentar während aktiver Sitzung hinzufügen
  */
 if (isset($_POST['add_live_comment']) && $meeting['status'] === 'active') {
@@ -1454,10 +1496,10 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
         $end_timestamp = $end_time_query->fetchColumn();
         $end_time = $end_timestamp ? date('H:i', strtotime($end_timestamp)) : '?';
         
-        $todo_title = "Protokoll fertigstellen: " . $meeting['meeting_name'];
-        $todo_description = "Sitzung vom " . date('d.m.Y', strtotime($meeting['meeting_date'])) . 
+        $todo_title = "Protokoll fertigstellen: " . $meeting['meeting_name'] . " vom " . date('d.m.Y', strtotime($meeting['meeting_date']));
+        $todo_description = "Sitzung vom " . date('d.m.Y', strtotime($meeting['meeting_date'])) .
                            " (" . $start_time . "-" . $end_time . " Uhr)\n" .
-                           "Link: ?tab=agenda&meeting_id=$current_meeting_id";
+                           "Link: " . get_full_meeting_link($current_meeting_id);
         
         $stmt = $pdo->prepare("
             INSERT INTO todos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id)
@@ -1573,24 +1615,40 @@ if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] ===
         require_once 'module_protocol.php';
         require_once 'module_helpers.php';
         
-        // Alle Daten laden
+        // Alle Daten laden (ohne JOINs!)
         $stmt = $pdo->prepare("
-            SELECT ai.*, m.first_name as creator_first, m.last_name as creator_last
+            SELECT ai.*
             FROM agenda_items ai
-            LEFT JOIN members m ON ai.created_by_member_id = m.member_id
             WHERE ai.meeting_id = ?
             ORDER BY ai.top_number
         ");
         $stmt->execute([$current_meeting_id]);
         $all_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
+        // Creator-Namen über Adapter holen
+        foreach ($all_items as &$item) {
+            if ($item['created_by_member_id']) {
+                $creator = get_member_by_id($pdo, $item['created_by_member_id']);
+                $item['creator_first'] = $creator['first_name'] ?? null;
+                $item['creator_last'] = $creator['last_name'] ?? null;
+            }
+        }
+        unset($item);
+
+        // Teilnehmer über Adapter laden
         $stmt = $pdo->prepare("
-            SELECT m.* FROM members m
-            JOIN meeting_participants mp ON m.member_id = mp.member_id
-            WHERE mp.meeting_id = ?
+            SELECT member_id FROM meeting_participants WHERE meeting_id = ?
         ");
         $stmt->execute([$current_meeting_id]);
-        $all_participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $participant_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $all_participants = [];
+        foreach ($participant_ids as $member_id) {
+            $member = get_member_by_id($pdo, $member_id);
+            if ($member) {
+                $all_participants[] = $member;
+            }
+        }
         
         $protocols = generate_protocol($pdo, $meeting, $all_items, $all_participants);
         
@@ -1621,10 +1679,10 @@ if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] ===
         $end_timestamp = $end_time_query->fetchColumn();
         $end_time = $end_timestamp ? date('H:i', strtotime($end_timestamp)) : '?';
         
-        $todo_title = "Protokoll genehmigen: " . $meeting['meeting_name'];
-        $todo_description = "Sitzung vom " . date('d.m.Y', strtotime($meeting['meeting_date'])) . 
+        $todo_title = "Protokoll genehmigen: " . $meeting['meeting_name'] . " vom " . date('d.m.Y', strtotime($meeting['meeting_date']));
+        $todo_description = "Sitzung vom " . date('d.m.Y', strtotime($meeting['meeting_date'])) .
                            " (" . $start_time . "-" . $end_time . " Uhr)\n" .
-                           "Link: ?tab=agenda&meeting_id=$current_meeting_id";
+                           "Link: " . get_full_meeting_link($current_meeting_id);
         
         $stmt = $pdo->prepare("
             INSERT INTO todos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id)
@@ -1695,24 +1753,41 @@ if (isset($_POST['approve_protocol']) && $is_chairman && $meeting['status'] === 
         require_once 'module_protocol.php';
         require_once 'module_helpers.php';
         
+        // Alle Daten laden (ohne JOINs!)
         $stmt = $pdo->prepare("
-            SELECT ai.*, m.first_name as creator_first, m.last_name as creator_last
+            SELECT ai.*
             FROM agenda_items ai
-            LEFT JOIN members m ON ai.created_by_member_id = m.member_id
             WHERE ai.meeting_id = ?
             ORDER BY ai.top_number
         ");
         $stmt->execute([$current_meeting_id]);
         $all_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
+        // Creator-Namen über Adapter holen
+        foreach ($all_items as &$item) {
+            if ($item['created_by_member_id']) {
+                $creator = get_member_by_id($pdo, $item['created_by_member_id']);
+                $item['creator_first'] = $creator['first_name'] ?? null;
+                $item['creator_last'] = $creator['last_name'] ?? null;
+            }
+        }
+        unset($item);
+
+        // Teilnehmer über Adapter laden
         $stmt = $pdo->prepare("
-            SELECT m.* FROM members m
-            JOIN meeting_participants mp ON m.member_id = mp.member_id
-            WHERE mp.meeting_id = ?
+            SELECT member_id FROM meeting_participants WHERE meeting_id = ?
         ");
         $stmt->execute([$current_meeting_id]);
-        $all_participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+        $participant_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $all_participants = [];
+        foreach ($participant_ids as $member_id) {
+            $member = get_member_by_id($pdo, $member_id);
+            if ($member) {
+                $all_participants[] = $member;
+            }
+        }
+
         $protocols = generate_protocol($pdo, $meeting, $all_items, $all_participants);
         
         // Meeting archivieren
@@ -1739,6 +1814,82 @@ if (isset($_POST['approve_protocol']) && $is_chairman && $meeting['status'] === 
         exit;
     } catch (PDOException $e) {
         error_log("Fehler beim Genehmigen des Protokolls: " . $e->getMessage());
+    }
+}
+
+/**
+ * Protokolländerung anfordern (Sitzungsleiter)
+ */
+if (isset($_POST['request_protocol_revision']) && $is_chairman && $meeting['status'] === 'protocol_ready') {
+    try {
+        $todo_title = "Protokoll überarbeiten: " . $meeting['meeting_name'] . " vom " . date('d.m.Y', strtotime($meeting['meeting_date']));
+        $todo_description = "Der Sitzungsleiter hat Änderungen am Protokoll angefordert. Bitte prüfen Sie Ihre Anmerkungen und überarbeiten Sie das Protokoll entsprechend.\n\nLink: " . get_full_meeting_link($current_meeting_id);
+
+        $stmt = $pdo->prepare("
+            INSERT INTO todos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id, entry_date)
+            VALUES (?, ?, ?, ?, DATE_ADD(CURDATE(), INTERVAL 3 DAY), 'open', ?, CURDATE())
+        ");
+        $stmt->execute([
+            $current_meeting_id,
+            $meeting['secretary_member_id'],
+            $todo_title,
+            $todo_description,
+            $current_user['member_id']
+        ]);
+
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
+        exit;
+    } catch (PDOException $e) {
+        error_log("Fehler beim Anfordern der Protokolländerung: " . $e->getMessage());
+    }
+}
+
+/**
+ * Sitzungsleiter-Kommentar speichern (protocol_ready)
+ */
+if (isset($_POST['save_chairman_comment']) && $is_chairman && $meeting['status'] === 'protocol_ready') {
+    $item_id = intval($_POST['item_id'] ?? 0);
+    $comment_text = trim($_POST['comment_text'] ?? '');
+
+    if ($item_id) {
+        try {
+            // Prüfen ob bereits ein Kommentar existiert
+            $stmt = $pdo->prepare("
+                SELECT comment_id
+                FROM agenda_post_comments
+                WHERE item_id = ? AND member_id = ?
+            ");
+            $stmt->execute([$item_id, $current_user['member_id']]);
+            $existing = $stmt->fetch();
+
+            if ($existing) {
+                // Update
+                if (!empty($comment_text)) {
+                    $stmt = $pdo->prepare("
+                        UPDATE agenda_post_comments
+                        SET comment_text = ?, created_at = NOW()
+                        WHERE comment_id = ?
+                    ");
+                    $stmt->execute([$comment_text, $existing['comment_id']]);
+                } else {
+                    // Löschen wenn leer
+                    $stmt = $pdo->prepare("DELETE FROM agenda_post_comments WHERE comment_id = ?");
+                    $stmt->execute([$existing['comment_id']]);
+                }
+            } elseif (!empty($comment_text)) {
+                // Insert
+                $stmt = $pdo->prepare("
+                    INSERT INTO agenda_post_comments (item_id, member_id, comment_text, created_at)
+                    VALUES (?, ?, ?, NOW())
+                ");
+                $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+            }
+
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
+            exit;
+        } catch (PDOException $e) {
+            error_log("Fehler beim Speichern des Sitzungsleiter-Kommentars: " . $e->getMessage());
+        }
     }
 }
 

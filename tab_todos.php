@@ -15,6 +15,18 @@
 
 require_once 'functions.php';
 
+// Hilfsfunktion: URLs in Beschreibungen anklickbar machen
+function make_links_clickable($text) {
+    $text = htmlspecialchars($text);
+    // URLs anklickbar machen
+    $text = preg_replace(
+        '/(https?:\/\/[^\s]+)/',
+        '<a href="$1" target="_blank" style="color: #2196f3; text-decoration: underline;">$1</a>',
+        $text
+    );
+    return nl2br($text);
+}
+
 $currentMemberID = $_SESSION['member_id'] ?? 0;
 
 if (!$currentMemberID) {
@@ -212,7 +224,7 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                         
                         <div class="todo-filecard-row">
                             <strong>Aufgabe:</strong>
-                            <?php echo nl2br(htmlspecialchars($row['description'] ?? '')); ?>
+                            <?php echo make_links_clickable($row['description'] ?? ''); ?>
                         </div>
                         
                         <div class="todo-filecard-row">

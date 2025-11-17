@@ -36,17 +36,13 @@ if (!$meeting) {
 // 2. DATEN LADEN
 // ============================================
 
-// Alle TOPs abrufen
+// Alle TOPs abrufen (ohne JOIN auf members!)
 $stmt = $pdo->prepare("
-    SELECT ai.*, 
-           creator.first_name as creator_first, 
-           creator.last_name as creator_last,
-           creator.member_id as creator_member_id
+    SELECT ai.*
     FROM agenda_items ai
-    LEFT JOIN members creator ON ai.created_by_member_id = creator.member_id
     WHERE ai.meeting_id = ?
-    ORDER BY 
-        CASE 
+    ORDER BY
+        CASE
             WHEN ai.top_number = 0 THEN 0
             WHEN ai.top_number = 99 THEN 999998
             WHEN ai.top_number = 999 THEN 999999
@@ -58,19 +54,50 @@ $stmt = $pdo->prepare("
 $stmt->execute([$current_meeting_id]);
 $agenda_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Creator-Namen über Adapter holen
+foreach ($agenda_items as &$item) {
+    if ($item['created_by_member_id']) {
+        $creator = get_member_by_id($pdo, $item['created_by_member_id']);
+        $item['creator_first'] = $creator['first_name'] ?? null;
+        $item['creator_last'] = $creator['last_name'] ?? null;
+        $item['creator_member_id'] = $item['created_by_member_id'];
+    } else {
+        $item['creator_first'] = null;
+        $item['creator_last'] = null;
+        $item['creator_member_id'] = null;
+    }
+}
+unset($item);
+
 // Alle Mitglieder laden
 $all_members = get_all_members($pdo);
 
-// Teilnehmer des Meetings laden
+// Teilnehmer des Meetings laden (über Adapter!)
 $stmt = $pdo->prepare("
-    SELECT m.* 
-    FROM members m
-    JOIN meeting_participants mp ON m.member_id = mp.member_id
-    WHERE mp.meeting_id = ?
-    ORDER BY m.last_name, m.first_name
+    SELECT member_id
+    FROM meeting_participants
+    WHERE meeting_id = ?
 ");
 $stmt->execute([$current_meeting_id]);
-$participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$participant_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Member-Daten über Adapter holen
+$participants = [];
+foreach ($participant_ids as $member_id) {
+    $member = get_member_by_id($pdo, $member_id);
+    if ($member) {
+        $participants[] = $member;
+    }
+}
+
+// Sortieren nach Nachname, Vorname
+usort($participants, function($a, $b) {
+    $cmp = strcasecmp($a['last_name'], $b['last_name']);
+    if ($cmp === 0) {
+        return strcasecmp($a['first_name'], $b['first_name']);
+    }
+    return $cmp;
+});
 
 // Berechtigungen prüfen
 $is_secretary = ($meeting['secretary_member_id'] == $current_user['member_id']);

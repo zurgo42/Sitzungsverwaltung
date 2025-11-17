@@ -34,14 +34,14 @@ function render_participant_list($pdo, $meeting_id, $participants) {
 
 /**
  * Gibt Namen eines Members zurück
+ * Verwendet den Adapter um korrekt aus berechtigte oder members zu lesen
  */
 function get_member_name($pdo, $member_id) {
     if (!$member_id) return 'Nicht festgelegt';
-    
-    $stmt = $pdo->prepare("SELECT first_name, last_name FROM members WHERE member_id = ?");
-    $stmt->execute([$member_id]);
-    $member = $stmt->fetch();
-    
+
+    // get_member_by_id() verwenden (aus functions.php) - nutzt den Adapter
+    $member = get_member_by_id($pdo, $member_id);
+
     return $member ? htmlspecialchars($member['first_name'] . ' ' . $member['last_name']) : 'Nicht festgelegt';
 }
 
