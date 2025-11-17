@@ -514,15 +514,16 @@ function get_visible_meetings($pdo, $member_id) {
             return $stmt->fetchAll();
         } else {
             // Normale User sehen:
-            // - authenticated meetings
-            // - invited_only meetings wo sie participant sind
+            // - public meetings (nur wenn sie Teilnehmer sind)
+            // - authenticated meetings (alle eingeloggten)
+            // - invited_only meetings (nur wenn sie Teilnehmer sind)
             $stmt = $pdo->prepare("
                 SELECT DISTINCT m.*, mem.first_name, mem.last_name
                 FROM meetings m
                 LEFT JOIN members mem ON m.invited_by_member_id = mem.member_id
                 LEFT JOIN meeting_participants mp ON m.meeting_id = mp.meeting_id AND mp.member_id = ?
                 WHERE m.visibility_type = 'authenticated'
-                   OR (m.visibility_type = 'invited_only' AND mp.member_id IS NOT NULL)
+                   OR ((m.visibility_type = 'public' OR m.visibility_type = 'invited_only') AND mp.member_id IS NOT NULL)
                 ORDER BY FIELD(m.status, 'active', 'preparation', 'ended', 'protocol_ready', 'archived'), m.meeting_date ASC
             ");
             $stmt->execute([$member_id]);

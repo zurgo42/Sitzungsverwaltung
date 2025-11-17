@@ -44,8 +44,8 @@ if (!$current_user) {
 // ============================================
 
 /**
- * Prüft ob User berechtigt ist, ein Meeting zu bearbeiten
- * 
+ * Prüft ob User berechtigt ist, ein Meeting zu bearbeiten/starten
+ *
  * @param array $meeting Meeting-Daten
  * @param array $current_user User-Daten
  * @param array $allowed_statuses Erlaubte Meeting-Status
@@ -55,15 +55,39 @@ function is_authorized_for_meeting($meeting, $current_user, $allowed_statuses = 
     if (!$meeting) {
         return false;
     }
-    
+
     // Berechtigung: Ersteller ODER Assistenz/GF
     $is_creator = ($meeting['invited_by_member_id'] == $current_user['member_id']);
     $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
-    
+
     // Status muss erlaubt sein
     $status_ok = in_array($meeting['status'], $allowed_statuses);
-    
+
     return ($is_creator || $is_admin) && $status_ok;
+}
+
+/**
+ * Prüft ob User berechtigt ist, ein Meeting zu löschen
+ *
+ * @param array $meeting Meeting-Daten
+ * @param array $current_user User-Daten
+ * @return bool
+ */
+function can_delete_meeting($meeting, $current_user) {
+    if (!$meeting) {
+        return false;
+    }
+
+    $is_creator = ($meeting['invited_by_member_id'] == $current_user['member_id']);
+    $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
+
+    // Im preparation-Status: Ersteller ODER Admin
+    if ($meeting['status'] === 'preparation') {
+        return $is_creator || $is_admin;
+    }
+
+    // In anderen Status: Nur Admin
+    return $is_admin;
 }
 
 /**
@@ -260,7 +284,7 @@ if (isset($_POST['edit_meeting'])) {
         header("Location: index.php?tab=meetings&error=permission");
         exit;
     }
-    
+
     // Input-Validierung
     $meeting_name = trim($_POST['meeting_name'] ?? '');
     $meeting_date = $_POST['meeting_date'] ?? '';
@@ -358,15 +382,15 @@ if (isset($_POST['delete_meeting'])) {
     $stmt = $pdo->prepare("SELECT * FROM meetings WHERE meeting_id = ?");
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if (!is_authorized_for_meeting($meeting, $current_user, ['preparation'])) {
+
+    if (!can_delete_meeting($meeting, $current_user)) {
         header("Location: index.php?tab=meetings&error=permission");
         exit;
     }
-    
+
     try {
         $pdo->beginTransaction();
-        
+
         // Reihenfolge wichtig wegen Foreign Keys!
         
         // 1. ToDos löschen
@@ -451,15 +475,15 @@ if (isset($_POST['start_meeting'])) {
     $stmt = $pdo->prepare("SELECT * FROM meetings WHERE meeting_id = ?");
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!is_authorized_for_meeting($meeting, $current_user, ['preparation'])) {
         header("Location: index.php?tab=meetings&error=permission");
         exit;
     }
-    
+
     try {
         $pdo->beginTransaction();
-        
+
         // 1. Meeting-Status auf 'active' setzen und Rollen speichern
         $stmt = $pdo->prepare("
             UPDATE meetings 
