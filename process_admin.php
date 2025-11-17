@@ -97,12 +97,13 @@ if (isset($_POST['edit_meeting'])) {
     $video_link = trim($_POST['video_link'] ?? '');
     $status = $_POST['status'] ?? '';
     $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
+    $invited_by_member_id = intval($_POST['invited_by_member_id'] ?? 0);
     $chairman_id = !empty($_POST['chairman_id']) ? intval($_POST['chairman_id']) : null;
     $secretary_id = !empty($_POST['secretary_id']) ? intval($_POST['secretary_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
 
     // Validierung
-    if (!$meeting_id || !$meeting_name || !$meeting_date || !$status) {
+    if (!$meeting_id || !$meeting_name || !$meeting_date || !$status || !$invited_by_member_id) {
         $error_message = "Pflichtfelder fehlen.";
     } else {
         try {
@@ -124,6 +125,7 @@ if (isset($_POST['edit_meeting'])) {
                         video_link = ?,
                         status = ?,
                         visibility_type = ?,
+                        invited_by_member_id = ?,
                         chairman_member_id = ?,
                         secretary_member_id = ?
                     WHERE meeting_id = ?
@@ -136,6 +138,7 @@ if (isset($_POST['edit_meeting'])) {
                     $video_link,
                     $status,
                     $visibility_type,
+                    $invited_by_member_id,
                     $chairman_id,
                     $secretary_id,
                     $meeting_id
@@ -164,6 +167,7 @@ if (isset($_POST['edit_meeting'])) {
                     'video_link' => $video_link,
                     'status' => $status,
                     'visibility_type' => $visibility_type,
+                    'invited_by_member_id' => $invited_by_member_id,
                     'chairman_member_id' => $chairman_id,
                     'secretary_member_id' => $secretary_id,
                     'participant_count' => count($participant_ids)
