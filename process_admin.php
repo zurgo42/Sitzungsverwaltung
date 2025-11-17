@@ -93,9 +93,10 @@ if (isset($_POST['edit_meeting'])) {
     $meeting_name = trim($_POST['meeting_name'] ?? '');
     $meeting_date = $_POST['meeting_date'] ?? '';
     $status = $_POST['status'] ?? '';
+    $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
     $chairman_id = !empty($_POST['chairman_id']) ? intval($_POST['chairman_id']) : null;
     $secretary_id = !empty($_POST['secretary_id']) ? intval($_POST['secretary_id']) : null;
-    
+
     // Validierung
     if (!$meeting_id || !$meeting_name || !$meeting_date || !$status) {
         $error_message = "Pflichtfelder fehlen.";
@@ -111,20 +112,22 @@ if (isset($_POST['edit_meeting'])) {
             } else {
                 // Meeting aktualisieren
                 $stmt = $pdo->prepare("
-                    UPDATE meetings 
-                    SET meeting_name = ?, 
-                        meeting_date = ?, 
+                    UPDATE meetings
+                    SET meeting_name = ?,
+                        meeting_date = ?,
                         status = ?,
+                        visibility_type = ?,
                         chairman_member_id = ?,
                         secretary_member_id = ?
                     WHERE meeting_id = ?
                 ");
                 $stmt->execute([
-                    $meeting_name, 
-                    $meeting_date, 
-                    $status, 
-                    $chairman_id, 
-                    $secretary_id, 
+                    $meeting_name,
+                    $meeting_date,
+                    $status,
+                    $visibility_type,
+                    $chairman_id,
+                    $secretary_id,
                     $meeting_id
                 ]);
                 
@@ -133,6 +136,7 @@ if (isset($_POST['edit_meeting'])) {
                     'meeting_name' => $meeting_name,
                     'meeting_date' => $meeting_date,
                     'status' => $status,
+                    'visibility_type' => $visibility_type,
                     'chairman_member_id' => $chairman_id,
                     'secretary_member_id' => $secretary_id
                 ];

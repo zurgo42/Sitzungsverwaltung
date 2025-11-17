@@ -97,6 +97,7 @@ require_once 'process_admin.php';
                 <th>Meeting</th>
                 <th>Datum</th>
                 <th>Status</th>
+                <th>Sichtbarkeit</th>
                 <th>Eingeladen von</th>
                 <th>Teilnehmer</th>
                 <th>TOPs</th>
@@ -111,7 +112,7 @@ require_once 'process_admin.php';
                     <td><?php echo date('d.m.Y H:i', strtotime($meeting['meeting_date'])); ?></td>
                     <td>
                         <span class="status-badge status-<?php echo $meeting['status']; ?>">
-                            <?php 
+                            <?php
                             $status_labels = [
                                 'preparation' => '📝 Vorbereitung',
                                 'active' => '🟢 Läuft',
@@ -121,6 +122,16 @@ require_once 'process_admin.php';
                             echo $status_labels[$meeting['status']] ?? $meeting['status'];
                             ?>
                         </span>
+                    </td>
+                    <td>
+                        <?php
+                        $visibility_labels = [
+                            'public' => '🌐 Öffentlich',
+                            'authenticated' => '🔓 Angemeldet',
+                            'invited_only' => '🔒 Nur Eingeladene'
+                        ];
+                        echo $visibility_labels[$meeting['visibility_type'] ?? 'invited_only'] ?? $meeting['visibility_type'];
+                        ?>
                     </td>
                     <td><?php echo htmlspecialchars($meeting['inviter_first_name'] . ' ' . $meeting['inviter_last_name']); ?></td>
                     <td><?php echo $meeting['participant_count']; ?></td>
@@ -158,6 +169,14 @@ require_once 'process_admin.php';
                         <option value="active">Aktiv</option>
                         <option value="ended">Beendet</option>
                         <option value="archived">Archiviert</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sichtbarkeit:</label>
+                    <select name="visibility_type" id="edit_visibility_type" required>
+                        <option value="invited_only">🔒 Nur Eingeladene</option>
+                        <option value="authenticated">🔓 Alle Angemeldeten</option>
+                        <option value="public">🌐 Öffentlich</option>
                     </select>
                 </div>
                 <div class="form-row">
@@ -637,6 +656,7 @@ function editMeeting(meetingId) {
         document.getElementById('edit_meeting_name').value = meeting.meeting_name;
         document.getElementById('edit_meeting_date').value = meeting.meeting_date.replace(' ', 'T').substring(0, 16);
         document.getElementById('edit_status').value = meeting.status;
+        document.getElementById('edit_visibility_type').value = meeting.visibility_type || 'invited_only';
         document.getElementById('edit_chairman_id').value = meeting.chairman_member_id || '';
         document.getElementById('edit_secretary_id').value = meeting.secretary_member_id || '';
         document.getElementById('edit-meeting-modal').classList.add('show');
