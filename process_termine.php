@@ -118,6 +118,10 @@ try {
             $title = trim($_POST['title'] ?? '');
             $description = trim($_POST['description'] ?? '');
             $meeting_id = !empty($_POST['meeting_id']) ? intval($_POST['meeting_id']) : null;
+            $poll_location = trim($_POST['poll_location'] ?? '');
+            $poll_video_link = trim($_POST['poll_video_link'] ?? '');
+            $poll_duration = !empty($_POST['poll_duration']) ? intval($_POST['poll_duration']) : null;
+            $participant_ids = $_POST['participant_ids'] ?? [];
 
             if (empty($title)) {
                 $_SESSION['error'] = 'Bitte geben Sie einen Titel ein';
@@ -125,21 +129,34 @@ try {
                 exit;
             }
 
+            if (empty($participant_ids)) {
+                $_SESSION['error'] = 'Bitte wählen Sie mindestens einen Teilnehmer aus';
+                header('Location: index.php?tab=termine');
+                exit;
+            }
+
             // Umfrage erstellen
             $stmt = $pdo->prepare("
-                INSERT INTO polls (title, description, created_by_member_id, meeting_id, status, created_at)
-                VALUES (?, ?, ?, ?, 'open', NOW())
+                INSERT INTO polls (title, description, created_by_member_id, meeting_id, location, video_link, duration, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'open', NOW())
             ");
-            $stmt->execute([$title, $description, $current_user['member_id'], $meeting_id]);
+            $stmt->execute([$title, $description, $current_user['member_id'], $meeting_id, $poll_location, $poll_video_link, $poll_duration]);
             $poll_id = $pdo->lastInsertId();
+
+            // Teilnehmer hinzufügen
+            $stmt = $pdo->prepare("
+                INSERT INTO poll_participants (poll_id, member_id)
+                VALUES (?, ?)
+            ");
+            foreach ($participant_ids as $member_id) {
+                $stmt->execute([$poll_id, intval($member_id)]);
+            }
 
             // Terminvorschläge hinzufügen (bis zu 20)
             for ($i = 1; $i <= 20; $i++) {
                 $date = $_POST["date_$i"] ?? '';
                 $time_start = $_POST["time_start_$i"] ?? '';
                 $time_end = $_POST["time_end_$i"] ?? '';
-                $location = trim($_POST["location_$i"] ?? '');
-                $notes = trim($_POST["notes_$i"] ?? '');
 
                 if (!empty($date) && !empty($time_start)) {
                     $suggested_datetime = $date . ' ' . $time_start;
@@ -150,10 +167,10 @@ try {
                     }
 
                     $stmt = $pdo->prepare("
-                        INSERT INTO poll_dates (poll_id, suggested_date, suggested_end_date, location, notes, sort_order)
-                        VALUES (?, ?, ?, ?, ?, ?)
+                        INSERT INTO poll_dates (poll_id, suggested_date, suggested_end_date, sort_order)
+                        VALUES (?, ?, ?, ?)
                     ");
-                    $stmt->execute([$poll_id, $suggested_datetime, $suggested_end, $location, $notes, $i]);
+                    $stmt->execute([$poll_id, $suggested_datetime, $suggested_end, $i]);
                 }
             }
 

@@ -233,6 +233,9 @@ try {
         description TEXT,
         created_by_member_id INT NOT NULL,
         meeting_id INT DEFAULT NULL,
+        location VARCHAR(255) DEFAULT NULL,
+        video_link VARCHAR(500) DEFAULT NULL,
+        duration INT DEFAULT NULL,
         status ENUM('open', 'closed', 'finalized') DEFAULT 'open',
         final_date_id INT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -282,6 +285,19 @@ try {
         INDEX idx_date (date_id),
         INDEX idx_member (member_id),
         INDEX idx_vote (vote)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Umfrage-Teilnehmer-Tabelle (wer darf die Umfrage sehen)
+    $tables[] = "CREATE TABLE IF NOT EXISTS poll_participants (
+        participant_id INT PRIMARY KEY AUTO_INCREMENT,
+        poll_id INT NOT NULL,
+        member_id INT NOT NULL,
+        invited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (poll_id) REFERENCES polls(poll_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        UNIQUE KEY unique_poll_participant (poll_id, member_id),
+        INDEX idx_poll (poll_id),
+        INDEX idx_member (member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Tabellen erstellen
