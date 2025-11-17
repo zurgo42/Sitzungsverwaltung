@@ -13,7 +13,6 @@
  */
 
 require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../db.php';
 
 // Sicherstellen, dass wir mit der members-Tabelle arbeiten
 define('FORCE_MEMBER_SOURCE', 'members');
