@@ -44,32 +44,50 @@ if (!$current_user) {
 // ============================================
 
 /**
- * Prüft ob User berechtigt ist, ein Meeting zu bearbeiten
+ * Prüft ob User berechtigt ist, ein Meeting zu bearbeiten/starten
  *
- * @param PDO $pdo Datenbankverbindung
  * @param array $meeting Meeting-Daten
  * @param array $current_user User-Daten
  * @param array $allowed_statuses Erlaubte Meeting-Status
  * @return bool
  */
-function is_authorized_for_meeting($pdo, $meeting, $current_user, $allowed_statuses = ['preparation']) {
+function is_authorized_for_meeting($meeting, $current_user, $allowed_statuses = ['preparation']) {
     if (!$meeting) {
         return false;
     }
 
-    // Berechtigung: Ersteller ODER Assistenz/GF ODER Teilnehmer
+    // Berechtigung: Ersteller ODER Assistenz/GF
     $is_creator = ($meeting['invited_by_member_id'] == $current_user['member_id']);
     $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
-
-    // Prüfen ob User Teilnehmer ist
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM meeting_participants WHERE meeting_id = ? AND member_id = ?");
-    $stmt->execute([$meeting['meeting_id'], $current_user['member_id']]);
-    $is_participant = ($stmt->fetchColumn() > 0);
 
     // Status muss erlaubt sein
     $status_ok = in_array($meeting['status'], $allowed_statuses);
 
-    return ($is_creator || $is_admin || $is_participant) && $status_ok;
+    return ($is_creator || $is_admin) && $status_ok;
+}
+
+/**
+ * Prüft ob User berechtigt ist, ein Meeting zu löschen
+ *
+ * @param array $meeting Meeting-Daten
+ * @param array $current_user User-Daten
+ * @return bool
+ */
+function can_delete_meeting($meeting, $current_user) {
+    if (!$meeting) {
+        return false;
+    }
+
+    $is_creator = ($meeting['invited_by_member_id'] == $current_user['member_id']);
+    $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
+
+    // Im preparation-Status: Ersteller ODER Admin
+    if ($meeting['status'] === 'preparation') {
+        return $is_creator || $is_admin;
+    }
+
+    // In anderen Status: Nur Admin
+    return $is_admin;
 }
 
 /**
@@ -262,7 +280,7 @@ if (isset($_POST['edit_meeting'])) {
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!is_authorized_for_meeting($pdo, $meeting, $current_user, ['preparation'])) {
+    if (!is_authorized_for_meeting($meeting, $current_user, ['preparation'])) {
         header("Location: index.php?tab=meetings&error=permission");
         exit;
     }
@@ -365,7 +383,7 @@ if (isset($_POST['delete_meeting'])) {
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!is_authorized_for_meeting($pdo, $meeting, $current_user, ['preparation'])) {
+    if (!can_delete_meeting($meeting, $current_user)) {
         header("Location: index.php?tab=meetings&error=permission");
         exit;
     }
@@ -458,7 +476,7 @@ if (isset($_POST['start_meeting'])) {
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!is_authorized_for_meeting($pdo, $meeting, $current_user, ['preparation'])) {
+    if (!is_authorized_for_meeting($meeting, $current_user, ['preparation'])) {
         header("Location: index.php?tab=meetings&error=permission");
         exit;
     }
