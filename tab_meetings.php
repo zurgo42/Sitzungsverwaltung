@@ -144,12 +144,12 @@ $all_members = get_all_members($pdo);
                 <select name="visibility_type">
                     <option value="invited_only">Nur Eingeladene</option>
                     <option value="authenticated">Alle angemeldeten Mitglieder</option>
-                    <option value="public">Öffentlich (nur für User "Mitglied alle")</option>
+                    <option value="public">Öffentlich</option>
                 </select>
                 <small style="display: block; margin-top: 5px; color: #666;">
                     • <strong>Nur Eingeladene:</strong> Nur ausgewählte Teilnehmer sehen diese Sitzung<br>
-                    • <strong>Alle angemeldeten:</strong> Alle Members sehen diese Sitzung<br>
-                    • <strong>Öffentlich:</strong> Nur der Spezial-User "Mitglied alle" sieht diese Sitzung (read-only)
+                    • <strong>Alle angemeldeten:</strong> Alle eingeloggten Mitglieder sehen diese Sitzung (read-only, Teilnehmer haben volle Rechte)<br>
+                    • <strong>Öffentlich:</strong> Auch der Spezial-User "Mitglied alle" kann diese Sitzung sehen (read-only, Teilnehmer haben volle Rechte)
                 </small>
             </div>
 
