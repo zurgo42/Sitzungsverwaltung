@@ -117,7 +117,6 @@ try {
         case 'create_poll':
             $title = trim($_POST['title'] ?? '');
             $description = trim($_POST['description'] ?? '');
-            $meeting_id = !empty($_POST['meeting_id']) ? intval($_POST['meeting_id']) : null;
             $participant_ids = $_POST['participant_ids'] ?? [];
 
             if (empty($title)) {
@@ -132,12 +131,12 @@ try {
                 exit;
             }
 
-            // Umfrage erstellen
+            // Umfrage erstellen (meeting_id wird später beim Finalisieren gesetzt)
             $stmt = $pdo->prepare("
                 INSERT INTO polls (title, description, created_by_member_id, meeting_id, status, created_at)
-                VALUES (?, ?, ?, ?, 'open', NOW())
+                VALUES (?, ?, ?, NULL, 'open', NOW())
             ");
-            $stmt->execute([$title, $description, $current_user['member_id'], $meeting_id]);
+            $stmt->execute([$title, $description, $current_user['member_id']]);
             $poll_id = $pdo->lastInsertId();
 
             // Teilnehmer hinzufügen
@@ -273,8 +272,10 @@ try {
             ");
             $stmt->execute([$final_date_id, $poll_id]);
 
-            // Optional: Meeting erstellen wenn meeting_id noch nicht gesetzt
-            if (empty($poll['meeting_id']) && !empty($final_date_id)) {
+            // Optional: Meeting erstellen (wenn Checkbox aktiviert)
+            $create_meeting = !empty($_POST['create_meeting']);
+            $meeting_created = false;
+            if ($create_meeting && !empty($final_date_id)) {
                 $date_stmt = $pdo->prepare("SELECT * FROM poll_dates WHERE date_id = ?");
                 $date_stmt->execute([$final_date_id]);
                 $final_date = $date_stmt->fetch(PDO::FETCH_ASSOC);
@@ -297,12 +298,34 @@ try {
 
                     // Verknüpfung setzen
                     $pdo->prepare("UPDATE polls SET meeting_id = ? WHERE poll_id = ?")->execute([$new_meeting_id, $poll_id]);
+
+                    // Teilnehmer vom Poll zum Meeting hinzufügen
+                    $participants_stmt = $pdo->prepare("
+                        SELECT DISTINCT member_id
+                        FROM poll_participants
+                        WHERE poll_id = ?
+                    ");
+                    $participants_stmt->execute([$poll_id]);
+                    $participants = $participants_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    $invite_stmt = $pdo->prepare("
+                        INSERT INTO meeting_invites (meeting_id, member_id, status)
+                        VALUES (?, ?, 'pending')
+                    ");
+                    foreach ($participants as $participant) {
+                        $invite_stmt->execute([$new_meeting_id, $participant['member_id']]);
+                    }
+
+                    $meeting_created = true;
                 }
             }
 
             // E-Mail-Benachrichtigung an Teilnehmer
             $notification_recipients = $_POST['notification_recipients'] ?? 'voters';
             $success_message = 'Finaler Termin wurde festgelegt!';
+            if ($meeting_created) {
+                $success_message .= ' Ein Meeting wurde automatisch erstellt.';
+            }
 
             try {
                 // Basis-URL für Links bestimmen

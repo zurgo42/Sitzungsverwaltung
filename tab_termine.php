@@ -501,21 +501,6 @@ if (isset($_SESSION['error'])) {
                     <textarea name="description" rows="3" placeholder="Optional: Weitere Informationen zur Umfrage"></textarea>
                 </div>
 
-                <div class="form-group">
-                    <label>Mit Meeting verknüpfen (optional):</label>
-                    <select name="meeting_id">
-                        <option value="">- Kein Meeting -</option>
-                        <?php foreach ($all_meetings as $meeting): ?>
-                            <option value="<?php echo $meeting['meeting_id']; ?>">
-                                <?php echo htmlspecialchars($meeting['meeting_name'] . ' - ' . date('d.m.Y H:i', strtotime($meeting['meeting_date']))); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <small style="display: block; margin-top: 5px; color: #666;">
-                        Optional: Wenn Sie ein bestehendes Meeting auswählen, wird die Umfrage damit verknüpft
-                    </small>
-                </div>
-
                 <!-- Teilnehmer auswählen -->
                 <div class="form-group">
                     <label>Teilnehmer auswählen (nur diese sehen die Umfrage):*</label>
@@ -1012,6 +997,17 @@ if (isset($_SESSION['error'])) {
                             </option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+
+                <!-- Meeting-Option -->
+                <div class="form-group" style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 5px;">
+                    <label style="display: block; margin-bottom: 10px;">
+                        <input type="checkbox" name="create_meeting" value="1" checked>
+                        <strong>📅 Automatisch Meeting für diesen Termin anlegen</strong>
+                    </label>
+                    <small style="display: block; margin-left: 24px; color: #666;">
+                        Wenn aktiviert, wird automatisch ein Meeting mit dem finalen Termin, Titel und Teilnehmern erstellt
+                    </small>
                 </div>
 
                 <!-- E-Mail-Optionen -->
