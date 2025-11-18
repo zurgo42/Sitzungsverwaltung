@@ -83,7 +83,16 @@ define('BASE_URL', 'https://ihre-domain.de/sitzungsverwaltung');
    - Alle 24 Tabellen
    - Den erforderlichen Trigger
    - 13 Meinungsbild-Templates
+   - **Einen Default-Admin-Benutzer** (wenn members-Tabelle leer ist)
 3. Folgen Sie den Anweisungen auf dem Bildschirm
+
+**Standard-Login-Daten nach init-db.php:**
+
+| Rolle | E-Mail | Passwort |
+|-------|--------|----------|
+| System Administrator | admin@example.com | admin123 |
+
+**WICHTIG:** Ändern Sie dieses Passwort sofort nach dem ersten Login!
 
 #### Option B: Via MySQL-Kommandozeile
 
@@ -129,34 +138,44 @@ chmod 700 sessions/
 
 ### 5. Demo-Daten laden (Optional)
 
-Für Testzwecke oder zum Kennenlernen der Anwendung:
+Für Testzwecke oder zum Kennenlernen der Anwendung gibt es zwei Möglichkeiten:
 
-1. Öffnen Sie im Browser: `https://ihre-domain.de/sitzungsverwaltung/demo.php`
-2. Das Skript erstellt:
-   - 8 Test-Mitglieder mit verschiedenen Rollen
-   - Ein Beispiel-Meeting mit Tagesordnungspunkten
-   - Beispiel-Kommentare und ToDos
+#### Option A: Demo-Daten erstellen und exportieren
 
-**Standard-Login-Daten nach Demo-Installation:**
+1. Melden Sie sich mit dem Default-Admin an (admin@example.com / admin123)
+2. Erstellen Sie Test-Daten: Meetings, TODOs, Terminabstimmungen, Meinungsbilder
+3. Öffnen Sie im Browser: `https://ihre-domain.de/sitzungsverwaltung/tools/demo_export.php`
+4. Das Skript exportiert alle Daten in `tools/demo_data.json`
 
-| Rolle | E-Mail | Passwort |
-|-------|--------|----------|
-| Vorstand | test@example.com | test123 |
-| Vorstand 2 | vorstand2@example.com | test123 |
-| GF | gf@example.com | test123 |
-| Assistenz | assistenz@example.com | test123 |
-| Führungsteam 1 | ft1@example.com | test123 |
-| Führungsteam 2 | ft2@example.com | test123 |
-| Mitglied 1 | mitglied1@example.com | test123 |
-| Mitglied 2 | mitglied2@example.com | test123 |
+#### Option B: Demo-Daten importieren (falls vorhanden)
 
-**WICHTIG:** Ändern Sie diese Passwörter sofort oder löschen Sie die Test-Accounts in einer Produktivumgebung!
+**WARNUNG:** Dieser Vorgang löscht ALLE bestehenden Daten!
+
+1. Öffnen Sie im Browser: `https://ihre-domain.de/sitzungsverwaltung/tools/demo_import.php`
+2. Bestätigen Sie den Vorgang
+3. Das Skript löscht alle Daten und importiert das Demo-Szenario aus `tools/demo_data.json`
+
+**Was wird importiert:**
+- Demo-Mitglieder mit verschiedenen Rollen
+- Demo-Meetings in verschiedenen Stati
+- Demo-Tagesordnungspunkte mit Kommentaren & Protokollen
+- Demo-TODOs mit Historie
+- Demo-Terminabstimmungen mit Antworten
+- Demo-Meinungsbilder mit Antworten
+
+**WICHTIG:** Der Demo-Import ersetzt den Default-Admin durch die Demo-User!
 
 ### 6. Erste Schritte
 
 1. Öffnen Sie die Anwendung: `https://ihre-domain.de/sitzungsverwaltung/`
-2. Melden Sie sich an (mit Demo-Daten oder erstellen Sie manuell den ersten Benutzer)
-3. Passen Sie unter "Einstellungen" die Anwendung an Ihre Bedürfnisse an
+2. Melden Sie sich mit dem Default-Admin an:
+   - **E-Mail:** admin@example.com
+   - **Passwort:** admin123
+3. **WICHTIG:** Ändern Sie sofort das Passwort:
+   - Gehen Sie zu "Admin" → "Mitglieder verwalten"
+   - Bearbeiten Sie den System Administrator
+   - Setzen Sie ein sicheres Passwort
+4. Passen Sie die Anwendung an Ihre Bedürfnisse an
 
 ## Cronjobs einrichten (Optional aber empfohlen)
 
@@ -220,14 +239,19 @@ Für größere Installationen empfohlen:
 
 **Vor dem Live-Gang:**
 
-1. **Demo-Daten löschen:**
-   ```sql
-   DELETE FROM members WHERE email LIKE '%@example.com';
-   ```
+1. **Default-Admin-Passwort ändern:**
+   - Melden Sie sich als admin@example.com an
+   - Ändern Sie das Passwort unter "Admin" → "Mitglieder verwalten"
+   - Oder ändern Sie die E-Mail-Adresse des Default-Admins zu Ihrer eigenen
 
-2. **Admin-Account erstellen:**
-   - Erstellen Sie einen sicheren Admin-Account mit starkem Passwort
-   - Weisen Sie die Rolle `vorstand` oder `gf` zu
+2. **Demo-Daten löschen (falls vorhanden):**
+   ```sql
+   DELETE FROM members WHERE email LIKE '%@example.com' AND email != 'admin@example.com';
+   DELETE FROM meetings;
+   DELETE FROM todos;
+   DELETE FROM polls;
+   DELETE FROM opinion_polls;
+   ```
 
 3. **config.php schützen:**
    ```bash
@@ -327,12 +351,18 @@ Falls Sie eine ältere Version aktualisieren:
 
    Prüfen Sie das Verzeichnis `migrations/` auf neue Migrations-Dateien und führen Sie diese aus:
 
+   **SQL-Migrations:**
    ```bash
    mysql -u benutzer -p sitzungsverwaltung < migrations/create_polls.sql
    mysql -u benutzer -p sitzungsverwaltung < migrations/add_poll_reminders.sql
    mysql -u benutzer -p sitzungsverwaltung < migrations/create_opinion_polls.sql
    mysql -u benutzer -p sitzungsverwaltung < migrations/insert_opinion_templates.sql
    ```
+
+   **PHP-Migrations (im Browser ausführen):**
+   - `migrations/add_location_to_polls.php` - Fügt location, video_link und duration zu polls hinzu
+
+   Öffnen Sie: `https://ihre-domain.de/sitzungsverwaltung/migrations/add_location_to_polls.php`
 
 3. **Dateien aktualisieren:**
    - Laden Sie alle neuen PHP-Dateien hoch

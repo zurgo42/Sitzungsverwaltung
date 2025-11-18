@@ -25,8 +25,8 @@ Technische Dokumentation für Entwickler, die das System verstehen, warten oder 
 /
 ├── config.php                  # Datenbank & Konfiguration (nicht im Repo)
 ├── config.example.php          # Konfigurations-Vorlage
-├── init-db.php                 # Datenbank-Initialisierung
-├── demo.php                    # Demo-Daten erstellen
+├── config_adapter.php          # Adapter für verschiedene DB-Schemas
+├── init-db.php                 # Datenbank-Initialisierung + Default-Admin
 ├── index.php                   # Haupt-Entry-Point / Routing
 ├── login.php                   # Login-Seite
 ├── logout.php                  # Logout-Handler
@@ -60,11 +60,19 @@ Technische Dokumentation für Entwickler, die das System verstehen, warten oder 
 ├── cron_process_mail_queue.php # Cronjob: E-Mail-Queue abarbeiten
 ├── cron_delete_expired_opinions.php # Cronjob: Alte Polls löschen
 │
-├── migrations/                 # SQL-Migrations
+├── terminplanung_standalone.php # Standalone-Version: Terminplanung
+├── opinion_standalone.php      # Standalone-Version: Meinungsbild
+│
+├── migrations/                 # SQL & PHP Migrations
 │   ├── create_polls.sql
 │   ├── add_poll_reminders.sql
 │   ├── create_opinion_polls.sql
-│   └── insert_opinion_templates.sql
+│   ├── insert_opinion_templates.sql
+│   └── add_location_to_polls.php
+│
+├── tools/                      # Hilfs-Tools
+│   ├── demo_export.php         # Demo-Daten exportieren
+│   └── demo_import.php         # Demo-Daten importieren
 │
 └── README.md                   # User-Dokumentation
     INSTALL.md                  # Installations-Anleitung
@@ -358,20 +366,33 @@ END
 **Funktionen:**
 - Datenbank erstellen (falls nicht vorhanden)
 - Alle 24 Tabellen mit CREATE TABLE IF NOT EXISTS
-- Trigger erstellen
+- Trigger für opinion_polls erstellen
 - 13 Meinungsbild-Templates einfügen
-- Keine Demo-Daten (siehe demo.php)
+- **Default-Admin-User anlegen** (admin@example.com / admin123)
+  - Nur wenn members-Tabelle leer ist
+  - Rolle: gf, is_admin: 1
 
 **Verwendung:** Einmalig nach Installation über Browser aufrufen
+**Wichtig:** Default-Admin-Passwort sofort ändern!
 
-#### demo.php
-**Zweck:** Demo-Szenario erstellen
+#### tools/demo_export.php
+**Zweck:** Demo-Daten exportieren
 **Funktionen:**
-- 8 Test-Mitglieder mit Rollen
-- Beispiel-Meeting mit TOPs
-- Kommentare und TODOs
+- Exportiert alle Tabellen in JSON-Format
+- Erstellt `tools/demo_data.json`
+- Umfasst: members, meetings, agenda_items, todos, polls, opinion_polls, etc.
 
-**Verwendung:** Nach init-db.php zum Testen
+**Verwendung:** Zum Erstellen eines Demo-Snapshots
+
+#### tools/demo_import.php
+**Zweck:** Demo-Daten importieren
+**Funktionen:**
+- **LÖSCHT ALLE DATEN** (members, meetings, todos, polls, opinion_polls, etc.)
+- Importiert demo_data.json
+- Setzt Datenbank auf Demo-Stand zurück
+
+**Verwendung:** Nur für Demo-Umgebungen oder zum Zurücksetzen
+**Warnung:** Löscht auch den Default-Admin!
 
 #### index.php
 **Zweck:** Haupt-Entry-Point & Routing
@@ -825,9 +846,12 @@ Aktuell kein Caching implementiert. Potenzielle Erweiterung:
 ### Checkliste für Produktion
 
 - [ ] `config.php` mit Production-Daten
+- [ ] Default-Admin-Passwort ändern (admin@example.com)
 - [ ] HTTPS erzwingen
-- [ ] `init-db.php` und `demo.php` löschen/sperren
-- [ ] Demo-Accounts löschen
+- [ ] `init-db.php` löschen/sperren
+- [ ] `tools/demo_export.php` und `tools/demo_import.php` löschen/sperren
+- [ ] `migrations/*.php` löschen/sperren (nach erfolgter Migration)
+- [ ] Demo-Accounts löschen (falls demo_import verwendet wurde)
 - [ ] PHP-Fehleranzeige deaktivieren (`display_errors = Off`)
 - [ ] Error-Logging aktivieren
 - [ ] Cronjobs einrichten
