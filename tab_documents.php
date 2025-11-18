@@ -37,6 +37,77 @@ if (isset($_SESSION['error'])) {
 }
 
 // ============================================
+// GLOBALES CSS FÜR ALLE VIEWS
+// ============================================
+?>
+<style>
+    /* Link-Buttons (für Download/Öffnen-Links) - erweitert vorhandene Button-Styles */
+    a.btn-view, a.btn-secondary {
+        display: inline-block;
+        padding: 6px 12px;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: background 0.3s;
+    }
+    a.btn-view {
+        background: #2196f3;
+    }
+    a.btn-view:hover {
+        background: #1976d2;
+        text-decoration: none;
+    }
+    a.btn-secondary {
+        background: #999;
+    }
+    a.btn-secondary:hover {
+        background: #777;
+        text-decoration: none;
+    }
+
+    /* Alias: btn-primary entspricht dem Standard-Button-Styling */
+    button.btn-primary {
+        background: #667eea;
+    }
+    button.btn-primary:hover {
+        background: #5568d3;
+    }
+
+    /* Download-Link in Edit-View auch als Button stylen */
+    a.btn-primary {
+        display: inline-block;
+        padding: 10px 20px;
+        background: #667eea;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        transition: background 0.3s;
+    }
+    a.btn-primary:hover {
+        background: #5568d3;
+        text-decoration: none;
+    }
+
+    /* Flexbox-Utilities */
+    .d-flex {
+        display: flex !important;
+    }
+    .gap-1 {
+        gap: 0.25rem !important;
+    }
+    .flex-wrap {
+        flex-wrap: wrap !important;
+    }
+    .d-grid {
+        display: grid !important;
+    }
+    .gap-2 {
+        gap: 0.5rem !important;
+    }
+</style>
+<?php
+
+// ============================================
 // VIEW: LISTE
 // ============================================
 
@@ -262,21 +333,21 @@ if ($view === 'list') {
                                         <td>
                                             <div class="d-flex gap-1 flex-wrap">
                                                 <!-- Download-Button (immer anzeigen) -->
-                                                <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary btn-sm" target="_blank">
-                                                    <i class="bi bi-download"></i> Download
+                                                <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
+                                                    📥 Download
                                                 </a>
 
                                                 <!-- Kurz-URL Button (nur wenn vorhanden) -->
                                                 <?php if (!empty($doc['short_url'])): ?>
-                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn btn-outline-primary btn-sm" target="_blank">
-                                                        <i class="bi bi-link-45deg"></i> Öffnen
+                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-view" target="_blank">
+                                                        🔗 Öffnen
                                                     </a>
                                                 <?php endif; ?>
 
                                                 <!-- Bearbeiten-Button (nur für Admins) -->
                                                 <?php if ($is_admin): ?>
-                                                    <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn btn-outline-secondary btn-sm">
-                                                        <i class="bi bi-pencil"></i> Bearbeiten
+                                                    <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn-secondary">
+                                                        ✏️ Bearbeiten
                                                     </a>
                                                 <?php endif; ?>
                                             </div>
@@ -326,19 +397,19 @@ if ($view === 'list') {
                                 </p>
 
                                 <div class="d-grid gap-2">
+                                    <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
+                                        📥 Herunterladen
+                                    </a>
+
                                     <?php if (!empty($doc['short_url'])): ?>
-                                        <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn btn-primary" target="_blank">
-                                            <i class="bi bi-link-45deg"></i> Öffnen
-                                        </a>
-                                    <?php else: ?>
-                                        <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary" target="_blank">
-                                            <i class="bi bi-download"></i> Herunterladen
+                                        <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-view" target="_blank">
+                                            🔗 Öffnen
                                         </a>
                                     <?php endif; ?>
 
                                     <?php if ($is_admin): ?>
-                                        <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn btn-outline-secondary">
-                                            <i class="bi bi-pencil"></i> Bearbeiten
+                                        <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn-secondary">
+                                            ✏️ Bearbeiten
                                         </a>
                                     <?php endif; ?>
                                 </div>
