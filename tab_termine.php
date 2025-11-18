@@ -323,61 +323,40 @@ function addMorePollDates() {
     const newRow = document.createElement('div');
     newRow.style.cssText = 'display: grid; grid-template-columns: 150px 100px 100px 60px; gap: 10px; align-items: center; margin-bottom: 8px;';
     newRow.innerHTML = `
-        <input type="date" name="date_${pollDateCount}" id="poll_date_${pollDateCount}" onchange="autoFillNextDate(${pollDateCount})" style="width: 100%;">
-        <input type="time" name="time_start_${pollDateCount}" id="poll_time_start_${pollDateCount}" onchange="autoFillNextTime(${pollDateCount})" style="width: 100%;">
-        <input type="time" name="time_end_${pollDateCount}" id="poll_time_end_${pollDateCount}" style="width: 100%;">
+        <input type="date" name="date_${pollDateCount}" id="poll_date_${pollDateCount}" onfocus="autoFillOnFocus(${pollDateCount})" style="width: 100%;">
+        <input type="time" name="time_start_${pollDateCount}" id="poll_time_start_${pollDateCount}" onfocus="autoFillOnFocus(${pollDateCount})" style="width: 100%;">
+        <input type="time" name="time_end_${pollDateCount}" id="poll_time_end_${pollDateCount}" onfocus="autoFillOnFocus(${pollDateCount})" style="width: 100%;">
         <button type="button" onclick="this.parentElement.remove(); pollDateCount--;" style="background: #f44336; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px;">×</button>
     `;
     container.appendChild(newRow);
 }
 
-// Auto-Vorschlag: Folgetag mit gleicher Uhrzeit
-function autoFillNextDate(currentIndex) {
+// Auto-Vorschlag: Folgetag mit gleicher Uhrzeit (wird beim Focus ins nächste Feld getriggert)
+function autoFillOnFocus(currentIndex) {
     const currentDateInput = document.getElementById('poll_date_' + currentIndex);
     const currentTimeStartInput = document.getElementById('poll_time_start_' + currentIndex);
-    const nextDateInput = document.getElementById('poll_date_' + (currentIndex + 1));
-    const nextTimeStartInput = document.getElementById('poll_time_start_' + (currentIndex + 1));
-
-    if (currentDateInput && currentDateInput.value && nextDateInput && !nextDateInput.value) {
-        // Folgetag berechnen
-        const currentDate = new Date(currentDateInput.value);
-        currentDate.setDate(currentDate.getDate() + 1);
-        const year = currentDate.getFullYear();
-        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-        const day = String(currentDate.getDate()).padStart(2, '0');
-        nextDateInput.value = `${year}-${month}-${day}`;
-
-        // Uhrzeit übernehmen wenn vorhanden
-        if (currentTimeStartInput && currentTimeStartInput.value && nextTimeStartInput && !nextTimeStartInput.value) {
-            nextTimeStartInput.value = currentTimeStartInput.value;
-        }
-    }
-}
-
-function autoFillNextTime(currentIndex) {
-    const currentTimeStartInput = document.getElementById('poll_time_start_' + currentIndex);
     const currentTimeEndInput = document.getElementById('poll_time_end_' + currentIndex);
-    const nextTimeStartInput = document.getElementById('poll_time_start_' + (currentIndex + 1));
-    const nextTimeEndInput = document.getElementById('poll_time_end_' + (currentIndex + 1));
+    const prevDateInput = document.getElementById('poll_date_' + (currentIndex - 1));
+    const prevTimeStartInput = document.getElementById('poll_time_start_' + (currentIndex - 1));
+    const prevTimeEndInput = document.getElementById('poll_time_end_' + (currentIndex - 1));
 
-    // Ende-Zeit basierend auf globaler Dauer berechnen (falls vorhanden)
-    const durationInput = document.querySelector('input[name="poll_duration"]');
-    if (currentTimeStartInput && currentTimeStartInput.value && currentTimeEndInput && !currentTimeEndInput.value && durationInput && durationInput.value) {
-        const [hours, minutes] = currentTimeStartInput.value.split(':');
-        const startTime = new Date();
-        startTime.setHours(parseInt(hours), parseInt(minutes), 0);
-        startTime.setMinutes(startTime.getMinutes() + parseInt(durationInput.value));
-        const endHours = String(startTime.getHours()).padStart(2, '0');
-        const endMinutes = String(startTime.getMinutes()).padStart(2, '0');
-        currentTimeEndInput.value = `${endHours}:${endMinutes}`;
+    // Nur vorausfüllen, wenn das aktuelle Feld leer ist und das vorherige ausgefüllt ist
+    if (currentDateInput && !currentDateInput.value && prevDateInput && prevDateInput.value) {
+        // Folgetag berechnen
+        const prevDate = new Date(prevDateInput.value);
+        prevDate.setDate(prevDate.getDate() + 1);
+        const year = prevDate.getFullYear();
+        const month = String(prevDate.getMonth() + 1).padStart(2, '0');
+        const day = String(prevDate.getDate()).padStart(2, '0');
+        currentDateInput.value = `${year}-${month}-${day}`;
     }
 
-    // Uhrzeit zum nächsten Feld übernehmen
-    if (currentTimeStartInput && currentTimeStartInput.value && nextTimeStartInput && !nextTimeStartInput.value) {
-        nextTimeStartInput.value = currentTimeStartInput.value;
+    // Uhrzeit übernehmen wenn vorhanden
+    if (currentTimeStartInput && !currentTimeStartInput.value && prevTimeStartInput && prevTimeStartInput.value) {
+        currentTimeStartInput.value = prevTimeStartInput.value;
     }
-    if (currentTimeEndInput && currentTimeEndInput.value && nextTimeEndInput && !nextTimeEndInput.value) {
-        nextTimeEndInput.value = currentTimeEndInput.value;
+    if (currentTimeEndInput && !currentTimeEndInput.value && prevTimeEndInput && prevTimeEndInput.value) {
+        currentTimeEndInput.value = prevTimeEndInput.value;
     }
 }
 </script>
@@ -432,24 +411,6 @@ if (isset($_SESSION['error'])) {
                     </small>
                 </div>
 
-                <!-- Globale Angaben für alle Termine -->
-                <h3 style="margin-top: 25px; margin-bottom: 15px;">Rahmeninformationen (für alle Terminvorschläge)</h3>
-
-                <div class="form-group">
-                    <label>Ort:</label>
-                    <input type="text" name="poll_location" placeholder="z.B. Konferenzraum A">
-                </div>
-
-                <div class="form-group">
-                    <label>Videokonferenz-Link:</label>
-                    <input type="url" name="poll_video_link" placeholder="https://...">
-                </div>
-
-                <div class="form-group">
-                    <label>Voraussichtliche Dauer (Minuten):</label>
-                    <input type="number" name="poll_duration" placeholder="z.B. 120" min="15" step="15">
-                </div>
-
                 <!-- Teilnehmer auswählen -->
                 <div class="form-group">
                     <label>Teilnehmer auswählen (nur diese sehen die Umfrage):*</label>
@@ -487,9 +448,9 @@ if (isset($_SESSION['error'])) {
                     <div id="date-suggestions-container">
                         <?php for ($i = 1; $i <= 5; $i++): ?>
                         <div style="display: grid; grid-template-columns: 150px 100px 100px 60px; gap: 10px; align-items: center; margin-bottom: 8px;">
-                            <input type="date" name="date_<?php echo $i; ?>" id="poll_date_<?php echo $i; ?>" onchange="autoFillNextDate(<?php echo $i; ?>)" style="width: 100%;">
-                            <input type="time" name="time_start_<?php echo $i; ?>" id="poll_time_start_<?php echo $i; ?>" onchange="autoFillNextTime(<?php echo $i; ?>)" style="width: 100%;">
-                            <input type="time" name="time_end_<?php echo $i; ?>" id="poll_time_end_<?php echo $i; ?>" style="width: 100%;">
+                            <input type="date" name="date_<?php echo $i; ?>" id="poll_date_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
+                            <input type="time" name="time_start_<?php echo $i; ?>" id="poll_time_start_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
+                            <input type="time" name="time_end_<?php echo $i; ?>" id="poll_time_end_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
                             <span></span>
                         </div>
                         <?php endfor; ?>
@@ -497,7 +458,7 @@ if (isset($_SESSION['error'])) {
 
                     <button type="button" onclick="addMorePollDates()" class="btn-secondary" style="margin-top: 10px;">+ Weiteren Termin hinzufügen</button>
                     <small style="display: block; margin-top: 10px; color: #666;">
-                        Sie können bis zu 20 Terminvorschläge hinzufügen. Nach Eingabe von Datum/Uhrzeit wird automatisch der Folgetag vorgeschlagen.
+                        Sie können bis zu 20 Terminvorschläge hinzufügen. Wenn Sie ins nächste Datumsfeld klicken, wird automatisch der Folgetag mit gleicher Uhrzeit vorgeschlagen.
                     </small>
                 </div>
 
@@ -664,21 +625,6 @@ if (isset($_SESSION['error'])) {
                     👤 Erstellt von <strong><?php echo htmlspecialchars($poll['creator_first_name'] . ' ' . $poll['creator_last_name']); ?></strong> ·
                     📅 <?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?>
                 </p>
-
-                <?php if (!empty($poll['location']) || !empty($poll['video_link']) || !empty($poll['duration'])): ?>
-                    <p style="margin-top: 10px; padding: 10px; background: #f9f9f9; border-left: 3px solid #2196F3;">
-                        <strong>Rahmeninformationen:</strong><br>
-                        <?php if (!empty($poll['location'])): ?>
-                            📍 <strong>Ort:</strong> <?php echo htmlspecialchars($poll['location']); ?><br>
-                        <?php endif; ?>
-                        <?php if (!empty($poll['video_link'])): ?>
-                            🎥 <strong>Video:</strong> <a href="<?php echo htmlspecialchars($poll['video_link']); ?>" target="_blank"><?php echo htmlspecialchars($poll['video_link']); ?></a><br>
-                        <?php endif; ?>
-                        <?php if (!empty($poll['duration'])): ?>
-                            ⏱️ <strong>Dauer:</strong> ca. <?php echo $poll['duration']; ?> Minuten
-                        <?php endif; ?>
-                    </p>
-                <?php endif; ?>
 
                 <?php if ($poll['status'] === 'finalized' && !empty($poll['finalized_at'])): ?>
                     <p style="color: #2196F3; font-weight: bold;">

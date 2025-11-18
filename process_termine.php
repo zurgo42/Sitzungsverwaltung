@@ -118,9 +118,6 @@ try {
             $title = trim($_POST['title'] ?? '');
             $description = trim($_POST['description'] ?? '');
             $meeting_id = !empty($_POST['meeting_id']) ? intval($_POST['meeting_id']) : null;
-            $poll_location = trim($_POST['poll_location'] ?? '');
-            $poll_video_link = trim($_POST['poll_video_link'] ?? '');
-            $poll_duration = !empty($_POST['poll_duration']) ? intval($_POST['poll_duration']) : null;
             $participant_ids = $_POST['participant_ids'] ?? [];
 
             if (empty($title)) {
@@ -137,10 +134,10 @@ try {
 
             // Umfrage erstellen
             $stmt = $pdo->prepare("
-                INSERT INTO polls (title, description, created_by_member_id, meeting_id, location, video_link, duration, status, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'open', NOW())
+                INSERT INTO polls (title, description, created_by_member_id, meeting_id, status, created_at)
+                VALUES (?, ?, ?, ?, 'open', NOW())
             ");
-            $stmt->execute([$title, $description, $current_user['member_id'], $meeting_id, $poll_location, $poll_video_link, $poll_duration]);
+            $stmt->execute([$title, $description, $current_user['member_id'], $meeting_id]);
             $poll_id = $pdo->lastInsertId();
 
             // Teilnehmer hinzufügen
