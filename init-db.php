@@ -1,8 +1,10 @@
 <?php
 /**
  * init-db.php - Datenbank initialisieren
- * Aktualisiert: 17.11.2025 - Terminplanung + visibility_type + is_active
- * Vollständige Datenbankstruktur für Portabilität
+ * Aktualisiert: 18.11.2025 - Vollständige DB-Struktur inkl. Terminplanung & Meinungsbild-Tool
+ *
+ * Dieses Skript erstellt die komplette Datenbankstruktur für die Sitzungsverwaltung.
+ * Es enthält KEINE Demo-Daten - diese können separat über demo.php geladen werden.
  */
 
 require_once 'config.php';
@@ -17,16 +19,20 @@ try {
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
         ]
     );
-    
+
     // Datenbank erstellen falls nicht vorhanden
     $pdo->exec("CREATE DATABASE IF NOT EXISTS " . DB_NAME . " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     $pdo->exec("USE " . DB_NAME);
-    
+
     echo "<h2>Datenbank-Initialisierung</h2>";
     echo "<p>Erstelle Tabellen...</p>";
-    
+
     $tables = [];
-    
+
+    // =========================================================
+    // CORE-TABELLEN
+    // =========================================================
+
     // Mitglieder-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS members (
         member_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -45,7 +51,11 @@ try {
         INDEX idx_role (role),
         INDEX idx_is_active (is_active)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
+
+    // =========================================================
+    // MEETING-TABELLEN
+    // =========================================================
+
     // Meetings-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS meetings (
         meeting_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -75,7 +85,7 @@ try {
         INDEX idx_visibility (visibility_type),
         INDEX idx_protokoll (protokoll(768))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
+
     // Meeting-Teilnehmer-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS meeting_participants (
         participant_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -90,7 +100,7 @@ try {
         INDEX idx_meeting (meeting_id),
         INDEX idx_member (member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
+
     // Tagesordnungspunkte-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS agenda_items (
         item_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -123,7 +133,7 @@ try {
         INDEX idx_grouped_with (grouped_with_item_id),
         INDEX idx_category (category)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
+
     // Kommentare-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS agenda_comments (
         comment_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -139,7 +149,11 @@ try {
         INDEX idx_item (item_id),
         INDEX idx_member (member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
+
+    // =========================================================
+    // PROTOKOLL-TABELLEN
+    // =========================================================
+
     // Protokolle-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS protocols (
         protocol_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -150,7 +164,7 @@ try {
         FOREIGN KEY (meeting_id) REFERENCES meetings(meeting_id) ON DELETE CASCADE,
         INDEX idx_meeting (meeting_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
+
     // Protokolländerungs-Anfragen-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS protocol_change_requests (
         request_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -166,7 +180,11 @@ try {
         INDEX idx_member (member_id),
         INDEX idx_item (item_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
+
+    // =========================================================
+    // TODO-TABELLEN
+    // =========================================================
+
     // ToDos-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS todos (
         todo_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -192,7 +210,7 @@ try {
         INDEX idx_due_date (due_date),
         INDEX idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
+
     // ToDo-Log-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS todo_log (
         log_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -205,7 +223,11 @@ try {
         INDEX idx_todo (todo_id),
         INDEX idx_changed_by (changed_by)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
+
+    // =========================================================
+    // ADMIN-LOG-TABELLE
+    // =========================================================
+
     // Admin-Log-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS admin_log (
         log_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -226,6 +248,10 @@ try {
         INDEX idx_created_at (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
+    // =========================================================
+    // TERMINPLANUNG-TABELLEN
+    // =========================================================
+
     // Umfragen/Terminplanung-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS polls (
         poll_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -238,6 +264,10 @@ try {
         duration INT DEFAULT NULL,
         status ENUM('open', 'closed', 'finalized') DEFAULT 'open',
         final_date_id INT DEFAULT NULL,
+        reminder_enabled TINYINT(1) DEFAULT 0 COMMENT 'Ob Erinnerungsmail aktiviert ist',
+        reminder_days INT DEFAULT 1 COMMENT 'Anzahl Tage vor Termin für Erinnerung',
+        reminder_recipients VARCHAR(20) DEFAULT 'voters' COMMENT 'Empfänger: voters, all, none',
+        reminder_sent TINYINT(1) DEFAULT 0 COMMENT 'Ob Erinnerungsmail bereits versendet wurde',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         finalized_at DATETIME DEFAULT NULL,
@@ -246,7 +276,8 @@ try {
         INDEX idx_status (status),
         INDEX idx_created_by (created_by_member_id),
         INDEX idx_meeting (meeting_id),
-        INDEX idx_created_at (created_at)
+        INDEX idx_created_at (created_at),
+        INDEX idx_polls_reminder (reminder_enabled, reminder_sent, final_date_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Terminvorschläge-Tabelle
@@ -261,44 +292,148 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (poll_id) REFERENCES polls(poll_id) ON DELETE CASCADE,
         INDEX idx_poll (poll_id),
-        INDEX idx_suggested_date (suggested_date),
-        INDEX idx_sort_order (sort_order)
+        INDEX idx_date (suggested_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
-    // Teilnehmer-Antworten-Tabelle
+    // Teilnehmer an Umfragen
+    $tables[] = "CREATE TABLE IF NOT EXISTS poll_participants (
+        participant_id INT PRIMARY KEY AUTO_INCREMENT,
+        poll_id INT NOT NULL,
+        member_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (poll_id) REFERENCES polls(poll_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        UNIQUE KEY unique_participant (poll_id, member_id),
+        INDEX idx_poll (poll_id),
+        INDEX idx_member (member_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Abstimmungen zu Terminvorschlägen
     $tables[] = "CREATE TABLE IF NOT EXISTS poll_responses (
         response_id INT PRIMARY KEY AUTO_INCREMENT,
         poll_id INT NOT NULL,
         date_id INT NOT NULL,
-        member_id INT DEFAULT NULL,
-        participant_name VARCHAR(255) DEFAULT NULL,
-        participant_email VARCHAR(255) DEFAULT NULL,
-        vote TINYINT NOT NULL DEFAULT 0,
+        member_id INT NOT NULL,
+        vote TINYINT NOT NULL COMMENT '-1=Nein, 0=Vielleicht, 1=Ja',
         comment TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (poll_id) REFERENCES polls(poll_id) ON DELETE CASCADE,
         FOREIGN KEY (date_id) REFERENCES poll_dates(date_id) ON DELETE CASCADE,
         FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
-        UNIQUE KEY unique_response (poll_id, date_id, member_id, participant_email),
+        UNIQUE KEY unique_vote (poll_id, date_id, member_id),
         INDEX idx_poll (poll_id),
         INDEX idx_date (date_id),
-        INDEX idx_member (member_id),
-        INDEX idx_vote (vote)
+        INDEX idx_member (member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
-    // Umfrage-Teilnehmer-Tabelle (wer darf die Umfrage sehen)
-    $tables[] = "CREATE TABLE IF NOT EXISTS poll_participants (
+    // =========================================================
+    // MEINUNGSBILD-TOOL-TABELLEN
+    // =========================================================
+
+    // Antwort-Templates für Meinungsbilder
+    $tables[] = "CREATE TABLE IF NOT EXISTS opinion_answer_templates (
+        template_id INT PRIMARY KEY AUTO_INCREMENT,
+        template_name VARCHAR(100) NOT NULL,
+        option_1 VARCHAR(100) DEFAULT NULL,
+        option_2 VARCHAR(100) DEFAULT NULL,
+        option_3 VARCHAR(100) DEFAULT NULL,
+        option_4 VARCHAR(100) DEFAULT NULL,
+        option_5 VARCHAR(100) DEFAULT NULL,
+        option_6 VARCHAR(100) DEFAULT NULL,
+        option_7 VARCHAR(100) DEFAULT NULL,
+        option_8 VARCHAR(100) DEFAULT NULL,
+        option_9 VARCHAR(100) DEFAULT NULL,
+        option_10 VARCHAR(100) DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_template_name (template_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Meinungsbilder/Umfragen
+    $tables[] = "CREATE TABLE IF NOT EXISTS opinion_polls (
+        poll_id INT PRIMARY KEY AUTO_INCREMENT,
+        title VARCHAR(255) NOT NULL COMMENT 'Die gestellte Frage',
+        creator_member_id INT NOT NULL,
+        target_type ENUM('individual', 'list', 'public') NOT NULL COMMENT 'individual=Link, list=Meeting-Teilnehmer, public=Alle',
+        list_id INT DEFAULT NULL COMMENT 'Falls target_type=list: meeting_id',
+        access_token VARCHAR(100) DEFAULT NULL COMMENT 'Eindeutiger Token für individual-Typ',
+        template_id INT DEFAULT NULL,
+        allow_multiple_answers TINYINT(1) DEFAULT 0,
+        is_anonymous TINYINT(1) DEFAULT 0,
+        duration_days INT DEFAULT 14,
+        show_intermediate_after_days INT DEFAULT 7,
+        delete_after_days INT DEFAULT 30,
+        status ENUM('active', 'ended', 'deleted') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        ends_at DATETIME DEFAULT NULL,
+        delete_at DATETIME DEFAULT NULL,
+        FOREIGN KEY (creator_member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (list_id) REFERENCES meetings(meeting_id) ON DELETE SET NULL,
+        FOREIGN KEY (template_id) REFERENCES opinion_answer_templates(template_id) ON DELETE SET NULL,
+        UNIQUE KEY unique_access_token (access_token),
+        INDEX idx_creator (creator_member_id),
+        INDEX idx_status (status),
+        INDEX idx_target_type (target_type),
+        INDEX idx_list (list_id),
+        INDEX idx_ends_at (ends_at),
+        INDEX idx_delete_at (delete_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Antwortoptionen für Meinungsbilder
+    $tables[] = "CREATE TABLE IF NOT EXISTS opinion_poll_options (
+        option_id INT PRIMARY KEY AUTO_INCREMENT,
+        poll_id INT NOT NULL,
+        option_text VARCHAR(255) NOT NULL,
+        sort_order INT DEFAULT 0,
+        FOREIGN KEY (poll_id) REFERENCES opinion_polls(poll_id) ON DELETE CASCADE,
+        INDEX idx_poll (poll_id),
+        INDEX idx_sort_order (sort_order)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Teilnehmer bei list-Typ Meinungsbildern
+    $tables[] = "CREATE TABLE IF NOT EXISTS opinion_poll_participants (
         participant_id INT PRIMARY KEY AUTO_INCREMENT,
         poll_id INT NOT NULL,
         member_id INT NOT NULL,
-        invited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (poll_id) REFERENCES polls(poll_id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (poll_id) REFERENCES opinion_polls(poll_id) ON DELETE CASCADE,
         FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
-        UNIQUE KEY unique_poll_participant (poll_id, member_id),
+        UNIQUE KEY unique_opinion_participant (poll_id, member_id),
         INDEX idx_poll (poll_id),
         INDEX idx_member (member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Antworten auf Meinungsbilder
+    $tables[] = "CREATE TABLE IF NOT EXISTS opinion_responses (
+        response_id INT PRIMARY KEY AUTO_INCREMENT,
+        poll_id INT NOT NULL,
+        member_id INT DEFAULT NULL COMMENT 'NULL bei anonymen public-Umfragen',
+        session_token VARCHAR(100) DEFAULT NULL COMMENT 'Für anonyme Teilnahme (public)',
+        free_text TEXT DEFAULT NULL COMMENT 'Optionaler Kommentar',
+        force_anonymous TINYINT(1) DEFAULT 0 COMMENT 'User will anonym bleiben',
+        responded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (poll_id) REFERENCES opinion_polls(poll_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        INDEX idx_poll (poll_id),
+        INDEX idx_member (member_id),
+        INDEX idx_session_token (session_token)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Gewählte Optionen (M:N zwischen responses und options)
+    $tables[] = "CREATE TABLE IF NOT EXISTS opinion_response_options (
+        response_option_id INT PRIMARY KEY AUTO_INCREMENT,
+        response_id INT NOT NULL,
+        option_id INT NOT NULL,
+        FOREIGN KEY (response_id) REFERENCES opinion_responses(response_id) ON DELETE CASCADE,
+        FOREIGN KEY (option_id) REFERENCES opinion_poll_options(option_id) ON DELETE CASCADE,
+        UNIQUE KEY unique_response_option (response_id, option_id),
+        INDEX idx_response (response_id),
+        INDEX idx_option (option_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // =========================================================
+    // E-MAIL-WARTESCHLANGE
+    // =========================================================
 
     // E-Mail-Warteschlange (für Queue-basiertes Mail-System)
     $tables[] = "CREATE TABLE IF NOT EXISTS mail_queue (
@@ -324,153 +459,82 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Tabellen erstellen
+    echo "<p>Erstelle " . count($tables) . " Tabellen...</p>";
     foreach ($tables as $sql) {
         $pdo->exec($sql);
         echo ".";
     }
-    
+
     echo "<p style='color: green;'>✓ Alle Tabellen erfolgreich erstellt!</p>";
-    
-    // Test-Daten erstellen (optional)
-    echo "<h3>Test-Daten erstellen?</h3>";
-    echo "<form method='POST'>";
-    echo "<button type='submit' name='create_testdata' value='1'>Test-Daten erstellen</button>";
-    echo "</form>";
-    
-    if (isset($_POST['create_testdata'])) {
-        echo "<p>Erstelle Test-Daten...</p>";
-        
-        // Prüfen ob bereits Mitglieder existieren
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM members");
-        $count = $stmt->fetch()['count'];
-        
-        if ($count == 0) {
-            // Test-Mitglieder erstellen
-            $password = password_hash('test123', PASSWORD_DEFAULT);
-            
-            $members = [
-                ['V001', 'test@example.com', $password, 'Max', 'Mustermann', 'vorstand', 1, 1],
-                ['V002', 'vorstand2@example.com', $password, 'Maria', 'Schmidt', 'vorstand', 1, 1],
-                ['GF001', 'gf@example.com', $password, 'Erika', 'Musterfrau', 'gf', 1, 1],
-                ['A001', 'assistenz@example.com', $password, 'Anna', 'Schmidt', 'assistenz', 1, 0],
-                ['FT001', 'ft1@example.com', $password, 'Peter', 'Meyer', 'fuehrungsteam', 0, 1],
-                ['FT002', 'ft2@example.com', $password, 'Lisa', 'Weber', 'fuehrungsteam', 0, 1],
-                ['M001', 'mitglied1@example.com', $password, 'Klaus', 'Fischer', 'Mitglied', 0, 0],
-                ['M002', 'mitglied2@example.com', $password, 'Sandra', 'Becker', 'Mitglied', 0, 0]
-            ];
-            
-            $stmt = $pdo->prepare("
-                INSERT INTO members (membership_number, email, password_hash, first_name, last_name, role, is_admin, is_confidential) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ");
-            
-            foreach ($members as $member) {
-                $stmt->execute($member);
-            }
-            
-            echo "<p style='color: green;'>✓ Test-Mitglieder erstellt!</p>";
-            echo "<p><strong>Login-Daten:</strong></p>";
-            echo "<ul>";
-            echo "<li>Vorstand: test@example.com / test123</li>";
-            echo "<li>Vorstand 2: vorstand2@example.com / test123</li>";
-            echo "<li>GF: gf@example.com / test123</li>";
-            echo "<li>Assistenz: assistenz@example.com / test123</li>";
-            echo "<li>Führungsteam 1: ft1@example.com / test123</li>";
-            echo "<li>Führungsteam 2: ft2@example.com / test123</li>";
-            echo "<li>Mitglied 1: mitglied1@example.com / test123</li>";
-            echo "<li>Mitglied 2: mitglied2@example.com / test123</li>";
-            echo "</ul>";
-            
-            // Test-Meeting erstellen
-            $meeting_date = date('Y-m-d H:i:s', strtotime('+7 days 14:00'));
-            $expected_end = date('Y-m-d H:i:s', strtotime('+7 days 17:00'));
-            $stmt = $pdo->prepare("
-                INSERT INTO meetings (meeting_name, meeting_date, expected_end_date, location, video_link, invited_by_member_id, status, protocol_intern) 
-                VALUES (?, ?, ?, ?, ?, 1, 'preparation', '')
-            ");
-            $stmt->execute([
-                'Vorstandssitzung Q4/2025', 
-                $meeting_date, 
-                $expected_end,
-                'Konferenzraum A',
-                'https://meet.example.com/vorstand-q4-2025'
-            ]);
-            $meeting_id = $pdo->lastInsertId();
-            
-            // Teilnehmer einladen
-            $stmt = $pdo->prepare("
-                INSERT INTO meeting_participants (meeting_id, member_id, status) 
-                VALUES (?, ?, ?)
-            ");
-            $stmt->execute([$meeting_id, 1, 'confirmed']);
-            $stmt->execute([$meeting_id, 2, 'confirmed']);
-            $stmt->execute([$meeting_id, 3, 'confirmed']);
-            $stmt->execute([$meeting_id, 4, 'invited']);
-            $stmt->execute([$meeting_id, 5, 'invited']);
-            
-            // TOP 0 erstellen
-            $stmt = $pdo->prepare("
-                INSERT INTO agenda_items (meeting_id, top_number, title, description, category, priority, estimated_duration, created_by_member_id) 
-                VALUES (?, 0, ?, '', 'antrag_beschluss', 10.00, 5, 1)
-            ");
-            $stmt->execute([$meeting_id, 'Wahl der Sitzungsleitung und Protokollführung']);
-            
-            // Test-TOPs erstellen
-            $tops = [
-                ['Genehmigung des letzten Protokolls', 'Protokoll der Sitzung vom 15.09.2025', 8.00, 10, 0],
-                ['Finanzbericht Q3/2025', 'Präsentation der Quartalszahlen', 9.00, 30, 1],
-                ['Personalplanung 2026', 'Diskussion der Stellenbesetzungen', 7.00, 45, 1]
-            ];
-            
-            $stmt = $pdo->prepare("
-                INSERT INTO agenda_items (meeting_id, top_number, title, description, priority, estimated_duration, is_confidential, created_by_member_id) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-            ");
-            
-            $top_num = 1;
-            foreach ($tops as $top) {
-                $stmt->execute([$meeting_id, $top_num, $top[0], $top[1], $top[2], $top[3], $top[4]]);
-                $top_num++;
-            }
-            
-            // TOP 99 erstellen
-            $stmt = $pdo->prepare("
-                INSERT INTO agenda_items (meeting_id, top_number, title, description, category, priority, estimated_duration, created_by_member_id) 
-                VALUES (?, 99, 'Verschiedenes', '', 'sonstiges', 5.00, 15, 1)
-            ");
-            $stmt->execute([$meeting_id]);
-            
-            // Beispiel-Kommentare
-            $item_ids = $pdo->query("SELECT item_id FROM agenda_items WHERE meeting_id = $meeting_id AND top_number IN (2,3)")->fetchAll(PDO::FETCH_COLUMN);
-            if (count($item_ids) >= 2) {
-                $stmt = $pdo->prepare("
-                    INSERT INTO agenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate) 
-                    VALUES (?, ?, ?, ?, ?)
-                ");
-                $stmt->execute([$item_ids[0], 2, 'Bitte auch die Kostenentwicklung im Vergleich zum Vorjahr darstellen.', 8.50, 35.00]);
-                $stmt->execute([$item_ids[1], 5, 'Wir sollten auch über die Nachfolgeplanung sprechen.', 7.50, 50.00]);
-            }
-            
-            // Beispiel-ToDo
-            $stmt = $pdo->prepare("
-                INSERT INTO todos (meeting_id, assigned_to_member_id, title, description, status, entry_date, due_date, created_by_member_id) 
-                VALUES (?, ?, ?, ?, 'open', CURDATE(), DATE_ADD(CURDATE(), INTERVAL 7 DAY), 1)
-            ");
-            $stmt->execute([
-                $meeting_id, 
-                4, 
-                'Einladungen verschicken',
-                'Einladungen für die Vorstandssitzung an alle Teilnehmer versenden'
-            ]);
-            
-            echo "<p style='color: green;'>✓ Test-Meeting mit TOPs, Kommentaren und ToDo erstellt!</p>";
-        } else {
-            echo "<p style='color: orange;'>⚠ Mitglieder existieren bereits - überspringe Test-Daten</p>";
+
+    // =========================================================
+    // TRIGGER & INITIALDATEN
+    // =========================================================
+
+    echo "<p>Erstelle Trigger und füge Initialdaten ein...</p>";
+
+    // Trigger für automatische Datums-Berechnung bei opinion_polls
+    $pdo->exec("DROP TRIGGER IF EXISTS opinion_polls_before_insert");
+    $pdo->exec("
+        CREATE TRIGGER opinion_polls_before_insert
+        BEFORE INSERT ON opinion_polls
+        FOR EACH ROW
+        BEGIN
+            IF NEW.ends_at IS NULL THEN
+                SET NEW.ends_at = DATE_ADD(NOW(), INTERVAL NEW.duration_days DAY);
+            END IF;
+            IF NEW.delete_at IS NULL THEN
+                SET NEW.delete_at = DATE_ADD(NOW(), INTERVAL NEW.delete_after_days DAY);
+            END IF;
+        END
+    ");
+    echo ".";
+
+    // Meinungsbild-Templates einfügen (nur wenn leer)
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM opinion_answer_templates");
+    if ($stmt->fetch()['count'] == 0) {
+        echo "<p>Füge Meinungsbild-Templates ein...</p>";
+
+        $templates = [
+            ['Ja/Nein/Enthaltung', 'Ja', 'Nein', 'Enthaltung', null, null, null, null, null, null, null],
+            ['Passt-Skala', 'passt sehr gut', 'passt gut', 'passt einigermaßen', 'passt schlecht', 'passt gar nicht', null, null, null, null, null],
+            ['Dafür/Dagegen', 'unbedingt dafür', 'eher dafür', 'neutral', 'eher dagegen', 'unbedingt dagegen', null, null, null, null, null],
+            ['Gefällt mir', 'gefällt mir sehr gut', 'gefällt mir gut', 'neutral', 'gefällt mir nicht', 'gefällt mir überhaupt nicht', null, null, null, null, null],
+            ['Skala 1-9', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+            ['Dringlichkeit', 'Sofort!', 'sehr dringlich', 'dringlich', 'kann warten', 'nicht machen', null, null, null, null, null],
+            ['Wichtigkeit', 'unabdingbar', 'sehr wichtig', 'eher wichtig', 'nicht wichtig', 'Auf keinen Fall', null, null, null, null, null],
+            ['Wünsche', 'Sehr!', 'Würde mich freuen', 'ist mir egal', 'würde ich nicht wollen', 'Auf keinen Fall', null, null, null, null, null],
+            ['Häufigkeit', 'immer', 'sehr oft', 'häufig', 'ab und zu', 'selten', 'fast nie', 'nie', null, null, null],
+            ['Priorität', 'Absolutes Muss', 'sehr wichtig', 'wichtig', 'nice to have', 'unnötig', 'Auf keinen Fall', null, null, null, null],
+            ['Frei', null, null, null, null, null, null, null, null, null, null],
+            ['Nützlichkeit', 'sehr nützlich', 'etwas nützlich', 'überflüssig', null, null, null, null, null, null, null],
+            ['Bewertung', 'langweilig', 'Zeitvertreib', 'spannend', null, null, null, null, null, null, null]
+        ];
+
+        $stmt = $pdo->prepare("
+            INSERT INTO opinion_answer_templates
+            (template_name, option_1, option_2, option_3, option_4, option_5, option_6, option_7, option_8, option_9, option_10)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        foreach ($templates as $template) {
+            $stmt->execute($template);
+            echo ".";
         }
+
+        echo "<p style='color: green;'>✓ " . count($templates) . " Meinungsbild-Templates eingefügt!</p>";
+    } else {
+        echo "<p style='color: orange;'>⚠ Meinungsbild-Templates existieren bereits - überspringe</p>";
     }
-    
-    echo "<p><a href='index.php'>→ Zum Login</a></p>";
-    
+
+    echo "<p style='color: green; font-weight: bold;'>✓✓✓ Datenbank-Initialisierung abgeschlossen!</p>";
+    echo "<hr>";
+    echo "<h3>Nächste Schritte:</h3>";
+    echo "<ul>";
+    echo "<li><a href='demo.php'>Demo-Szenario laden</a> - Erstellt Test-Mitglieder und Beispiel-Daten</li>";
+    echo "<li><a href='index.php'>Zum Login</a> - Direkt zur Anwendung (wenn bereits Mitglieder existieren)</li>";
+    echo "</ul>";
+
 } catch (PDOException $e) {
     echo "<p style='color: red;'>✗ Fehler: " . $e->getMessage() . "</p>";
     die();
