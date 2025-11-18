@@ -45,82 +45,94 @@ if ($view === 'list') {
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
                     <h2>📁 Dokumentenverwaltung</h2>
                     <?php if ($is_admin): ?>
-                        <a href="?tab=documents&view=upload" class="btn btn-primary">
+                        <button type="button" onclick="window.location.href='?tab=documents&view=upload'" class="btn btn-primary">
                             <i class="bi bi-upload"></i> Dokument hochladen
-                        </a>
+                        </button>
                     <?php endif; ?>
                 </div>
 
                 <!-- Info-Box -->
-                <div class="alert alert-info">
+                <div class="alert alert-info mb-3">
                     <strong>📚 Willkommen in der Dokumentensammlung!</strong><br>
                     Hier finden Sie alle wichtigen Vereinsdokumente in der jeweils aktuellen Version.
-                    Die Dokumente sind nach Kategorien sortiert und können durchsucht werden.
                 </div>
 
-                <!-- Filter & Suche -->
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <form method="GET" id="filterForm" class="row g-3">
-                            <input type="hidden" name="tab" value="documents">
+                <!-- Filter & Suche als Akkordion -->
+                <div class="accordion mb-4" id="filterAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                                <i class="bi bi-funnel me-2"></i> Filter & Suche
+                            </button>
+                        </h2>
+                        <div id="filterCollapse" class="accordion-collapse collapse" data-bs-parent="#filterAccordion">
+                            <div class="accordion-body">
+                                <form method="GET" id="filterForm">
+                                    <input type="hidden" name="tab" value="documents">
 
-                            <div class="col-md-4">
-                                <label class="form-label">Suche</label>
-                                <input type="text" name="search" class="form-control"
-                                       placeholder="Titel, Beschreibung, Stichworte..."
-                                       value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
-                            </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Suche</label>
+                                            <input type="text" name="search" class="form-control"
+                                                   placeholder="Titel, Beschreibung, Stichworte..."
+                                                   value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
+                                        </div>
 
-                            <div class="col-md-3">
-                                <label class="form-label">Kategorie</label>
-                                <select name="category" class="form-select">
-                                    <option value="">Alle Kategorien</option>
-                                    <?php
-                                    foreach (get_document_categories() as $key => $label) {
-                                        $selected = (isset($_GET['category']) && $_GET['category'] === $key) ? 'selected' : '';
-                                        echo "<option value='$key' $selected>$label</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Kategorie</label>
+                                            <select name="category" class="form-select">
+                                                <option value="">Alle Kategorien</option>
+                                                <?php
+                                                foreach (get_document_categories() as $key => $label) {
+                                                    $selected = (isset($_GET['category']) && $_GET['category'] === $key) ? 'selected' : '';
+                                                    echo "<option value='$key' $selected>$label</option>";
+                                                }
+                                                ?>
+                                            </select>
+                                        </div>
 
-                            <div class="col-md-3">
-                                <label class="form-label">Sortierung</label>
-                                <select name="sort" class="form-select">
-                                    <option value="date_desc" <?= (!isset($_GET['sort']) || $_GET['sort'] === 'date_desc') ? 'selected' : '' ?>>
-                                        Neueste zuerst
-                                    </option>
-                                    <option value="date_asc" <?= (isset($_GET['sort']) && $_GET['sort'] === 'date_asc') ? 'selected' : '' ?>>
-                                        Älteste zuerst
-                                    </option>
-                                    <option value="title" <?= (isset($_GET['sort']) && $_GET['sort'] === 'title') ? 'selected' : '' ?>>
-                                        Alphabetisch (Titel)
-                                    </option>
-                                    <option value="category" <?= (isset($_GET['sort']) && $_GET['sort'] === 'category') ? 'selected' : '' ?>>
-                                        Nach Kategorie
-                                    </option>
-                                </select>
-                            </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Sortierung</label>
+                                            <select name="sort" class="form-select">
+                                                <option value="date_desc" <?= (!isset($_GET['sort']) || $_GET['sort'] === 'date_desc') ? 'selected' : '' ?>>
+                                                    Neueste zuerst
+                                                </option>
+                                                <option value="date_asc" <?= (isset($_GET['sort']) && $_GET['sort'] === 'date_asc') ? 'selected' : '' ?>>
+                                                    Älteste zuerst
+                                                </option>
+                                                <option value="title" <?= (isset($_GET['sort']) && $_GET['sort'] === 'title') ? 'selected' : '' ?>>
+                                                    Alphabetisch (Titel)
+                                                </option>
+                                                <option value="category" <?= (isset($_GET['sort']) && $_GET['sort'] === 'category') ? 'selected' : '' ?>>
+                                                    Nach Kategorie
+                                                </option>
+                                            </select>
+                                        </div>
 
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary w-100">Filtern</button>
-                            </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                <i class="bi bi-search"></i> Filtern
+                                            </button>
+                                        </div>
 
-                            <?php if ($is_admin && $member_access_level >= 15): ?>
-                            <div class="col-12">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="show_all" value="1"
-                                           id="showAll" <?= isset($_GET['show_all']) ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="showAll">
-                                        Auch versteckte/archivierte Dokumente anzeigen
-                                    </label>
-                                </div>
+                                        <?php if ($is_admin && $member_access_level >= 15): ?>
+                                        <div class="col-12">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="show_all" value="1"
+                                                       id="showAll" <?= isset($_GET['show_all']) ? 'checked' : '' ?>>
+                                                <label class="form-check-label" for="showAll">
+                                                    Auch versteckte/archivierte Dokumente anzeigen
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </form>
                             </div>
-                            <?php endif; ?>
-                        </form>
+                        </div>
                     </div>
                 </div>
 
@@ -145,37 +157,133 @@ if ($view === 'list') {
                 if (empty($documents)) {
                     echo '<div class="alert alert-warning">Keine Dokumente gefunden.</div>';
                 } else {
-                    // Nach Kategorie gruppieren falls nach Kategorie sortiert
-                    if ($filters['sort'] === 'category') {
-                        $categories = get_document_categories();
-                        $docs_by_category = [];
+                    // Tabellen-Ansicht (Desktop) / Card-Ansicht (Mobile)
+                    ?>
 
-                        foreach ($documents as $doc) {
-                            $cat = $doc['category'];
-                            if (!isset($docs_by_category[$cat])) {
-                                $docs_by_category[$cat] = [];
-                            }
-                            $docs_by_category[$cat][] = $doc;
-                        }
+                    <!-- Desktop: Tabelle -->
+                    <div class="d-none d-md-block">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Titel</th>
+                                        <th>Kategorie</th>
+                                        <th>Version</th>
+                                        <th>Typ</th>
+                                        <th>Größe</th>
+                                        <th>Datum</th>
+                                        <th style="width: 200px;">Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($documents as $doc):
+                                        $categories = get_document_categories();
+                                        $cat_label = $categories[$doc['category']] ?? $doc['category'];
+                                    ?>
+                                    <tr>
+                                        <td>
+                                            <strong><?= htmlspecialchars($doc['title']) ?></strong>
+                                            <?php if ($doc['status'] !== 'active'): ?>
+                                                <span class="badge bg-secondary ms-1"><?= ucfirst($doc['status']) ?></span>
+                                            <?php endif; ?>
+                                            <?php if ($doc['access_level'] > 0): ?>
+                                                <span class="badge bg-warning text-dark ms-1">Eingeschränkt</span>
+                                            <?php endif; ?>
+                                            <?php if ($doc['description']): ?>
+                                                <br><small class="text-muted"><?= htmlspecialchars(mb_substr($doc['description'], 0, 80)) ?><?= mb_strlen($doc['description']) > 80 ? '...' : '' ?></small>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><span class="badge bg-info"><?= htmlspecialchars($cat_label) ?></span></td>
+                                        <td><?= $doc['version'] ? '<span class="badge bg-secondary">v' . htmlspecialchars($doc['version']) . '</span>' : '-' ?></td>
+                                        <td><?= strtoupper($doc['filetype']) ?></td>
+                                        <td><?= format_filesize($doc['filesize']) ?></td>
+                                        <td><?= date('d.m.Y', strtotime($doc['created_at'])) ?></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <?php if (!empty($doc['short_url'])): ?>
+                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn btn-primary" target="_blank" title="Öffnen">
+                                                        <i class="bi bi-link-45deg"></i>
+                                                    </a>
+                                                <?php else: ?>
+                                                    <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary" target="_blank" title="Herunterladen">
+                                                        <i class="bi bi-download"></i>
+                                                    </a>
+                                                <?php endif; ?>
 
-                        // Kategorie-weise ausgeben
-                        foreach ($docs_by_category as $cat_key => $cat_docs) {
-                            $cat_label = $categories[$cat_key] ?? $cat_key;
-                            echo '<h3 class="mt-4 mb-3">' . htmlspecialchars($cat_label) . '</h3>';
-                            echo '<div class="row">';
-                            foreach ($cat_docs as $doc) {
-                                render_document_card($doc, $is_admin);
-                            }
-                            echo '</div>';
-                        }
-                    } else {
-                        // Normale Liste
-                        echo '<div class="row">';
-                        foreach ($documents as $doc) {
-                            render_document_card($doc, $is_admin);
-                        }
-                        echo '</div>';
-                    }
+                                                <?php if ($is_admin): ?>
+                                                    <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn btn-outline-secondary" title="Bearbeiten">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Mobile: Cards -->
+                    <div class="d-md-none">
+                        <?php foreach ($documents as $doc):
+                            $categories = get_document_categories();
+                            $cat_label = $categories[$doc['category']] ?? $doc['category'];
+                        ?>
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <?= htmlspecialchars($doc['title']) ?>
+                                    <?php if ($doc['status'] !== 'active'): ?>
+                                        <span class="badge bg-secondary ms-1"><?= ucfirst($doc['status']) ?></span>
+                                    <?php endif; ?>
+                                    <?php if ($doc['access_level'] > 0): ?>
+                                        <span class="badge bg-warning text-dark ms-1">Eingeschränkt</span>
+                                    <?php endif; ?>
+                                </h5>
+
+                                <p class="card-text text-muted small mb-2">
+                                    <span class="badge bg-info"><?= htmlspecialchars($cat_label) ?></span>
+                                    <?php if ($doc['version']): ?>
+                                        <span class="badge bg-secondary">v<?= htmlspecialchars($doc['version']) ?></span>
+                                    <?php endif; ?>
+                                </p>
+
+                                <?php if ($doc['description']): ?>
+                                    <p class="card-text"><?= nl2br(htmlspecialchars(mb_substr($doc['description'], 0, 120))) ?>
+                                        <?= mb_strlen($doc['description']) > 120 ? '...' : '' ?>
+                                    </p>
+                                <?php endif; ?>
+
+                                <p class="card-text small text-muted">
+                                    <i class="bi bi-file-earmark"></i> <?= strtoupper($doc['filetype']) ?>
+                                    • <?= format_filesize($doc['filesize']) ?>
+                                    • <?= date('d.m.Y', strtotime($doc['created_at'])) ?>
+                                </p>
+
+                                <div class="d-grid gap-2">
+                                    <?php if (!empty($doc['short_url'])): ?>
+                                        <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn btn-primary" target="_blank">
+                                            <i class="bi bi-link-45deg"></i> Öffnen
+                                        </a>
+                                    <?php else: ?>
+                                        <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary" target="_blank">
+                                            <i class="bi bi-download"></i> Herunterladen
+                                        </a>
+                                    <?php endif; ?>
+
+                                    <?php if ($is_admin): ?>
+                                        <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn btn-outline-secondary">
+                                            <i class="bi bi-pencil"></i> Bearbeiten
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <?php
                 }
                 ?>
             </div>
@@ -269,8 +377,12 @@ elseif ($view === 'upload' && $is_admin) {
                             </div>
 
                             <div class="d-flex justify-content-between">
-                                <a href="?tab=documents" class="btn btn-secondary">Abbrechen</a>
-                                <button type="submit" class="btn btn-primary">Hochladen</button>
+                                <button type="button" onclick="window.location.href='?tab=documents'" class="btn btn-secondary">
+                                    Abbrechen
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-upload"></i> Hochladen
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -378,12 +490,16 @@ elseif ($view === 'edit' && $is_admin && $document_id) {
 
                                 <div class="d-flex justify-content-between">
                                     <div>
-                                        <a href="?tab=documents" class="btn btn-secondary">Zurück</a>
-                                        <button type="submit" class="btn btn-primary">Speichern</button>
+                                        <button type="button" onclick="window.location.href='?tab=documents'" class="btn btn-secondary">
+                                            Zurück
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-save"></i> Speichern
+                                        </button>
                                     </div>
 
                                     <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                                        Löschen
+                                        <i class="bi bi-trash"></i> Löschen
                                     </button>
                                 </div>
                             </form>
@@ -424,7 +540,7 @@ elseif ($view === 'edit' && $is_admin && $document_id) {
                                 <dd class="col-sm-8"><?= get_document_download_stats($pdo, $doc['document_id']) ?></dd>
                             </dl>
 
-                            <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-sm btn-outline-primary" target="_blank">
+                            <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary" target="_blank">
                                 <i class="bi bi-download"></i> Dokument herunterladen
                             </a>
                         </div>
@@ -481,84 +597,4 @@ elseif ($view === 'edit' && $is_admin && $document_id) {
         <?php
     }
 } // Ende Edit-View
-
-// ============================================
-// HELPER: Document Card rendern
-// ============================================
-
-function render_document_card($doc, $is_admin) {
-    $categories = get_document_categories();
-    $cat_label = $categories[$doc['category']] ?? $doc['category'];
-
-    // Status-Badge
-    $status_badge = '';
-    if ($doc['status'] !== 'active') {
-        $status_colors = [
-            'archived' => 'secondary',
-            'hidden' => 'danger',
-            'outdated' => 'warning'
-        ];
-        $color = $status_colors[$doc['status']] ?? 'secondary';
-        $status_badge = '<span class="badge bg-' . $color . ' ms-2">' . ucfirst($doc['status']) . '</span>';
-    }
-
-    // Zugriffs-Badge
-    $access_badge = '';
-    if ($doc['access_level'] > 0) {
-        $access_badge = '<span class="badge bg-warning text-dark ms-2">Eingeschränkt</span>';
-    }
-
-    ?>
-    <div class="col-md-6 col-lg-4 mb-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="card-title mb-0">
-                        <?= htmlspecialchars($doc['title']) ?>
-                        <?= $status_badge ?>
-                        <?= $access_badge ?>
-                    </h5>
-                    <?php if ($is_admin): ?>
-                        <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn btn-sm btn-outline-secondary">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                    <?php endif; ?>
-                </div>
-
-                <p class="card-text text-muted small mb-2">
-                    <span class="badge bg-info"><?= htmlspecialchars($cat_label) ?></span>
-                    <?php if ($doc['version']): ?>
-                        <span class="badge bg-secondary">v<?= htmlspecialchars($doc['version']) ?></span>
-                    <?php endif; ?>
-                </p>
-
-                <?php if ($doc['description']): ?>
-                    <p class="card-text"><?= nl2br(htmlspecialchars(mb_substr($doc['description'], 0, 120))) ?>
-                        <?= mb_strlen($doc['description']) > 120 ? '...' : '' ?>
-                    </p>
-                <?php endif; ?>
-
-                <p class="card-text small text-muted">
-                    <i class="bi bi-file-earmark-<?= $doc['filetype'] ?>"></i> <?= strtoupper($doc['filetype']) ?>
-                    • <?= format_filesize($doc['filesize']) ?>
-                    • <?= date('d.m.Y', strtotime($doc['created_at'])) ?>
-                </p>
-            </div>
-            <div class="card-footer bg-white">
-                <div class="d-grid gap-2">
-                    <?php if (!empty($doc['short_url'])): ?>
-                        <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn btn-sm btn-primary" target="_blank">
-                            <i class="bi bi-link-45deg"></i> Öffnen
-                        </a>
-                    <?php else: ?>
-                        <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-sm btn-primary" target="_blank">
-                            <i class="bi bi-download"></i> Herunterladen
-                        </a>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-    <?php
-}
 ?>
