@@ -134,9 +134,10 @@ $all_members = get_all_members($pdo);
 
 .vote-matrix th,
 .vote-matrix td {
-    padding: 10px;
+    padding: 8px 10px;
     text-align: left;
     border: 1px solid #ddd;
+    font-size: 14px;
 }
 
 .vote-matrix th {
@@ -150,26 +151,31 @@ $all_members = get_all_members($pdo);
 
 .vote-buttons {
     display: flex;
-    gap: 5px;
-    justify-content: center;
+    gap: 4px;
+    justify-content: flex-start;
 }
 
 .vote-btn {
     border: 2px solid #ddd;
     background: white;
-    padding: 8px 12px;
+    padding: 6px 10px;
     cursor: pointer;
     border-radius: 4px;
-    font-size: 16px;
+    font-size: 14px;
     transition: all 0.2s;
+    min-width: 90px;
+    text-align: center;
 }
 
 .vote-btn:hover {
-    transform: scale(1.1);
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .vote-btn.selected {
     border-width: 3px;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .vote-btn.vote-yes.selected {
@@ -659,6 +665,21 @@ if (isset($_SESSION['error'])) {
                     📅 <?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?>
                 </p>
 
+                <?php if (!empty($poll['location']) || !empty($poll['video_link']) || !empty($poll['duration'])): ?>
+                    <p style="margin-top: 10px; padding: 10px; background: #f9f9f9; border-left: 3px solid #2196F3;">
+                        <strong>Rahmeninformationen:</strong><br>
+                        <?php if (!empty($poll['location'])): ?>
+                            📍 <strong>Ort:</strong> <?php echo htmlspecialchars($poll['location']); ?><br>
+                        <?php endif; ?>
+                        <?php if (!empty($poll['video_link'])): ?>
+                            🎥 <strong>Video:</strong> <a href="<?php echo htmlspecialchars($poll['video_link']); ?>" target="_blank"><?php echo htmlspecialchars($poll['video_link']); ?></a><br>
+                        <?php endif; ?>
+                        <?php if (!empty($poll['duration'])): ?>
+                            ⏱️ <strong>Dauer:</strong> ca. <?php echo $poll['duration']; ?> Minuten
+                        <?php endif; ?>
+                    </p>
+                <?php endif; ?>
+
                 <?php if ($poll['status'] === 'finalized' && !empty($poll['finalized_at'])): ?>
                     <p style="color: #2196F3; font-weight: bold;">
                         ✓ Finaler Termin festgelegt am <?php echo date('d.m.Y H:i', strtotime($poll['finalized_at'])); ?>
@@ -670,12 +691,7 @@ if (isset($_SESSION['error'])) {
         <!-- Abstimmungs-Formular -->
         <?php if ($can_vote): ?>
             <h3>📝 Ihre Abstimmung</h3>
-            <p>Bitte geben Sie für jeden Terminvorschlag an, ob der Termin für Sie passt:</p>
-            <ul style="margin-bottom: 20px;">
-                <li><strong>✅ Passt:</strong> Dieser Termin ist ideal für mich</li>
-                <li><strong>🟡 Geht zur Not:</strong> Ich könnte, wenn es unbedingt sein muss</li>
-                <li><strong>❌ Passt nicht:</strong> Dieser Termin ist für mich unmöglich</li>
-            </ul>
+            <p style="margin-bottom: 15px; color: #666;">Bitte geben Sie für jeden Terminvorschlag an, ob der Termin für Sie passt. Ihre aktuelle Wahl ist farbig hervorgehoben.</p>
 
             <form method="POST" action="process_termine.php">
                 <input type="hidden" name="action" value="submit_vote">
@@ -684,9 +700,8 @@ if (isset($_SESSION['error'])) {
                 <table class="vote-matrix">
                     <thead>
                         <tr>
-                            <th>Terminvorschlag</th>
-                            <th>Ort</th>
-                            <th style="text-align: center; width: 300px;">Ihre Wahl</th>
+                            <th style="width: 180px;">Terminvorschlag</th>
+                            <th>Ihre Wahl</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -699,14 +714,10 @@ if (isset($_SESSION['error'])) {
                             }
                         ?>
                             <tr>
-                                <td>
-                                    <strong><?php echo $date_str; ?></strong><br>
-                                    <span style="color: #666;"><?php echo $time_str; ?></span>
-                                    <?php if (!empty($date['notes'])): ?>
-                                        <br><small style="color: #999;">ℹ️ <?php echo htmlspecialchars($date['notes']); ?></small>
-                                    <?php endif; ?>
+                                <td style="white-space: nowrap;">
+                                    <strong style="font-size: 15px;"><?php echo $date_str; ?></strong><br>
+                                    <span style="color: #666; font-size: 13px;"><?php echo $time_str; ?></span>
                                 </td>
-                                <td><?php echo htmlspecialchars($date['location'] ?? '-'); ?></td>
                                 <td>
                                     <input type="hidden" name="vote_<?php echo $date['date_id']; ?>" id="vote_<?php echo $date['date_id']; ?>" value="<?php echo $user_vote ?? 0; ?>">
                                     <div class="vote-buttons">
@@ -744,9 +755,8 @@ if (isset($_SESSION['error'])) {
         <table class="vote-matrix">
             <thead>
                 <tr>
-                    <th>Terminvorschlag</th>
-                    <th>Ort</th>
-                    <th style="text-align: center;">Zusammenfassung</th>
+                    <th style="width: 180px;">Terminvorschlag</th>
+                    <th style="text-align: center; width: 140px;">Zusammenfassung</th>
                     <?php
                     // Alle Teilnehmer die abgestimmt haben
                     $participants = [];
@@ -756,7 +766,7 @@ if (isset($_SESSION['error'])) {
                         }
                     }
                     foreach ($participants as $name): ?>
-                        <th style="text-align: center; font-size: 12px;"><?php echo htmlspecialchars($name); ?></th>
+                        <th style="text-align: center; font-size: 11px; padding: 6px 4px;"><?php echo htmlspecialchars($name); ?></th>
                     <?php endforeach; ?>
                 </tr>
             </thead>
@@ -785,22 +795,18 @@ if (isset($_SESSION['error'])) {
                     }
                 ?>
                     <tr class="<?php echo $is_final ? 'final-date-highlight' : ''; ?>">
-                        <td>
+                        <td style="white-space: nowrap;">
                             <?php if ($is_final): ?>
-                                <span style="color: #2196F3; font-weight: bold;">⭐ GEWÄHLT</span><br>
+                                <span style="color: #2196F3; font-weight: bold; font-size: 12px;">⭐ GEWÄHLT</span><br>
                             <?php endif; ?>
-                            <strong><?php echo $date_str; ?></strong><br>
-                            <span style="color: #666;"><?php echo $time_str; ?></span>
-                            <?php if (!empty($date['notes'])): ?>
-                                <br><small style="color: #999;">ℹ️ <?php echo htmlspecialchars($date['notes']); ?></small>
-                            <?php endif; ?>
+                            <strong style="font-size: 15px;"><?php echo $date_str; ?></strong><br>
+                            <span style="color: #666; font-size: 13px;"><?php echo $time_str; ?></span>
                         </td>
-                        <td><?php echo htmlspecialchars($date['location'] ?? '-'); ?></td>
                         <td style="text-align: center;">
-                            <div class="vote-summary">
-                                <span class="count-yes">✅ <?php echo $count_yes; ?></span> ·
-                                <span class="count-maybe">🟡 <?php echo $count_maybe; ?></span> ·
-                                <span class="count-no">❌ <?php echo $count_no; ?></span>
+                            <div class="vote-summary" style="font-size: 13px;">
+                                <span class="count-yes">✅<?php echo $count_yes; ?></span> ·
+                                <span class="count-maybe">🟡<?php echo $count_maybe; ?></span> ·
+                                <span class="count-no">❌<?php echo $count_no; ?></span>
                             </div>
                         </td>
                         <?php foreach (array_keys($participants) as $member_id):
@@ -826,6 +832,61 @@ if (isset($_SESSION['error'])) {
                 <?php endforeach; ?>
             </tbody>
         </table>
+
+        <!-- ICS-Export für finalisierte Umfragen -->
+        <?php if ($poll['status'] === 'finalized' && !empty($poll['final_date_id'])): ?>
+            <?php
+            // Finalen Termin laden
+            $final_stmt = $pdo->prepare("SELECT * FROM poll_dates WHERE date_id = ?");
+            $final_stmt->execute([$poll['final_date_id']]);
+            $final_date = $final_stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($final_date):
+                $final_date_str = date('l, d.m.Y', strtotime($final_date['suggested_date']));
+                $final_time_str = date('H:i', strtotime($final_date['suggested_date']));
+                if (!empty($final_date['suggested_end_date'])) {
+                    $final_time_str .= ' - ' . date('H:i', strtotime($final_date['suggested_end_date']));
+                }
+            ?>
+                <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px;">
+                    <h3 style="margin: 0 0 15px 0; color: white;">📅 Finaler Termin - Kalender-Export</h3>
+
+                    <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                            <?php echo $final_date_str; ?>
+                        </div>
+                        <div style="font-size: 16px; opacity: 0.95;">
+                            🕐 <?php echo $final_time_str; ?>
+                        </div>
+                        <?php if (!empty($poll['location'])): ?>
+                            <div style="font-size: 14px; margin-top: 8px; opacity: 0.9;">
+                                📍 <?php echo htmlspecialchars($poll['location']); ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                        <div class="desktop-only" style="background: white; padding: 10px; border-radius: 5px;">
+                            <img src="qr.php?type=poll&id=<?php echo $poll_id; ?>" alt="QR-Code für Kalender-Import" style="display: block;">
+                            <div style="text-align: center; font-size: 11px; color: #333; margin-top: 5px;">
+                                QR-Code scannen<br>zum Importieren
+                            </div>
+                        </div>
+
+                        <div style="flex: 1; min-width: 200px;">
+                            <p style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.95;">
+                                Fügen Sie den Termin zu Ihrem Kalender hinzu:
+                            </p>
+                            <a href="poll_ics.php?id=<?php echo $poll_id; ?>"
+                               class="btn-primary"
+                               style="display: inline-block; background: white; color: #667eea; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                                📥 .ics-Datei herunterladen
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
 
         <!-- Finalisierungs-Optionen für Ersteller/Admin -->
         <?php if ($can_edit && $poll['status'] !== 'finalized'): ?>
