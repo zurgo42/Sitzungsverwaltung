@@ -98,11 +98,26 @@ function can_participate($poll, $member_id = null) {
  * Prüft ob User bereits geantwortet hat
  */
 function has_responded($pdo, $poll_id, $member_id = null, $session_token = null) {
-    $stmt = $pdo->prepare("
-        SELECT response_id FROM opinion_responses
-        WHERE poll_id = ? AND (member_id = ? OR session_token = ?)
-    ");
-    $stmt->execute([$poll_id, $member_id, $session_token]);
+    // Spezielle Behandlung für NULL-Werte in der WHERE-Klausel
+    if ($member_id !== null) {
+        // Logged-in User: Nur nach member_id suchen
+        $stmt = $pdo->prepare("
+            SELECT response_id FROM opinion_responses
+            WHERE poll_id = ? AND member_id = ?
+        ");
+        $stmt->execute([$poll_id, $member_id]);
+    } else if ($session_token !== null) {
+        // Anonymous User: Nur nach session_token suchen
+        $stmt = $pdo->prepare("
+            SELECT response_id FROM opinion_responses
+            WHERE poll_id = ? AND session_token = ?
+        ");
+        $stmt->execute([$poll_id, $session_token]);
+    } else {
+        // Weder member_id noch session_token: Nicht geantwortet
+        return false;
+    }
+
     return $stmt->fetch() !== false;
 }
 
@@ -110,20 +125,47 @@ function has_responded($pdo, $poll_id, $member_id = null, $session_token = null)
  * Lädt die Antwort eines Users
  */
 function get_user_response($pdo, $poll_id, $member_id = null, $session_token = null) {
-    $stmt = $pdo->prepare("
-        SELECT r.*,
-               GROUP_CONCAT(oro.option_id ORDER BY opo.sort_order) as selected_option_ids,
-               GROUP_CONCAT(opo.option_text ORDER BY opo.sort_order SEPARATOR ', ') as selected_options_text
-        FROM opinion_responses r
-        LEFT JOIN opinion_response_options oro ON r.response_id = oro.response_id
-        LEFT JOIN opinion_poll_options opo ON oro.option_id = opo.option_id
-        WHERE r.poll_id = ? AND (r.member_id = ? OR r.session_token = ?)
-        GROUP BY r.response_id
-    ");
-    $stmt->execute([$poll_id, $member_id, $session_token]);
+    // Spezielle Behandlung für NULL-Werte in der WHERE-Klausel
+    if ($member_id !== null) {
+        // Logged-in User: Nur nach member_id suchen
+        $stmt = $pdo->prepare("
+            SELECT r.*,
+                   GROUP_CONCAT(oro.option_id ORDER BY opo.sort_order) as selected_option_ids,
+                   GROUP_CONCAT(opo.option_text ORDER BY opo.sort_order SEPARATOR ', ') as selected_options_text
+            FROM opinion_responses r
+            LEFT JOIN opinion_response_options oro ON r.response_id = oro.response_id
+            LEFT JOIN opinion_poll_options opo ON oro.option_id = opo.option_id
+            WHERE r.poll_id = ? AND r.member_id = ?
+            GROUP BY r.response_id
+        ");
+        $stmt->execute([$poll_id, $member_id]);
+    } else if ($session_token !== null) {
+        // Anonymous User: Nur nach session_token suchen
+        $stmt = $pdo->prepare("
+            SELECT r.*,
+                   GROUP_CONCAT(oro.option_id ORDER BY opo.sort_order) as selected_option_ids,
+                   GROUP_CONCAT(opo.option_text ORDER BY opo.sort_order SEPARATOR ', ') as selected_options_text
+            FROM opinion_responses r
+            LEFT JOIN opinion_response_options oro ON r.response_id = oro.response_id
+            LEFT JOIN opinion_poll_options opo ON oro.option_id = opo.option_id
+            WHERE r.poll_id = ? AND r.session_token = ?
+            GROUP BY r.response_id
+        ");
+        $stmt->execute([$poll_id, $session_token]);
+    } else {
+        // Weder member_id noch session_token: Keine Antwort möglich
+        return null;
+    }
+
     $response = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($response && $response['selected_option_ids']) {
+    // Keine Antwort gefunden
+    if (!$response) {
+        return null;
+    }
+
+    // selected_options Array aufbauen
+    if (!empty($response['selected_option_ids'])) {
         $response['selected_options'] = explode(',', $response['selected_option_ids']);
     } else {
         $response['selected_options'] = [];

@@ -230,12 +230,24 @@ try {
             }
 
             // Prüfen ob bereits geantwortet
-            $check_stmt = $pdo->prepare("
-                SELECT response_id FROM opinion_responses
-                WHERE poll_id = ? AND (member_id = ? OR session_token = ?)
-            ");
-            $check_stmt->execute([$poll_id, $member_id, $session_token]);
-            $existing = $check_stmt->fetch();
+            if ($member_id !== null) {
+                // Logged-in User: Nur nach member_id suchen
+                $check_stmt = $pdo->prepare("
+                    SELECT response_id FROM opinion_responses
+                    WHERE poll_id = ? AND member_id = ?
+                ");
+                $check_stmt->execute([$poll_id, $member_id]);
+            } else if ($session_token !== null) {
+                // Anonymous User: Nur nach session_token suchen
+                $check_stmt = $pdo->prepare("
+                    SELECT response_id FROM opinion_responses
+                    WHERE poll_id = ? AND session_token = ?
+                ");
+                $check_stmt->execute([$poll_id, $session_token]);
+            } else {
+                $check_stmt = null;
+            }
+            $existing = $check_stmt ? $check_stmt->fetch() : false;
 
             if ($existing) {
                 // Editieren erlaubt wenn Ersteller und nur 1 Antwort
