@@ -63,9 +63,31 @@ define('DEFAULT_VIDEO_LINK', 'https://meet.zurgo.de/');
 define('PROTOCOL_FEEDBACK_HOURS', 48); // 48 Stunden = 2 Tage
 
 // ============= E-MAIL-EINSTELLUNGEN (optional) =============
-define('MAIL_ENABLED', false);
+define('MAIL_ENABLED', false);  // E-Mail-Versand aktivieren/deaktivieren
 define('MAIL_FROM', 'meetings@example.com');
 define('MAIL_FROM_NAME', 'Meeting-System');
+
+// Mail-Backend auswählen:
+// - 'mail':      Standard PHP mail() - funktioniert überall (empfohlen als Fallback)
+// - 'phpmailer': PHPMailer library - besser für SMTP (siehe SMTP-Einstellungen unten)
+// - 'queue':     Speichert Mails in Datenbank, Versand via Cronjob (siehe Queue-Einstellungen)
+define('MAIL_BACKEND', 'mail');
+
+// ============= SMTP-EINSTELLUNGEN (nur für MAIL_BACKEND='phpmailer') =============
+// Nur relevant wenn PHPMailer installiert ist (composer require phpmailer/phpmailer)
+define('SMTP_HOST', '');           // z.B. 'smtp.example.com'
+define('SMTP_PORT', 587);          // 587 (TLS) oder 465 (SSL) oder 25
+define('SMTP_SECURE', 'tls');      // 'tls', 'ssl' oder '' (kein SSL)
+define('SMTP_AUTH', false);        // true wenn SMTP-Authentifizierung erforderlich
+define('SMTP_USER', '');           // SMTP-Benutzername
+define('SMTP_PASS', '');           // SMTP-Passwort
+
+// ============= QUEUE-EINSTELLUNGEN (nur für MAIL_BACKEND='queue') =============
+// Mails werden in mail_queue Tabelle gespeichert und via Cronjob versendet
+// Cronjob Setup: */5 * * * * /usr/bin/php /pfad/zu/process_mail_queue.php >> /var/log/mail_queue.log 2>&1
+define('MAIL_QUEUE_BATCH_SIZE', 10);    // Anzahl Mails pro Cronjob-Durchlauf
+define('MAIL_QUEUE_DELAY', 1);          // Sekunden Pause zwischen einzelnen Mails
+define('MAIL_QUEUE_MAX_ATTEMPTS', 3);   // Max. Zustellversuche pro Mail
 
 // ============= WEITERE EINSTELLUNGEN =============
 define('TOP_CONFIDENTIAL_START', 101);  // Ab welcher TOP-Nummer ist es vertraulich

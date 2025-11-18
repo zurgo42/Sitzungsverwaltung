@@ -2,6 +2,7 @@
 /**
  * mail_functions.php - E-Mail-Funktionen für die Sitzungsverwaltung
  * Erstellt: 17.11.2025
+ * Erweitert: 17.11.2025 (Multi-Backend-Support)
  *
  * Stellt E-Mail-Funktionen bereit für:
  * - Terminplanung-Benachrichtigungen
@@ -10,8 +11,16 @@
  *
  * KONFIGURATION: siehe config.php
  * - MAIL_ENABLED: E-Mail-Versand aktivieren/deaktivieren
+ * - MAIL_BACKEND: 'mail' (Standard), 'phpmailer', 'queue'
  * - MAIL_FROM: Absender-E-Mail-Adresse
  * - MAIL_FROM_NAME: Absender-Name
+ * - Für PHPMailer: SMTP_HOST, SMTP_PORT, SMTP_AUTH, SMTP_SECURE, SMTP_USER, SMTP_PASS
+ * - Für Queue: $pdo wird benötigt
+ *
+ * BACKENDS:
+ * - 'mail':      Standard PHP mail() - funktioniert überall
+ * - 'phpmailer': Verwendet PHPMailer library wenn verfügbar (besser für SMTP)
+ * - 'queue':     Speichert Mails in Datenbank, Versand via Cronjob (process_mail_queue.php)
  */
 
 /**
@@ -19,6 +28,8 @@
  *
  * Diese Funktion entspricht der multipartmail() aus der anderen Anwendung
  * und ist kompatibel mit beiden Systemen.
+ *
+ * WICHTIG: Wenn MAIL_BACKEND='queue', wird globale Variable $pdo benötigt
  *
  * @param string $to Empfänger-E-Mail-Adresse
  * @param string $subject Betreff
@@ -44,6 +55,35 @@ function multipartmail($to, $subject, $message_text, $message_html = '', $from_e
         $message_html = nl2br(htmlspecialchars($message_text));
     }
 
+    // Backend ermitteln
+    $backend = defined('MAIL_BACKEND') ? MAIL_BACKEND : 'mail';
+
+    // Backend-spezifischer Versand
+    switch ($backend) {
+        case 'phpmailer':
+            return send_via_phpmailer($to, $subject, $message_text, $message_html, $from_email, $from_name);
+
+        case 'queue':
+            return queue_mail($to, $subject, $message_text, $message_html, $from_email, $from_name);
+
+        case 'mail':
+        default:
+            return send_via_mail($to, $subject, $message_text, $message_html, $from_email, $from_name);
+    }
+}
+
+/**
+ * Sendet E-Mail via PHP mail() - Standard-Backend
+ *
+ * @param string $to Empfänger
+ * @param string $subject Betreff
+ * @param string $message_text Text-Version
+ * @param string $message_html HTML-Version
+ * @param string $from_email Absender-E-Mail
+ * @param string $from_name Absender-Name
+ * @return bool true bei Erfolg
+ */
+function send_via_mail($to, $subject, $message_text, $message_html, $from_email, $from_name) {
     // Boundary für Multipart
     $boundary = md5(uniqid(time()));
 
@@ -72,10 +112,135 @@ function multipartmail($to, $subject, $message_text, $message_html = '', $from_e
     $result = mail($to, $subject, $body, implode("\r\n", $headers));
 
     if (!$result) {
-        error_log("Mail-Versand fehlgeschlagen: An $to - $subject");
+        error_log("Mail-Versand (mail) fehlgeschlagen: An $to - $subject");
     }
 
     return $result;
+}
+
+/**
+ * Sendet E-Mail via PHPMailer (falls installiert)
+ *
+ * Fallback auf send_via_mail() wenn PHPMailer nicht verfügbar
+ *
+ * @param string $to Empfänger
+ * @param string $subject Betreff
+ * @param string $message_text Text-Version
+ * @param string $message_html HTML-Version
+ * @param string $from_email Absender-E-Mail
+ * @param string $from_name Absender-Name
+ * @return bool true bei Erfolg
+ */
+function send_via_phpmailer($to, $subject, $message_text, $message_html, $from_email, $from_name) {
+    // Prüfen ob PHPMailer verfügbar ist
+    if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+        // Versuche Autoload
+        $phpmailer_path = __DIR__ . '/vendor/autoload.php';
+        if (file_exists($phpmailer_path)) {
+            require_once $phpmailer_path;
+        }
+    }
+
+    // PHPMailer nicht verfügbar -> Fallback auf mail()
+    if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+        error_log("PHPMailer nicht verfügbar - Fallback auf mail()");
+        return send_via_mail($to, $subject, $message_text, $message_html, $from_email, $from_name);
+    }
+
+    try {
+        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+
+        // SMTP-Konfiguration (falls definiert)
+        if (defined('SMTP_HOST') && !empty(SMTP_HOST)) {
+            $mail->isSMTP();
+            $mail->Host = SMTP_HOST;
+            $mail->Port = defined('SMTP_PORT') ? SMTP_PORT : 587;
+            $mail->SMTPSecure = defined('SMTP_SECURE') ? SMTP_SECURE : 'tls';
+
+            if (defined('SMTP_AUTH') && SMTP_AUTH) {
+                $mail->SMTPAuth = true;
+                $mail->Username = defined('SMTP_USER') ? SMTP_USER : '';
+                $mail->Password = defined('SMTP_PASS') ? SMTP_PASS : '';
+            }
+        }
+
+        // Absender
+        $mail->setFrom($from_email, $from_name);
+        $mail->addAddress($to);
+        $mail->addReplyTo($from_email, $from_name);
+
+        // Inhalt
+        $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';
+        $mail->Subject = $subject;
+        $mail->Body = $message_html;
+        $mail->AltBody = $message_text;
+
+        // Senden
+        $result = $mail->send();
+
+        if (!$result) {
+            error_log("Mail-Versand (PHPMailer) fehlgeschlagen: An $to - $subject");
+        }
+
+        return $result;
+
+    } catch (Exception $e) {
+        error_log("PHPMailer Exception: " . $e->getMessage());
+        // Fallback auf mail()
+        return send_via_mail($to, $subject, $message_text, $message_html, $from_email, $from_name);
+    }
+}
+
+/**
+ * Fügt E-Mail zur Warteschlange hinzu (Queue-Backend)
+ *
+ * Speichert Mail in mail_queue Tabelle zur späteren Verarbeitung via Cronjob
+ * Benötigt globale Variable $pdo
+ *
+ * @param string $to Empfänger
+ * @param string $subject Betreff
+ * @param string $message_text Text-Version
+ * @param string $message_html HTML-Version
+ * @param string $from_email Absender-E-Mail
+ * @param string $from_name Absender-Name
+ * @return bool true bei Erfolg (Mail wurde zur Queue hinzugefügt)
+ */
+function queue_mail($to, $subject, $message_text, $message_html, $from_email, $from_name) {
+    global $pdo;
+
+    if (!$pdo) {
+        error_log("Queue-Mail: \$pdo nicht verfügbar - Fallback auf mail()");
+        return send_via_mail($to, $subject, $message_text, $message_html, $from_email, $from_name);
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO mail_queue
+            (recipient, subject, message_text, message_html, from_email, from_name, status, created_at, priority)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW(), 5)
+        ");
+
+        $result = $stmt->execute([
+            $to,
+            $subject,
+            $message_text,
+            $message_html,
+            $from_email,
+            $from_name
+        ]);
+
+        if (!$result) {
+            error_log("Queue-Mail: INSERT fehlgeschlagen - Fallback auf mail()");
+            return send_via_mail($to, $subject, $message_text, $message_html, $from_email, $from_name);
+        }
+
+        return true;
+
+    } catch (Exception $e) {
+        error_log("Queue-Mail Exception: " . $e->getMessage() . " - Fallback auf mail()");
+        return send_via_mail($to, $subject, $message_text, $message_html, $from_email, $from_name);
+    }
 }
 
 /**
