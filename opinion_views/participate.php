@@ -51,7 +51,7 @@ $can_edit = $is_creator && $stats['total_responses'] <= 1;
         <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
             <strong>Sie haben bereits geantwortet!</strong><br>
             Ihre Antwort: <strong><?php echo htmlspecialchars($existing_response['selected_options_text'] ?? 'N/A'); ?></strong>
-            <?php if ($existing_response['free_text']): ?>
+            <?php if (!empty($existing_response['free_text'])): ?>
                 <br>Kommentar: "<?php echo htmlspecialchars($existing_response['free_text']); ?>"
             <?php endif; ?>
         </div>
