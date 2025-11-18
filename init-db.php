@@ -565,7 +565,7 @@ try {
             ['Passt-Skala', 'passt sehr gut', 'passt gut', 'passt einigermaßen', 'passt schlecht', 'passt gar nicht', null, null, null, null, null],
             ['Dafür/Dagegen', 'unbedingt dafür', 'eher dafür', 'neutral', 'eher dagegen', 'unbedingt dagegen', null, null, null, null, null],
             ['Gefällt mir', 'gefällt mir sehr gut', 'gefällt mir gut', 'neutral', 'gefällt mir nicht', 'gefällt mir überhaupt nicht', null, null, null, null, null],
-            ['Skala 1-9', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+            ['Skala 1-9', '1', '2', '3', '4', '5', '6', '7', '8', '9', null],
             ['Dringlichkeit', 'Sofort!', 'sehr dringlich', 'dringlich', 'kann warten', 'nicht machen', null, null, null, null, null],
             ['Wichtigkeit', 'unabdingbar', 'sehr wichtig', 'eher wichtig', 'nicht wichtig', 'Auf keinen Fall', null, null, null, null, null],
             ['Wünsche', 'Sehr!', 'Würde mich freuen', 'ist mir egal', 'würde ich nicht wollen', 'Auf keinen Fall', null, null, null, null, null],

@@ -288,27 +288,47 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
 
             // 3. Daten einfügen
             $import_stats = [];
+            $import_errors = [];
 
             foreach ($demo_data['tables'] as $table => $rows) {
                 if (empty($rows)) {
+                    echo "<p style='color: orange;'>⚠ Tabelle '$table': keine Daten zum Importieren</p>";
                     continue;
                 }
 
                 $count = 0;
                 foreach ($rows as $row) {
-                    $columns = array_keys($row);
-                    $placeholders = array_fill(0, count($columns), '?');
+                    try {
+                        $columns = array_keys($row);
+                        $placeholders = array_fill(0, count($columns), '?');
 
-                    $sql = "INSERT INTO $table (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
-                    $stmt = $pdo->prepare($sql);
-                    $stmt->execute(array_values($row));
-                    $count++;
+                        $sql = "INSERT INTO $table (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+                        $stmt = $pdo->prepare($sql);
+                        $stmt->execute(array_values($row));
+                        $count++;
+                    } catch (PDOException $e) {
+                        $import_errors[] = "Fehler bei Tabelle '$table': " . $e->getMessage();
+                        // Weiter mit nächstem Datensatz
+                    }
                 }
 
                 $import_stats[$table] = $count;
+                echo "<p>✓ $table: $count Datensätze importiert</p>";
             }
 
             $pdo->commit();
+
+            // Fehler anzeigen (falls vorhanden)
+            if (!empty($import_errors)) {
+                echo '<div class="error">';
+                echo '<h3>⚠️ Import-Fehler</h3>';
+                echo '<ul>';
+                foreach ($import_errors as $error) {
+                    echo '<li>' . htmlspecialchars($error) . '</li>';
+                }
+                echo '</ul>';
+                echo '</div>';
+            }
 
             echo '<div class="success">';
             echo '<h3>✅ Import erfolgreich abgeschlossen!</h3>';
