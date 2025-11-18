@@ -417,22 +417,4 @@ function has_document_access($document, $member) {
     $member_level = get_member_access_level($member);
     return $member_level >= $document['access_level'];
 }
-
-/**
- * Ermittelt Access-Level eines Mitglieds
- */
-function get_member_access_level($member) {
-    // Mapping von Rollen zu Access-Levels
-    $role_levels = [
-        'gf' => 19,
-        'assistenz' => 18,
-        'vorstand' => 19,
-        'fuehrungsteam' => 15,
-        'projektleitung' => 12,
-        'mitglied' => 0
-    ];
-
-    $role = $member['role'] ?? 'mitglied';
-    return $role_levels[$role] ?? 0;
-}
 ?>
