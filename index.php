@@ -252,6 +252,11 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             📋 Protokolle
         </a>
 
+        <!-- Dokumente-Tab (immer sichtbar) -->
+        <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
+            📁 Dokumente
+        </a>
+
         <!-- Admin-Tab (nur für Vorstand und GF sichtbar) -->
         <?php //if (in_array($current_user['role'], ['vorstand', 'gf'])): 
 		if ($current_user['is_admin']):
@@ -299,6 +304,11 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             case 'protokolle':
                 // Protokoll-Sammlung anzeigen
                 include 'tab_protokolle.php';
+                break;
+
+            case 'documents':
+                // Dokumentenverwaltung anzeigen
+                include 'tab_documents.php';
                 break;
 
             case 'admin':

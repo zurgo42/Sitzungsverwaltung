@@ -554,4 +554,50 @@ function is_readonly_user($pdo, $member_id) {
         return false;
     }
 }
+
+/**
+ * Prüft ob User Admin-Rechte hat
+ *
+ * @param array $member Member-Array mit Daten
+ * @return bool true wenn Admin
+ */
+function is_admin_user($member) {
+    if (!$member) {
+        return false;
+    }
+
+    // Prüfe is_admin Flag (falls vorhanden)
+    if (isset($member['is_admin']) && $member['is_admin']) {
+        return true;
+    }
+
+    // Prüfe Rolle
+    $admin_roles = ['vorstand', 'gf', 'assistenz'];
+    return isset($member['role']) && in_array($member['role'], $admin_roles);
+}
+
+/**
+ * Ermittelt Access-Level eines Mitglieds für Zugriffskontrolle
+ *
+ * @param array $member Member-Array mit Daten
+ * @return int Access-Level (0-19)
+ */
+function get_member_access_level($member) {
+    if (!$member) {
+        return 0;
+    }
+
+    // Mapping von Rollen zu Access-Levels
+    $role_levels = [
+        'gf' => 19,
+        'assistenz' => 18,
+        'vorstand' => 19,
+        'fuehrungsteam' => 15,
+        'projektleitung' => 12,
+        'mitglied' => 0
+    ];
+
+    $role = $member['role'] ?? 'mitglied';
+    return $role_levels[strtolower($role)] ?? 0;
+}
 ?>
