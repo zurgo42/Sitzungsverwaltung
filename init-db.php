@@ -473,6 +473,41 @@ try {
 
     echo "<p>Prüfe auf fehlende Spalten und führe Migrations aus...</p>";
 
+    // Migration: Fehlende Spalten zur members-Tabelle hinzufügen (in korrekter Reihenfolge!)
+    $stmt = $pdo->query("SHOW COLUMNS FROM members LIKE 'membership_number'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'membership_number' zu members hinzu...</p>";
+        $pdo->exec("ALTER TABLE members ADD COLUMN membership_number VARCHAR(50) DEFAULT NULL AFTER member_id");
+        // Unique Key nur hinzufügen, wenn er nicht existiert
+        try {
+            $pdo->exec("ALTER TABLE members ADD UNIQUE KEY membership_number (membership_number)");
+        } catch (PDOException $e) {
+            // Index existiert bereits - ignorieren
+        }
+        echo ".";
+    }
+
+    $stmt = $pdo->query("SHOW COLUMNS FROM members LIKE 'is_admin'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'is_admin' zu members hinzu...</p>";
+        $pdo->exec("ALTER TABLE members ADD COLUMN is_admin TINYINT(1) DEFAULT 0 AFTER role");
+        echo ".";
+    }
+
+    $stmt = $pdo->query("SHOW COLUMNS FROM members LIKE 'is_active'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'is_active' zu members hinzu...</p>";
+        $pdo->exec("ALTER TABLE members ADD COLUMN is_active TINYINT(1) DEFAULT 1 AFTER is_admin");
+        echo ".";
+    }
+
+    $stmt = $pdo->query("SHOW COLUMNS FROM members LIKE 'is_confidential'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'is_confidential' zu members hinzu...</p>";
+        $pdo->exec("ALTER TABLE members ADD COLUMN is_confidential TINYINT UNSIGNED DEFAULT NULL AFTER is_active");
+        echo ".";
+    }
+
     // Migration: location, video_link, duration zu polls hinzufügen (falls fehlend)
     $stmt = $pdo->query("SHOW COLUMNS FROM polls LIKE 'location'");
     if (!$stmt->fetch()) {
