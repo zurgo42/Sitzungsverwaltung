@@ -42,6 +42,74 @@ if (isset($_SESSION['error'])) {
 
 if ($view === 'list') {
     ?>
+    <style>
+        /* Responsive Anzeige ohne Bootstrap-Abhängigkeit */
+        @media (min-width: 768px) {
+            .documents-mobile { display: none !important; }
+            .documents-desktop { display: block !important; }
+        }
+        @media (max-width: 767px) {
+            .documents-desktop { display: none !important; }
+            .documents-mobile { display: block !important; }
+        }
+
+        /* Tabellen-Styling */
+        .documents-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        .documents-table th,
+        .documents-table td {
+            padding: 0.75rem;
+            border: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+        .documents-table thead th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .documents-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .documents-table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        /* Details/Summary Styling */
+        details.filter-accordion {
+            margin-bottom: 1.5rem;
+        }
+        details.filter-accordion summary {
+            padding: 0.75rem 1rem;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-weight: 500;
+            list-style: none;
+        }
+        details.filter-accordion summary::-webkit-details-marker {
+            display: none;
+        }
+        details.filter-accordion summary:hover {
+            background-color: #e9ecef;
+        }
+        details.filter-accordion[open] summary {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-bottom: none;
+        }
+        details.filter-accordion .filter-content {
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 0.25rem 0.25rem;
+            padding: 1rem;
+            background-color: #fff;
+        }
+    </style>
+
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
@@ -61,74 +129,72 @@ if ($view === 'list') {
                 </div>
 
                 <!-- Filter & Suche als Details/Summary -->
-                <details class="mb-4">
-                    <summary class="btn btn-outline-secondary w-100 text-start" style="cursor: pointer;">
+                <details class="filter-accordion">
+                    <summary>
                         <i class="bi bi-funnel me-2"></i> Filter & Suche
                     </summary>
-                    <div class="card mt-2">
-                        <div class="card-body">
-                            <form method="GET" id="filterForm">
-                                <input type="hidden" name="tab" value="documents">
+                    <div class="filter-content">
+                        <form method="GET" id="filterForm">
+                            <input type="hidden" name="tab" value="documents">
 
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Suche</label>
-                                        <input type="text" name="search" class="form-control"
-                                               placeholder="Titel, Beschreibung, Stichworte..."
-                                               value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
-                                    </div>
-
-                                    <div class="col-md-3">
-                                        <label class="form-label">Kategorie</label>
-                                        <select name="category" class="form-select">
-                                            <option value="">Alle Kategorien</option>
-                                            <?php
-                                            foreach (get_document_categories() as $key => $label) {
-                                                $selected = (isset($_GET['category']) && $_GET['category'] === $key) ? 'selected' : '';
-                                                echo "<option value='$key' $selected>$label</option>";
-                                            }
-                                            ?>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-md-3">
-                                        <label class="form-label">Sortierung</label>
-                                        <select name="sort" class="form-select">
-                                            <option value="date_desc" <?= (!isset($_GET['sort']) || $_GET['sort'] === 'date_desc') ? 'selected' : '' ?>>
-                                                Neueste zuerst
-                                            </option>
-                                            <option value="date_asc" <?= (isset($_GET['sort']) && $_GET['sort'] === 'date_asc') ? 'selected' : '' ?>>
-                                                Älteste zuerst
-                                            </option>
-                                            <option value="title" <?= (isset($_GET['sort']) && $_GET['sort'] === 'title') ? 'selected' : '' ?>>
-                                                Alphabetisch (Titel)
-                                            </option>
-                                            <option value="category" <?= (isset($_GET['sort']) && $_GET['sort'] === 'category') ? 'selected' : '' ?>>
-                                                Nach Kategorie
-                                            </option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-md-2 d-flex align-items-end">
-                                        <button type="submit" class="btn btn-primary w-100">
-                                            <i class="bi bi-search"></i> Filtern
-                                        </button>
-                                    </div>
-
-                                    <?php if ($is_admin): ?>
-                                    <div class="col-12">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="show_all" value="1"
-                                                   id="showAll" <?= isset($_GET['show_all']) ? 'checked' : '' ?>>
-                                            <label class="form-check-label" for="showAll">
-                                                Auch versteckte/archivierte Dokumente anzeigen
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <?php endif; ?>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Suche</label>
+                                    <input type="text" name="search" class="form-control"
+                                           placeholder="Titel, Beschreibung, Stichworte..."
+                                           value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
                                 </div>
-                            </form>
-                        </div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label">Kategorie</label>
+                                    <select name="category" class="form-select">
+                                        <option value="">Alle Kategorien</option>
+                                        <?php
+                                        foreach (get_document_categories() as $key => $label) {
+                                            $selected = (isset($_GET['category']) && $_GET['category'] === $key) ? 'selected' : '';
+                                            echo "<option value='$key' $selected>$label</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label">Sortierung</label>
+                                    <select name="sort" class="form-select">
+                                        <option value="date_desc" <?= (!isset($_GET['sort']) || $_GET['sort'] === 'date_desc') ? 'selected' : '' ?>>
+                                            Neueste zuerst
+                                        </option>
+                                        <option value="date_asc" <?= (isset($_GET['sort']) && $_GET['sort'] === 'date_asc') ? 'selected' : '' ?>>
+                                            Älteste zuerst
+                                        </option>
+                                        <option value="title" <?= (isset($_GET['sort']) && $_GET['sort'] === 'title') ? 'selected' : '' ?>>
+                                            Alphabetisch (Titel)
+                                        </option>
+                                        <option value="category" <?= (isset($_GET['sort']) && $_GET['sort'] === 'category') ? 'selected' : '' ?>>
+                                            Nach Kategorie
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-search"></i> Filtern
+                                    </button>
+                                </div>
+
+                                <?php if ($is_admin): ?>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="show_all" value="1"
+                                               id="showAll" <?= isset($_GET['show_all']) ? 'checked' : '' ?>>
+                                        <label class="form-check-label" for="showAll">
+                                            Auch versteckte/archivierte Dokumente anzeigen
+                                        </label>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </form>
                     </div>
                 </details>
 
@@ -153,14 +219,13 @@ if ($view === 'list') {
                 if (empty($documents)) {
                     echo '<div class="alert alert-warning">Keine Dokumente gefunden.</div>';
                 } else {
-                    // Tabellen-Ansicht (Desktop) / Card-Ansicht (Mobile)
                     ?>
 
                     <!-- Desktop: Tabelle -->
-                    <div class="d-none d-md-block">
+                    <div class="documents-desktop">
                         <div class="table-responsive">
-                            <table class="table table-hover table-striped">
-                                <thead class="table-light">
+                            <table class="documents-table table table-hover table-striped table-bordered">
+                                <thead>
                                     <tr>
                                         <th>Titel</th>
                                         <th>Kategorie</th>
@@ -168,7 +233,7 @@ if ($view === 'list') {
                                         <th>Typ</th>
                                         <th>Größe</th>
                                         <th>Datum</th>
-                                        <th style="width: 200px;">Aktionen</th>
+                                        <th style="width: 150px;">Aktionen</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -197,17 +262,17 @@ if ($view === 'list') {
                                         <td>
                                             <div class="btn-group btn-group-sm" role="group">
                                                 <?php if (!empty($doc['short_url'])): ?>
-                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn btn-primary" target="_blank" title="Öffnen">
+                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn btn-primary btn-sm" target="_blank" title="Öffnen">
                                                         <i class="bi bi-link-45deg"></i>
                                                     </a>
                                                 <?php else: ?>
-                                                    <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary" target="_blank" title="Herunterladen">
+                                                    <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary btn-sm" target="_blank" title="Herunterladen">
                                                         <i class="bi bi-download"></i>
                                                     </a>
                                                 <?php endif; ?>
 
                                                 <?php if ($is_admin): ?>
-                                                    <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn btn-outline-secondary" title="Bearbeiten">
+                                                    <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn btn-outline-secondary btn-sm" title="Bearbeiten">
                                                         <i class="bi bi-pencil"></i>
                                                     </a>
                                                 <?php endif; ?>
@@ -221,7 +286,7 @@ if ($view === 'list') {
                     </div>
 
                     <!-- Mobile: Cards -->
-                    <div class="d-md-none">
+                    <div class="documents-mobile">
                         <?php foreach ($documents as $doc):
                             $categories = get_document_categories();
                             $cat_label = $categories[$doc['category']] ?? $doc['category'];
