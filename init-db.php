@@ -1,7 +1,7 @@
 <?php
 /**
  * init-db.php - Datenbank initialisieren
- * Aktualisiert: 18.11.2025 - Vollständige DB-Struktur inkl. Terminplanung & Meinungsbild-Tool
+ * Aktualisiert: 18.11.2025 - Vollständige DB-Struktur inkl. Terminplanung, Meinungsbild-Tool & Dokumentenverwaltung
  *
  * Dieses Skript erstellt die komplette Datenbankstruktur für die Sitzungsverwaltung.
  * Es enthält KEINE Demo-Daten - diese können separat über demo.php geladen werden.
@@ -456,6 +456,53 @@ try {
         INDEX idx_priority (priority),
         INDEX idx_send_at (send_at),
         INDEX idx_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // =========================================================
+    // DOKUMENTENVERWALTUNG-TABELLEN
+    // =========================================================
+
+    // Dokumente-Tabelle
+    $tables[] = "CREATE TABLE IF NOT EXISTS documents (
+        document_id INT PRIMARY KEY AUTO_INCREMENT,
+        filename VARCHAR(255) NOT NULL,
+        original_filename VARCHAR(255) NOT NULL,
+        filepath VARCHAR(500) NOT NULL,
+        filesize INT NOT NULL DEFAULT 0,
+        filetype VARCHAR(50) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        keywords TEXT,
+        version VARCHAR(50),
+        short_url VARCHAR(255),
+        category ENUM('satzung', 'ordnungen', 'richtlinien', 'formulare', 'mv_unterlagen', 'dokumentationen', 'urteile', 'medien', 'sonstige') DEFAULT 'sonstige',
+        access_level INT DEFAULT 0,
+        status ENUM('active', 'archived', 'hidden', 'outdated') DEFAULT 'active',
+        uploaded_by_member_id INT,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME,
+        admin_notes TEXT,
+        FOREIGN KEY (uploaded_by_member_id) REFERENCES members(member_id) ON DELETE SET NULL,
+        INDEX idx_category (category),
+        INDEX idx_access_level (access_level),
+        INDEX idx_status (status),
+        INDEX idx_created_at (created_at),
+        INDEX idx_title (title),
+        FULLTEXT INDEX idx_search (title, description, keywords)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Dokument-Downloads-Tabelle (Download-Tracking)
+    $tables[] = "CREATE TABLE IF NOT EXISTS document_downloads (
+        download_id INT PRIMARY KEY AUTO_INCREMENT,
+        document_id INT NOT NULL,
+        member_id INT,
+        downloaded_at DATETIME NOT NULL,
+        ip_address VARCHAR(45),
+        FOREIGN KEY (document_id) REFERENCES documents(document_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE SET NULL,
+        INDEX idx_document (document_id),
+        INDEX idx_member (member_id),
+        INDEX idx_downloaded_at (downloaded_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Tabellen erstellen
