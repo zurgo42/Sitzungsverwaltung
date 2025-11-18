@@ -34,7 +34,7 @@ if (!can_show_final_results($poll, $current_user, $has_responded)) {
         echo "Die Ergebnisse sind erst nach Ablauf der Umfrage sichtbar.";
     }
     echo "</p>";
-    echo "<a href='?tab=opinion&view=detail&poll_id={$poll_id}'>Zurück zur Umfrage</a>";
+    echo "<a href='?tab=opinion&view=detail&poll_id={$poll_id}' class='btn-secondary' style='text-decoration: none; display: inline-block; padding: 8px 16px;'>Zurück zur Umfrage</a>";
     echo "</div>";
     return;
 }
@@ -45,7 +45,7 @@ $all_responses = get_all_responses($pdo, $poll_id, !$poll['is_anonymous'] || $is
 ?>
 
 <div style="margin-bottom: 20px;">
-    <a href="?tab=opinion&view=detail&poll_id=<?php echo $poll_id; ?>" style="text-decoration: none;">← Zurück</a>
+    <a href="?tab=opinion&view=detail&poll_id=<?php echo $poll_id; ?>" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">← Zurück</a>
 </div>
 
 <div class="opinion-card">

@@ -19,7 +19,7 @@ $stats = get_opinion_results($pdo, $poll_id);
 ?>
 
 <div style="margin-bottom: 20px;">
-    <a href="?tab=opinion" style="text-decoration: none;">← Zurück zur Übersicht</a>
+    <a href="?tab=opinion" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">← Zurück zur Übersicht</a>
 </div>
 
 <div class="opinion-card">

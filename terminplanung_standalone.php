@@ -154,6 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
             case 'create_poll':
                 $title = trim($_POST['title'] ?? '');
                 $description = trim($_POST['description'] ?? '');
+                $location = trim($_POST['location'] ?? '');
 
                 if (empty($title)) {
                     $error_message = 'Bitte geben Sie einen Titel ein';
@@ -162,10 +163,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
 
                 // Umfrage erstellen
                 $stmt = $pdo->prepare("
-                    INSERT INTO polls (title, description, created_by_member_id, status, created_at)
-                    VALUES (?, ?, ?, 'open', NOW())
+                    INSERT INTO polls (title, description, location, created_by_member_id, status, created_at)
+                    VALUES (?, ?, ?, ?, 'open', NOW())
                 ");
-                $stmt->execute([$title, $description, $current_user['member_id']]);
+                $stmt->execute([$title, $description, $location, $current_user['member_id']]);
                 $poll_id = $pdo->lastInsertId();
 
                 // Terminvorschläge hinzufügen
@@ -331,6 +332,7 @@ if ($view === 'dashboard') {
     echo '<input type="hidden" name="terminplanung_action" value="create_poll">';
     echo '<p><label>Titel: <input type="text" name="title" required style="width: 100%; padding: 8px;"></label></p>';
     echo '<p><label>Beschreibung: <textarea name="description" rows="3" style="width: 100%; padding: 8px;"></textarea></label></p>';
+    echo '<p><label>Ort (optional): <input type="text" name="location" placeholder="Ort der Veranstaltung" style="width: 100%; padding: 8px;"></label></p>';
     echo '<h3>Terminvorschläge</h3>';
     for ($i = 1; $i <= 5; $i++) {
         echo '<p>Termin ' . $i . ': ';

@@ -35,7 +35,7 @@ $can_edit = $is_creator && $stats['total_responses'] <= 1;
 ?>
 
 <div style="margin-bottom: 20px;">
-    <a href="?tab=opinion&view=detail&poll_id=<?php echo $poll_id; ?>" style="text-decoration: none;">← Zurück</a>
+    <a href="?tab=opinion&view=detail&poll_id=<?php echo $poll_id; ?>" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">← Zurück</a>
 </div>
 
 <div class="opinion-card">
@@ -70,7 +70,11 @@ $can_edit = $is_creator && $stats['total_responses'] <= 1;
             <input type="hidden" name="action" value="submit_response">
             <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
 
-            <h4>Bitte wählen Sie Ihre Antwort:</h4>
+            <h4>Bitte wählen Sie Ihre Antwort:
+                <?php if (!empty($poll['description'])): ?>
+                    <span style="font-size: 0.85em; font-weight: normal; color: #666;"> (<?php echo htmlspecialchars($poll['description']); ?>)</span>
+                <?php endif; ?>
+            </h4>
             <small style="color: #666; display: block; margin-bottom: 15px;">
                 <?php echo $poll['allow_multiple_answers'] ? '☑️ Mehrfachantworten möglich' : '⚪ Bitte nur eine Antwort wählen'; ?>
             </small>

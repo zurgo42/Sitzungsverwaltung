@@ -22,7 +22,7 @@ if ($meeting_id > 0) {
     if ($meeting) {
         echo '<div class="protocol-view">';
         echo '<h2>📋 Protokoll anzeigen</h2>';
-        echo '<p><a href="?tab=protokolle">&larr; Zurück zur Übersicht</a></p>';
+        echo '<p><a href="?tab=protokolle" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">&larr; Zurück zur Übersicht</a></p>';
        
         if (!empty($stichwort)) {
             echo '<p class="search-info">Suche nach: <span class="highlight">' . htmlspecialchars($stichwort) . '</span></p>';

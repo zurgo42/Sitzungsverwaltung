@@ -464,6 +464,13 @@ function autoFillOnFocus(currentIndex) {
         currentTimeEndInput.value = prevTimeEndInput.value;
     }
 }
+
+// Link in Zwischenablage kopieren
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Link wurde in die Zwischenablage kopiert!');
+    });
+}
 </script>
 
 <h2>📅 Terminplanung & Umfragen</h2>
@@ -777,6 +784,32 @@ if (isset($_SESSION['error'])) {
                         ?>
                     </p>
                 <?php endif; endif; ?>
+            </div>
+        </div>
+
+        <!-- Link zur Umfrage -->
+        <?php
+        $host = defined('BASE_URL') ? BASE_URL : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
+        $poll_link = rtrim($host, '/') . '/index.php?tab=termine&view=poll&poll_id=' . $poll_id;
+        ?>
+        <div class="poll-card" style="background: #f0f8ff; border: 2px solid #4CAF50; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 10px 0;">🔗 Link zu dieser Umfrage</h4>
+            <p style="margin: 0 0 10px 0; color: #666;">
+                Teilen Sie diesen Link mit den Teilnehmern:
+            </p>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="text"
+                       id="poll_link_<?php echo $poll_id; ?>"
+                       value="<?php echo htmlspecialchars($poll_link); ?>"
+                       readonly
+                       onclick="this.select()"
+                       style="flex: 1; padding: 10px; font-size: 13px; font-family: monospace; border: 1px solid #ccc; background: white; border-radius: 4px;">
+                <button type="button"
+                        class="btn-secondary"
+                        onclick="copyToClipboard('<?php echo htmlspecialchars($poll_link, ENT_QUOTES); ?>')"
+                        style="padding: 10px 20px; white-space: nowrap;">
+                    📋 Kopieren
+                </button>
             </div>
         </div>
 
