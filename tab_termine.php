@@ -21,11 +21,14 @@ if ($is_admin) {
                m.first_name as creator_first_name,
                m.last_name as creator_last_name,
                COUNT(DISTINCT pd.date_id) as date_count,
-               COUNT(DISTINCT pr.member_id) as response_count
+               COUNT(DISTINCT pr.member_id) as response_count,
+               final_pd.suggested_date as final_date,
+               final_pd.suggested_end_date as final_end_date
         FROM polls p
         LEFT JOIN members m ON p.created_by_member_id = m.member_id
         LEFT JOIN poll_dates pd ON p.poll_id = pd.poll_id
         LEFT JOIN poll_responses pr ON p.poll_id = pr.poll_id
+        LEFT JOIN poll_dates final_pd ON p.final_date_id = final_pd.date_id
         GROUP BY p.poll_id
         ORDER BY p.created_at DESC
     ");
@@ -37,11 +40,14 @@ if ($is_admin) {
                m.first_name as creator_first_name,
                m.last_name as creator_last_name,
                COUNT(DISTINCT pd.date_id) as date_count,
-               COUNT(DISTINCT pr.member_id) as response_count
+               COUNT(DISTINCT pr.member_id) as response_count,
+               final_pd.suggested_date as final_date,
+               final_pd.suggested_end_date as final_end_date
         FROM polls p
         LEFT JOIN members m ON p.created_by_member_id = m.member_id
         LEFT JOIN poll_dates pd ON p.poll_id = pd.poll_id
         LEFT JOIN poll_responses pr ON p.poll_id = pr.poll_id
+        LEFT JOIN poll_dates final_pd ON p.final_date_id = final_pd.date_id
         INNER JOIN poll_participants pp ON p.poll_id = pp.poll_id
         WHERE pp.member_id = ?
         GROUP BY p.poll_id
@@ -583,9 +589,16 @@ if (isset($_SESSION['error'])) {
                         📅 <?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?>
                     </p>
 
-                    <?php if ($poll['status'] === 'finalized' && !empty($poll['finalized_at'])): ?>
+                    <?php if ($poll['status'] === 'finalized' && !empty($poll['final_date'])): ?>
                         <p style="color: #2196F3; font-weight: bold;">
-                            ✓ Finaler Termin festgelegt am <?php echo date('d.m.Y H:i', strtotime($poll['finalized_at'])); ?>
+                            ✓ Finaler Termin festgelegt auf <?php
+                                echo get_german_weekday_long($poll['final_date']) . ', den ' . date('d.m.Y', strtotime($poll['final_date']));
+                                if (!empty($poll['final_end_date'])) {
+                                    echo ' ' . date('H:i', strtotime($poll['final_date'])) . ' - ' . date('H:i', strtotime($poll['final_end_date']));
+                                } else {
+                                    echo ' ' . date('H:i', strtotime($poll['final_date'])) . ' Uhr';
+                                }
+                            ?>
                         </p>
                     <?php endif; ?>
                 </div>
@@ -716,18 +729,36 @@ if (isset($_SESSION['error'])) {
                     📅 <?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?>
                 </p>
 
-                <?php if ($poll['status'] === 'finalized' && !empty($poll['finalized_at'])): ?>
+                <?php if ($poll['status'] === 'finalized' && !empty($poll['final_date_id'])):
+                    // Finales Datum laden
+                    $final_date_stmt = $pdo->prepare("SELECT suggested_date, suggested_end_date FROM poll_dates WHERE date_id = ?");
+                    $final_date_stmt->execute([$poll['final_date_id']]);
+                    $final_date_info = $final_date_stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($final_date_info):
+                ?>
                     <p style="color: #2196F3; font-weight: bold;">
-                        ✓ Finaler Termin festgelegt am <?php echo date('d.m.Y H:i', strtotime($poll['finalized_at'])); ?>
+                        ✓ Finaler Termin festgelegt auf <?php
+                            echo get_german_weekday_long($final_date_info['suggested_date']) . ', den ' . date('d.m.Y', strtotime($final_date_info['suggested_date']));
+                            if (!empty($final_date_info['suggested_end_date'])) {
+                                echo ' ' . date('H:i', strtotime($final_date_info['suggested_date'])) . ' - ' . date('H:i', strtotime($final_date_info['suggested_end_date']));
+                            } else {
+                                echo ' ' . date('H:i', strtotime($final_date_info['suggested_date'])) . ' Uhr';
+                            }
+                        ?>
                     </p>
-                <?php endif; ?>
+                <?php endif; endif; ?>
             </div>
         </div>
 
         <!-- Abstimmungs-Formular -->
         <?php if ($can_vote): ?>
             <h3>📝 Ihre Abstimmung</h3>
-            <p style="margin-bottom: 15px; color: #666;">Bitte geben Sie für jeden Terminvorschlag an, ob der Termin für Sie passt. Ihre aktuelle Wahl ist farbig hervorgehoben.</p>
+            <p style="margin-bottom: 15px; color: #666;">
+                Bitte geben Sie für jeden Terminvorschlag an, ob der Termin für Sie passt:<br>
+                <strong>✅ Passt</strong> – Der Termin passt mir gut<br>
+                <strong>🟡 Muss</strong> – Wenn es sein muss, kann ich<br>
+                <strong>❌ Passt nicht</strong> – Der Termin passt mir nicht
+            </p>
 
             <form method="POST" action="process_termine.php">
                 <input type="hidden" name="action" value="submit_vote">
@@ -755,20 +786,20 @@ if (isset($_SESSION['error'])) {
                                     <span style="color: #666; font-size: 13px;"><?php echo $time_str; ?></span>
                                 </td>
                                 <td>
-                                    <input type="hidden" name="vote_<?php echo $date['date_id']; ?>" id="vote_<?php echo $date['date_id']; ?>" value="<?php echo $user_vote ?? 0; ?>">
+                                    <input type="hidden" name="vote_<?php echo $date['date_id']; ?>" id="vote_<?php echo $date['date_id']; ?>" value="<?php echo $user_vote !== null ? $user_vote : ''; ?>">
                                     <div class="vote-buttons">
                                         <button type="button"
-                                                class="vote-btn vote-yes <?php echo $user_vote == 1 ? 'selected' : ''; ?>"
+                                                class="vote-btn vote-yes <?php echo $user_vote === 1 ? 'selected' : ''; ?>"
                                                 onclick="selectVote(this, <?php echo $date['date_id']; ?>, 1)">
                                             ✅ Passt
                                         </button>
                                         <button type="button"
-                                                class="vote-btn vote-maybe <?php echo $user_vote == 0 ? 'selected' : ''; ?>"
+                                                class="vote-btn vote-maybe <?php echo $user_vote === 0 ? 'selected' : ''; ?>"
                                                 onclick="selectVote(this, <?php echo $date['date_id']; ?>, 0)">
                                             🟡 Muss
                                         </button>
                                         <button type="button"
-                                                class="vote-btn vote-no <?php echo $user_vote == -1 ? 'selected' : ''; ?>"
+                                                class="vote-btn vote-no <?php echo $user_vote === -1 ? 'selected' : ''; ?>"
                                                 onclick="selectVote(this, <?php echo $date['date_id']; ?>, -1)">
                                             ❌ Passt nicht
                                         </button>
@@ -845,15 +876,15 @@ if (isset($_SESSION['error'])) {
                         </td>
                         <?php foreach (array_keys($participants) as $member_id):
                             $vote = $votes_by_member[$member_id] ?? null;
-                            $vote_icon = '';
+                            $vote_icon = '–';  // Strich für keine Abstimmung
                             $vote_color = '#ddd';
-                            if ($vote == 1) {
+                            if ($vote === 1) {
                                 $vote_icon = '✅';
                                 $vote_color = '#4CAF50';
-                            } elseif ($vote == 0) {
+                            } elseif ($vote === 0) {
                                 $vote_icon = '🟡';
                                 $vote_color = '#FF9800';
-                            } elseif ($vote == -1) {
+                            } elseif ($vote === -1) {
                                 $vote_icon = '❌';
                                 $vote_color = '#f44336';
                             }
@@ -934,7 +965,7 @@ if (isset($_SESSION['error'])) {
                     <select name="final_date_id" required>
                         <option value="">- Termin auswählen -</option>
                         <?php foreach ($poll_dates as $date):
-                            $date_str = date('D, d.m.Y H:i', strtotime($date['suggested_date']));
+                            $date_str = get_german_weekday($date['suggested_date']) . ', ' . date('d.m.Y H:i', strtotime($date['suggested_date']));
                         ?>
                             <option value="<?php echo $date['date_id']; ?>">
                                 <?php echo $date_str; ?>
