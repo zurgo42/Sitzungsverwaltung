@@ -556,6 +556,14 @@ try {
         echo ".";
     }
 
+    // poll_responses.participant_email (falls nicht vorhanden) - DEPRECATED, aber für Import kompatibel
+    $stmt = $pdo->query("SHOW COLUMNS FROM poll_responses LIKE 'participant_email'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'participant_email' zu poll_responses hinzu...</p>";
+        $pdo->exec("ALTER TABLE poll_responses ADD COLUMN participant_email VARCHAR(255) DEFAULT NULL AFTER participant_name");
+        echo ".";
+    }
+
     // opinion_answer_templates.description (falls nicht vorhanden)
     $stmt = $pdo->query("SHOW COLUMNS FROM opinion_answer_templates LIKE 'description'");
     if (!$stmt->fetch()) {

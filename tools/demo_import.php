@@ -304,7 +304,13 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                         $columns = array_keys($row);
                         $placeholders = array_fill(0, count($columns), '?');
 
-                        $sql = "INSERT INTO $table (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+                        // Für opinion_answer_templates: REPLACE statt INSERT (Templates wurden bereits von init-db.php angelegt)
+                        if ($table === 'opinion_answer_templates') {
+                            $sql = "REPLACE INTO $table (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+                        } else {
+                            $sql = "INSERT INTO $table (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+                        }
+
                         $stmt = $pdo->prepare($sql);
                         $stmt->execute(array_values($row));
                         $count++;
