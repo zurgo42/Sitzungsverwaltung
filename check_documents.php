@@ -6,7 +6,11 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+session_start();
 require_once 'config.php';
+require_once 'functions.php';
+require_once 'member_functions.php';
+require_once 'documents_functions.php';
 
 echo "<!DOCTYPE html>
 <html lang='de'>
@@ -32,6 +36,24 @@ try {
     ]);
 
     echo "<p class='ok'>✓ Datenbankverbindung OK</p>";
+
+    // Aktueller Benutzer
+    if (isset($_SESSION['member_id'])) {
+        $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+        echo "<h2>Aktueller Benutzer:</h2>";
+        echo "<p>Name: <strong>" . htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']) . "</strong></p>";
+        echo "<p>Rolle: <strong>" . htmlspecialchars($current_user['role']) . "</strong></p>";
+        echo "<p>is_admin Flag: <strong>" . ($current_user['is_admin'] ? 'JA' : 'NEIN') . "</strong></p>";
+
+        if ($current_user['is_admin']) {
+            echo "<p class='ok'>✓ Du bist Admin - kannst Dokumente hochladen</p>";
+        } else {
+            echo "<p class='error'>✗ Du bist KEIN Admin - kannst keine Dokumente hochladen!</p>";
+        }
+    } else {
+        echo "<p class='error'>✗ Nicht eingeloggt!</p>";
+    }
+    echo "<hr>";
 
     // Prüfe ob Tabelle documents existiert
     try {
