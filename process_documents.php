@@ -4,11 +4,17 @@
  * Verarbeitet POST-Requests für Dokumente
  */
 
+// Session starten (muss ganz am Anfang stehen)
+session_start();
+
+// Konfiguration und Funktionen laden
+// functions.php bindet bereits config.php, member_functions.php etc. ein
+require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/documents_functions.php';
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     die('Nur POST-Requests erlaubt');
 }
-
-require_once __DIR__ . '/documents_functions.php';
 
 // Session und User laden
 if (!isset($_SESSION['member_id'])) {
