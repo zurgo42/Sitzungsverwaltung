@@ -406,14 +406,34 @@ function addMorePollDates() {
 
     pollDateCount++;
     const newRow = document.createElement('div');
-    newRow.style.cssText = 'display: grid; grid-template-columns: 150px 100px 100px 60px; gap: 10px; align-items: center; margin-bottom: 8px;';
+    newRow.style.cssText = 'display: grid; grid-template-columns: 150px 100px 100px; gap: 10px; align-items: center; margin-bottom: 8px;';
     newRow.innerHTML = `
         <input type="date" name="date_${pollDateCount}" id="poll_date_${pollDateCount}" onfocus="autoFillOnFocus(${pollDateCount})" style="width: 100%;">
-        <input type="time" name="time_start_${pollDateCount}" id="poll_time_start_${pollDateCount}" onfocus="autoFillOnFocus(${pollDateCount})" style="width: 100%;">
+        <input type="time" name="time_start_${pollDateCount}" id="poll_time_start_${pollDateCount}" onfocus="autoFillOnFocus(${pollDateCount})" onchange="calculateEndTime(${pollDateCount})" style="width: 100%;">
         <input type="time" name="time_end_${pollDateCount}" id="poll_time_end_${pollDateCount}" onfocus="autoFillOnFocus(${pollDateCount})" style="width: 100%;">
-        <button type="button" onclick="this.parentElement.remove(); pollDateCount--;" style="background: #f44336; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px;">×</button>
     `;
     container.appendChild(newRow);
+}
+
+// Automatische Berechnung der Ende-Zeit basierend auf Dauer
+function calculateEndTime(index) {
+    const durationInput = document.getElementById('poll_duration');
+    const startTimeInput = document.getElementById('poll_time_start_' + index);
+    const endTimeInput = document.getElementById('poll_time_end_' + index);
+
+    if (!durationInput || !durationInput.value || !startTimeInput || !startTimeInput.value) {
+        return;
+    }
+
+    const duration = parseInt(durationInput.value);
+    const [hours, minutes] = startTimeInput.value.split(':');
+    const startTime = new Date();
+    startTime.setHours(parseInt(hours), parseInt(minutes), 0);
+    startTime.setMinutes(startTime.getMinutes() + duration);
+
+    const endHours = String(startTime.getHours()).padStart(2, '0');
+    const endMinutes = String(startTime.getMinutes()).padStart(2, '0');
+    endTimeInput.value = `${endHours}:${endMinutes}`;
 }
 
 // Auto-Vorschlag: Folgetag mit gleicher Uhrzeit (wird beim Focus ins nächste Feld getriggert)
@@ -523,20 +543,26 @@ if (isset($_SESSION['error'])) {
                 <h3 style="margin-top: 25px; margin-bottom: 15px;">Terminvorschläge</h3>
 
                 <div class="form-group">
-                    <div style="display: grid; grid-template-columns: 150px 100px 100px 60px; gap: 10px; align-items: center; margin-bottom: 10px; font-weight: bold; border-bottom: 2px solid #ddd; padding-bottom: 5px;">
+                    <label>Voraussichtliche Dauer (Minuten):</label>
+                    <input type="number" name="poll_duration" id="poll_duration" placeholder="z.B. 120" min="15" step="15" style="width: 150px;">
+                    <small style="display: block; margin-top: 5px; color: #666;">
+                        Optional: Wenn angegeben, wird die Ende-Zeit automatisch berechnet
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <div style="display: grid; grid-template-columns: 150px 100px 100px; gap: 10px; align-items: center; margin-bottom: 10px; font-weight: bold; border-bottom: 2px solid #ddd; padding-bottom: 5px;">
                         <div>Datum</div>
                         <div>Beginn</div>
                         <div>Ende</div>
-                        <div></div>
                     </div>
 
                     <div id="date-suggestions-container">
                         <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <div style="display: grid; grid-template-columns: 150px 100px 100px 60px; gap: 10px; align-items: center; margin-bottom: 8px;">
+                        <div style="display: grid; grid-template-columns: 150px 100px 100px; gap: 10px; align-items: center; margin-bottom: 8px;">
                             <input type="date" name="date_<?php echo $i; ?>" id="poll_date_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
-                            <input type="time" name="time_start_<?php echo $i; ?>" id="poll_time_start_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
+                            <input type="time" name="time_start_<?php echo $i; ?>" id="poll_time_start_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" onchange="calculateEndTime(<?php echo $i; ?>)" style="width: 100%;">
                             <input type="time" name="time_end_<?php echo $i; ?>" id="poll_time_end_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
-                            <span></span>
                         </div>
                         <?php endfor; ?>
                     </div>
@@ -693,7 +719,7 @@ if (isset($_SESSION['error'])) {
         $stmt->execute([$poll_id, $current_user['member_id']]);
         $user_votes = [];
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $user_votes[$row['date_id']] = $row['vote'];
+            $user_votes[$row['date_id']] = (int)$row['vote'];
         }
 
         // Berechtigungen
@@ -852,7 +878,7 @@ if (isset($_SESSION['error'])) {
 
                     foreach ($all_responses as $resp) {
                         if ($resp['date_id'] == $date['date_id']) {
-                            $votes_by_member[$resp['member_id']] = $resp['vote'];
+                            $votes_by_member[$resp['member_id']] = (int)$resp['vote'];
                             if ($resp['vote'] == 1) $count_yes++;
                             elseif ($resp['vote'] == 0) $count_maybe++;
                             elseif ($resp['vote'] == -1) $count_no++;

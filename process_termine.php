@@ -208,10 +208,16 @@ try {
             foreach ($_POST as $key => $value) {
                 if (strpos($key, 'vote_') === 0) {
                     $date_id = intval(str_replace('vote_', '', $key));
+
+                    // Leere Werte überspringen (User hat nicht abgestimmt)
+                    if ($value === '' || $value === null) {
+                        continue;
+                    }
+
                     $vote = intval($value);
 
                     // Nur gültige Votes speichern (-1, 0, 1)
-                    if (in_array($vote, [-1, 0, 1])) {
+                    if (in_array($vote, [-1, 0, 1], true)) {
                         $stmt->execute([$poll_id, $date_id, $current_user['member_id'], $vote]);
                     }
                 }
