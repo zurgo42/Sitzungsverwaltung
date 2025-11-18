@@ -258,11 +258,13 @@ Für größere Installationen empfohlen:
    chmod 600 config.php
    ```
 
-4. **init-db.php und demo.php löschen oder schützen:**
+4. **init-db.php und Demo-Tools löschen oder schützen:**
    ```bash
-   rm init-db.php demo.php
+   rm init-db.php
+   rm tools/demo_export.php tools/demo_import.php
    # Oder:
-   chmod 000 init-db.php demo.php
+   chmod 000 init-db.php
+   chmod 000 tools/demo_export.php tools/demo_import.php
    ```
 
 5. **HTTPS erzwingen:**
