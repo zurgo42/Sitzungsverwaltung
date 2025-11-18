@@ -468,6 +468,36 @@ try {
     echo "<p style='color: green;'>✓ Alle Tabellen erfolgreich erstellt!</p>";
 
     // =========================================================
+    // MIGRATIONS: Fehlende Spalten hinzufügen
+    // =========================================================
+
+    echo "<p>Prüfe auf fehlende Spalten und führe Migrations aus...</p>";
+
+    // Migration: location, video_link, duration zu polls hinzufügen (falls fehlend)
+    $stmt = $pdo->query("SHOW COLUMNS FROM polls LIKE 'location'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'location' zu polls hinzu...</p>";
+        $pdo->exec("ALTER TABLE polls ADD COLUMN location VARCHAR(255) DEFAULT NULL AFTER meeting_id");
+        echo ".";
+    }
+
+    $stmt = $pdo->query("SHOW COLUMNS FROM polls LIKE 'video_link'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'video_link' zu polls hinzu...</p>";
+        $pdo->exec("ALTER TABLE polls ADD COLUMN video_link VARCHAR(500) DEFAULT NULL AFTER location");
+        echo ".";
+    }
+
+    $stmt = $pdo->query("SHOW COLUMNS FROM polls LIKE 'duration'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'duration' zu polls hinzu...</p>";
+        $pdo->exec("ALTER TABLE polls ADD COLUMN duration INT DEFAULT NULL AFTER video_link");
+        echo ".";
+    }
+
+    echo "<p style='color: green;'>✓ Migrations abgeschlossen!</p>";
+
+    // =========================================================
     // TRIGGER & INITIALDATEN
     // =========================================================
 
