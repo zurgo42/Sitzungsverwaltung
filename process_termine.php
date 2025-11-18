@@ -309,8 +309,8 @@ try {
                     $participants = $participants_stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     $invite_stmt = $pdo->prepare("
-                        INSERT INTO meeting_invites (meeting_id, member_id, status)
-                        VALUES (?, ?, 'pending')
+                        INSERT INTO meeting_participants (meeting_id, member_id, status)
+                        VALUES (?, ?, 'invited')
                     ");
                     foreach ($participants as $participant) {
                         $invite_stmt->execute([$new_meeting_id, $participant['member_id']]);
