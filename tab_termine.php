@@ -573,6 +573,17 @@ if (isset($_SESSION['error'])) {
                     </small>
                 </div>
 
+                <!-- E-Mail-Optionen -->
+                <div class="form-group" style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #ddd;">
+                    <label style="display: block; margin-bottom: 10px;">
+                        <input type="checkbox" name="send_invitation_mail" value="1" checked>
+                        <strong>Einladungsmail an ausgewählte Teilnehmer senden</strong>
+                    </label>
+                    <small style="display: block; margin-left: 24px; color: #666;">
+                        Wenn aktiviert, werden alle ausgewählten Teilnehmer per E-Mail über die neue Umfrage benachrichtigt
+                    </small>
+                </div>
+
                 <button type="submit">Umfrage erstellen</button>
             </form>
         </div>
@@ -1001,6 +1012,41 @@ if (isset($_SESSION['error'])) {
                             </option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+
+                <!-- E-Mail-Optionen -->
+                <div class="form-group" style="margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 10px;">📧 E-Mail-Benachrichtigungen:</label>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: normal; display: block; margin-bottom: 8px;">Bestätigungsmail senden an:</label>
+                        <label style="display: block; margin-bottom: 5px;">
+                            <input type="radio" name="notification_recipients" value="voters" checked>
+                            Nur Teilnehmer, die abgestimmt haben
+                        </label>
+                        <label style="display: block; margin-bottom: 5px;">
+                            <input type="radio" name="notification_recipients" value="all">
+                            Alle ausgewählten Teilnehmer (auch ohne Abstimmung)
+                        </label>
+                        <label style="display: block;">
+                            <input type="radio" name="notification_recipients" value="none">
+                            Keine E-Mail senden
+                        </label>
+                    </div>
+
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                        <label style="display: block; margin-bottom: 10px;">
+                            <input type="checkbox" name="send_reminder" value="1" id="send_reminder_checkbox" onchange="document.getElementById('reminder_days_input').disabled = !this.checked">
+                            <strong>Erinnerungsmail vor dem Termin senden</strong>
+                        </label>
+                        <div style="margin-left: 24px;">
+                            <label style="display: block; margin-bottom: 5px;">Erinnerung senden (Tage vorher):</label>
+                            <input type="number" name="reminder_days" id="reminder_days_input" value="1" min="1" max="30" style="width: 80px;" disabled>
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                Die Erinnerungsmail wird automatisch X Tage vor dem Termin an die gleichen Empfänger versendet
+                            </small>
+                        </div>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-primary" onclick="return confirm('Finalen Termin festlegen? Die Umfrage wird damit abgeschlossen.')">

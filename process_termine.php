@@ -171,7 +171,25 @@ try {
                 }
             }
 
-            $_SESSION['success'] = 'Terminumfrage erfolgreich erstellt!';
+            // Einladungsmail senden (optional)
+            $success_message = 'Terminumfrage erfolgreich erstellt!';
+            if (!empty($_POST['send_invitation_mail'])) {
+                try {
+                    $host_url_base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
+                    $sent_count = send_poll_invitation($pdo, $poll_id, $host_url_base);
+
+                    if ($sent_count > 0) {
+                        $success_message .= " $sent_count Einladungs-E-Mails wurden versendet.";
+                    } else {
+                        $success_message .= " (Keine E-Mails versendet - evtl. haben Teilnehmer keine E-Mail-Adressen)";
+                    }
+                } catch (Exception $e) {
+                    error_log("Einladungsmail-Versand fehlgeschlagen: " . $e->getMessage());
+                    $success_message .= " (E-Mail-Versand fehlgeschlagen)";
+                }
+            }
+
+            $_SESSION['success'] = $success_message;
             header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
             exit;
 
@@ -283,21 +301,50 @@ try {
             }
 
             // E-Mail-Benachrichtigung an Teilnehmer
+            $notification_recipients = $_POST['notification_recipients'] ?? 'voters';
+            $success_message = 'Finaler Termin wurde festgelegt!';
+
             try {
                 // Basis-URL für Links bestimmen
                 $host_url_base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
-                $sent_count = send_poll_finalization_notification($pdo, $poll_id, $final_date_id, $host_url_base);
+                $sent_count = send_poll_finalization_notification($pdo, $poll_id, $final_date_id, $host_url_base, $notification_recipients);
 
                 if ($sent_count > 0) {
-                    $_SESSION['success'] = "Finaler Termin wurde festgelegt! $sent_count Benachrichtigungs-E-Mails wurden versendet.";
-                } else {
-                    $_SESSION['success'] = 'Finaler Termin wurde festgelegt!';
+                    $success_message .= " $sent_count Benachrichtigungs-E-Mails wurden versendet.";
+                } elseif ($notification_recipients !== 'none') {
+                    $success_message .= " (Keine E-Mails versendet - evtl. haben Teilnehmer keine E-Mail-Adressen)";
                 }
             } catch (Exception $e) {
                 // E-Mail-Fehler nicht kritisch - Termin wurde trotzdem gesetzt
                 error_log("E-Mail-Versand fehlgeschlagen: " . $e->getMessage());
-                $_SESSION['success'] = 'Finaler Termin wurde festgelegt! (E-Mail-Versand fehlgeschlagen)';
+                if ($notification_recipients !== 'none') {
+                    $success_message .= " (E-Mail-Versand fehlgeschlagen)";
+                }
             }
+
+            // Erinnerungsmail speichern (falls aktiviert)
+            if (!empty($_POST['send_reminder'])) {
+                $reminder_days = intval($_POST['reminder_days'] ?? 1);
+                if ($reminder_days > 0 && $reminder_days <= 30) {
+                    try {
+                        $stmt = $pdo->prepare("
+                            UPDATE polls
+                            SET reminder_enabled = 1,
+                                reminder_days = ?,
+                                reminder_recipients = ?,
+                                reminder_sent = 0
+                            WHERE poll_id = ?
+                        ");
+                        $stmt->execute([$reminder_days, $notification_recipients, $poll_id]);
+                        $success_message .= " Erinnerungsmail wird $reminder_days Tag(e) vor dem Termin versendet.";
+                    } catch (Exception $e) {
+                        error_log("Erinnerungsmail-Konfiguration fehlgeschlagen: " . $e->getMessage());
+                        $success_message .= " (Erinnerungsmail-Konfiguration fehlgeschlagen)";
+                    }
+                }
+            }
+
+            $_SESSION['success'] = $success_message;
             header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
             exit;
 
