@@ -94,13 +94,13 @@ $can_edit = $is_creator && $stats['total_responses'] <= 1;
 
             <div class="form-group" style="margin-top: 20px;">
                 <label>Optionaler Kommentar / Begründung:</label>
-                <textarea name="free_text" rows="4" placeholder="Sie können hier einen Kommentar zu Ihrer Antwort hinzufügen..." style="width: 100%;"><?php echo $existing_response ? htmlspecialchars($existing_response['free_text']) : ''; ?></textarea>
+                <textarea name="free_text" rows="4" placeholder="Sie können hier einen Kommentar zu Ihrer Antwort hinzufügen..." style="width: 100%;"><?php echo ($existing_response && isset($existing_response['free_text'])) ? htmlspecialchars($existing_response['free_text']) : ''; ?></textarea>
             </div>
 
             <?php if (!$poll['is_anonymous'] && $current_user): ?>
                 <div class="form-group">
                     <label>
-                        <input type="checkbox" name="force_anonymous" value="1" <?php echo ($existing_response && $existing_response['force_anonymous']) ? 'checked' : ''; ?>>
+                        <input type="checkbox" name="force_anonymous" value="1" <?php echo ($existing_response && !empty($existing_response['force_anonymous'])) ? 'checked' : ''; ?>>
                         <strong>Meine Antwort soll trotzdem anonym bleiben</strong>
                     </label>
                     <small style="display: block; margin-left: 24px; color: #666;">
