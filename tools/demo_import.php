@@ -296,8 +296,10 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                     continue;
                 }
 
+                echo "<p><strong>Importiere $table...</strong> (" . count($rows) . " Datensätze)</p>";
+
                 $count = 0;
-                foreach ($rows as $row) {
+                foreach ($rows as $row_idx => $row) {
                     try {
                         $columns = array_keys($row);
                         $placeholders = array_fill(0, count($columns), '?');
@@ -307,13 +309,15 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                         $stmt->execute(array_values($row));
                         $count++;
                     } catch (PDOException $e) {
-                        $import_errors[] = "Fehler bei Tabelle '$table': " . $e->getMessage();
+                        $error_msg = "Fehler bei Tabelle '$table', Datensatz #" . ($row_idx + 1) . ": " . $e->getMessage();
+                        $import_errors[] = $error_msg;
+                        echo "<p style='color: red; font-size: 0.9em;'>✗ $error_msg</p>";
                         // Weiter mit nächstem Datensatz
                     }
                 }
 
                 $import_stats[$table] = $count;
-                echo "<p>✓ $table: $count Datensätze importiert</p>";
+                echo "<p style='color: green;'>✓ $table: $count Datensätze erfolgreich importiert</p>";
             }
 
             $pdo->commit();
