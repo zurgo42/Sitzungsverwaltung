@@ -138,32 +138,44 @@ chmod 700 sessions/
 
 ### 5. Demo-Daten laden (Optional)
 
-Für Testzwecke oder zum Kennenlernen der Anwendung gibt es zwei Möglichkeiten:
+Für Testzwecke oder zum Kennenlernen der Anwendung gibt es drei Möglichkeiten:
 
-#### Option A: Demo-Daten erstellen und exportieren
+#### Option A: Automatische Demo-Daten generieren
+
+**Schnellste Methode - generiert vollständiges Demo-Szenario:**
+
+1. Setzen Sie in `config.php`: `define('DEMO_MODE_ENABLED', true);`
+2. Öffnen Sie im Browser: `https://ihre-domain.de/sitzungsverwaltung/demo.php`
+3. Das Skript erstellt automatisch:
+   - 8 Test-Mitglieder (Passwort: demo123)
+   - 3 Meetings mit Tagesordnungspunkten
+   - TODOs, Terminabstimmungen, Meinungsbilder
+
+#### Option B: Eigene Demo-Daten erstellen und exportieren
+
+**Für individuelles Demo-Szenario:**
 
 1. Melden Sie sich mit dem Default-Admin an (admin@example.com / admin123)
 2. Erstellen Sie Test-Daten: Meetings, TODOs, Terminabstimmungen, Meinungsbilder
 3. Öffnen Sie im Browser: `https://ihre-domain.de/sitzungsverwaltung/tools/demo_export.php`
 4. Das Skript exportiert alle Daten in `tools/demo_data.json`
+5. **Wichtig:** Laden Sie die JSON-Datei herunter und bewahren Sie sie auf
 
-#### Option B: Demo-Daten importieren (falls vorhanden)
+#### Option C: Demo-Daten importieren (aus vorhandenem Export)
 
 **WARNUNG:** Dieser Vorgang löscht ALLE bestehenden Daten!
 
-1. Öffnen Sie im Browser: `https://ihre-domain.de/sitzungsverwaltung/tools/demo_import.php`
-2. Bestätigen Sie den Vorgang
-3. Das Skript löscht alle Daten und importiert das Demo-Szenario aus `tools/demo_data.json`
+**Voraussetzung:** Sie haben bereits eine `demo_data.json` (z.B. von xampp exportiert)
 
-**Was wird importiert:**
-- Demo-Mitglieder mit verschiedenen Rollen
-- Demo-Meetings in verschiedenen Stati
-- Demo-Tagesordnungspunkte mit Kommentaren & Protokollen
-- Demo-TODOs mit Historie
-- Demo-Terminabstimmungen mit Antworten
-- Demo-Meinungsbilder mit Antworten
+1. Stellen Sie sicher, dass `demo_data.json` im Verzeichnis `tools/` liegt
+2. Öffnen Sie im Browser: `https://ihre-domain.de/sitzungsverwaltung/tools/demo_import.php`
+3. Bestätigen Sie den Vorgang
+4. Das Skript löscht alle Daten und importiert das Demo-Szenario
 
-**WICHTIG:** Der Demo-Import ersetzt den Default-Admin durch die Demo-User!
+**Bei Transfer von xampp zu Produktiv-Server:**
+- Auf xampp: `tools/demo_export.php` ausführen
+- `tools/demo_data.json` per FTP auf Server kopieren
+- Auf Server: `tools/demo_import.php` ausführen
 
 ### 6. Erste Schritte
 
