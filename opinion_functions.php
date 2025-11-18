@@ -111,9 +111,12 @@ function has_responded($pdo, $poll_id, $member_id = null, $session_token = null)
  */
 function get_user_response($pdo, $poll_id, $member_id = null, $session_token = null) {
     $stmt = $pdo->prepare("
-        SELECT r.*, GROUP_CONCAT(oro.option_id) as selected_option_ids
+        SELECT r.*,
+               GROUP_CONCAT(oro.option_id ORDER BY opo.sort_order) as selected_option_ids,
+               GROUP_CONCAT(opo.option_text ORDER BY opo.sort_order SEPARATOR ', ') as selected_options_text
         FROM opinion_responses r
         LEFT JOIN opinion_response_options oro ON r.response_id = oro.response_id
+        LEFT JOIN opinion_poll_options opo ON oro.option_id = opo.option_id
         WHERE r.poll_id = ? AND (r.member_id = ? OR r.session_token = ?)
         GROUP BY r.response_id
     ");
