@@ -237,6 +237,11 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             📅 Termine
         </a>
 
+        <!-- Meinungsbild-Tab (immer sichtbar) -->
+        <a href="?tab=opinion" class="<?php echo $active_tab === 'opinion' ? 'active' : ''; ?>">
+            📊 Meinungsbild
+        </a>
+
         <!-- ToDos-Tab (immer sichtbar) -->
         <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
             ✅ Meine ToDos
@@ -279,6 +284,11 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             case 'termine':
                 // Terminplanung/Umfragen anzeigen
                 include 'tab_termine.php';
+                break;
+
+            case 'opinion':
+                // Meinungsbild-Tool anzeigen
+                include 'tab_opinion.php';
                 break;
 
             case 'todos':
