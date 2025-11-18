@@ -54,6 +54,36 @@ $all_polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Meetings für Dropdown laden
 $all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
 $all_members = get_all_members($pdo);
+
+// Hilfsfunktion: Deutsche Wochentage (kurz)
+function get_german_weekday($date_string) {
+    $days = [
+        'Mon' => 'Mo',
+        'Tue' => 'Di',
+        'Wed' => 'Mi',
+        'Thu' => 'Do',
+        'Fri' => 'Fr',
+        'Sat' => 'Sa',
+        'Sun' => 'So'
+    ];
+    $eng_day = date('D', strtotime($date_string));
+    return $days[$eng_day] ?? $eng_day;
+}
+
+// Hilfsfunktion: Deutsche Wochentage (lang)
+function get_german_weekday_long($date_string) {
+    $days = [
+        'Monday' => 'Montag',
+        'Tuesday' => 'Dienstag',
+        'Wednesday' => 'Mittwoch',
+        'Thursday' => 'Donnerstag',
+        'Friday' => 'Freitag',
+        'Saturday' => 'Samstag',
+        'Sunday' => 'Sonntag'
+    ];
+    $eng_day = date('l', strtotime($date_string));
+    return $days[$eng_day] ?? $eng_day;
+}
 ?>
 
 <style>
@@ -251,6 +281,55 @@ $all_members = get_all_members($pdo);
 
 .accordion-content.active {
     display: block;
+}
+
+/* Button Styles */
+.btn-primary {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+}
+
+.btn-danger:hover {
+    background: #c82333;
 }
 </style>
 
@@ -581,6 +660,17 @@ if (isset($_SESSION['error'])) {
         $stmt->execute([$poll_id]);
         $all_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Alle eingeladenen Teilnehmer laden
+        $stmt = $pdo->prepare("
+            SELECT pp.member_id, m.first_name, m.last_name
+            FROM poll_participants pp
+            LEFT JOIN members m ON pp.member_id = m.member_id
+            WHERE pp.poll_id = ?
+            ORDER BY m.last_name, m.first_name
+        ");
+        $stmt->execute([$poll_id]);
+        $poll_participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
         // User's aktuelle Antworten laden
         $stmt = $pdo->prepare("
             SELECT date_id, vote
@@ -653,7 +743,7 @@ if (isset($_SESSION['error'])) {
                     <tbody>
                         <?php foreach ($poll_dates as $date):
                             $user_vote = $user_votes[$date['date_id']] ?? null;
-                            $date_str = date('D, d.m.Y', strtotime($date['suggested_date']));
+                            $date_str = get_german_weekday($date['suggested_date']) . ', ' . date('d.m.Y', strtotime($date['suggested_date']));
                             $time_str = date('H:i', strtotime($date['suggested_date']));
                             if (!empty($date['suggested_end_date'])) {
                                 $time_str .= ' - ' . date('H:i', strtotime($date['suggested_end_date']));
@@ -668,17 +758,17 @@ if (isset($_SESSION['error'])) {
                                     <input type="hidden" name="vote_<?php echo $date['date_id']; ?>" id="vote_<?php echo $date['date_id']; ?>" value="<?php echo $user_vote ?? 0; ?>">
                                     <div class="vote-buttons">
                                         <button type="button"
-                                                class="vote-btn vote-yes <?php echo $user_vote === 1 ? 'selected' : ''; ?>"
+                                                class="vote-btn vote-yes <?php echo $user_vote == 1 ? 'selected' : ''; ?>"
                                                 onclick="selectVote(this, <?php echo $date['date_id']; ?>, 1)">
                                             ✅ Passt
                                         </button>
                                         <button type="button"
-                                                class="vote-btn vote-maybe <?php echo $user_vote === 0 ? 'selected' : ''; ?>"
+                                                class="vote-btn vote-maybe <?php echo $user_vote == 0 ? 'selected' : ''; ?>"
                                                 onclick="selectVote(this, <?php echo $date['date_id']; ?>, 0)">
                                             🟡 Muss
                                         </button>
                                         <button type="button"
-                                                class="vote-btn vote-no <?php echo $user_vote === -1 ? 'selected' : ''; ?>"
+                                                class="vote-btn vote-no <?php echo $user_vote == -1 ? 'selected' : ''; ?>"
                                                 onclick="selectVote(this, <?php echo $date['date_id']; ?>, -1)">
                                             ❌ Passt nicht
                                         </button>
@@ -704,12 +794,10 @@ if (isset($_SESSION['error'])) {
                     <th style="width: 180px;">Terminvorschlag</th>
                     <th style="text-align: center; width: 140px;">Zusammenfassung</th>
                     <?php
-                    // Alle Teilnehmer die abgestimmt haben
+                    // Alle eingeladenen Teilnehmer anzeigen
                     $participants = [];
-                    foreach ($all_responses as $resp) {
-                        if (!isset($participants[$resp['member_id']])) {
-                            $participants[$resp['member_id']] = $resp['first_name'] . ' ' . substr($resp['last_name'], 0, 1) . '.';
-                        }
+                    foreach ($poll_participants as $pp) {
+                        $participants[$pp['member_id']] = $pp['first_name'] . ' ' . substr($pp['last_name'], 0, 1) . '.';
                     }
                     foreach ($participants as $name): ?>
                         <th style="text-align: center; font-size: 11px; padding: 6px 4px;"><?php echo htmlspecialchars($name); ?></th>
@@ -719,7 +807,7 @@ if (isset($_SESSION['error'])) {
             <tbody>
                 <?php foreach ($poll_dates as $date):
                     $is_final = ($poll['final_date_id'] == $date['date_id']);
-                    $date_str = date('D, d.m.Y', strtotime($date['suggested_date']));
+                    $date_str = get_german_weekday($date['suggested_date']) . ', ' . date('d.m.Y', strtotime($date['suggested_date']));
                     $time_str = date('H:i', strtotime($date['suggested_date']));
                     if (!empty($date['suggested_end_date'])) {
                         $time_str .= ' - ' . date('H:i', strtotime($date['suggested_end_date']));
@@ -759,13 +847,13 @@ if (isset($_SESSION['error'])) {
                             $vote = $votes_by_member[$member_id] ?? null;
                             $vote_icon = '';
                             $vote_color = '#ddd';
-                            if ($vote === 1) {
+                            if ($vote == 1) {
                                 $vote_icon = '✅';
                                 $vote_color = '#4CAF50';
-                            } elseif ($vote === 0) {
+                            } elseif ($vote == 0) {
                                 $vote_icon = '🟡';
                                 $vote_color = '#FF9800';
-                            } elseif ($vote === -1) {
+                            } elseif ($vote == -1) {
                                 $vote_icon = '❌';
                                 $vote_color = '#f44336';
                             }
@@ -788,7 +876,7 @@ if (isset($_SESSION['error'])) {
             $final_date = $final_stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($final_date):
-                $final_date_str = date('l, d.m.Y', strtotime($final_date['suggested_date']));
+                $final_date_str = get_german_weekday_long($final_date['suggested_date']) . ', ' . date('d.m.Y', strtotime($final_date['suggested_date']));
                 $final_time_str = date('H:i', strtotime($final_date['suggested_date']));
                 if (!empty($final_date['suggested_end_date'])) {
                     $final_time_str .= ' - ' . date('H:i', strtotime($final_date['suggested_end_date']));
