@@ -260,20 +260,23 @@ if ($view === 'list') {
                                         <td><?= format_filesize($doc['filesize']) ?></td>
                                         <td><?= date('d.m.Y', strtotime($doc['created_at'])) ?></td>
                                         <td>
-                                            <div class="btn-group btn-group-sm" role="group">
+                                            <div class="d-flex gap-1 flex-wrap">
+                                                <!-- Download-Button (immer anzeigen) -->
+                                                <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary btn-sm" target="_blank">
+                                                    <i class="bi bi-download"></i> Download
+                                                </a>
+
+                                                <!-- Kurz-URL Button (nur wenn vorhanden) -->
                                                 <?php if (!empty($doc['short_url'])): ?>
-                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn btn-primary btn-sm" target="_blank" title="Öffnen">
-                                                        <i class="bi bi-link-45deg"></i>
-                                                    </a>
-                                                <?php else: ?>
-                                                    <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary btn-sm" target="_blank" title="Herunterladen">
-                                                        <i class="bi bi-download"></i>
+                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn btn-outline-primary btn-sm" target="_blank">
+                                                        <i class="bi bi-link-45deg"></i> Öffnen
                                                     </a>
                                                 <?php endif; ?>
 
+                                                <!-- Bearbeiten-Button (nur für Admins) -->
                                                 <?php if ($is_admin): ?>
-                                                    <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn btn-outline-secondary btn-sm" title="Bearbeiten">
-                                                        <i class="bi bi-pencil"></i>
+                                                    <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn btn-outline-secondary btn-sm">
+                                                        <i class="bi bi-pencil"></i> Bearbeiten
                                                     </a>
                                                 <?php endif; ?>
                                             </div>
