@@ -527,13 +527,47 @@ try {
         echo "<p style='color: orange;'>⚠ Meinungsbild-Templates existieren bereits - überspringe</p>";
     }
 
+    // Default-Admin anlegen (nur wenn members-Tabelle leer ist)
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM members");
+    if ($stmt->fetch()['count'] == 0) {
+        echo "<p>Erstelle Default-Admin-User...</p>";
+
+        // Passwort: admin123 (BITTE NACH ERSTEM LOGIN ÄNDERN!)
+        $password_hash = password_hash('admin123', PASSWORD_DEFAULT);
+
+        $stmt = $pdo->prepare("
+            INSERT INTO members (email, password_hash, first_name, last_name, role, is_admin, is_active, membership_number)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([
+            'admin@example.com',
+            $password_hash,
+            'System',
+            'Administrator',
+            'gf',
+            1,
+            1,
+            'ADMIN001'
+        ]);
+
+        echo "<p style='color: green;'>✓ Default-Admin angelegt</p>";
+        echo "<div style='background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0;'>";
+        echo "<h4 style='margin-top: 0;'>⚠️ Default-Admin Zugangsdaten</h4>";
+        echo "<p><strong>Email:</strong> admin@example.com</p>";
+        echo "<p><strong>Passwort:</strong> admin123</p>";
+        echo "<p style='color: #856404;'><strong>WICHTIG:</strong> Bitte ändern Sie das Passwort nach dem ersten Login!</p>";
+        echo "</div>";
+    } else {
+        echo "<p style='color: orange;'>⚠ Members-Tabelle enthält bereits Einträge - überspringe Default-Admin</p>";
+    }
+
     echo "<p style='color: green; font-weight: bold;'>✓✓✓ Datenbank-Initialisierung abgeschlossen!</p>";
     echo "<hr>";
     echo "<h3>Nächste Schritte:</h3>";
     echo "<ul>";
-    echo "<li><a href='tools/demo_import.php'>Demo-Szenario laden</a> - Importiert Beispiel-Daten aus demo_data.json</li>";
-    echo "<li><a href='index.php'>Zum Login</a> - Direkt zur Anwendung (wenn bereits Mitglieder existieren)</li>";
-    echo "<li><strong>Wichtig:</strong> Erstellen Sie zunächst einen Admin-User, bevor Sie die Demo-Daten importieren</li>";
+    echo "<li><a href='index.php'>Zum Login</a> - Anmelden mit den oben genannten Zugangsdaten</li>";
+    echo "<li><a href='tools/demo_export.php'>Demo-Daten exportieren</a> - Nach dem Anlegen von Test-Daten</li>";
+    echo "<li><a href='tools/demo_import.php'>Demo-Daten importieren</a> - Setzt DB auf Demo-Stand zurück</li>";
     echo "</ul>";
 
 } catch (PDOException $e) {
