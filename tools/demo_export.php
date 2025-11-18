@@ -129,6 +129,16 @@ try {
             <li>protocol_change_requests (Änderungswünsche)</li>
             <li>todos (Aufgaben)</li>
             <li>todo_log (Aufgaben-Historie)</li>
+            <li>polls (Terminabstimmungen)</li>
+            <li>poll_dates (Terminvorschläge)</li>
+            <li>poll_participants (Umfrage-Teilnehmer)</li>
+            <li>poll_responses (Abstimmungen)</li>
+            <li>opinion_answer_templates (Meinungsbild-Templates)</li>
+            <li>opinion_polls (Meinungsbilder)</li>
+            <li>opinion_poll_options (Meinungsbild-Optionen)</li>
+            <li>opinion_poll_participants (Meinungsbild-Teilnehmer)</li>
+            <li>opinion_responses (Meinungsbild-Antworten)</li>
+            <li>opinion_response_options (Gewählte Optionen)</li>
         </ul>
     </div>
 
@@ -151,7 +161,17 @@ try {
             'protocols',
             'protocol_change_requests',
             'todos',
-            'todo_log'
+            'todo_log',
+            'polls',
+            'poll_dates',
+            'poll_participants',
+            'poll_responses',
+            'opinion_answer_templates',
+            'opinion_polls',
+            'opinion_poll_options',
+            'opinion_poll_participants',
+            'opinion_responses',
+            'opinion_response_options'
         ];
 
         $total_records = 0;

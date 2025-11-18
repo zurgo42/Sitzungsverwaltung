@@ -172,20 +172,22 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
         </p>
         <p><strong>Was wird gelöscht:</strong></p>
         <ul>
-            <li>Alle Meetings</li>
-            <li>Alle Teilnehmer-Zuordnungen</li>
-            <li>Alle Tagesordnungspunkte</li>
-            <li>Alle Kommentare</li>
-            <li>Alle Protokolle</li>
-            <li>Alle TODOs</li>
+            <li>Alle Meetings & Teilnehmer</li>
+            <li>Alle Tagesordnungspunkte & Kommentare</li>
+            <li>Alle Protokolle & Änderungswünsche</li>
+            <li>Alle TODOs & Historie</li>
+            <li>Alle Terminabstimmungen & Antworten</li>
+            <li>Alle Meinungsbilder & Antworten</li>
             <li>Alle Mitglieder (members-Tabelle)</li>
         </ul>
         <p><strong>Was wird importiert:</strong></p>
         <ul>
             <li>Demo-Mitglieder</li>
             <li>Demo-Meetings in verschiedenen Stati</li>
-            <li>Demo-Tagesordnungspunkte mit Kommentaren</li>
-            <li>Demo-TODOs</li>
+            <li>Demo-Tagesordnungspunkte mit Kommentaren & Protokollen</li>
+            <li>Demo-TODOs mit Historie</li>
+            <li>Demo-Terminabstimmungen mit Antworten</li>
+            <li>Demo-Meinungsbilder mit Antworten</li>
         </ul>
     </div>
 
@@ -230,14 +232,29 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             echo '<h2>🗑️ Lösche bestehende Daten...</h2>';
 
             $tables_to_clear = [
+                // Meinungsbild-Daten (in korrekter Reihenfolge wegen FK)
+                'opinion_response_options',
+                'opinion_responses',
+                'opinion_poll_participants',
+                'opinion_poll_options',
+                'opinion_polls',
+                // Terminabstimmungs-Daten
+                'poll_responses',
+                'poll_participants',
+                'poll_dates',
+                'polls',
+                // TODO-Daten
                 'todo_log',
                 'todos',
+                // Protokoll-Daten
                 'protocol_change_requests',
                 'protocols',
+                // Meeting-Daten
                 'agenda_comments',
                 'agenda_items',
                 'meeting_participants',
                 'meetings',
+                // Mitglieder
                 'members'
             ];
 

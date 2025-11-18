@@ -531,8 +531,9 @@ try {
     echo "<hr>";
     echo "<h3>Nächste Schritte:</h3>";
     echo "<ul>";
-    echo "<li><a href='demo.php'>Demo-Szenario laden</a> - Erstellt Test-Mitglieder und Beispiel-Daten</li>";
+    echo "<li><a href='tools/demo_import.php'>Demo-Szenario laden</a> - Importiert Beispiel-Daten aus demo_data.json</li>";
     echo "<li><a href='index.php'>Zum Login</a> - Direkt zur Anwendung (wenn bereits Mitglieder existieren)</li>";
+    echo "<li><strong>Wichtig:</strong> Erstellen Sie zunächst einen Admin-User, bevor Sie die Demo-Daten importieren</li>";
     echo "</ul>";
 
 } catch (PDOException $e) {
