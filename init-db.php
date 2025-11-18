@@ -530,6 +530,64 @@ try {
         echo ".";
     }
 
+    // Migration: Weitere fehlende Spalten hinzufügen (für Import von älteren JSON-Exporten)
+
+    // meetings.visibility_type (falls nicht vorhanden)
+    $stmt = $pdo->query("SHOW COLUMNS FROM meetings LIKE 'visibility_type'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'visibility_type' zu meetings hinzu...</p>";
+        $pdo->exec("ALTER TABLE meetings ADD COLUMN visibility_type ENUM('public', 'authenticated', 'invited_only') DEFAULT 'invited_only' AFTER status");
+        echo ".";
+    }
+
+    // poll_participants.invited_at (falls nicht vorhanden) - DEPRECATED, aber für Import kompatibel
+    $stmt = $pdo->query("SHOW COLUMNS FROM poll_participants LIKE 'invited_at'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'invited_at' zu poll_participants hinzu...</p>";
+        $pdo->exec("ALTER TABLE poll_participants ADD COLUMN invited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER member_id");
+        echo ".";
+    }
+
+    // poll_responses.participant_name (falls nicht vorhanden) - DEPRECATED, aber für Import kompatibel
+    $stmt = $pdo->query("SHOW COLUMNS FROM poll_responses LIKE 'participant_name'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'participant_name' zu poll_responses hinzu...</p>";
+        $pdo->exec("ALTER TABLE poll_responses ADD COLUMN participant_name VARCHAR(255) DEFAULT NULL AFTER member_id");
+        echo ".";
+    }
+
+    // opinion_answer_templates.description (falls nicht vorhanden)
+    $stmt = $pdo->query("SHOW COLUMNS FROM opinion_answer_templates LIKE 'description'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'description' zu opinion_answer_templates hinzu...</p>";
+        $pdo->exec("ALTER TABLE opinion_answer_templates ADD COLUMN description TEXT DEFAULT NULL AFTER template_name");
+        echo ".";
+    }
+
+    // opinion_poll_options.created_at (falls nicht vorhanden)
+    $stmt = $pdo->query("SHOW COLUMNS FROM opinion_poll_options LIKE 'created_at'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'created_at' zu opinion_poll_options hinzu...</p>";
+        $pdo->exec("ALTER TABLE opinion_poll_options ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+        echo ".";
+    }
+
+    // opinion_poll_participants.invited_at (falls nicht vorhanden) - DEPRECATED, aber für Import kompatibel
+    $stmt = $pdo->query("SHOW COLUMNS FROM opinion_poll_participants LIKE 'invited_at'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'invited_at' zu opinion_poll_participants hinzu...</p>";
+        $pdo->exec("ALTER TABLE opinion_poll_participants ADD COLUMN invited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER member_id");
+        echo ".";
+    }
+
+    // opinion_responses.updated_at (falls nicht vorhanden)
+    $stmt = $pdo->query("SHOW COLUMNS FROM opinion_responses LIKE 'updated_at'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'updated_at' zu opinion_responses hinzu...</p>";
+        $pdo->exec("ALTER TABLE opinion_responses ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER responded_at");
+        echo ".";
+    }
+
     echo "<p style='color: green;'>✓ Migrations abgeschlossen!</p>";
 
     // =========================================================
