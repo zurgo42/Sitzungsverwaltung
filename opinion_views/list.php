@@ -71,6 +71,39 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
                             ✓ Sie haben an dieser Umfrage teilgenommen
                         </div>
                     <?php endif; ?>
+
+                    <?php
+                    // Zugangslink anzeigen
+                    $access_link = get_poll_access_link($poll, defined('BASE_URL') ? BASE_URL : 'http://' . $_SERVER['HTTP_HOST']);
+                    if ($access_link):
+                    ?>
+                        <div style="margin-top: 10px; padding: 10px; background: #f0f8ff; border: 1px solid #4CAF50; border-radius: 4px;">
+                            <strong>🔗 Zugangslink:</strong>
+                            <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
+                                <input type="text"
+                                       value="<?php echo htmlspecialchars($access_link); ?>"
+                                       readonly
+                                       onclick="this.select()"
+                                       style="flex: 1; padding: 5px; font-size: 12px; font-family: monospace; border: 1px solid #ccc; background: white;">
+                                <button onclick="copyToClipboard('<?php echo htmlspecialchars($access_link, ENT_QUOTES); ?>')"
+                                        class="btn-secondary"
+                                        style="padding: 5px 15px; white-space: nowrap;">
+                                    📋 Kopieren
+                                </button>
+                            </div>
+                            <small style="color: #666; display: block; margin-top: 5px;">
+                                <?php
+                                if ($poll['target_type'] === 'individual') {
+                                    echo 'Dieser Link ist eindeutig für diese Umfrage. Teilen Sie ihn mit den gewünschten Teilnehmern.';
+                                } elseif ($poll['target_type'] === 'public') {
+                                    echo 'Dieser Link ist öffentlich. Jeder mit diesem Link kann teilnehmen.';
+                                } else {
+                                    echo 'Nur eingeladene Mitglieder können teilnehmen.';
+                                }
+                                ?>
+                            </small>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div style="display: flex; gap: 10px;">

@@ -501,6 +501,14 @@ if (isset($_SESSION['error'])) {
                     <textarea name="description" rows="3" placeholder="Optional: Weitere Informationen zur Umfrage"></textarea>
                 </div>
 
+                <div class="form-group">
+                    <label>Ort:</label>
+                    <input type="text" name="location" placeholder="Optional: Ort der Veranstaltung (z.B. Konferenzraum A)">
+                    <small style="display: block; margin-top: 5px; color: #666;">
+                        Wird beim Finalisieren in das Meeting übernommen
+                    </small>
+                </div>
+
                 <!-- Teilnehmer auswählen -->
                 <div class="form-group">
                     <label>Teilnehmer auswählen (nur diese sehen die Umfrage):*</label>

@@ -117,6 +117,7 @@ try {
         case 'create_poll':
             $title = trim($_POST['title'] ?? '');
             $description = trim($_POST['description'] ?? '');
+            $location = trim($_POST['location'] ?? '');
             $participant_ids = $_POST['participant_ids'] ?? [];
 
             if (empty($title)) {
@@ -133,10 +134,10 @@ try {
 
             // Umfrage erstellen (meeting_id wird später beim Finalisieren gesetzt)
             $stmt = $pdo->prepare("
-                INSERT INTO polls (title, description, created_by_member_id, meeting_id, status, created_at)
-                VALUES (?, ?, ?, NULL, 'open', NOW())
+                INSERT INTO polls (title, description, location, created_by_member_id, meeting_id, status, created_at)
+                VALUES (?, ?, ?, ?, NULL, 'open', NOW())
             ");
-            $stmt->execute([$title, $description, $current_user['member_id']]);
+            $stmt->execute([$title, $description, $location, $current_user['member_id']]);
             $poll_id = $pdo->lastInsertId();
 
             // Teilnehmer hinzufügen
@@ -281,6 +282,9 @@ try {
                 $final_date = $date_stmt->fetch(PDO::FETCH_ASSOC);
 
                 if ($final_date) {
+                    // Ort: Bevorzuge Poll-Ort, fallback auf Datum-Ort
+                    $meeting_location = !empty($poll['location']) ? $poll['location'] : $final_date['location'];
+
                     // Meeting erstellen
                     $meeting_stmt = $pdo->prepare("
                         INSERT INTO meetings
@@ -291,7 +295,7 @@ try {
                         $poll['title'],
                         $final_date['suggested_date'],
                         $final_date['suggested_end_date'],
-                        $final_date['location'],
+                        $meeting_location,
                         $current_user['member_id']
                     ]);
                     $new_meeting_id = $pdo->lastInsertId();

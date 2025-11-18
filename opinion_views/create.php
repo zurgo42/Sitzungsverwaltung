@@ -11,7 +11,7 @@ if (!$current_user) {
 // Templates laden
 $templates = get_answer_templates($pdo);
 
-// Meetings für list-Auswahl laden
+// Meetings für list-Auswahl laden (optional, falls noch verwendet)
 $stmt = $pdo->prepare("
     SELECT meeting_id, meeting_name, meeting_date
     FROM meetings
@@ -21,6 +21,11 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute();
 $meetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Alle Mitglieder für Teilnehmer-Auswahl laden
+if (!isset($all_members)) {
+    $all_members = get_all_members($pdo);
+}
 ?>
 
 <h3>Neues Meinungsbild erstellen</h3>
@@ -55,15 +60,25 @@ $meetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
 
         <div id="list-selection" style="display: none; margin-top: 15px;">
-            <label>Meeting auswählen:</label>
-            <select name="list_id" style="width: 100%; padding: 8px;">
-                <option value="">- Meeting wählen -</option>
-                <?php foreach ($meetings as $meeting): ?>
-                    <option value="<?php echo $meeting['meeting_id']; ?>">
-                        <?php echo htmlspecialchars($meeting['meeting_name'] . ' - ' . date('d.m.Y H:i', strtotime($meeting['meeting_date']))); ?>
-                    </option>
+            <label>Teilnehmer auswählen (nur diese können antworten):*</label>
+            <div class="participant-buttons" style="margin: 10px 0;">
+                <button type="button" onclick="toggleAllOpinionParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
+                <button type="button" onclick="toggleAllOpinionParticipants(false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
+                <button type="button" onclick="toggleOpinionLeadershipRoles()" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
+                <button type="button" onclick="toggleOpinionTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
+            </div>
+            <div class="participants-selector" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #f9f9f9;">
+                <?php foreach ($all_members as $member): ?>
+                    <label style="display: block; margin: 5px 0;">
+                        <input type="checkbox"
+                               name="opinion_participant_ids[]"
+                               value="<?php echo $member['member_id']; ?>"
+                               class="opinion-participant-checkbox"
+                               data-role="<?php echo htmlspecialchars($member['role']); ?>">
+                        <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')'); ?>
+                    </label>
                 <?php endforeach; ?>
-            </select>
+            </div>
         </div>
     </div>
 
@@ -198,5 +213,31 @@ function toggleEmailOptions() {
     const checkbox = document.getElementById('send_email_checkbox');
     const options = document.getElementById('email-options');
     options.style.display = checkbox.checked ? 'block' : 'none';
+}
+
+// Teilnehmer-Auswahl-Funktionen für Meinungsbilder
+function toggleAllOpinionParticipants(select) {
+    const checkboxes = document.querySelectorAll('.opinion-participant-checkbox');
+    checkboxes.forEach(cb => cb.checked = select);
+}
+
+function toggleOpinionLeadershipRoles() {
+    const checkboxes = document.querySelectorAll('.opinion-participant-checkbox');
+    checkboxes.forEach(cb => {
+        const role = cb.getAttribute('data-role');
+        if (role === 'vorstand' || role === 'gf' || role === 'assistenz' || role === 'fuehrungsteam') {
+            cb.checked = !cb.checked;
+        }
+    });
+}
+
+function toggleOpinionTopManagement() {
+    const checkboxes = document.querySelectorAll('.opinion-participant-checkbox');
+    checkboxes.forEach(cb => {
+        const role = cb.getAttribute('data-role');
+        if (role === 'vorstand' || role === 'gf' || role === 'assistenz') {
+            cb.checked = !cb.checked;
+        }
+    });
 }
 </script>

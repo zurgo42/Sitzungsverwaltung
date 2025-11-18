@@ -99,6 +99,7 @@ try {
             $title = trim($_POST['title'] ?? '');
             $target_type = $_POST['target_type'] ?? 'individual';
             $list_id = !empty($_POST['list_id']) ? intval($_POST['list_id']) : null;
+            $opinion_participant_ids = $_POST['opinion_participant_ids'] ?? [];
             $template_id = !empty($_POST['template_id']) ? intval($_POST['template_id']) : null;
             $allow_multiple = !empty($_POST['allow_multiple']) ? 1 : 0;
             $is_anonymous = !empty($_POST['is_anonymous']) ? 1 : 0;
@@ -170,22 +171,33 @@ try {
             }
 
             // Teilnehmer hinzufügen (bei list-Typ)
-            if ($target_type === 'list' && $list_id) {
-                // Hole Teilnehmer vom Meeting
-                $participants_stmt = $pdo->prepare("
-                    SELECT DISTINCT member_id
-                    FROM meeting_participants
-                    WHERE meeting_id = ?
-                ");
-                $participants_stmt->execute([$list_id]);
-                $participants = $participants_stmt->fetchAll(PDO::FETCH_ASSOC);
+            if ($target_type === 'list') {
+                if (!empty($opinion_participant_ids)) {
+                    // Direkt ausgewählte Teilnehmer
+                    $invite_stmt = $pdo->prepare("
+                        INSERT INTO opinion_poll_participants (poll_id, member_id)
+                        VALUES (?, ?)
+                    ");
+                    foreach ($opinion_participant_ids as $member_id) {
+                        $invite_stmt->execute([$poll_id, intval($member_id)]);
+                    }
+                } elseif ($list_id) {
+                    // Fallback: Hole Teilnehmer vom Meeting (legacy)
+                    $participants_stmt = $pdo->prepare("
+                        SELECT DISTINCT member_id
+                        FROM meeting_participants
+                        WHERE meeting_id = ?
+                    ");
+                    $participants_stmt->execute([$list_id]);
+                    $participants = $participants_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                $invite_stmt = $pdo->prepare("
-                    INSERT INTO opinion_poll_participants (poll_id, member_id)
-                    VALUES (?, ?)
-                ");
-                foreach ($participants as $participant) {
-                    $invite_stmt->execute([$poll_id, $participant['member_id']]);
+                    $invite_stmt = $pdo->prepare("
+                        INSERT INTO opinion_poll_participants (poll_id, member_id)
+                        VALUES (?, ?)
+                    ");
+                    foreach ($participants as $participant) {
+                        $invite_stmt->execute([$poll_id, $participant['member_id']]);
+                    }
                 }
             }
 
