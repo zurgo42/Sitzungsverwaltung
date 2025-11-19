@@ -462,7 +462,8 @@ function toggleLeadershipRolesEdit(meetingId) {
 // Wählt nur Vorstand, Geschäftsführung und Assistenz aus
 function toggleTopManagement() {
     const checkboxes = document.querySelectorAll('.participant-checkbox');
-    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz'];
+    // Unterstützt beide Schreibweisen: Standard (members) und BerechtigteAdapter
+    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz', 'vorstand', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
         const role = cb.getAttribute('data-role');
         cb.checked = topRoles.includes(role);
@@ -471,7 +472,8 @@ function toggleTopManagement() {
 
 function toggleTopManagementEdit(meetingId) {
     const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
-    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz'];
+    // Unterstützt beide Schreibweisen: Standard (members) und BerechtigteAdapter
+    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz', 'vorstand', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
         const role = cb.getAttribute('data-role');
         cb.checked = topRoles.includes(role);

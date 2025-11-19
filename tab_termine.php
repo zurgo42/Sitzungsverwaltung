@@ -386,7 +386,8 @@ function togglePollLeadershipRoles() {
 
 function togglePollTopManagement() {
     const checkboxes = document.querySelectorAll('.poll-participant-checkbox');
-    const topRoles = ['vorstand', 'gf', 'assistenz'];
+    // Unterstützt beide Schreibweisen: Standard (members) und BerechtigteAdapter
+    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz', 'vorstand', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
         const role = cb.getAttribute('data-role');
         cb.checked = topRoles.includes(role);

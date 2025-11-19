@@ -233,9 +233,11 @@ function toggleOpinionLeadershipRoles() {
 
 function toggleOpinionTopManagement() {
     const checkboxes = document.querySelectorAll('.opinion-participant-checkbox');
+    // Unterstützt beide Schreibweisen: Standard (members) und BerechtigteAdapter
+    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz', 'vorstand', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
         const role = cb.getAttribute('data-role');
-        if (role === 'vorstand' || role === 'gf' || role === 'assistenz') {
+        if (topRoles.includes(role)) {
             cb.checked = !cb.checked;
         }
     });
