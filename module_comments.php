@@ -119,7 +119,7 @@ function render_comment_line($comment, $date_format = 'full') {
             <!-- Gekürzte Version nur auf Desktop -->
             <span style="color: #555;" class="comment-truncated">
                 <?php echo $truncated_text; ?>...
-                <a href="#" onclick="alert('<?php echo addslashes(str_replace(["\r\n", "\n", "\r"], "\\n", $original_text)); ?>'); return false;"
+                <a href="#" onclick="showCommentModal('<?php echo addslashes(str_replace(["\r\n", "\n", "\r"], "<br>", $text)); ?>'); return false;"
                    style="color: #007bff; font-style: italic; cursor: pointer;">[Vollbild]</a>
             </span>
             <!-- Voller Text auf Mobile -->
@@ -131,7 +131,7 @@ function render_comment_line($comment, $date_format = 'full') {
     <?php
 }
 
-// CSS für Kommentar-Kürzung (wird einmal ausgegeben)
+// CSS und Modal für Kommentar-Kürzung (wird einmal ausgegeben)
 if (!defined('COMMENT_TRUNCATION_CSS_LOADED')) {
     define('COMMENT_TRUNCATION_CSS_LOADED', true);
     ?>
@@ -145,7 +145,111 @@ if (!defined('COMMENT_TRUNCATION_CSS_LOADED')) {
         .comment-truncated { display: none; }
         .comment-full { display: inline; }
     }
+
+    /* Kommentar-Modal */
+    .comment-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+    }
+    .comment-modal-overlay.show {
+        display: flex;
+    }
+    .comment-modal {
+        background: white;
+        width: 80%;
+        max-width: 900px;
+        height: 70%;
+        max-height: 600px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+    }
+    .comment-modal-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f5f5f5;
+        border-radius: 8px 8px 0 0;
+    }
+    .comment-modal-header h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #333;
+    }
+    .comment-modal-close {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+    .comment-modal-close:hover {
+        background: #c0392b;
+    }
+    .comment-modal-content {
+        padding: 20px;
+        overflow-y: auto;
+        flex: 1;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #333;
+    }
+
+    /* Dark Mode Support */
+    body.dark-mode .comment-modal {
+        background: #2d2d2d;
+    }
+    body.dark-mode .comment-modal-header {
+        background: #3d3d3d;
+        border-bottom-color: #555;
+    }
+    body.dark-mode .comment-modal-header h3 {
+        color: #e0e0e0;
+    }
+    body.dark-mode .comment-modal-content {
+        color: #e0e0e0;
+    }
     </style>
+
+    <!-- Modal Container -->
+    <div id="commentModal" class="comment-modal-overlay" onclick="if(event.target===this)closeCommentModal()">
+        <div class="comment-modal">
+            <div class="comment-modal-header">
+                <h3>📝 Vollständiger Kommentar</h3>
+                <button class="comment-modal-close" onclick="closeCommentModal()">✕ Schließen</button>
+            </div>
+            <div class="comment-modal-content" id="commentModalContent"></div>
+        </div>
+    </div>
+
+    <script>
+    function showCommentModal(text) {
+        document.getElementById('commentModalContent').innerHTML = text;
+        document.getElementById('commentModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeCommentModal() {
+        document.getElementById('commentModal').classList.remove('show');
+        document.body.style.overflow = '';
+    }
+    // ESC-Taste schließt Modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeCommentModal();
+    });
+    </script>
     <?php
 }
 
