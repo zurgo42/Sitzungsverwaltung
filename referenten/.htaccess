@@ -1,10 +1,7 @@
-# MinD-Referentenliste - Apache 2.4 kompatible Konfiguration
+# MinD-Referentenliste - Apache Konfiguration (ohne Options-Direktive)
 
 # UTF-8 Encoding
 AddDefaultCharset UTF-8
-
-# Directory Listing verhindern
-Options -Indexes
 
 # Zugriff auf versteckte Dateien verhindern (Apache 2.4 Syntax)
 <FilesMatch "^\.">
