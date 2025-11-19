@@ -76,7 +76,7 @@ foreach ($dirs as $dir) {
 
 // config.php prüfen
 echo "<h2>6. Config.php</h2>";
-$config_path = __DIR__ . '/../config.php';
+$config_path = __DIR__ . '/config.php';  // LOKALE config.php im referenten/-Verzeichnis
 if (file_exists($config_path)) {
     echo "✅ config.php gefunden: $config_path<br>";
     if (is_readable($config_path)) {
@@ -85,25 +85,27 @@ if (file_exists($config_path)) {
         include_once($config_path);
         if (defined('MYSQL_HOST')) {
             echo "  → MYSQL_HOST definiert: " . MYSQL_HOST . "<br>";
+        } elseif (defined('DB_HOST')) {
+            echo "  → DB_HOST definiert: " . DB_HOST . "<br>";
         } else {
-            echo "  → ❌ MYSQL_HOST nicht definiert<br>";
+            echo "  → ❌ Keine Datenbank-Konstanten definiert<br>";
         }
     } else {
         echo "  → ❌ NICHT lesbar!<br>";
     }
 } else {
-    echo "❌ config.php NICHT gefunden! Erwartet in: $config_path<br>";
-    echo "Alternative Pfade versuchen:<br>";
-    $alternatives = [
-        __DIR__ . '/config.php',
-        dirname(__DIR__) . '/config.php',
-        $_SERVER['DOCUMENT_ROOT'] . '/config.php'
-    ];
-    foreach ($alternatives as $alt) {
-        if (file_exists($alt)) {
-            echo "  → Gefunden: $alt<br>";
-        }
-    }
+    echo "❌ config.php NICHT gefunden!<br>";
+    echo "<strong style='color: red;'>WICHTIG: Bitte erstellen Sie referenten/config.php mit Ihren Datenbank-Zugangsdaten!</strong><br>";
+    echo "Erwartet in: $config_path<br><br>";
+    echo "Vorlage für config.php:<br>";
+    echo "<div style='background: #f0f0f0; padding: 10px; font-family: monospace;'>";
+    echo htmlspecialchars("<?php\n");
+    echo htmlspecialchars("define('MYSQL_HOST', 'localhost');\n");
+    echo htmlspecialchars("define('MYSQL_USER', 'ihr_db_user');\n");
+    echo htmlspecialchars("define('MYSQL_PASS', 'ihr_db_passwort');\n");
+    echo htmlspecialchars("define('MYSQL_DATABASE', 'ihre_datenbank');\n");
+    echo htmlspecialchars("?>");
+    echo "</div>";
 }
 
 // Datenbankverbindung testen (falls config existiert)

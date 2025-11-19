@@ -9,7 +9,14 @@ class Database {
     private $pdo;
 
     private function __construct() {
-        require_once __DIR__ . '/../../config.php';
+        // Lade die LOKALE config.php (im referenten/ Verzeichnis)
+        $configPath = __DIR__ . '/../config.php';
+
+        if (!file_exists($configPath)) {
+            throw new Exception("config.php nicht gefunden! Bitte erstellen Sie referenten/config.php");
+        }
+
+        require_once $configPath;
 
         try {
             // Unterstütze beide Konstantennamen (DB_* und MYSQL_*)

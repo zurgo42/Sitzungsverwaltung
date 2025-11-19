@@ -1,0 +1,11 @@
+# Lokale Konfiguration mit Passwörtern
+config.php
+
+# Logs
+*.log
+
+# Temporäre Dateien
+*.tmp
+*.bak
+*.old
+*~
