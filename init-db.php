@@ -1,7 +1,7 @@
 <?php
 /**
  * init-db.php - Datenbank initialisieren
- * Aktualisiert: 18.11.2025 - Vollständige DB-Struktur inkl. Terminplanung & Meinungsbild-Tool
+ * Aktualisiert: 19.11.2025 - Vollständige DB-Struktur inkl. Testfragen & Abwesenheitsverwaltung
  *
  * Dieses Skript erstellt die komplette Datenbankstruktur für die Sitzungsverwaltung.
  * Es enthält KEINE Demo-Daten - diese können separat über demo.php geladen werden.
@@ -429,6 +429,73 @@ try {
         UNIQUE KEY unique_response_option (response_id, option_id),
         INDEX idx_response (response_id),
         INDEX idx_option (option_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // =========================================================
+    // TESTFRAGEN-MODUL
+    // =========================================================
+
+    // Testfragen (IQ-Test-Aufgaben)
+    $tables[] = "CREATE TABLE IF NOT EXISTS testfragen (
+        id INT(11) PRIMARY KEY AUTO_INCREMENT,
+        member_id INT(11) DEFAULT NULL COMMENT 'NICHT VERWENDET - Einreichungen sind anonym',
+        aufgabe TEXT NOT NULL,
+        antwort1 TEXT DEFAULT NULL,
+        antwort2 TEXT DEFAULT NULL,
+        antwort3 TEXT DEFAULT NULL,
+        antwort4 TEXT DEFAULT NULL,
+        antwort5 TEXT DEFAULT NULL,
+        richtig TINYINT(1) NOT NULL,
+        regel TEXT NOT NULL,
+        inhalt TINYINT(1) NOT NULL,
+        tinhalt VARCHAR(100) DEFAULT NULL,
+        inhaltw TINYINT(1) DEFAULT 0,
+        tinhaltw VARCHAR(100) DEFAULT NULL,
+        schwer TINYINT(1) NOT NULL,
+        is_figural TINYINT(1) DEFAULT 0,
+        file0 VARCHAR(255) DEFAULT NULL,
+        file1 VARCHAR(255) DEFAULT NULL,
+        file2 VARCHAR(255) DEFAULT NULL,
+        file3 VARCHAR(255) DEFAULT NULL,
+        file4 VARCHAR(255) DEFAULT NULL,
+        file5 VARCHAR(255) DEFAULT NULL,
+        datum DATETIME NOT NULL,
+        reviewed TINYINT(1) DEFAULT 0,
+        approved TINYINT(1) DEFAULT NULL,
+        review_notes TEXT DEFAULT NULL,
+        INDEX idx_datum (datum)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Testkommentare (allgemeine Anmerkungen)
+    $tables[] = "CREATE TABLE IF NOT EXISTS testkommentar (
+        id INT(11) PRIMARY KEY AUTO_INCREMENT,
+        member_id INT(11) NOT NULL,
+        kommentar TEXT NOT NULL,
+        datum DATETIME NOT NULL,
+        todo ENUM('offen', 'bearbeitet', 'erledigt') DEFAULT 'offen',
+        INDEX idx_member (member_id),
+        INDEX idx_datum (datum),
+        INDEX idx_todo (todo)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // =========================================================
+    // ABWESENHEITSVERWALTUNG
+    // =========================================================
+
+    // Abwesenheiten (Vertretungsmanagement für Führungsteam)
+    $tables[] = "CREATE TABLE IF NOT EXISTS absences (
+        absence_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+        member_id INT(11) NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        reason TEXT DEFAULT NULL,
+        substitute_member_id INT(11) DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        created_by_member_id INT(11) NOT NULL,
+        INDEX idx_member (member_id),
+        INDEX idx_dates (start_date, end_date),
+        INDEX idx_substitute (substitute_member_id),
+        INDEX idx_created_by (created_by_member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // =========================================================

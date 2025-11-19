@@ -171,7 +171,10 @@ try {
             'opinion_poll_options',
             'opinion_poll_participants',
             'opinion_responses',
-            'opinion_response_options'
+            'opinion_response_options',
+            'testfragen',
+            'testkommentar',
+            'absences'
         ];
 
         $total_records = 0;
