@@ -16,6 +16,11 @@ Options -Indexes
     Require all denied
 </FilesMatch>
 
+# Config-Datei schützen (enthält Passwörter!)
+<Files "config.php">
+    Require all denied
+</Files>
+
 # Security Headers (nur wenn mod_headers verfügbar)
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
