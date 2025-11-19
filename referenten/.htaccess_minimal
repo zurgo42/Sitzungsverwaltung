@@ -1,0 +1,18 @@
+# MinD-Referentenliste - Vereinfachte Apache Konfiguration
+# Nur die wichtigsten Einstellungen ohne potenzielle Probleme
+
+# UTF-8 Encoding
+AddDefaultCharset UTF-8
+
+# Zugriff auf versteckte Dateien verhindern
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Zugriff auf sensible Dateien verhindern
+<FilesMatch "\.(md|sql|log|ini|bak)$">
+    Require all denied
+</FilesMatch>
+
+# Directory Listing verhindern
+Options -Indexes
