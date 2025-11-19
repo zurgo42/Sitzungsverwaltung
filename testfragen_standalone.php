@@ -50,6 +50,27 @@ if ($is_sitzungsverwaltung) {
 } else {
     // In anderer Anwendung: Direkter Zugriff auf berechtigte-Tabelle
 
+    // Hilfsfunktionen für berechtigte-Mapping (müssen VOR Verwendung definiert sein)
+    if (!function_exists('determine_role_testfragen')) {
+        function determine_role_testfragen($funktion, $aktiv) {
+            if ($aktiv == 19) return 'vorstand';
+            $roleMapping = [
+                'GF' => 'gf',
+                'SV' => 'assistenz',
+                'RL' => 'fuehrungsteam',
+                'AD' => 'Mitglied',
+                'FP' => 'Mitglied'
+            ];
+            return $roleMapping[$funktion] ?? 'Mitglied';
+        }
+    }
+
+    if (!function_exists('is_admin_user_testfragen')) {
+        function is_admin_user_testfragen($funktion, $mnr) {
+            return in_array($funktion, ['GF', 'SV']) || $mnr == '0495018';
+        }
+    }
+
     // Prüfen ob Voraussetzungen erfüllt sind
     if (!isset($pdo)) {
         die('FEHLER: $pdo nicht definiert. Bitte PDO-Verbindung vor dem Include erstellen.');
@@ -79,23 +100,6 @@ if ($is_sitzungsverwaltung) {
         'is_admin' => is_admin_user_testfragen($ber['Funktion'], $ber['MNr'])
     ];
     $currentMemberID = $current_user['member_id'];
-
-    // Hilfsfunktionen für berechtigte-Mapping
-    function determine_role_testfragen($funktion, $aktiv) {
-        if ($aktiv == 19) return 'vorstand';
-        $roleMapping = [
-            'GF' => 'gf',
-            'SV' => 'assistenz',
-            'RL' => 'fuehrungsteam',
-            'AD' => 'Mitglied',
-            'FP' => 'Mitglied'
-        ];
-        return $roleMapping[$funktion] ?? 'Mitglied';
-    }
-
-    function is_admin_user_testfragen($funktion, $mnr) {
-        return in_array($funktion, ['GF', 'SV']) || $mnr == '0495018';
-    }
 }
 
 // Berechtigungen
