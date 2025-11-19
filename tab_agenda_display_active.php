@@ -240,9 +240,9 @@ foreach ($agenda_items as $item):
     
     $is_active = ($item['item_id'] == $active_item_id);
     $border_color = $is_active ? '#f44336' : '#667eea';
-    $border_width = '3px';
+    $border_width = $is_active ? '4px' : '3px';
 ?>
-    <div class="agenda-item" id="top-<?php echo $item['item_id']; ?>" 
+    <div class="agenda-item" id="top-<?php echo $item['item_id']; ?>"
          style="background: #f9f9f9; padding: 15px; margin-bottom: 20px; border: <?php echo $border_width; ?> solid <?php echo $border_color; ?>; border-radius: 8px; <?php echo $is_active ? 'box-shadow: 0 0 15px rgba(244,67,54,0.4);' : ''; ?>">
         
         <!-- TOP-Header -->
@@ -605,9 +605,9 @@ function updateProtocol(itemId) {
                 if (itemDiv) {
                     if (data.is_active) {
                         itemDiv.style.border = '4px solid #f44336';
-                        itemDiv.style.boxShadow = '0 0 20px rgba(244, 67, 54, 0.3)';
+                        itemDiv.style.boxShadow = '0 0 15px rgba(244,67,54,0.4)';
                     } else {
-                        itemDiv.style.border = '';
+                        itemDiv.style.border = '3px solid #667eea';
                         itemDiv.style.boxShadow = '';
                     }
                 }
@@ -660,12 +660,21 @@ function updateAllProtocols() {
 
 // Live-Updates starten (nur im Status "active")
 <?php if ($meeting['status'] === 'active'): ?>
-    // Initial-Update
-    updateAllProtocols();
-    
-    // Polling alle 5 Sekunden
-    updateInterval = setInterval(updateAllProtocols, 5000);
-    
+    // Warten bis DOM geladen ist
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial-Update
+            updateAllProtocols();
+
+            // Polling alle 5 Sekunden
+            updateInterval = setInterval(updateAllProtocols, 5000);
+        });
+    } else {
+        // DOM bereits geladen
+        updateAllProtocols();
+        updateInterval = setInterval(updateAllProtocols, 5000);
+    }
+
     // Beim Verlassen der Seite stoppen
     window.addEventListener('beforeunload', function() {
         if (updateInterval) {

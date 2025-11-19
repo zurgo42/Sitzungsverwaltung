@@ -37,15 +37,163 @@ if (isset($_SESSION['error'])) {
 }
 
 // ============================================
+// GLOBALES CSS FÜR ALLE VIEWS
+// ============================================
+?>
+<style>
+    /* Link-Buttons (für Download/Öffnen-Links) - erweitert vorhandene Button-Styles */
+    a.btn-view, a.btn-secondary {
+        display: inline-block;
+        padding: 6px 12px;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: background 0.3s;
+    }
+    a.btn-view {
+        background: #2196f3;
+    }
+    a.btn-view:hover {
+        background: #1976d2;
+        text-decoration: none;
+    }
+    a.btn-secondary {
+        background: #999;
+    }
+    a.btn-secondary:hover {
+        background: #777;
+        text-decoration: none;
+    }
+
+    /* Alias: btn-primary entspricht dem Standard-Button-Styling */
+    button.btn-primary {
+        background: #667eea;
+    }
+    button.btn-primary:hover {
+        background: #5568d3;
+    }
+
+    /* Download-Link in Edit-View auch als Button stylen */
+    a.btn-primary {
+        display: inline-block;
+        padding: 10px 20px;
+        background: #667eea;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        transition: background 0.3s;
+    }
+    a.btn-primary:hover {
+        background: #5568d3;
+        text-decoration: none;
+    }
+
+    /* Flexbox-Utilities */
+    .d-flex {
+        display: flex !important;
+    }
+    .gap-1 {
+        gap: 0.25rem !important;
+    }
+    .flex-wrap {
+        flex-wrap: wrap !important;
+    }
+    .d-grid {
+        display: grid !important;
+    }
+    .gap-2 {
+        gap: 0.5rem !important;
+    }
+</style>
+<?php
+
+// ============================================
 // VIEW: LISTE
 // ============================================
 
 if ($view === 'list') {
     ?>
+    <style>
+        /* Responsive Anzeige ohne Bootstrap-Abhängigkeit */
+        @media (min-width: 768px) {
+            .documents-mobile { display: none !important; }
+            .documents-desktop { display: block !important; }
+        }
+        @media (max-width: 767px) {
+            .documents-desktop { display: none !important; }
+            .documents-mobile { display: block !important; }
+        }
+
+        /* Tabellen-Styling */
+        .documents-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        .documents-table th,
+        .documents-table td {
+            padding: 0.75rem;
+            border: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+        .documents-table thead th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .documents-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .documents-table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        /* Details/Summary Styling */
+        details.filter-accordion {
+            margin-bottom: 1.5rem;
+        }
+        details.filter-accordion summary {
+            padding: 0.75rem 1rem;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-weight: 500;
+            list-style: none;
+        }
+        details.filter-accordion summary::-webkit-details-marker {
+            display: none;
+        }
+        details.filter-accordion summary:hover {
+            background-color: #e9ecef;
+        }
+        details.filter-accordion[open] summary {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-bottom: none;
+        }
+        details.filter-accordion .filter-content {
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 0.25rem 0.25rem;
+            padding: 1rem;
+            background-color: #fff;
+        }
+
+        /* Responsive: Upload-Button auf Smartphone unterhalb Überschrift */
+        @media (max-width: 767px) {
+            .documents-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 0.75rem;
+            }
+        }
+    </style>
+
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3 documents-header">
                     <h2>📁 Dokumentenverwaltung</h2>
                     <?php if ($is_admin): ?>
                         <button type="button" onclick="window.location.href='?tab=documents&view=upload'" class="btn btn-primary">
@@ -60,81 +208,75 @@ if ($view === 'list') {
                     Hier finden Sie alle wichtigen Vereinsdokumente in der jeweils aktuellen Version.
                 </div>
 
-                <!-- Filter & Suche als Akkordion -->
-                <div class="accordion mb-4" id="filterAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
-                                <i class="bi bi-funnel me-2"></i> Filter & Suche
-                            </button>
-                        </h2>
-                        <div id="filterCollapse" class="accordion-collapse collapse" data-bs-parent="#filterAccordion">
-                            <div class="accordion-body">
-                                <form method="GET" id="filterForm">
-                                    <input type="hidden" name="tab" value="documents">
+                <!-- Filter & Suche als Details/Summary -->
+                <details class="filter-accordion">
+                    <summary>
+                        <i class="bi bi-funnel me-2"></i> Filter & Suche
+                    </summary>
+                    <div class="filter-content">
+                        <form method="GET" id="filterForm">
+                            <input type="hidden" name="tab" value="documents">
 
-                                    <div class="row g-3">
-                                        <div class="col-md-4">
-                                            <label class="form-label">Suche</label>
-                                            <input type="text" name="search" class="form-control"
-                                                   placeholder="Titel, Beschreibung, Stichworte..."
-                                                   value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
-                                        </div>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Suche</label>
+                                    <input type="text" name="search" class="form-control"
+                                           placeholder="Titel, Beschreibung, Stichworte..."
+                                           value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
+                                </div>
 
-                                        <div class="col-md-3">
-                                            <label class="form-label">Kategorie</label>
-                                            <select name="category" class="form-select">
-                                                <option value="">Alle Kategorien</option>
-                                                <?php
-                                                foreach (get_document_categories() as $key => $label) {
-                                                    $selected = (isset($_GET['category']) && $_GET['category'] === $key) ? 'selected' : '';
-                                                    echo "<option value='$key' $selected>$label</option>";
-                                                }
-                                                ?>
-                                            </select>
-                                        </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Kategorie</label>
+                                    <select name="category" class="form-select">
+                                        <option value="">Alle Kategorien</option>
+                                        <?php
+                                        foreach (get_document_categories() as $key => $label) {
+                                            $selected = (isset($_GET['category']) && $_GET['category'] === $key) ? 'selected' : '';
+                                            echo "<option value='$key' $selected>$label</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
 
-                                        <div class="col-md-3">
-                                            <label class="form-label">Sortierung</label>
-                                            <select name="sort" class="form-select">
-                                                <option value="date_desc" <?= (!isset($_GET['sort']) || $_GET['sort'] === 'date_desc') ? 'selected' : '' ?>>
-                                                    Neueste zuerst
-                                                </option>
-                                                <option value="date_asc" <?= (isset($_GET['sort']) && $_GET['sort'] === 'date_asc') ? 'selected' : '' ?>>
-                                                    Älteste zuerst
-                                                </option>
-                                                <option value="title" <?= (isset($_GET['sort']) && $_GET['sort'] === 'title') ? 'selected' : '' ?>>
-                                                    Alphabetisch (Titel)
-                                                </option>
-                                                <option value="category" <?= (isset($_GET['sort']) && $_GET['sort'] === 'category') ? 'selected' : '' ?>>
-                                                    Nach Kategorie
-                                                </option>
-                                            </select>
-                                        </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Sortierung</label>
+                                    <select name="sort" class="form-select">
+                                        <option value="date_desc" <?= (!isset($_GET['sort']) || $_GET['sort'] === 'date_desc') ? 'selected' : '' ?>>
+                                            Neueste zuerst
+                                        </option>
+                                        <option value="date_asc" <?= (isset($_GET['sort']) && $_GET['sort'] === 'date_asc') ? 'selected' : '' ?>>
+                                            Älteste zuerst
+                                        </option>
+                                        <option value="title" <?= (isset($_GET['sort']) && $_GET['sort'] === 'title') ? 'selected' : '' ?>>
+                                            Alphabetisch (Titel)
+                                        </option>
+                                        <option value="category" <?= (isset($_GET['sort']) && $_GET['sort'] === 'category') ? 'selected' : '' ?>>
+                                            Nach Kategorie
+                                        </option>
+                                    </select>
+                                </div>
 
-                                        <div class="col-md-2 d-flex align-items-end">
-                                            <button type="submit" class="btn btn-primary w-100">
-                                                <i class="bi bi-search"></i> Filtern
-                                            </button>
-                                        </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-search"></i> Filtern
+                                    </button>
+                                </div>
 
-                                        <?php if ($is_admin && $member_access_level >= 15): ?>
-                                        <div class="col-12">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="show_all" value="1"
-                                                       id="showAll" <?= isset($_GET['show_all']) ? 'checked' : '' ?>>
-                                                <label class="form-check-label" for="showAll">
-                                                    Auch versteckte/archivierte Dokumente anzeigen
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <?php endif; ?>
+                                <?php if ($is_admin): ?>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="show_all" value="1"
+                                               id="showAll" <?= isset($_GET['show_all']) ? 'checked' : '' ?>>
+                                        <label class="form-check-label" for="showAll">
+                                            Auch versteckte/archivierte Dokumente anzeigen
+                                        </label>
                                     </div>
-                                </form>
+                                </div>
+                                <?php endif; ?>
                             </div>
-                        </div>
+                        </form>
                     </div>
-                </div>
+                </details>
 
                 <?php
                 // Filter zusammenstellen
@@ -157,14 +299,13 @@ if ($view === 'list') {
                 if (empty($documents)) {
                     echo '<div class="alert alert-warning">Keine Dokumente gefunden.</div>';
                 } else {
-                    // Tabellen-Ansicht (Desktop) / Card-Ansicht (Mobile)
                     ?>
 
                     <!-- Desktop: Tabelle -->
-                    <div class="d-none d-md-block">
+                    <div class="documents-desktop">
                         <div class="table-responsive">
-                            <table class="table table-hover table-striped">
-                                <thead class="table-light">
+                            <table class="documents-table table table-hover table-striped table-bordered">
+                                <thead>
                                     <tr>
                                         <th>Titel</th>
                                         <th>Kategorie</th>
@@ -172,7 +313,7 @@ if ($view === 'list') {
                                         <th>Typ</th>
                                         <th>Größe</th>
                                         <th>Datum</th>
-                                        <th style="width: 200px;">Aktionen</th>
+                                        <th style="width: 150px;">Aktionen</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -199,20 +340,23 @@ if ($view === 'list') {
                                         <td><?= format_filesize($doc['filesize']) ?></td>
                                         <td><?= date('d.m.Y', strtotime($doc['created_at'])) ?></td>
                                         <td>
-                                            <div class="btn-group btn-group-sm" role="group">
+                                            <div class="d-flex gap-1 flex-wrap">
+                                                <!-- Download-Button (immer anzeigen) -->
+                                                <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
+                                                    📥 Download
+                                                </a>
+
+                                                <!-- Kurz-URL Button (nur wenn vorhanden) -->
                                                 <?php if (!empty($doc['short_url'])): ?>
-                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn btn-primary" target="_blank" title="Öffnen">
-                                                        <i class="bi bi-link-45deg"></i>
-                                                    </a>
-                                                <?php else: ?>
-                                                    <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary" target="_blank" title="Herunterladen">
-                                                        <i class="bi bi-download"></i>
+                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-view" target="_blank">
+                                                        🔗 Öffnen
                                                     </a>
                                                 <?php endif; ?>
 
+                                                <!-- Bearbeiten-Button (nur für Admins) -->
                                                 <?php if ($is_admin): ?>
-                                                    <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn btn-outline-secondary" title="Bearbeiten">
-                                                        <i class="bi bi-pencil"></i>
+                                                    <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn-secondary">
+                                                        ✏️ Bearbeiten
                                                     </a>
                                                 <?php endif; ?>
                                             </div>
@@ -225,7 +369,7 @@ if ($view === 'list') {
                     </div>
 
                     <!-- Mobile: Cards -->
-                    <div class="d-md-none">
+                    <div class="documents-mobile">
                         <?php foreach ($documents as $doc):
                             $categories = get_document_categories();
                             $cat_label = $categories[$doc['category']] ?? $doc['category'];
@@ -262,19 +406,19 @@ if ($view === 'list') {
                                 </p>
 
                                 <div class="d-grid gap-2">
+                                    <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
+                                        📥 Herunterladen
+                                    </a>
+
                                     <?php if (!empty($doc['short_url'])): ?>
-                                        <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn btn-primary" target="_blank">
-                                            <i class="bi bi-link-45deg"></i> Öffnen
-                                        </a>
-                                    <?php else: ?>
-                                        <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary" target="_blank">
-                                            <i class="bi bi-download"></i> Herunterladen
+                                        <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-view" target="_blank">
+                                            🔗 Öffnen
                                         </a>
                                     <?php endif; ?>
 
                                     <?php if ($is_admin): ?>
-                                        <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn btn-outline-secondary">
-                                            <i class="bi bi-pencil"></i> Bearbeiten
+                                        <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn-secondary">
+                                            ✏️ Bearbeiten
                                         </a>
                                     <?php endif; ?>
                                 </div>

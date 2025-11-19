@@ -80,7 +80,7 @@ define('BASE_URL', 'https://ihre-domain.de/sitzungsverwaltung');
 1. Öffnen Sie im Browser: `https://ihre-domain.de/sitzungsverwaltung/init-db.php`
 2. Das Skript erstellt automatisch:
    - Die Datenbank (falls sie noch nicht existiert)
-   - Alle 24 Tabellen
+   - Alle 26 Tabellen (inkl. Dokumentenverwaltung)
    - Den erforderlichen Trigger
    - 13 Meinungsbild-Templates
    - **Einen Default-Admin-Benutzer** (wenn members-Tabelle leer ist)
@@ -123,18 +123,31 @@ Hinweis: Es gibt keine `init-db.sql` Datei. Verwenden Sie stattdessen `init-db.p
    - Kollation: `utf8mb4_unicode_ci`
 3. Führen Sie `init-db.php` über den Browser aus (siehe Option A)
 
-### 4. Berechtigungen setzen
+### 4. Verzeichnisse erstellen und Berechtigungen setzen
+
+Erstellen Sie zunächst die benötigten Upload-Verzeichnisse:
+
+```bash
+# Upload-Verzeichnis für Dokumente erstellen
+mkdir -p /var/www/html/sitzungsverwaltung/uploads/documents
+```
 
 Stellen Sie sicher, dass der Webserver Schreibrechte auf bestimmte Verzeichnisse hat:
 
 ```bash
-# Falls vorhanden: Upload-Verzeichnisse
+# Hauptverzeichnis
 chmod 755 /var/www/html/sitzungsverwaltung
 chown -R www-data:www-data /var/www/html/sitzungsverwaltung
+
+# Upload-Verzeichnis für Dokumente
+chmod 755 /var/www/html/sitzungsverwaltung/uploads/documents
+chown www-data:www-data /var/www/html/sitzungsverwaltung/uploads/documents
 
 # Session-Verzeichnis (falls custom)
 chmod 700 sessions/
 ```
+
+**Wichtig:** Das `uploads/documents` Verzeichnis muss vom Webserver beschreibbar sein, damit Dokumente hochgeladen werden können!
 
 ### 5. Demo-Daten laden (Optional)
 

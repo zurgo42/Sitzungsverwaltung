@@ -139,6 +139,8 @@ try {
             <li>opinion_poll_participants (Meinungsbild-Teilnehmer)</li>
             <li>opinion_responses (Meinungsbild-Antworten)</li>
             <li>opinion_response_options (Gewählte Optionen)</li>
+            <li>documents (Dokumente)</li>
+            <li>document_downloads (Download-Tracking)</li>
         </ul>
     </div>
 
@@ -171,7 +173,9 @@ try {
             'opinion_poll_options',
             'opinion_poll_participants',
             'opinion_responses',
-            'opinion_response_options'
+            'opinion_response_options',
+            'documents',
+            'document_downloads'
         ];
 
         $total_records = 0;

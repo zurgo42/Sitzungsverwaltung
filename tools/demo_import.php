@@ -178,6 +178,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             <li>Alle TODOs & Historie</li>
             <li>Alle Terminabstimmungen & Antworten</li>
             <li>Alle Meinungsbilder & Antworten</li>
+            <li>Alle Dokumente & Download-Historie</li>
             <li>Alle Mitglieder (members-Tabelle)</li>
         </ul>
         <p><strong>Was wird importiert:</strong></p>
@@ -188,6 +189,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             <li>Demo-TODOs mit Historie</li>
             <li>Demo-Terminabstimmungen mit Antworten</li>
             <li>Demo-Meinungsbilder mit Antworten</li>
+            <li>Demo-Dokumente mit Download-Statistiken</li>
         </ul>
     </div>
 
@@ -232,6 +234,9 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             echo '<h2>🗑️ Lösche bestehende Daten...</h2>';
 
             $tables_to_clear = [
+                // Dokumenten-Daten (in korrekter Reihenfolge wegen FK)
+                'document_downloads',
+                'documents',
                 // Meinungsbild-Daten (in korrekter Reihenfolge wegen FK)
                 'opinion_response_options',
                 'opinion_responses',

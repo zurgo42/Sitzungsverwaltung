@@ -106,6 +106,40 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 - Automatische Benachrichtigungen
 - Verknüpfung mit Meeting-Protokollen
 
+### 📁 Dokumentenverwaltung
+
+**Zentrale Ablage für Vereinsdokumente:**
+
+- **Upload-Funktionen:**
+  - Unterstützte Formate: PDF, DOC, DOCX, XLS, XLSX, RTF, TXT, Bilder
+  - Drag & Drop Upload (geplant)
+  - Metadaten: Titel, Beschreibung, Version, Stichworte
+
+- **Kategorisierung:**
+  - Satzung, Ordnungen, Richtlinien
+  - Formulare, MV-Unterlagen
+  - Dokumentationen, Urteile, Medien
+  - Automatische Kategorisierung
+
+- **Zugriffskontrolle:**
+  - Rollenbasierte Berechtigungen (Level 0-19)
+  - Dokumente für spezifische Gruppen freigeben
+  - Admin-only Bearbeitung und Upload
+
+- **Suche & Filter:**
+  - Volltextsuche in Titel, Beschreibung und Stichworten
+  - Filter nach Kategorie und Status
+  - Sortierung nach Datum, Titel, Kategorie
+
+- **Features:**
+  - Kurz-URLs für wichtige Dokumente
+  - Download-Tracking und Statistiken
+  - Versionierung
+  - Status-Verwaltung (aktiv, archiviert, versteckt, veraltet)
+  - Responsive Design (Desktop & Mobile)
+
+**Ideal für:** Satzungen, Protokolle, Formulare, Handbücher, Berichte
+
 ### 📝 Protokoll-System
 
 **Professionelle Dokumentation:**
@@ -157,10 +191,11 @@ Nach dem Login sehen Sie:
 3. **📋 TOPs:** Tagesordnungspunkte bearbeiten
 4. **📝 Protokolle:** Protokolle einsehen und verwalten
 5. **✅ TODOs:** Aufgaben-Übersicht
-6. **👥 Mitglieder:** Mitglieder-Verwaltung (Admins)
-7. **📊 Termine:** Terminplanung mit Umfragen
-8. **📊 Meinungsbild:** Umfragen und Abstimmungen
-9. **⚙️ Einstellungen:** Konfiguration (Admins)
+6. **📁 Dokumente:** Zentrale Dokumentenverwaltung
+7. **👥 Mitglieder:** Mitglieder-Verwaltung (Admins)
+8. **📊 Termine:** Terminplanung mit Umfragen
+9. **📊 Meinungsbild:** Umfragen und Abstimmungen
+10. **⚙️ Einstellungen:** Konfiguration (Admins)
 
 ## Typische Anwendungsszenarien
 
@@ -258,6 +293,7 @@ Siehe [INSTALL.md](INSTALL.md) für detaillierte Installationsanweisungen.
 - **Installationsanleitung:** [INSTALL.md](INSTALL.md)
 - **Entwickler-Dokumentation:** [DEVELOPER.md](DEVELOPER.md)
 - **Meinungsbild-Tool (Details):** [OPINION_TOOL_README.md](OPINION_TOOL_README.md)
+- **Dokumentenverwaltung (Details):** [DOCUMENTS_README.md](DOCUMENTS_README.md)
 
 ## Lizenz
 

@@ -261,6 +261,80 @@ if ($access_token && !$poll_id) {
     border-radius: 0 0 6px 6px;
     margin-bottom: 15px;
 }
+
+/* Responsive: Smartphone-Darstellung verbessern */
+@media (max-width: 767px) {
+    .opinion-container {
+        padding: 10px;
+    }
+
+    .opinion-card {
+        padding: 15px;
+    }
+
+    /* Option-Items: Besseres Layout mit Flexbox */
+    .option-item {
+        padding: 12px;
+        margin: 8px 0;
+        display: flex;
+        align-items: flex-start;
+    }
+
+    .option-item input[type="checkbox"],
+    .option-item input[type="radio"] {
+        margin-right: 12px;
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+
+    .option-item label {
+        font-size: 15px;
+        word-wrap: break-word;
+        flex: 1;
+        line-height: 1.4;
+        cursor: pointer;
+    }
+
+    /* Buttons: Kompaktere Größe, aber gut bedienbar */
+    .btn-primary, .btn-secondary {
+        padding: 12px 20px;
+        font-size: 15px;
+        box-sizing: border-box;
+        display: inline-block;
+    }
+
+    /* Button-Container: Stapeln statt nebeneinander */
+    div[style*="display: flex"] {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    div[style*="display: flex"] .btn-primary,
+    div[style*="display: flex"] .btn-secondary {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    /* Poll-Meta: Besser lesbar */
+    .poll-meta {
+        font-size: 13px;
+    }
+
+    .poll-meta span {
+        display: block;
+        margin: 4px 0 !important;
+    }
+
+    /* Template Grid: Einzelne Spalte */
+    .template-selector {
+        grid-template-columns: 1fr;
+    }
+
+    /* Custom Options Grid: Einzelne Spalte */
+    .custom-options-grid {
+        grid-template-columns: 1fr;
+    }
+}
 </style>
 
 <div class="opinion-container">

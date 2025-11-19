@@ -566,14 +566,8 @@ function is_admin_user($member) {
         return false;
     }
 
-    // Prüfe is_admin Flag (falls vorhanden)
-    if (isset($member['is_admin']) && $member['is_admin']) {
-        return true;
-    }
-
-    // Prüfe Rolle
-    $admin_roles = ['vorstand', 'gf', 'assistenz'];
-    return isset($member['role']) && in_array($member['role'], $admin_roles);
+    // Prüfe NUR is_admin Flag in der Datenbank
+    return isset($member['is_admin']) && $member['is_admin'] == 1;
 }
 
 /**
