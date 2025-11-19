@@ -96,7 +96,7 @@ $current_absences = $stmt->fetchAll();
                 </select>
             </div>
 
-            <button type="submit" class="btn btn-primary">Abwesenheit eintragen</button>
+            <button type="submit" class="btn btn-primary">💾 Speichern</button>
         </form>
     </div>
 

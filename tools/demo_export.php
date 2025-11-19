@@ -139,7 +139,9 @@ try {
             <li>opinion_poll_participants (Meinungsbild-Teilnehmer)</li>
             <li>opinion_responses (Meinungsbild-Antworten)</li>
             <li>opinion_response_options (Gewählte Optionen)</li>
+            <li>absences (Abwesenheiten)</li>
         </ul>
+        <p><strong>Nicht exportiert:</strong> testfragen, testkommentar</p>
     </div>
 
     <?php
@@ -172,8 +174,6 @@ try {
             'opinion_poll_participants',
             'opinion_responses',
             'opinion_response_options',
-            'testfragen',
-            'testkommentar',
             'absences'
         ];
 

@@ -254,9 +254,6 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 'agenda_items',
                 'meeting_participants',
                 'meetings',
-                // Testfragen-Modul
-                'testkommentar',
-                'testfragen',
                 // Abwesenheiten
                 'absences',
                 // Mitglieder
