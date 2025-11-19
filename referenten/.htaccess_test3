@@ -1,0 +1,7 @@
+# Test 3: Basics + Options + versteckte Dateien
+AddDefaultCharset UTF-8
+Options -Indexes
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

@@ -1,0 +1,5 @@
+# Sichere Version - nur was wirklich funktioniert
+AddDefaultCharset UTF-8
+
+# Optional - falls der Server das unterstützt:
+# Options -Indexes
