@@ -1,0 +1,23 @@
+# MinD-Referentenliste - Apache 2.4 kompatible Konfiguration
+
+# UTF-8 Encoding
+AddDefaultCharset UTF-8
+
+# Directory Listing verhindern
+Options -Indexes
+
+# Zugriff auf versteckte Dateien verhindern
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Zugriff auf sensible Dateien verhindern
+<FilesMatch "\.(md|sql|log|ini|bak|old|example)$">
+    Require all denied
+</FilesMatch>
+
+# Security Headers (optional - nur wenn mod_headers verfügbar)
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+</IfModule>

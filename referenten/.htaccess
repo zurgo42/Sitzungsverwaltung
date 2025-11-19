@@ -12,14 +12,10 @@ Options -Indexes
 </FilesMatch>
 
 # Zugriff auf sensible Dateien verhindern
-<FilesMatch "\.(md|sql|log|ini|bak|old)$">
+# Hinweis: config.php wird durch .gitignore geschützt (nicht im Repository)
+<FilesMatch "\.(md|sql|log|ini|bak|old|example)$">
     Require all denied
 </FilesMatch>
-
-# Config-Datei schützen (enthält Passwörter!)
-<Files "config.php">
-    Require all denied
-</Files>
 
 # Security Headers (nur wenn mod_headers verfügbar)
 <IfModule mod_headers.c>
