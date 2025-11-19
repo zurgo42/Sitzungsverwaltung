@@ -4,6 +4,7 @@
  * CRUD-Operationen für Abwesenheiten
  */
 
+require_once 'config.php';           // Datenbankverbindung
 require_once 'functions.php';
 require_login();
 
