@@ -12,14 +12,20 @@ class Database {
         require_once __DIR__ . '/../../config.php';
 
         try {
-            $dsn = "mysql:host=" . MYSQL_HOST . ";dbname=" . MYSQL_DATABASE . ";charset=utf8mb4";
+            // Unterstütze beide Konstantennamen (DB_* und MYSQL_*)
+            $host = defined('DB_HOST') ? DB_HOST : (defined('MYSQL_HOST') ? MYSQL_HOST : 'localhost');
+            $user = defined('DB_USER') ? DB_USER : (defined('MYSQL_USER') ? MYSQL_USER : 'root');
+            $pass = defined('DB_PASS') ? DB_PASS : (defined('MYSQL_PASS') ? MYSQL_PASS : '');
+            $name = defined('DB_NAME') ? DB_NAME : (defined('MYSQL_DATABASE') ? MYSQL_DATABASE : '');
+
+            $dsn = "mysql:host=" . $host . ";dbname=" . $name . ";charset=utf8mb4";
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
             ];
 
-            $this->pdo = new PDO($dsn, MYSQL_USER, MYSQL_PASS, $options);
+            $this->pdo = new PDO($dsn, $user, $pass, $options);
         } catch (PDOException $e) {
             error_log("Database Connection Error: " . $e->getMessage());
             throw new Exception("Datenbankverbindung fehlgeschlagen");

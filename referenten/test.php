@@ -108,15 +108,26 @@ if (file_exists($config_path)) {
 
 // Datenbankverbindung testen (falls config existiert)
 echo "<h2>7. Datenbankverbindung</h2>";
-if (defined('MYSQL_HOST') && defined('MYSQL_USER') && defined('MYSQL_PASS') && defined('MYSQL_DATABASE')) {
+
+// Unterstütze beide Konstantennamen (DB_* und MYSQL_*)
+$hasDbConfig = (defined('DB_HOST') && defined('DB_USER') && defined('DB_PASS') && defined('DB_NAME')) ||
+               (defined('MYSQL_HOST') && defined('MYSQL_USER') && defined('MYSQL_PASS') && defined('MYSQL_DATABASE'));
+
+if ($hasDbConfig) {
+    $host = defined('DB_HOST') ? DB_HOST : (defined('MYSQL_HOST') ? MYSQL_HOST : 'localhost');
+    $user = defined('DB_USER') ? DB_USER : (defined('MYSQL_USER') ? MYSQL_USER : 'root');
+    $pass = defined('DB_PASS') ? DB_PASS : (defined('MYSQL_PASS') ? MYSQL_PASS : '');
+    $name = defined('DB_NAME') ? DB_NAME : (defined('MYSQL_DATABASE') ? MYSQL_DATABASE : '');
+
     echo "Verbindungsdetails:<br>";
-    echo "  → Host: " . MYSQL_HOST . "<br>";
-    echo "  → Datenbank: " . MYSQL_DATABASE . "<br>";
-    echo "  → User: " . MYSQL_USER . "<br><br>";
+    echo "  → Host: " . htmlspecialchars($host) . "<br>";
+    echo "  → Datenbank: " . htmlspecialchars($name) . "<br>";
+    echo "  → User: " . htmlspecialchars($user) . "<br>";
+    echo "  → Konstanten-Typ: " . (defined('DB_HOST') ? 'DB_*' : 'MYSQL_*') . "<br><br>";
 
     try {
-        $dsn = "mysql:host=" . MYSQL_HOST . ";dbname=" . MYSQL_DATABASE . ";charset=utf8mb4";
-        $pdo = new PDO($dsn, MYSQL_USER, MYSQL_PASS, [
+        $dsn = "mysql:host=" . $host . ";dbname=" . $name . ";charset=utf8mb4";
+        $pdo = new PDO($dsn, $user, $pass, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ]);
         echo "✅ Datenbankverbindung erfolgreich!<br><br>";
