@@ -179,12 +179,21 @@ if ($view === 'list') {
             padding: 1rem;
             background-color: #fff;
         }
+
+        /* Responsive: Upload-Button auf Smartphone unterhalb Überschrift */
+        @media (max-width: 767px) {
+            .documents-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 0.75rem;
+            }
+        }
     </style>
 
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3 documents-header">
                     <h2>📁 Dokumentenverwaltung</h2>
                     <?php if ($is_admin): ?>
                         <button type="button" onclick="window.location.href='?tab=documents&view=upload'" class="btn btn-primary">

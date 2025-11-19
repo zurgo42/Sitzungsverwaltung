@@ -337,6 +337,18 @@ function get_german_weekday_long($date_string) {
 .btn-danger:hover {
     background: #c82333;
 }
+
+/* Responsive: Kleinere Buttons auf Smartphones */
+@media (max-width: 767px) {
+    .vote-btn {
+        min-width: 65px;
+        padding: 4px 6px;
+        font-size: 12px;
+    }
+    .vote-buttons {
+        gap: 3px;
+    }
+}
 </style>
 
 <script>
@@ -789,8 +801,10 @@ if (isset($_SESSION['error'])) {
 
         <!-- Link zur Umfrage -->
         <?php
+        // Basispfad ermitteln (z.B. "/Sitzungsverwaltung" oder "")
+        $script_path = dirname($_SERVER['SCRIPT_NAME']); // z.B. "/Sitzungsverwaltung"
         $host = defined('BASE_URL') ? BASE_URL : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
-        $poll_link = rtrim($host, '/') . '/index.php?tab=termine&view=poll&poll_id=' . $poll_id;
+        $poll_link = rtrim($host, '/') . $script_path . '/index.php?tab=termine&view=poll&poll_id=' . $poll_id;
         ?>
         <div class="poll-card" style="background: #f0f8ff; border: 2px solid #4CAF50; margin-bottom: 20px;">
             <h4 style="margin: 0 0 10px 0;">🔗 Link zu dieser Umfrage</h4>

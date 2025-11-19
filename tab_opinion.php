@@ -261,6 +261,44 @@ if ($access_token && !$poll_id) {
     border-radius: 0 0 6px 6px;
     margin-bottom: 15px;
 }
+
+/* Responsive: Smartphone-Darstellung verbessern */
+@media (max-width: 767px) {
+    .opinion-container {
+        padding: 10px;
+    }
+
+    .opinion-card {
+        padding: 15px;
+    }
+
+    .option-item {
+        padding: 10px;
+        margin: 6px 0;
+    }
+
+    .option-item label {
+        font-size: 14px;
+        word-wrap: break-word;
+    }
+
+    .btn-primary, .btn-secondary {
+        width: 100%;
+        text-align: center;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+    }
+
+    .poll-meta {
+        font-size: 12px;
+    }
+
+    .poll-meta span {
+        display: block;
+        margin: 3px 0 !important;
+    }
+}
 </style>
 
 <div class="opinion-container">
