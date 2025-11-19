@@ -109,26 +109,87 @@ if (file_exists($config_path)) {
 // Datenbankverbindung testen (falls config existiert)
 echo "<h2>7. Datenbankverbindung</h2>";
 if (defined('MYSQL_HOST') && defined('MYSQL_USER') && defined('MYSQL_PASS') && defined('MYSQL_DATABASE')) {
+    echo "Verbindungsdetails:<br>";
+    echo "  → Host: " . MYSQL_HOST . "<br>";
+    echo "  → Datenbank: " . MYSQL_DATABASE . "<br>";
+    echo "  → User: " . MYSQL_USER . "<br><br>";
+
     try {
         $dsn = "mysql:host=" . MYSQL_HOST . ";dbname=" . MYSQL_DATABASE . ";charset=utf8mb4";
         $pdo = new PDO($dsn, MYSQL_USER, MYSQL_PASS, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ]);
-        echo "✅ Datenbankverbindung erfolgreich!<br>";
+        echo "✅ Datenbankverbindung erfolgreich!<br><br>";
 
-        // Tabellen prüfen
-        $tables = ['Refname', 'Refpool'];
-        foreach ($tables as $table) {
+        // Alle Tabellen in der Datenbank anzeigen
+        echo "<strong>Alle Tabellen in dieser Datenbank:</strong><br>";
+        $stmt = $pdo->query("SHOW TABLES");
+        $allTables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        if (count($allTables) > 0) {
+            echo "<div style='margin-left: 20px; background: #f0f0f0; padding: 10px; margin-top: 5px;'>";
+            foreach ($allTables as $tableName) {
+                echo "  → " . htmlspecialchars($tableName) . "<br>";
+            }
+            echo "</div><br>";
+        } else {
+            echo "  → ⚠️ Keine Tabellen in dieser Datenbank gefunden!<br><br>";
+        }
+
+        // Benötigte Tabellen prüfen (verschiedene Schreibweisen)
+        echo "<strong>Prüfe benötigte Tabellen:</strong><br>";
+        $requiredTables = ['Refname', 'Refpool', 'PLZ'];
+
+        foreach ($requiredTables as $table) {
+            // Exakte Suche
             $stmt = $pdo->query("SHOW TABLES LIKE '$table'");
             if ($stmt->rowCount() > 0) {
-                echo "  → ✅ Tabelle $table existiert<br>";
+                echo "  → ✅ Tabelle <strong>$table</strong> existiert<br>";
+
+                // Spalten anzeigen
+                $stmt = $pdo->query("SHOW COLUMNS FROM `$table`");
+                $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                echo "     Spalten: " . implode(', ', $columns) . "<br>";
+
+                // Anzahl Einträge
+                $stmt = $pdo->query("SELECT COUNT(*) FROM `$table`");
+                $count = $stmt->fetchColumn();
+                echo "     Einträge: $count<br>";
             } else {
-                echo "  → ❌ Tabelle $table fehlt!<br>";
+                // Case-insensitive Suche
+                $found = false;
+                foreach ($allTables as $existingTable) {
+                    if (strtolower($existingTable) === strtolower($table)) {
+                        echo "  → ⚠️ Tabelle '$table' nicht gefunden, aber '$existingTable' existiert (Groß-/Kleinschreibung!)<br>";
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found) {
+                    echo "  → ❌ Tabelle <strong>$table</strong> fehlt!<br>";
+                }
             }
         }
+
+        echo "<br><strong>Berechtigungen prüfen:</strong><br>";
+        try {
+            // Versuche in Refname zu lesen (falls vorhanden)
+            if (in_array('Refname', $allTables) || in_array('refname', $allTables)) {
+                $tableName = in_array('Refname', $allTables) ? 'Refname' : 'refname';
+                $stmt = $pdo->query("SELECT * FROM `$tableName` LIMIT 1");
+                echo "  → ✅ SELECT-Berechtigung OK<br>";
+            }
+
+            // Versuche eine Test-Tabelle zu erstellen und zu löschen
+            $pdo->exec("CREATE TEMPORARY TABLE test_permissions (id INT)");
+            echo "  → ✅ CREATE-Berechtigung OK<br>";
+            $pdo->exec("DROP TEMPORARY TABLE test_permissions");
+        } catch (PDOException $e) {
+            echo "  → ⚠️ Eingeschränkte Berechtigungen: " . $e->getMessage() . "<br>";
+        }
+
     } catch (PDOException $e) {
         echo "❌ Datenbankverbindung fehlgeschlagen:<br>";
-        echo "Fehler: " . $e->getMessage() . "<br>";
+        echo "Fehler: " . htmlspecialchars($e->getMessage()) . "<br>";
     }
 } else {
     echo "⚠️ Datenbank-Konstanten nicht definiert<br>";
