@@ -51,6 +51,21 @@ function get_my_comment($pdo, $item_id, $member_id) {
  * @param array $comment Kommentar mit first_name, last_name, created_at, comment_text
  * @param string $date_format Format für Timestamp ('full' = d.m.Y H:i, 'time' = H:i)
  */
+/**
+ * Konvertiert URLs in Text zu klickbaren Links
+ * Muss NACH htmlspecialchars() aufgerufen werden
+ */
+function make_links_clickable($text) {
+    // URL-Pattern für bereits escaped Text (htmlspecialchars wandelt & zu &amp;)
+    $pattern = '/(https?:\/\/[^\s<>"\']+)/i';
+    return preg_replace_callback($pattern, function($matches) {
+        $url = $matches[1];
+        // URL für href dekodieren und wieder encodieren für Sicherheit
+        $display_url = strlen($url) > 50 ? substr($url, 0, 47) . '...' : $url;
+        return '<a href="' . $url . '" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: underline;">' . $display_url . '</a>';
+    }, $text);
+}
+
 function render_comment_line($comment, $date_format = 'full') {
     // Leere Kommentare oder solche mit nur '-' nicht anzeigen
     $text_trimmed = trim($comment['comment_text'] ?? '');
@@ -63,6 +78,26 @@ function render_comment_line($comment, $date_format = 'full') {
         ? date('H:i', strtotime($comment['created_at']))
         : date('d.m.Y H:i', strtotime($comment['created_at']));
     $text = htmlspecialchars($comment['comment_text']);
+    $original_text = $text; // Volltext für Alert behalten
+
+    // URLs klickbar machen
+    $text = make_links_clickable($text);
+
+    // Lange Kommentare kürzen (nur auf Desktop, Limit konfigurierbar)
+    $max_length = defined('COMMENT_MAX_LENGTH') ? COMMENT_MAX_LENGTH : 500;
+    $is_truncated = false;
+    $truncated_text = $text;
+
+    if (strlen($original_text) > $max_length) {
+        $is_truncated = true;
+        // Kürzen auf Limit, dann bis zum letzten Leerzeichen
+        $truncated = substr($original_text, 0, $max_length);
+        $last_space = strrpos($truncated, ' ');
+        if ($last_space > $max_length * 0.8) {
+            $truncated = substr($truncated, 0, $last_space);
+        }
+        $truncated_text = make_links_clickable(htmlspecialchars($truncated));
+    }
 
     // Bewertungen anzeigen (falls vorhanden)
     $rating_text = '';
@@ -79,8 +114,38 @@ function render_comment_line($comment, $date_format = 'full') {
 
     ?>
     <div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
-        <strong style="color: #333;"><?php echo $name; ?></strong> <span style="color: #999; font-size: 11px;"><?php echo $timestamp; ?>:</span><?php echo $rating_text; ?> <span style="color: #555;"><?php echo $text; ?></span>
+        <strong style="color: #333;"><?php echo $name; ?></strong> <span style="color: #999; font-size: 11px;"><?php echo $timestamp; ?>:</span><?php echo $rating_text; ?>
+        <?php if ($is_truncated): ?>
+            <!-- Gekürzte Version nur auf Desktop -->
+            <span style="color: #555;" class="comment-truncated">
+                <?php echo $truncated_text; ?>...
+                <a href="#" onclick="alert('<?php echo addslashes(str_replace(["\r\n", "\n", "\r"], "\\n", $original_text)); ?>'); return false;"
+                   style="color: #007bff; font-style: italic; cursor: pointer;">[Vollbild]</a>
+            </span>
+            <!-- Voller Text auf Mobile -->
+            <span style="color: #555;" class="comment-full"><?php echo $text; ?></span>
+        <?php else: ?>
+            <span style="color: #555;"><?php echo $text; ?></span>
+        <?php endif; ?>
     </div>
+    <?php
+}
+
+// CSS für Kommentar-Kürzung (wird einmal ausgegeben)
+if (!defined('COMMENT_TRUNCATION_CSS_LOADED')) {
+    define('COMMENT_TRUNCATION_CSS_LOADED', true);
+    ?>
+    <style>
+    /* Desktop: Gekürzt anzeigen, voll verstecken */
+    .comment-truncated { display: inline; }
+    .comment-full { display: none; }
+
+    /* Mobile: Voll anzeigen, gekürzt verstecken */
+    @media (max-width: 768px) {
+        .comment-truncated { display: none; }
+        .comment-full { display: inline; }
+    }
+    </style>
     <?php
 }
 

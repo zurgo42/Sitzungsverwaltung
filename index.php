@@ -196,6 +196,49 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sitzungsverwaltung</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style-dark.css">
+    <script>
+    // Theme sofort laden um Flackern zu vermeiden
+    (function() {
+        const theme = localStorage.getItem('theme') || 'auto';
+        if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode-loading');
+        }
+    })();
+    </script>
+    <style>
+    /* Verhindere Flackern beim Laden */
+    html.dark-mode-loading body { background: #1a1a1a; }
+
+    /* Theme Toggle Button */
+    .theme-toggle {
+        background: rgba(255,255,255,0.15);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        border: 1px solid rgba(255,255,255,0.3);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .theme-toggle:hover {
+        background: rgba(255,255,255,0.25);
+    }
+    .theme-toggle select {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 12px;
+        cursor: pointer;
+        outline: none;
+    }
+    .theme-toggle select option {
+        background: #333;
+        color: white;
+    }
+    </style>
 </head>
 <body>
     <!-- HEADER mit Benutzerinfo -->
@@ -209,7 +252,17 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             <span class="role-badge role-<?php echo $current_user['role']; ?>">
                 <?php echo ucfirst($current_user['role']); ?>
             </span>
-            
+
+            <!-- Theme Toggle -->
+            <div class="theme-toggle">
+                <span>🌓</span>
+                <select id="theme-select" onchange="setTheme(this.value)">
+                    <option value="auto">Auto</option>
+                    <option value="light">Hell</option>
+                    <option value="dark">Dunkel</option>
+                </select>
+            </div>
+
             <!-- Logout-Button -->
             <a href="?logout=1" class="logout-btn">Abmelden</a>
         </div>
@@ -354,24 +407,65 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
     /**
      * Accordion-Funktion
      * Öffnet/Schließt Accordion-Bereiche (z.B. für TOP-Details)
-     * 
+     *
      * @param {HTMLElement} button - Der geklickte Accordion-Button
      */
     function toggleAccordion(button) {
         // Nächstes Element nach dem Button ist der Content
         const content = button.nextElementSibling;
         const isOpen = content.style.display === 'block';
-        
+
         // Alle Accordions schließen (nur eines kann gleichzeitig offen sein)
         document.querySelectorAll('.accordion-content').forEach(item => {
             item.style.display = 'none';
         });
-        
+
         // Aktuelles Accordion öffnen/schließen (Toggle)
         if (!isOpen) {
             content.style.display = 'block';
         }
     }
+
+    /**
+     * Theme Management
+     * Hell/Dunkel/Auto Umschaltung mit localStorage Speicherung
+     */
+    function setTheme(theme) {
+        localStorage.setItem('theme', theme);
+        applyTheme(theme);
+    }
+
+    function applyTheme(theme) {
+        const body = document.body;
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (theme === 'dark' || (theme === 'auto' && prefersDark)) {
+            body.classList.add('dark-mode');
+        } else {
+            body.classList.remove('dark-mode');
+        }
+
+        // Entferne die Loading-Klasse
+        document.documentElement.classList.remove('dark-mode-loading');
+    }
+
+    // Theme beim Laden initialisieren
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedTheme = localStorage.getItem('theme') || 'auto';
+        const themeSelect = document.getElementById('theme-select');
+        if (themeSelect) {
+            themeSelect.value = savedTheme;
+        }
+        applyTheme(savedTheme);
+
+        // Auf System-Änderungen reagieren (wenn Auto gewählt)
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+            const currentTheme = localStorage.getItem('theme') || 'auto';
+            if (currentTheme === 'auto') {
+                applyTheme('auto');
+            }
+        });
+    });
     </script>
 </body>
 </html>

@@ -46,31 +46,56 @@ $active_item_id = $stmt->fetchColumn();
 <h3 style="margin: 20px 0 15px 0;">🟢 Laufende Sitzung - Tagesordnungspunkte</h3>
 
 <!-- TEILNEHMERLISTE -->
+<?php
+// Abwesenheiten für das Sitzungsdatum laden
+$meeting_date = $meeting['meeting_date'] ?? date('Y-m-d');
+$stmt_absences = $pdo->prepare("
+    SELECT member_id, reason, substitute_member_id,
+           (SELECT CONCAT(first_name, ' ', last_name) FROM members WHERE member_id = absences.substitute_member_id) as substitute_name
+    FROM absences
+    WHERE ? BETWEEN start_date AND end_date
+");
+$stmt_absences->execute([$meeting_date]);
+$absent_members = [];
+while ($row = $stmt_absences->fetch()) {
+    $absent_members[$row['member_id']] = $row;
+}
+?>
 <?php if ($is_secretary): ?>
     <details open style="margin: 20px 0; padding: 15px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 8px;">
         <summary style="cursor: pointer; font-weight: 600; color: #1976d2; font-size: 16px; margin-bottom: 10px;">
             👥 Teilnehmerverwaltung (klicken zum Auf-/Zuklappen)
         </summary>
-        
+
         <form method="POST" action="">
             <input type="hidden" name="update_attendance" value="1">
-            
+
             <div style="margin-bottom: 15px;">
                 <button type="button" onclick="setAllPresent()" style="background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
                     ✅ Alle auf "Anwesend" setzen
                 </button>
             </div>
-            
+
             <div style="display: grid; gap: 10px;">
-                <?php foreach ($participants as $p): 
+                <?php foreach ($participants as $p):
                     $stmt = $pdo->prepare("SELECT attendance_status FROM meeting_participants WHERE meeting_id = ? AND member_id = ?");
                     $stmt->execute([$current_meeting_id, $p['member_id']]);
                     $attendance = $stmt->fetch();
                     $status = $attendance['attendance_status'] ?? 'absent';
+                    $has_absence = isset($absent_members[$p['member_id']]);
+                    $absence_info = $has_absence ? $absent_members[$p['member_id']] : null;
                 ?>
-                    <div style="display: flex; align-items: center; gap: 15px; padding: 8px; background: white; border-radius: 4px;">
+                    <div style="display: flex; align-items: center; gap: 15px; padding: 8px; background: <?php echo $has_absence ? '#fff3cd' : 'white'; ?>; border-radius: 4px; <?php echo $has_absence ? 'border: 1px solid #ffc107;' : ''; ?>">
                         <span style="flex: 1; font-weight: 600;">
                             <?php echo htmlspecialchars($p['first_name'] . ' ' . $p['last_name']); ?>
+                            <?php if ($has_absence): ?>
+                                <span style="color: #856404; font-size: 12px; font-weight: normal;">
+                                    ⚠️ Abwesend gemeldet<?php
+                                    if ($absence_info['reason']) echo ' (' . htmlspecialchars($absence_info['reason']) . ')';
+                                    if ($absence_info['substitute_name']) echo ' - Vertr.: ' . htmlspecialchars($absence_info['substitute_name']);
+                                    ?>
+                                </span>
+                            <?php endif; ?>
                         </span>
                         
                         <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">

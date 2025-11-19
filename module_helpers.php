@@ -138,10 +138,47 @@ function render_editable_participant_list($pdo, $meeting_id, $participants, $mee
  * Rendert schreibgeschützte Teilnehmerliste
  */
 function render_readonly_participant_list($pdo, $meeting_id, $participants) {
+    // Sitzungsdatum laden
+    $stmt = $pdo->prepare("SELECT meeting_date FROM meetings WHERE meeting_id = ?");
+    $stmt->execute([$meeting_id]);
+    $meeting_date = $stmt->fetchColumn() ?: date('Y-m-d');
+
+    // Abwesenheiten für das Sitzungsdatum laden
+    $stmt_absences = $pdo->prepare("
+        SELECT member_id, reason, substitute_member_id,
+               (SELECT CONCAT(first_name, ' ', last_name) FROM members WHERE member_id = absences.substitute_member_id) as substitute_name
+        FROM absences
+        WHERE ? BETWEEN start_date AND end_date
+    ");
+    $stmt_absences->execute([$meeting_date]);
+    $absent_members = [];
+    while ($row = $stmt_absences->fetch()) {
+        $absent_members[$row['member_id']] = $row;
+    }
+
+    // Abwesende Teilnehmer mit Warnung sammeln
+    $absent_warnings = [];
+    foreach ($participants as $p) {
+        if (isset($absent_members[$p['member_id']])) {
+            $info = $absent_members[$p['member_id']];
+            $warning = htmlspecialchars($p['first_name'] . ' ' . $p['last_name']);
+            $details = [];
+            if ($info['reason']) $details[] = htmlspecialchars($info['reason']);
+            if ($info['substitute_name']) $details[] = 'Vertr.: ' . htmlspecialchars($info['substitute_name']);
+            if ($details) $warning .= ' (' . implode(', ', $details) . ')';
+            $absent_warnings[] = $warning;
+        }
+    }
     ?>
     <div style="margin: 15px 0; padding: 12px; background: #f9f9f9; border-radius: 8px;">
         <strong>👥 Teilnehmer:</strong><br>
         <?php echo render_participant_list($pdo, $meeting_id, $participants); ?>
+        <?php if (!empty($absent_warnings)): ?>
+            <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 13px;">
+                <strong style="color: #856404;">⚠️ Abwesend gemeldet:</strong>
+                <?php echo implode(', ', $absent_warnings); ?>
+            </div>
+        <?php endif; ?>
     </div>
     <?php
 }

@@ -1,0 +1,552 @@
+/* ==============================================
+   SITZUNGSVERWALTUNG - DARK MODE
+   Dunkles Farbschema für die Anwendung
+   ============================================== */
+
+/* Body & Grundlagen */
+body.dark-mode {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+}
+
+/* Content Container */
+body.dark-mode .content {
+    background: #2d2d2d;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+body.dark-mode .container {
+    background-color: transparent;
+}
+
+/* Typografie */
+body.dark-mode h2,
+body.dark-mode h3 {
+    color: #e0e0e0;
+}
+
+/* Tabs & Navigation */
+body.dark-mode .tabs,
+body.dark-mode .navigation {
+    background: #2d2d2d;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+body.dark-mode .tabs a,
+body.dark-mode .navigation a {
+    background: #3d3d3d;
+    color: #e0e0e0;
+}
+
+body.dark-mode .tabs a:hover,
+body.dark-mode .navigation a:hover {
+    background: #5568d3;
+    color: white;
+}
+
+body.dark-mode .tabs a.active,
+body.dark-mode .navigation a.active {
+    background: #667eea;
+    color: white;
+}
+
+/* Formulare */
+body.dark-mode label {
+    color: #b0b0b0;
+}
+
+body.dark-mode input[type="text"],
+body.dark-mode input[type="email"],
+body.dark-mode input[type="date"],
+body.dark-mode input[type="datetime-local"],
+body.dark-mode input[type="number"],
+body.dark-mode select,
+body.dark-mode textarea {
+    background: #3d3d3d;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+}
+
+/* Buttons */
+body.dark-mode .btn-secondary {
+    background: #555;
+}
+
+body.dark-mode .btn-secondary:hover {
+    background: #666;
+}
+
+/* Badges */
+body.dark-mode .badge {
+    background: #3d3d3d;
+    color: #90caf9;
+}
+
+/* Meldungen & Info-Boxen */
+body.dark-mode .info-box {
+    background: #1e3a5f;
+    border-left-color: #2196f3;
+    color: #90caf9;
+}
+
+body.dark-mode .message {
+    background: #1e3f2e;
+    border-color: #2e7d32;
+    color: #81c784;
+}
+
+body.dark-mode .error-message {
+    background: #4a1c1c;
+    border-color: #c62828;
+    color: #ef9a9a;
+}
+
+body.dark-mode .search-info {
+    background: #3d3520;
+    border-left-color: #ffc107;
+    color: #ffe082;
+}
+
+/* Meeting Cards */
+body.dark-mode .meeting-card {
+    background: #2d2d2d;
+    border-color: #444;
+}
+
+body.dark-mode .meeting-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+body.dark-mode .meeting-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .meeting-meta {
+    color: #999;
+}
+
+/* Agenda Items */
+body.dark-mode .agenda-item {
+    background: #3d3d3d;
+}
+
+body.dark-mode .agenda-item.confidential {
+    background: #3d3520;
+}
+
+body.dark-mode .agenda-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .agenda-meta {
+    color: #888;
+}
+
+/* Protocol Box */
+body.dark-mode .protocol-box {
+    background: #1e3a5f;
+    border-color: #2196f3;
+}
+
+body.dark-mode .protocol-box.confidential {
+    background: #3d3520;
+    border-color: #f39c12;
+}
+
+body.dark-mode .protocol-content {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+/* Kommentare */
+body.dark-mode .comments-box {
+    background: #3d3d3d;
+    border-color: #555;
+}
+
+body.dark-mode .comment {
+    border-bottom-color: #444;
+}
+
+body.dark-mode .comment-author {
+    color: #90caf9;
+}
+
+body.dark-mode .comment-text {
+    color: #b0b0b0;
+}
+
+/* Accordion */
+body.dark-mode .accordion-button {
+    background: #3d3d3d;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+body.dark-mode .accordion-button:hover {
+    background: #4d4d4d;
+}
+
+body.dark-mode .accordion-content {
+    background: #3d3d3d;
+    border-color: #555;
+}
+
+/* Admin-Bereich */
+body.dark-mode .admin-stats {
+    background: #3d3d3d;
+}
+
+body.dark-mode .stat-card {
+    background: #2d2d2d;
+}
+
+body.dark-mode .stat-number {
+    color: #e0e0e0;
+}
+
+body.dark-mode .admin-table {
+    background: #2d2d2d;
+}
+
+body.dark-mode .admin-table th {
+    background: #3d3d3d;
+    color: #e0e0e0;
+    border-bottom-color: #555;
+}
+
+body.dark-mode .admin-table td {
+    border-bottom-color: #444;
+    color: #e0e0e0;
+}
+
+body.dark-mode .admin-table tr:hover {
+    background: #3d3d3d;
+}
+
+/* Protokolle */
+body.dark-mode .search-box {
+    background: #3d3d3d;
+}
+
+body.dark-mode .protocol-table td.mitr {
+    border-bottom-color: #444;
+}
+
+body.dark-mode .protocol-preview {
+    color: #999;
+}
+
+/* ToDo-System */
+body.dark-mode .todo-table th {
+    background: #3d3d3d;
+}
+
+body.dark-mode .todo-table th,
+body.dark-mode .todo-table td {
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+body.dark-mode .todo-table tr.todo-own {
+    background-color: #4a2828;
+}
+
+body.dark-mode .todo-table tr.todo-private {
+    background-color: #2d2847;
+}
+
+body.dark-mode .todo-card {
+    border-color: #555;
+    background: #2d2d2d;
+}
+
+body.dark-mode .todo-card.todo-own {
+    background-color: #4a2828;
+}
+
+body.dark-mode .todo-card.todo-private {
+    background-color: #2d2847;
+}
+
+/* Roles Box */
+body.dark-mode .roles-box {
+    background: #1e3f2e;
+    border-left-color: #4caf50;
+}
+
+body.dark-mode .roles-box-title {
+    color: #81c784;
+}
+
+/* Meeting-Info-Box */
+body.dark-mode .meeting-info-box {
+    background: #3d3d3d;
+}
+
+/* ToDo Creation Box */
+body.dark-mode .todo-creation-box {
+    background: #1e3f2e;
+    border-color: #4caf50;
+}
+
+body.dark-mode .todo-creation-title {
+    color: #81c784;
+}
+
+/* Comments Section */
+body.dark-mode .comments-section {
+    background: #3d3520;
+    border-color: #ffc107;
+}
+
+body.dark-mode .comments-title {
+    color: #ffe082;
+}
+
+body.dark-mode .comment-item {
+    background: #2d2d2d;
+    border-left-color: #ffc107;
+}
+
+/* Protocol Section */
+body.dark-mode .protocol-section {
+    background: #1e3a5f;
+    border-color: #2196f3;
+}
+
+body.dark-mode .protocol-title {
+    color: #90caf9;
+}
+
+body.dark-mode .protocol-textarea {
+    background: #2d2d2d;
+    border-color: #2196f3;
+    color: #e0e0e0;
+}
+
+body.dark-mode .protocol-display {
+    background: #2d2d2d;
+    border-color: #2196f3;
+    color: #e0e0e0;
+}
+
+/* New TOP Section */
+body.dark-mode .new-top-section {
+    background: #3d3d3d;
+}
+
+body.dark-mode .new-top-title {
+    color: #e0e0e0;
+}
+
+/* Participants Selector */
+body.dark-mode .participants-selector {
+    background: #3d3d3d;
+    border-color: #555;
+}
+
+body.dark-mode .participant-label:hover {
+    background: #4d4d4d;
+}
+
+/* Form Box */
+body.dark-mode .form-box {
+    background: #3d3d3d;
+    border-color: #2196f3;
+}
+
+/* Modal */
+body.dark-mode .modal-content {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+body.dark-mode .log-details pre {
+    background: #3d3d3d;
+    color: #e0e0e0;
+}
+
+/* Absences Widget */
+body.dark-mode .absences-widget {
+    background: #3d3d3d;
+    border-color: #555;
+}
+
+body.dark-mode .absences-widget .widget-header {
+    color: #b0b0b0;
+}
+
+body.dark-mode .absences-widget .widget-content {
+    color: #999;
+}
+
+/* Highlight/Search */
+body.dark-mode .hbl,
+body.dark-mode .highlight {
+    background: #3d3520;
+    color: #ffe082;
+}
+
+/* Time Remaining */
+body.dark-mode .time-remaining {
+    background: #3d3520;
+    border-left-color: #ffc107;
+    color: #ffe082;
+}
+
+/* Data Tables */
+body.dark-mode .data-table th {
+    background: #3d3d3d;
+}
+
+body.dark-mode .data-table td {
+    border-bottom-color: #444;
+}
+
+body.dark-mode .data-table tr.past-absence {
+    opacity: 0.5;
+}
+
+body.dark-mode .data-table tr.highlight {
+    background: #3d3520;
+}
+
+/* Cards */
+body.dark-mode .card {
+    background: #2d2d2d;
+    border-color: #444;
+}
+
+body.dark-mode .card.edit-form {
+    border-color: #5568d3;
+}
+
+/* Own Todos */
+body.dark-mode .todo-filecard {
+    background: #2d2d2d;
+    border-color: #444;
+}
+
+body.dark-mode .todo-filecard-content {
+    color: #e0e0e0;
+}
+
+body.dark-mode .todo-filecard-title {
+    color: #e0e0e0;
+    border-bottom-color: #444;
+}
+
+body.dark-mode .todo-filecard-qr {
+    background: #3d3d3d;
+}
+
+body.dark-mode .todo-filecard-actions {
+    border-top-color: #444;
+}
+
+/* Other Todos */
+body.dark-mode .other-todos-accordion-header {
+    background: #3d3d3d;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+body.dark-mode .other-todos-accordion-header:hover {
+    background: #4d4d4d;
+}
+
+body.dark-mode .other-todo-card {
+    background: #2d2d2d;
+    border-color: #444;
+}
+
+body.dark-mode .other-todo-card-header {
+    border-bottom-color: #444;
+}
+
+body.dark-mode .other-todo-card-body {
+    color: #b0b0b0;
+}
+
+/* Done Todos */
+body.dark-mode .own-todos-done-section {
+    background: #3d3d3d;
+    border-color: #555;
+}
+
+body.dark-mode .done-todos-table {
+    background: #2d2d2d;
+}
+
+body.dark-mode .done-todos-table thead {
+    background: #3d3d3d;
+}
+
+body.dark-mode .done-todos-table th {
+    color: #999;
+}
+
+body.dark-mode .done-todos-table td {
+    border-bottom-color: #444;
+}
+
+body.dark-mode .done-todo-card {
+    background: #2d2d2d;
+    border-color: #444;
+}
+
+body.dark-mode .done-todo-card-header {
+    border-bottom-color: #444;
+}
+
+/* Links */
+body.dark-mode a {
+    color: #90caf9;
+}
+
+body.dark-mode a:hover {
+    color: #bbdefb;
+}
+
+/* Inline styles in PHP - these need special handling */
+body.dark-mode [style*="background: white"],
+body.dark-mode [style*="background:white"],
+body.dark-mode [style*="background: #f9f9f9"],
+body.dark-mode [style*="background:#f9f9f9"],
+body.dark-mode [style*="background: #f5f5f5"],
+body.dark-mode [style*="background:#f5f5f5"] {
+    background: #3d3d3d !important;
+}
+
+body.dark-mode [style*="color: #333"],
+body.dark-mode [style*="color:#333"] {
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode [style*="color: #555"],
+body.dark-mode [style*="color:#555"] {
+    color: #b0b0b0 !important;
+}
+
+body.dark-mode [style*="color: #666"],
+body.dark-mode [style*="color:#666"] {
+    color: #999 !important;
+}
+
+body.dark-mode [style*="border: 1px solid #ddd"],
+body.dark-mode [style*="border:1px solid #ddd"] {
+    border-color: #555 !important;
+}
+
+body.dark-mode [style*="border-bottom: 1px solid #eee"],
+body.dark-mode [style*="border-bottom:1px solid #eee"] {
+    border-bottom-color: #444 !important;
+}
