@@ -170,17 +170,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             try {
                 $pdo->beginTransaction();
 
-                // Testfrage einfügen
+                // Testfrage einfügen (ANONYM - ohne member_id)
                 $stmt = $pdo->prepare("
                     INSERT INTO testfragen
-                    (member_id, aufgabe, antwort1, antwort2, antwort3, antwort4, antwort5,
+                    (aufgabe, antwort1, antwort2, antwort3, antwort4, antwort5,
                      richtig, regel, inhalt, tinhalt, inhaltw, tinhaltw, schwer,
                      is_figural, datum)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
                 ");
 
                 $stmt->execute([
-                    $currentMemberID,
                     $aufgabe,
                     $_POST['antwort1'] ?? '',
                     $_POST['antwort2'] ?? '',

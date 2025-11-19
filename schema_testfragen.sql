@@ -13,7 +13,7 @@ SET CHARACTER SET utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `testfragen` (
   `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT 'Eindeutige ID der Testfrage',
-  `member_id` INT(11) NOT NULL COMMENT 'ID des einreichenden Mitglieds',
+  `member_id` INT(11) DEFAULT NULL COMMENT 'NICHT VERWENDET - Einreichungen sind anonym',
   `aufgabe` TEXT NOT NULL COMMENT 'Aufgabenstellung als Text',
   `antwort1` TEXT DEFAULT NULL COMMENT 'Antwortmöglichkeit 1',
   `antwort2` TEXT DEFAULT NULL COMMENT 'Antwortmöglichkeit 2',
@@ -89,12 +89,15 @@ VALUES
 /*
 Falls du vom alten Schema migrierst:
 
--- Spalte für member_id hinzufügen (falls noch nicht vorhanden)
-ALTER TABLE testfragen ADD COLUMN member_id INT(11) AFTER id;
+-- Spalte für member_id auf nullable setzen (ANONYMITÄT)
+ALTER TABLE testfragen MODIFY COLUMN member_id INT(11) DEFAULT NULL;
+
+-- Bestehende member_ids löschen für Anonymität
+UPDATE testfragen SET member_id = NULL;
 
 -- Fehlende Spalten hinzufügen
 ALTER TABLE testfragen ADD COLUMN is_figural TINYINT(1) DEFAULT 0 AFTER schwer;
-ALTER TABLE testfragen ADD COLUMN reviewed TINYINT(1) DEFAULT 0 AFTER file5;
+ALTER TABLE testfragen ADD COLUMN reviewed TINYINT(1) DEFAULT 0 AFTER datum;
 ALTER TABLE testfragen ADD COLUMN approved TINYINT(1) DEFAULT NULL AFTER reviewed;
 ALTER TABLE testfragen ADD COLUMN review_notes TEXT DEFAULT NULL AFTER approved;
 
@@ -103,7 +106,6 @@ ALTER TABLE testfragen CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_
 ALTER TABLE testkommentar CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Indizes hinzufügen
-ALTER TABLE testfragen ADD INDEX idx_member (member_id);
 ALTER TABLE testfragen ADD INDEX idx_datum (datum);
 */
 

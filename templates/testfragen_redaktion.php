@@ -4,11 +4,10 @@
  * Zeigt alle eingereichten Fragen
  */
 
-// Alle Testfragen laden
+// Alle Testfragen laden (ANONYM - ohne Einreicher-Informationen)
 $stmt = $pdo->query("
-    SELECT t.*, m.first_name, m.last_name
+    SELECT t.*
     FROM testfragen t
-    LEFT JOIN berechtigte m ON t.member_id = m.member_id
     ORDER BY t.datum DESC
 ");
 $fragen = $stmt->fetchAll();
@@ -47,9 +46,7 @@ $schwerLabels = [
                             <?php endif; ?>
                         </h4>
                         <div class="frage-meta">
-                            <?php if ($frage['first_name']): ?>
-                                <span>von <?= htmlspecialchars($frage['first_name'] . ' ' . $frage['last_name']) ?></span>
-                            <?php endif; ?>
+                            <span>Anonym</span>
                             <span><?= date('d.m.Y', strtotime($frage['datum'])) ?></span>
                         </div>
                     </div>
