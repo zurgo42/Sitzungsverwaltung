@@ -60,9 +60,15 @@ function make_links_clickable($text) {
     $pattern = '/(https?:\/\/[^\s<>"\']+)/i';
     return preg_replace_callback($pattern, function($matches) {
         $url = $matches[1];
-        // URL für href dekodieren und wieder encodieren für Sicherheit
+        // Abschließende Satzzeichen entfernen (Komma, Punkt, Semikolon, Doppelpunkt, Ausrufezeichen, Fragezeichen, Klammern)
+        $trailing = '';
+        while (preg_match('/[.,;:!?\)\]>]$/', $url)) {
+            $trailing = substr($url, -1) . $trailing;
+            $url = substr($url, 0, -1);
+        }
+        // URL für Anzeige kürzen falls nötig
         $display_url = strlen($url) > 50 ? substr($url, 0, 47) . '...' : $url;
-        return '<a href="' . $url . '" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: underline;">' . $display_url . '</a>';
+        return '<a href="' . $url . '" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: underline;">' . $display_url . '</a>' . $trailing;
     }, $text);
 }
 
