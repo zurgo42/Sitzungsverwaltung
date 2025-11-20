@@ -65,7 +65,7 @@ if (!isset($all_members)) {
                 <button type="button" onclick="toggleAllOpinionParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
                 <button type="button" onclick="toggleAllOpinionParticipants(false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
                 <button type="button" onclick="toggleOpinionLeadershipRoles()" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
-                <button type="button" onclick="toggleOpinionTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Führungsteam</button>
+                <button type="button" onclick="toggleOpinionTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
             </div>
             <div class="participants-selector" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #f9f9f9;">
                 <?php foreach ($all_members as $member): ?>
@@ -234,7 +234,7 @@ function toggleOpinionLeadershipRoles() {
 function toggleOpinionTopManagement() {
     const checkboxes = document.querySelectorAll('.opinion-participant-checkbox');
     // Unterstützt beide Schreibweisen: Standard (members) und BerechtigteAdapter
-    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz', 'Führungsteam', 'vorstand', 'gf', 'assistenz', 'fuehrungsteam'];
+    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz', 'vorstand', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
         const role = cb.getAttribute('data-role');
         if (topRoles.includes(role)) {

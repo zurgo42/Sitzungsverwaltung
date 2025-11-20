@@ -332,8 +332,12 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     </div>
 <?php endif; ?>
 
-<!-- FREMDE TODOS -->
-<?php if (!empty($other_todos)): ?>
+<!-- FREMDE TODOS (nicht für Mitglieder sichtbar) -->
+<?php
+$mitglied_roles = ['mitglied', 'Mitglied'];
+$is_mitglied = in_array($current_user['role'], $mitglied_roles);
+?>
+<?php if (!empty($other_todos) && !$is_mitglied): ?>
     <div class="other-todos-section">
         <div class="other-todos-accordion-header" onclick="this.classList.toggle('open'); this.nextElementSibling.classList.toggle('open');">
             <span>Weitere öffentliche ToDos der anderen Aktiven (<?php echo count($other_todos); ?>)</span>

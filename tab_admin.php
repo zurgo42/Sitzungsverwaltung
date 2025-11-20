@@ -275,6 +275,7 @@ require_once 'process_admin.php';
                     <label>Rolle:</label>
                     <select name="role" required>
                         <option value="mitglied">Mitglied</option>
+                        <option value="fuehrungsteam">Führungsteam</option>
                         <option value="assistenz">Assistenz</option>
                         <option value="gf">Geschäftsführung</option>
                         <option value="vorstand">Vorstand</option>
@@ -360,6 +361,7 @@ require_once 'process_admin.php';
                         <label>Rolle:</label>
                         <select name="role" id="edit_role" required>
                             <option value="mitglied">Mitglied</option>
+                            <option value="fuehrungsteam">Führungsteam</option>
                             <option value="assistenz">Assistenz</option>
                             <option value="gf">Geschäftsführung</option>
                             <option value="vorstand">Vorstand</option>
