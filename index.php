@@ -515,5 +515,16 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
         });
     });
     </script>
+
+    <!-- FOOTER mit rechtlichen Links -->
+    <footer class="site-footer">
+        <div class="footer-content">
+            &copy;2015 Dr. Hermann Meier &#149; Horstmannsmühle 1a &#149; 42781 Haan &#149; Tel.: 02129 379 2870
+            <span class="footer-links">
+                <a href="https://geschäftsordnung.com/?page_id=52" target="_blank">Impressum</a>
+                <a href="https://geschäftsordnung.com/?page_id=54" target="_blank">Datenschutz</a>
+            </span>
+        </div>
+    </footer>
 </body>
 </html>

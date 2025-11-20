@@ -957,26 +957,50 @@ button:hover {
     .content {
         padding: 15px;
     }
-    
-    /* Header */
+
+    /* Header - kompakter auf Mobile */
     header,
     .header {
-        padding: 20px 15px;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
+        padding: 10px 12px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
     }
-    
+
     header h1,
     .header h1 {
-        font-size: 24px;
+        font-size: 16px;
+        margin: 0;
     }
-    
+
     .header .user-info {
-        width: 100%;
+        width: auto;
         flex-wrap: wrap;
+        gap: 5px;
+        font-size: 11px;
+        margin-left: auto;
     }
-    
+
+    .header .user-info span:first-child {
+        display: none; /* Name ausblenden auf Mobile */
+    }
+
+    .header .role-badge {
+        padding: 2px 6px;
+        font-size: 9px;
+    }
+
+    .header .theme-toggle {
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+
+    .header .logout-btn {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+
     /* Navigation */
     .tabs,
     .navigation {
@@ -2614,5 +2638,70 @@ details.filter-accordion:not([open]) .filter-content {
     .badge-warning {
         display: block;
         margin-top: 4px;
+    }
+}
+
+/* ==============================================
+   25. FOOTER
+   ============================================== */
+
+.site-footer {
+    background: linear-gradient(135deg, #5568d3 0%, #0047c2 100%);
+    color: white;
+    padding: 12px 20px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    font-size: 12px;
+    text-align: center;
+}
+
+.footer-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer-links {
+    display: flex;
+    gap: 15px;
+}
+
+.footer-links a {
+    color: white;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255,255,255,0.5);
+}
+
+.footer-links a:hover {
+    border-bottom-color: white;
+}
+
+/* Platz für Footer unten */
+body {
+    padding-bottom: 60px;
+}
+
+@media (max-width: 767px) {
+    .site-footer {
+        font-size: 10px;
+        padding: 8px 10px;
+    }
+
+    .footer-content {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .footer-links {
+        gap: 10px;
+    }
+
+    body {
+        padding-bottom: 70px;
     }
 }
