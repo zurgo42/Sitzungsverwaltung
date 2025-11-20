@@ -2,10 +2,17 @@
 /**
  * widget_absences.php - Widget zur Anzeige aktueller Abwesenheiten
  * Wird unterhalb der Tabs auf allen Seiten angezeigt
+ * NUR FÜR FÜHRUNGSTEAM SICHTBAR
  */
 
-// Nur laden wenn $pdo verfügbar ist
-if (!isset($pdo)) {
+// Nur laden wenn $pdo und $current_user verfügbar sind
+if (!isset($pdo) || !isset($current_user)) {
+    return;
+}
+
+// Berechtigung prüfen: Nur Führungsteam sieht das Widget
+$leadership_roles = ['vorstand', 'gf', 'assistenz', 'fuehrungsteam', 'Vorstand', 'Geschäftsführung', 'Assistenz', 'Führungsteam'];
+if (!in_array($current_user['role'], $leadership_roles)) {
     return;
 }
 
