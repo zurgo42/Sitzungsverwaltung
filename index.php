@@ -156,7 +156,8 @@ if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
 
                 <!-- Demo: Mitgliederliste für Tester -->
                 <div class="demo-section">
-                    <h3>🧪 Demo-Accounts (Passwort: demo123)</h3>
+                    <h3>🧪 Demo-Accounts (Passwort: test123)</h3>
+                    <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Klicken Sie auf eine Zeile zum automatischen Ausfüllen.</p>
                     <table class="demo-table">
                         <thead>
                             <tr>
@@ -168,7 +169,7 @@ if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
                         </thead>
                         <tbody>
                             <?php foreach ($demo_members as $member): ?>
-                            <tr>
+                            <tr onclick="fillLogin('<?php echo htmlspecialchars($member['email'], ENT_QUOTES); ?>')" style="cursor: pointer;" onmouseover="this.style.background='#bbdefb'" onmouseout="this.style.background=''">
                                 <td><?php echo htmlspecialchars($member['first_name']); ?></td>
                                 <td><?php echo htmlspecialchars($member['last_name']); ?></td>
                                 <td><?php echo htmlspecialchars($member['role']); ?></td>
@@ -180,6 +181,13 @@ if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
                 </div>
             </div>
         </div>
+        <script>
+        function fillLogin(email) {
+            document.querySelector('input[name="email"]').value = email;
+            document.querySelector('input[name="password"]').value = 'test123';
+            document.querySelector('input[name="password"]').focus();
+        }
+        </script>
     </body>
     </html>
     <?php
