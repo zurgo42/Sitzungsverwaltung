@@ -2492,6 +2492,27 @@ a.btn-secondary {
     .navigation.collapsed a.active {
         display: block;
         width: 100%;
+        position: relative;
+    }
+
+    /* Hamburger-Icon als Hinweis zum Öffnen */
+    .navigation.collapsed a.active::after {
+        content: '☰';
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 18px;
+    }
+
+    /* Wenn offen: X zum Schließen anzeigen */
+    .navigation:not(.collapsed) a.active::after {
+        content: '✕';
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 16px;
     }
 }
 
