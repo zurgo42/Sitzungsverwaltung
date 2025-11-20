@@ -2555,3 +2555,47 @@ details.filter-accordion:not([open]) .filter-content {
 .documents-table td {
     border: 1px solid #dee2e6 !important;
 }
+
+/* ==============================================
+   24. ABWESENHEITEN-TABELLE SMARTPHONE
+   ============================================== */
+
+@media (max-width: 767px) {
+    /* Tabellen-Container scrollbar machen */
+    .data-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        font-size: 12px;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 8px 6px;
+        white-space: nowrap;
+    }
+
+    /* Aktionen-Spalte kompakter */
+    .data-table .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .data-table .btn-small {
+        padding: 4px 6px;
+        font-size: 11px;
+        margin: 0;
+    }
+
+    /* Person-Spalte: Name und Badge untereinander */
+    .data-table td:first-child {
+        white-space: normal;
+        min-width: 100px;
+    }
+
+    .badge-warning {
+        display: block;
+        margin-top: 4px;
+    }
+}
