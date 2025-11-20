@@ -257,8 +257,18 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             📁 Dokumente
         </a>
 
+        <!-- Vertretung-Tab (nur für Führungsteam sichtbar) -->
+        <?php
+        $leadership_roles = ['vorstand', 'gf', 'assistenz', 'fuehrungsteam', 'Vorstand', 'Geschäftsführung', 'Assistenz', 'Führungsteam'];
+        if (in_array($current_user['role'], $leadership_roles)):
+        ?>
+            <a href="?tab=absences" class="<?php echo $active_tab === 'absences' ? 'active' : ''; ?>">
+                🏖️ Vertretung
+            </a>
+        <?php endif; ?>
+
         <!-- Admin-Tab (nur für Vorstand und GF sichtbar) -->
-        <?php //if (in_array($current_user['role'], ['vorstand', 'gf'])): 
+        <?php //if (in_array($current_user['role'], ['vorstand', 'gf'])):
 		if ($current_user['is_admin']):
 		?>
             <a href="?tab=admin" class="<?php echo $active_tab === 'admin' ? 'active' : ''; ?>">
@@ -266,7 +276,10 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             </a>
         <?php endif; ?>
     </div>
-    
+
+    <!-- ABWESENHEITEN-WIDGET (unterhalb der Tabs) -->
+    <?php include 'widget_absences.php'; ?>
+
     <!-- HAUPTINHALT / CONTENT -->
     <div class="container">
         <?php
@@ -309,6 +322,11 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             case 'documents':
                 // Dokumentenverwaltung anzeigen
                 include 'tab_documents.php';
+                break;
+
+            case 'absences':
+                // Abwesenheitsverwaltung anzeigen (nur für Führungsteam)
+                include 'tab_absences.php';
                 break;
 
             case 'admin':
