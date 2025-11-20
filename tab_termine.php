@@ -387,7 +387,7 @@ function togglePollLeadershipRoles() {
 function togglePollTopManagement() {
     const checkboxes = document.querySelectorAll('.poll-participant-checkbox');
     // Unterstützt beide Schreibweisen: Standard (members) und BerechtigteAdapter
-    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz', 'vorstand', 'gf', 'assistenz'];
+    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz', 'Führungsteam', 'vorstand', 'gf', 'assistenz', 'fuehrungsteam'];
     checkboxes.forEach(cb => {
         const role = cb.getAttribute('data-role');
         cb.checked = topRoles.includes(role);
@@ -524,7 +524,7 @@ if (isset($_SESSION['error'])) {
                         <button type="button" onclick="toggleAllPollParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
                         <button type="button" onclick="toggleAllPollParticipants(false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
                         <button type="button" onclick="togglePollLeadershipRoles()" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
-                        <button type="button" onclick="togglePollTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
+                        <button type="button" onclick="togglePollTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Führungsteam</button>
                     </div>
                     <div class="participants-selector">
                         <?php foreach ($all_members as $member): ?>

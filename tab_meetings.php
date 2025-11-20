@@ -159,7 +159,7 @@ $all_members = get_all_members($pdo);
                     <button type="button" onclick="toggleAllParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
                     <button type="button" onclick="toggleAllParticipants(false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
                     <button type="button" onclick="toggleLeadershipRoles()" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
-                    <button type="button" onclick="toggleTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
+                    <button type="button" onclick="toggleTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Führungsteam</button>
                 </div>
                 <div class="participants-selector">
                     <?php foreach ($all_members as $member): ?>
@@ -345,7 +345,7 @@ $all_members = get_all_members($pdo);
                                 <button type="button" onclick="toggleAllParticipantsEdit(<?php echo $m['meeting_id']; ?>, true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
                                 <button type="button" onclick="toggleAllParticipantsEdit(<?php echo $m['meeting_id']; ?>, false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
                                 <button type="button" onclick="toggleLeadershipRolesEdit(<?php echo $m['meeting_id']; ?>)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
-                                <button type="button" onclick="toggleTopManagementEdit(<?php echo $m['meeting_id']; ?>)" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
+                                <button type="button" onclick="toggleTopManagementEdit(<?php echo $m['meeting_id']; ?>)" class="btn-secondary" style="padding: 5px 10px;">⭐ Führungsteam</button>
                             </div>
                             <div class="participants-selector">
                                 <?php
@@ -459,11 +459,11 @@ function toggleLeadershipRolesEdit(meetingId) {
     });
 }
 
-// Wählt nur Vorstand, Geschäftsführung und Assistenz aus
+// Wählt Vorstand, Geschäftsführung, Assistenz und Führungsteam aus
 function toggleTopManagement() {
     const checkboxes = document.querySelectorAll('.participant-checkbox');
     // Unterstützt beide Schreibweisen: Standard (members) und BerechtigteAdapter
-    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz', 'vorstand', 'gf', 'assistenz'];
+    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz', 'Führungsteam', 'vorstand', 'gf', 'assistenz', 'fuehrungsteam'];
     checkboxes.forEach(cb => {
         const role = cb.getAttribute('data-role');
         cb.checked = topRoles.includes(role);
@@ -473,7 +473,7 @@ function toggleTopManagement() {
 function toggleTopManagementEdit(meetingId) {
     const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
     // Unterstützt beide Schreibweisen: Standard (members) und BerechtigteAdapter
-    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz', 'vorstand', 'gf', 'assistenz'];
+    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz', 'Führungsteam', 'vorstand', 'gf', 'assistenz', 'fuehrungsteam'];
     checkboxes.forEach(cb => {
         const role = cb.getAttribute('data-role');
         cb.checked = topRoles.includes(role);
