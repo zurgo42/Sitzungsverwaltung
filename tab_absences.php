@@ -227,7 +227,8 @@ $current_absences = $stmt->fetchAll();
     <?php if (empty($current_absences)): ?>
         <div class="info-box">Derzeit keine Abwesenheiten eingetragen.</div>
     <?php else: ?>
-        <div class="table-responsive">
+        <!-- Desktop-Tabelle -->
+        <div class="table-responsive desktop-only">
         <table class="data-table">
             <thead>
                 <tr>
@@ -267,6 +268,44 @@ $current_absences = $stmt->fetchAll();
                 <?php endforeach; ?>
             </tbody>
         </table>
+        </div>
+
+        <!-- Mobile-Ansicht: Kompakte Karten -->
+        <div class="mobile-only">
+            <?php foreach ($current_absences as $absence): ?>
+                <?php
+                $start = new DateTime($absence['start_date']);
+                $end = new DateTime($absence['end_date']);
+                $today = new DateTime();
+                $is_current = $start <= $today && $end >= $today;
+                ?>
+                <div class="absence-card <?= $is_current ? 'highlight' : '' ?>">
+                    <div class="absence-card-header">
+                        <strong><?= htmlspecialchars($absence['member_first_name'] . ' ' . $absence['member_last_name']) ?></strong>
+                        <?php if ($is_current): ?>
+                            <span class="badge badge-warning">Aktuell</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="absence-card-body">
+                        <div class="absence-info">
+                            <span class="label">Zeitraum:</span>
+                            <?= $start->format('d.m.Y') ?> - <?= $end->format('d.m.Y') ?>
+                        </div>
+                        <?php if ($absence['reason']): ?>
+                        <div class="absence-info">
+                            <span class="label">Grund:</span>
+                            <?= htmlspecialchars($absence['reason']) ?>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($absence['substitute_member_id']): ?>
+                        <div class="absence-info">
+                            <span class="label">Vertretung:</span>
+                            <?= htmlspecialchars($absence['substitute_first_name'] . ' ' . $absence['substitute_last_name']) ?>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         </div>
     <?php endif; ?>
 </div>
@@ -356,6 +395,58 @@ $current_absences = $stmt->fetchAll();
 
 .mt-30 {
     margin-top: 30px;
+}
+
+/* Desktop/Mobile Sichtbarkeit */
+.mobile-only {
+    display: none;
+}
+
+.desktop-only {
+    display: block;
+}
+
+@media (max-width: 767px) {
+    .mobile-only {
+        display: block;
+    }
+    .desktop-only {
+        display: none;
+    }
+}
+
+/* Absence Cards für Mobile */
+.absence-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.absence-card.highlight {
+    background: #fff3cd;
+    border-color: #ffc107;
+}
+
+.absence-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.absence-card-body {
+    font-size: 14px;
+}
+
+.absence-info {
+    margin-bottom: 4px;
+}
+
+.absence-info .label {
+    font-weight: 600;
+    color: #666;
 }
 </style>
 
