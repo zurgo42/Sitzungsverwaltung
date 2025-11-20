@@ -2568,13 +2568,22 @@ details.filter-accordion:not([open]) .filter-content {
    24. ABWESENHEITEN-TABELLE SMARTPHONE
    ============================================== */
 
+/* Responsive Table Wrapper */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 @media (max-width: 767px) {
-    /* Tabellen-Container scrollbar machen */
+    .table-responsive {
+        margin: 0 -15px;
+        padding: 0 15px;
+    }
+
     .data-table {
-        display: block;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
         font-size: 12px;
+        min-width: 500px;
     }
 
     .data-table th,
