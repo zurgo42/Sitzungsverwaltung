@@ -151,6 +151,38 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 - Änderungsanfragen von Teilnehmern
 - Versionierung
 
+### 🏖️ Abwesenheitsverwaltung
+
+**Vertretungsregelungen für Führungsteam:**
+
+- Abwesenheiten mit Von/Bis-Datum eintragen
+- Grund angeben (optional)
+- Vertretung durch anderes Führungsteam-Mitglied
+- Widget zeigt aktuelle Abwesenheiten auf allen Seiten
+- Übersicht aller aktuellen und zukünftigen Abwesenheiten
+- Smartphone-optimierte Darstellung als Karten
+
+**Berechtigung:** Nur für Vorstand, Geschäftsführung, Assistenz und Führungsteam
+
+### 🌓 Dark Mode
+
+**Individuelles Design anpassen:**
+
+- **Auto:** Folgt den Systemeinstellungen
+- **Hell:** Klassisches helles Design
+- **Dunkel:** Augenschonendes dunkles Design
+- Einstellung wird im Browser gespeichert
+- Sofortige Umschaltung ohne Neuladen
+
+### 📱 Responsive Design
+
+**Optimiert für Smartphones und Tablets:**
+
+- **Hamburger-Menü:** Kompakte Navigation auf Smartphones
+- **Kompakter Header:** Platzsparende Darstellung auf kleinen Bildschirmen
+- **Mobile Karten:** Tabellen werden auf Smartphones als übersichtliche Karten angezeigt
+- **Touch-optimiert:** Große Schaltflächen und Abstände
+
 ### 👥 Mitglieder-Verwaltung
 
 **Rollen und Berechtigungen:**
@@ -173,6 +205,16 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 - **Audit-Log:** Nachverfolgung von Admin-Aktionen
 - **Anonymität:** Optionen für anonyme Teilnahme bei Umfragen
 - **Session-Management:** Automatischer Logout bei Inaktivität
+- **Rechtliche Anforderungen:** Footer mit Links zu Impressum und Datenschutz
+
+### 🧪 Demo-Modus
+
+**Für Tester und Evaluierung:**
+
+- Login-Seite zeigt alle Demo-Accounts mit Rollen
+- Klick auf eine Zeile füllt das Formular automatisch aus
+- Einheitliches Demo-Passwort für alle Accounts
+- Schnelles Wechseln zwischen verschiedenen Rollen zum Testen
 
 ## Benutzeroberfläche
 
@@ -186,16 +228,15 @@ Nach dem Login sehen Sie:
 
 ### Haupt-Tabs
 
-1. **🏠 Dashboard:** Startseite mit Übersichten
-2. **📅 Meetings:** Alle Sitzungen verwalten
-3. **📋 TOPs:** Tagesordnungspunkte bearbeiten
-4. **📝 Protokolle:** Protokolle einsehen und verwalten
-5. **✅ TODOs:** Aufgaben-Übersicht
-6. **📁 Dokumente:** Zentrale Dokumentenverwaltung
-7. **👥 Mitglieder:** Mitglieder-Verwaltung (Admins)
-8. **📊 Termine:** Terminplanung mit Umfragen
-9. **📊 Meinungsbild:** Umfragen und Abstimmungen
-10. **⚙️ Einstellungen:** Konfiguration (Admins)
+1. **📅 Meetings:** Alle Sitzungen verwalten
+2. **📋 Tagesordnung:** TOPs bearbeiten (bei aktivem Meeting)
+3. **📅 Termine:** Terminplanung mit Umfragen
+4. **📊 Meinungsbild:** Umfragen und Abstimmungen
+5. **✅ Meine TODOs:** Aufgaben-Übersicht
+6. **📋 Protokolle:** Protokolle einsehen und verwalten
+7. **📁 Dokumente:** Zentrale Dokumentenverwaltung
+8. **🏖️ Vertretung:** Abwesenheitsverwaltung (Führungsteam)
+9. **⚙️ Admin:** Konfiguration (nur Admins)
 
 ## Typische Anwendungsszenarien
 
