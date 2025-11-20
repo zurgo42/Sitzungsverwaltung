@@ -123,6 +123,38 @@ if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
 
                     <button type="submit" name="login">Anmelden</button>
                 </form>
+
+                <?php if (defined('DEMO_MODE_ENABLED') && DEMO_MODE_ENABLED): ?>
+                    <!-- Test-Zugangsdaten für Demo-Modus -->
+                    <?php
+                    $stmt = $pdo->query("SELECT first_name, last_name, role, email FROM members WHERE is_active = 1 ORDER BY role, last_name");
+                    $test_users = $stmt->fetchAll();
+                    if (!empty($test_users)):
+                    ?>
+                        <div style="margin-top: 30px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #856404;">🔑 Test-Zugangsdaten</h3>
+                            <p style="margin: 0 0 10px 0; font-size: 12px; color: #856404;">Standard-Passwort: <strong>test123</strong></p>
+                            <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: rgba(0,0,0,0.05);">
+                                        <th style="padding: 5px; text-align: left;">Name</th>
+                                        <th style="padding: 5px; text-align: left;">Rolle</th>
+                                        <th style="padding: 5px; text-align: left;">E-Mail</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($test_users as $user): ?>
+                                        <tr style="border-bottom: 1px solid rgba(0,0,0,0.1);">
+                                            <td style="padding: 5px;"><?= htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) ?></td>
+                                            <td style="padding: 5px;"><?= htmlspecialchars($user['role']) ?></td>
+                                            <td style="padding: 5px; font-family: monospace; font-size: 10px;"><?= htmlspecialchars($user['email']) ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
         </div>
     </body>
