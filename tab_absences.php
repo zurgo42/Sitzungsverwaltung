@@ -288,8 +288,10 @@ $current_absences = $stmt->fetchAll();
 /* Responsive Table Wrapper */
 .table-responsive {
     width: 100%;
+    max-width: calc(100vw - 40px);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    display: block;
 }
 
 .data-table {
