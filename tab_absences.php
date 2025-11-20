@@ -285,10 +285,18 @@ $current_absences = $stmt->fetchAll();
     flex: 1;
 }
 
+/* Responsive Table Wrapper */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .data-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 15px;
+    min-width: 500px;
 }
 
 .data-table th,
