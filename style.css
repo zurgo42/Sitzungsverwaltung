@@ -117,19 +117,31 @@ header,
 .header {
     background: linear-gradient(135deg, #5568d3 0%, #0047c2 100%);
     color: white;
-    padding: 30px 20px;
+    padding: 20px;
     border-radius: 8px;
     margin-bottom: 20px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.header-row-1,
+.header-row-2 {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
+.header-row-1 {
+    margin-bottom: 8px;
+}
+
 header h1,
 .header h1 {
-    font-size: 32px;
-    margin-bottom: 0;
+    font-size: 28px;
+    margin: 0;
+}
+
+.user-name-role {
+    font-size: 14px;
 }
 
 header p,
@@ -961,43 +973,42 @@ button:hover {
     /* Header - kompakter auf Mobile */
     header,
     .header {
-        padding: 10px 12px;
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 8px;
+        padding: 8px 10px;
+        margin-bottom: 2px;
+    }
+
+    .header-row-1 {
+        margin-bottom: 4px;
     }
 
     header h1,
     .header h1 {
-        font-size: 16px;
+        font-size: 14px;
         margin: 0;
     }
 
-    .header .user-info {
-        width: auto;
-        flex-wrap: wrap;
-        gap: 5px;
+    .user-name-role {
         font-size: 11px;
-        margin-left: auto;
     }
 
-    .header .user-info span:first-child {
-        display: none; /* Name ausblenden auf Mobile */
-    }
-
-    .header .role-badge {
-        padding: 2px 6px;
-        font-size: 9px;
-    }
-
+    /* Theme Toggle: nur Symbol auf Mobile */
     .header .theme-toggle {
-        padding: 3px 6px;
-        font-size: 10px;
+        padding: 0;
+        background: none;
+        border: none;
+    }
+
+    .header .theme-toggle select {
+        display: none;
+    }
+
+    .header .theme-toggle .theme-icon {
+        font-size: 16px;
+        cursor: pointer;
     }
 
     .header .logout-btn {
-        padding: 4px 8px;
+        padding: 3px 8px;
         font-size: 10px;
     }
 

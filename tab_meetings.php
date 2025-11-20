@@ -41,7 +41,53 @@ $all_members = get_all_members($pdo);
     padding: 12px !important;
     margin-top: 12px !important;
 }
+
+/* Demo Mitgliederliste */
+.demo-members {
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.demo-members h3 {
+    margin: 0 0 10px 0;
+    color: #1565c0;
+    font-size: 16px;
+}
+
+.demo-members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+.demo-member-item {
+    background: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.demo-member-role {
+    color: #666;
+    font-size: 11px;
+}
 </style>
+
+<!-- DEMO: Mitgliederliste für Tester -->
+<div class="demo-members">
+    <h3>🧪 Demo-Mitglieder (zum Testen verschiedener Rollen)</h3>
+    <div class="demo-members-grid">
+        <?php foreach ($all_members as $member): ?>
+            <div class="demo-member-item">
+                <strong><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></strong>
+                <span class="demo-member-role">(<?php echo htmlspecialchars($member['role']); ?>)</span>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</div>
 
 <h2>📅 Meetings verwalten</h2>
 

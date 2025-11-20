@@ -243,26 +243,21 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
 <body>
     <!-- HEADER mit Benutzerinfo -->
     <div class="header">
-        <h1>🏛️ Sitzungsverwaltung</h1>
-        <div class="user-info">
-            <!-- Benutzername anzeigen -->
-            <span><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?></span>
-            
-            <!-- Rollen-Badge anzeigen -->
-            <span class="role-badge role-<?php echo $current_user['role']; ?>">
-                <?php echo ucfirst($current_user['role']); ?>
-            </span>
-
+        <div class="header-row-1">
+            <h1>🏛️ Sitzungsverwaltung</h1>
             <!-- Theme Toggle -->
             <div class="theme-toggle">
-                <span>🌓</span>
+                <span class="theme-icon">🌓</span>
                 <select id="theme-select" onchange="setTheme(this.value)">
                     <option value="auto">Auto</option>
                     <option value="light">Hell</option>
                     <option value="dark">Dunkel</option>
                 </select>
             </div>
-
+        </div>
+        <div class="header-row-2">
+            <!-- Benutzername und Rolle -->
+            <span class="user-name-role"><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?> (<?php echo ucfirst($current_user['role']); ?>)</span>
             <!-- Logout-Button -->
             <a href="?logout=1" class="logout-btn">Abmelden</a>
         </div>
@@ -519,9 +514,9 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
     <!-- FOOTER mit rechtlichen Links -->
     <footer class="site-footer">
         <div class="footer-content">
-            &copy;2015 Dr. Hermann Meier &#149; Horstmannsmühle 1a &#149; 42781 Haan &#149; Tel.: 02129 379 2870
+            &copy;2025 Dr. Hermann Meier &#149; Horstmannsmühle 1a &#149; 42781 Haan
             <span class="footer-links">
-                <a href="https://geschäftsordnung.com/?page_id=52" target="_blank">Impressum</a>
+                <a href="https://geschäftsordnung.com/?page_id=53" target="_blank">Impressum</a>
                 <a href="https://geschäftsordnung.com/?page_id=54" target="_blank">Datenschutz</a>
             </span>
         </div>
