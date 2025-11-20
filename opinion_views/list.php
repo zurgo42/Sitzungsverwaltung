@@ -30,8 +30,8 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
         $has_responded = has_responded($pdo, $poll['poll_id'], $current_user['member_id'], null);
     ?>
         <div class="opinion-card">
-            <div style="display: flex; justify-content: space-between; align-items: start;">
-                <div style="flex: 1;">
+            <div class="opinion-card-layout">
+                <div class="opinion-card-content">
                     <h4 style="margin: 0 0 10px 0;">
                         <a href="?tab=opinion&view=detail&poll_id=<?php echo $poll['poll_id']; ?>" style="text-decoration: none; color: #333;">
                             <?php echo htmlspecialchars($poll['title']); ?>
@@ -106,7 +106,7 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
                     <?php endif; ?>
                 </div>
 
-                <div style="display: flex; gap: 10px;">
+                <div class="opinion-card-actions">
                     <?php if ($is_active && !$has_responded): ?>
                         <a href="?tab=opinion&view=participate&poll_id=<?php echo $poll['poll_id']; ?>" class="btn-primary" style="text-decoration: none;">
                             Teilnehmen

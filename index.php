@@ -336,24 +336,55 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
     /**
      * Accordion-Funktion
      * Öffnet/Schließt Accordion-Bereiche (z.B. für TOP-Details)
-     * 
+     *
      * @param {HTMLElement} button - Der geklickte Accordion-Button
      */
     function toggleAccordion(button) {
         // Nächstes Element nach dem Button ist der Content
         const content = button.nextElementSibling;
         const isOpen = content.style.display === 'block';
-        
+
         // Alle Accordions schließen (nur eines kann gleichzeitig offen sein)
         document.querySelectorAll('.accordion-content').forEach(item => {
             item.style.display = 'none';
         });
-        
+
         // Aktuelles Accordion öffnen/schließen (Toggle)
         if (!isOpen) {
             content.style.display = 'block';
         }
     }
+
+    /**
+     * Smartphone-Menü: Nach Klick auf Link Navigation schließen
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+        // Nur auf Smartphones aktiv
+        if (window.innerWidth <= 768) {
+            const navigation = document.querySelector('.navigation');
+            const navLinks = document.querySelectorAll('.navigation a');
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    // Menü nach Klick schließen (kleine Verzögerung für visuelles Feedback)
+                    setTimeout(() => {
+                        navigation.classList.add('collapsed');
+                    }, 100);
+                });
+            });
+
+            // Aktiven Link klicken öffnet Menü wieder
+            const activeLink = document.querySelector('.navigation a.active');
+            if (activeLink) {
+                activeLink.addEventListener('click', function(e) {
+                    if (navigation.classList.contains('collapsed')) {
+                        e.preventDefault();
+                        navigation.classList.remove('collapsed');
+                    }
+                });
+            }
+        }
+    });
     </script>
 </body>
 </html>

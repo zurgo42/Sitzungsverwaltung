@@ -11,7 +11,6 @@ require_once 'process_protokoll.php';
 $stichwort = isset($_GET['stichwort']) ? trim($_GET['stichwort']) : '';
 $meeting_id = isset($_GET['meeting_id']) ? intval($_GET['meeting_id']) : 0;
 $confidential = (in_array($current_user['role'], ['vorstand', 'gf', 'assistenz']));
-if ($confidential)
 
 // Einzelnes Protokoll anzeigen
 if ($meeting_id > 0) {
@@ -40,7 +39,6 @@ if ($meeting_id > 0) {
  			if ($confidential AND strlen($meeting['prot_intern'])>5) {
             echo '<br><br><h3 style="color:red">Interner Teil</h3><table width="100%" class="protocol-table">';
             echo str_replace(array("&gt;","&lt;"),array(">","<"),$meeting['prot_intern']);
-            echo '</table>';
             echo '</table>';}
        }
         

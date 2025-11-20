@@ -262,6 +262,23 @@ if ($access_token && !$poll_id) {
     margin-bottom: 15px;
 }
 
+/* Opinion Card Layout - Desktop */
+.opinion-card-layout {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.opinion-card-content {
+    flex: 1;
+}
+
+.opinion-card-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
 /* Responsive: Smartphone-Darstellung verbessern */
 @media (max-width: 767px) {
     .opinion-container {
@@ -270,6 +287,26 @@ if ($access_token && !$poll_id) {
 
     .opinion-card {
         padding: 15px;
+    }
+
+    /* Karten-Layout für Smartphone: Stack statt Side-by-Side */
+    .opinion-card-layout {
+        flex-direction: column;
+    }
+
+    .opinion-card-content {
+        margin-bottom: 15px;
+    }
+
+    .opinion-card-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .opinion-card-actions a {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 8px;
     }
 
     /* Option-Items: Besseres Layout mit Flexbox */

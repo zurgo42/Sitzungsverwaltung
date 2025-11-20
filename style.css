@@ -2359,3 +2359,151 @@ button:hover {
         display: block !important;
     }
 }
+
+/* ==============================================
+   20. DARK MODE FIXES
+   ============================================== */
+
+/* DarkMode: Text auf hellem Untergrund lesbar machen */
+@media (prefers-color-scheme: dark) {
+    /* Cards und Boxen mit hellem Hintergrund */
+    .opinion-card,
+    .poll-card,
+    .meeting-card,
+    .todo-filecard,
+    .card,
+    .todo-card,
+    .other-todo-card,
+    .done-todo-card {
+        background: #2d2d2d;
+        color: #e0e0e0;
+        border-color: #444;
+    }
+
+    .opinion-card h4 a,
+    .poll-title,
+    .meeting-title,
+    .todo-filecard-title,
+    .card-title {
+        color: #e0e0e0 !important;
+    }
+
+    /* Accordion Header in DarkMode */
+    .other-todos-accordion-header {
+        background: #3d3d3d;
+        color: #e0e0e0;
+        border-color: #555;
+    }
+
+    .other-todos-accordion-header:hover {
+        background: #4d4d4d;
+    }
+
+    /* Tabellen in DarkMode */
+    .other-todos-table th,
+    .todo-table th,
+    .admin-table th,
+    .documents-table th {
+        background: #3d3d3d;
+        color: #e0e0e0;
+    }
+
+    .other-todos-table td,
+    .todo-table td,
+    .admin-table td,
+    .documents-table td {
+        color: #e0e0e0;
+        border-color: #444;
+    }
+
+    /* Poll Meta und andere sekundäre Texte */
+    .poll-meta,
+    .card-text,
+    .todo-desc {
+        color: #b0b0b0 !important;
+    }
+
+    /* Badges lesbar machen */
+    .badge {
+        color: #1967d2;
+    }
+
+    /* Form-Elemente */
+    input[type="text"],
+    input[type="email"],
+    input[type="date"],
+    input[type="datetime-local"],
+    input[type="number"],
+    select,
+    textarea {
+        background: #3d3d3d;
+        color: #e0e0e0;
+        border-color: #555;
+    }
+
+    /* Info-Boxen */
+    .info-box {
+        background: #2a3f5f;
+        color: #b3d4fc;
+    }
+}
+
+/* ==============================================
+   21. SMARTPHONE-MENÜ
+   ============================================== */
+
+@media (max-width: 768px) {
+    /* Mobile Navigation als Hamburger-Menü */
+    .navigation {
+        position: relative;
+    }
+
+    .navigation.collapsed a:not(.active) {
+        display: none;
+    }
+
+    .navigation.collapsed a.active {
+        display: block;
+        width: 100%;
+    }
+}
+
+/* ==============================================
+   22. VERTRETUNGEN-TABELLE SMARTPHONE
+   ============================================== */
+
+@media (max-width: 767px) {
+    .vertretung-table {
+        font-size: 12px;
+    }
+
+    .vertretung-table th,
+    .vertretung-table td {
+        padding: 6px 4px;
+    }
+
+    /* Von-Bis in einer Zeile */
+    .vertretung-date {
+        white-space: nowrap;
+        font-size: 11px;
+    }
+}
+
+/* ==============================================
+   23. DOKUMENTENVERWALTUNG FIXES
+   ============================================== */
+
+/* Details/Summary muss geschlossen starten */
+details.filter-accordion:not([open]) .filter-content {
+    display: none;
+}
+
+/* Tabelle Rahmen verstärken */
+.documents-table {
+    border: 1px solid #dee2e6;
+}
+
+.documents-table th,
+.documents-table td {
+    border: 1px solid #dee2e6 !important;
+}
