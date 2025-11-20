@@ -2482,17 +2482,18 @@ a.btn-secondary {
 @media (max-width: 768px) {
     /* Mobile Navigation als Hamburger-Menü */
     .navigation {
-        position: relative;
+        position: relative !important;
     }
 
     .navigation.collapsed a:not(.active) {
-        display: none;
+        display: none !important;
     }
 
     .navigation.collapsed a.active {
-        display: block;
+        display: block !important;
         width: 100%;
         position: relative;
+        padding-right: 50px !important;
     }
 
     /* Hamburger-Icon als Hinweis zum Öffnen */
@@ -2502,17 +2503,24 @@ a.btn-secondary {
         right: 15px;
         top: 50%;
         transform: translateY(-50%);
-        font-size: 18px;
+        font-size: 20px;
+        font-weight: bold;
     }
 
     /* Wenn offen: X zum Schließen anzeigen */
+    .navigation:not(.collapsed) a.active {
+        position: relative;
+        padding-right: 50px !important;
+    }
+
     .navigation:not(.collapsed) a.active::after {
         content: '✕';
         position: absolute;
         right: 15px;
         top: 50%;
         transform: translateY(-50%);
-        font-size: 16px;
+        font-size: 18px;
+        font-weight: bold;
     }
 }
 
