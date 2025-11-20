@@ -92,6 +92,8 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
 // ============================================
 // Nur wenn normaler Login-Modus aktiv ist
 if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
+    // Mitglieder für Demo-Liste laden
+    $demo_members = get_all_members($pdo);
     ?>
     <!DOCTYPE html>
     <html lang="de">
@@ -100,6 +102,34 @@ if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Login - Sitzungsverwaltung</title>
         <link rel="stylesheet" href="style.css">
+        <style>
+        .demo-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+        .demo-table th, .demo-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .demo-table th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        .demo-section {
+            margin-top: 30px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+        }
+        .demo-section h3 {
+            margin: 0 0 10px 0;
+            color: #1565c0;
+            font-size: 14px;
+        }
+        </style>
     </head>
     <body>
         <div class="login-container">
@@ -123,6 +153,31 @@ if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
 
                     <button type="submit" name="login">Anmelden</button>
                 </form>
+
+                <!-- Demo: Mitgliederliste für Tester -->
+                <div class="demo-section">
+                    <h3>🧪 Demo-Accounts (Passwort: demo123)</h3>
+                    <table class="demo-table">
+                        <thead>
+                            <tr>
+                                <th>Vorname</th>
+                                <th>Name</th>
+                                <th>Rolle</th>
+                                <th>E-Mail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($demo_members as $member): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($member['first_name']); ?></td>
+                                <td><?php echo htmlspecialchars($member['last_name']); ?></td>
+                                <td><?php echo htmlspecialchars($member['role']); ?></td>
+                                <td><?php echo htmlspecialchars($member['email']); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </body>
