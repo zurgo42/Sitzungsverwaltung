@@ -356,34 +356,51 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
     }
 
     /**
-     * Smartphone-Menü: Nach Klick auf Link Navigation schließen
+     * Smartphone-Menü: Klickbare Navigation mit Toggle
      */
     document.addEventListener('DOMContentLoaded', function() {
-        // Nur auf Smartphones aktiv
-        if (window.innerWidth <= 768) {
-            const navigation = document.querySelector('.navigation');
-            const navLinks = document.querySelectorAll('.navigation a');
+        const navigation = document.querySelector('.navigation');
+        if (!navigation) return;
 
-            navLinks.forEach(link => {
-                link.addEventListener('click', function() {
-                    // Menü nach Klick schließen (kleine Verzögerung für visuelles Feedback)
-                    setTimeout(() => {
-                        navigation.classList.add('collapsed');
-                    }, 100);
-                });
-            });
-
-            // Aktiven Link klicken öffnet Menü wieder
-            const activeLink = document.querySelector('.navigation a.active');
-            if (activeLink) {
-                activeLink.addEventListener('click', function(e) {
-                    if (navigation.classList.contains('collapsed')) {
-                        e.preventDefault();
-                        navigation.classList.remove('collapsed');
-                    }
-                });
-            }
+        // Prüfen ob mobil
+        function isMobile() {
+            return window.innerWidth <= 768;
         }
+
+        // Initial collapsed auf Mobile
+        if (isMobile()) {
+            navigation.classList.add('collapsed');
+        }
+
+        // Bei Resize anpassen
+        window.addEventListener('resize', function() {
+            if (!isMobile()) {
+                navigation.classList.remove('collapsed');
+            } else if (!navigation.classList.contains('collapsed')) {
+                navigation.classList.add('collapsed');
+            }
+        });
+
+        // Klick auf aktiven Tab togglet Menü
+        navigation.addEventListener('click', function(e) {
+            if (!isMobile()) return;
+
+            const clickedLink = e.target.closest('a');
+            if (!clickedLink) return;
+
+            // Wenn collapsed und auf aktiven Tab geklickt -> öffnen
+            if (navigation.classList.contains('collapsed') && clickedLink.classList.contains('active')) {
+                e.preventDefault();
+                navigation.classList.remove('collapsed');
+            }
+            // Wenn offen und auf Link geklickt -> schließen nach Navigation
+            else if (!navigation.classList.contains('collapsed')) {
+                // Navigation erfolgt normal, Menü schließt sich
+                setTimeout(() => {
+                    navigation.classList.add('collapsed');
+                }, 50);
+            }
+        });
     });
     </script>
 </body>

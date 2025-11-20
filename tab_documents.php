@@ -154,18 +154,30 @@ if ($view === 'list') {
         }
         details.filter-accordion summary {
             padding: 0.75rem 1rem;
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
+            background-color: #667eea;
+            color: white;
+            border: 1px solid #5568d3;
             border-radius: 0.25rem;
             cursor: pointer;
             font-weight: 500;
             list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        details.filter-accordion summary::after {
+            content: '▶';
+            font-size: 0.8em;
+            transition: transform 0.2s;
+        }
+        details.filter-accordion[open] summary::after {
+            transform: rotate(90deg);
         }
         details.filter-accordion summary::-webkit-details-marker {
             display: none;
         }
         details.filter-accordion summary:hover {
-            background-color: #e9ecef;
+            background-color: #5568d3;
         }
         details.filter-accordion[open] summary {
             border-bottom-left-radius: 0;
