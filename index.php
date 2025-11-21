@@ -129,12 +129,43 @@ if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
             color: #1565c0;
             font-size: 14px;
         }
+        .info-text {
+            text-align: left;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #1565c0;
+        }
+        .info-text h2 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #1565c0;
+        }
+        .info-text p {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #333;
+        }
+        .info-text ul {
+            margin: 0 0 10px 0;
+            padding-left: 20px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .info-text li {
+            margin-bottom: 4px;
+        }
         </style>
     </head>
     <body>
         <div class="login-container">
             <div class="login-box">
                 <h1>🏛️ Sitzungsverwaltung</h1>
+
+                <?php include 'information_text.php'; ?>
 
                 <?php if (isset($login_error)): ?>
                     <div class="error-message"><?php echo $login_error; ?></div>
