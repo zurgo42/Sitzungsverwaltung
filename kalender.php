@@ -332,8 +332,14 @@ $isAdmin = ($adminPass == "1kmPgg!");
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
 
-        .tip:hover span {
+        .tip:hover span,
+        .tip:focus span,
+        .tip:active span {
             display: block;
+        }
+
+        .tip:focus {
+            outline: none;
         }
 
         .tiprechts span {
