@@ -788,8 +788,8 @@ while ($dt <= $endt):
                     $zeile .= escape($user["std$k"] ?? '');
                 }
 
-                // Tooltip
-                if ($tipzeigen && strlen($d['tip'] ?? '') > 2 && $d['tvon'] == $dt) {
+                // Tooltip - Vergleich als formatierte Datumsstrings
+                if ($tipzeigen && strlen($d['tip'] ?? '') > 2 && tzud($d['tvon']) == tzud($dt)) {
                     $tipClass = ($k / $anzkat < 0.4) ? 'tiprechts' : 'tiplinks';
                     $zeile .= '<br><a class="tip ' . $tipClass . '" href="#">&#9432;<span>' . escape($d['tip']) . '</span></a>';
                 }
