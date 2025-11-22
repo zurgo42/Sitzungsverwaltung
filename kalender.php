@@ -453,11 +453,13 @@ $isAdmin = ($adminPass == "1kmPgg!");
             }
 
             .admin-table tr {
-                display: block !important;
-                margin-bottom: 20px;
-                border: 2px solid var(--border);
-                border-radius: 8px;
-                padding: 15px;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 4px 8px;
+                margin-bottom: 10px;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 8px;
                 background: #fafafa;
             }
 
@@ -466,37 +468,47 @@ $isAdmin = ($adminPass == "1kmPgg!");
             }
 
             .admin-table td {
-                display: block !important;
                 border: none !important;
-                padding: 10px 5px !important;
+                padding: 4px 2px !important;
                 text-align: left !important;
             }
 
             .admin-table td::before {
                 content: attr(data-label) ": ";
-                font-weight: 700;
+                font-weight: 600;
+                font-size: 11px;
                 color: var(--primary);
-                display: block;
-                margin-bottom: 5px;
+            }
+
+            /* Text und Tip ganze Breite */
+            .admin-table td:nth-child(5),
+            .admin-table td:nth-child(6) {
+                grid-column: span 2;
+            }
+
+            /* Löschen rechts */
+            .admin-table td:nth-child(7) {
+                grid-column: span 2;
+                text-align: right !important;
             }
 
             .admin-table input[type="text"] {
                 width: 100% !important;
                 max-width: 100% !important;
                 font-size: 16px !important;
-                padding: 12px !important;
-                border: 2px solid var(--border) !important;
-                border-radius: 6px !important;
+                padding: 8px !important;
+                border: 1px solid var(--border) !important;
+                border-radius: 4px !important;
                 box-sizing: border-box !important;
             }
 
             .admin-table input[type="text"][size="1"] {
-                width: 80px !important;
+                width: 60px !important;
             }
 
             .admin-table input[type="checkbox"] {
-                width: 28px !important;
-                height: 28px !important;
+                width: 24px !important;
+                height: 24px !important;
             }
         }
     </style>
