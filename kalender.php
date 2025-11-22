@@ -439,65 +439,64 @@ $isAdmin = ($adminPass == "1kmPgg!");
         }
 
         /* Mobile Admin-Tabelle */
-        @media (max-width: 768px) {
-            .admin-table,
-            .admin-table thead,
-            .admin-table tbody,
-            .admin-table th,
-            .admin-table td,
-            .admin-table tr {
-                display: block;
+        @media (max-width: 900px) {
+            .admin-table {
+                display: block !important;
             }
 
-            .admin-table thead tr {
-                position: absolute;
-                top: -9999px;
-                left: -9999px;
+            .admin-table thead {
+                display: none !important;
+            }
+
+            .admin-table tbody {
+                display: block !important;
             }
 
             .admin-table tr {
-                margin-bottom: 15px;
-                border: 1px solid var(--border);
+                display: block !important;
+                margin-bottom: 20px;
+                border: 2px solid var(--border);
                 border-radius: 8px;
-                padding: 10px;
+                padding: 15px;
                 background: #fafafa;
             }
 
             .admin-table tr:last-child {
-                background: #f0f8ff;
+                background: #e8f4fd;
             }
 
             .admin-table td {
-                border: none;
-                padding: 8px 5px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
+                display: block !important;
+                border: none !important;
+                padding: 10px 5px !important;
+                text-align: left !important;
             }
 
             .admin-table td::before {
-                content: attr(data-label);
-                font-weight: 600;
-                min-width: 60px;
+                content: attr(data-label) ": ";
+                font-weight: 700;
                 color: var(--primary);
+                display: block;
+                margin-bottom: 5px;
             }
 
             .admin-table input[type="text"] {
-                flex: 1;
-                width: auto !important;
-                max-width: none !important;
-                font-size: 16px;
-                padding: 10px;
+                width: 100% !important;
+                max-width: 100% !important;
+                font-size: 16px !important;
+                padding: 12px !important;
+                border: 2px solid var(--border) !important;
+                border-radius: 6px !important;
+                box-sizing: border-box !important;
             }
 
             .admin-table input[type="text"][size="1"] {
-                width: 60px !important;
-                flex: 0;
+                width: 80px !important;
             }
 
             .admin-table input[type="checkbox"] {
-                width: 24px;
-                height: 24px;
+                width: 28px !important;
+                height: 28px !important;
             }
         }
     </style>
