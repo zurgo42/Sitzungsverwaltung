@@ -437,6 +437,69 @@ $isAdmin = ($adminPass == "1kmPgg!");
                 padding: 10px;
             }
         }
+
+        /* Mobile Admin-Tabelle */
+        @media (max-width: 768px) {
+            .admin-table,
+            .admin-table thead,
+            .admin-table tbody,
+            .admin-table th,
+            .admin-table td,
+            .admin-table tr {
+                display: block;
+            }
+
+            .admin-table thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
+            .admin-table tr {
+                margin-bottom: 15px;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 10px;
+                background: #fafafa;
+            }
+
+            .admin-table tr:last-child {
+                background: #f0f8ff;
+            }
+
+            .admin-table td {
+                border: none;
+                padding: 8px 5px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .admin-table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                min-width: 60px;
+                color: var(--primary);
+            }
+
+            .admin-table input[type="text"] {
+                flex: 1;
+                width: auto !important;
+                max-width: none !important;
+                font-size: 16px;
+                padding: 10px;
+            }
+
+            .admin-table input[type="text"][size="1"] {
+                width: 60px !important;
+                flex: 0;
+            }
+
+            .admin-table input[type="checkbox"] {
+                width: 24px;
+                height: 24px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -554,39 +617,39 @@ $isAdmin = ($adminPass == "1kmPgg!");
             if ($d['kat'] < 5) continue; // Automatische Einträge ausblenden
         ?>
         <tr>
-            <td>
+            <td data-label="Von">
                 <?php echo $wtag[date("w", $d['tvon'])]; ?>
                 <input type="text" name="tvon<?php echo $id; ?>" value="<?php echo tzud($d['tvon']); ?>">
             </td>
-            <td>
+            <td data-label="Bis">
                 <?php echo $wtag[date("w", $d['tbis'])]; ?>
                 <input type="text" name="tbis<?php echo $id; ?>" value="<?php echo tzud($d['tbis']); ?>">
             </td>
-            <td>
+            <td data-label="Spalte">
                 <input type="text" size="1" name="kat<?php echo $id; ?>"
                        value="<?php echo $d['kat']; ?>"
                        style="background-color: <?php echo $farben[$d['kat']] ?? '#fff'; ?>">
             </td>
-            <td>
+            <td data-label="Farbe">
                 <input type="text" size="1" name="farbe<?php echo $id; ?>"
                        value="<?php echo $d['farbe']; ?>"
                        style="background-color: <?php echo (strlen($d['farbe']) > 2) ? $d['farbe'] : ($farben[$d['farbe']] ?? '#fff'); ?>">
             </td>
-            <td><input type="text" name="text<?php echo $id; ?>" value="<?php echo escape($d['text']); ?>"></td>
-            <td><input type="text" name="tip<?php echo $id; ?>" value="<?php echo escape($d['tip']); ?>"></td>
-            <td><input type="checkbox" name="weg<?php echo $id; ?>" value="1"></td>
+            <td data-label="Text"><input type="text" name="text<?php echo $id; ?>" value="<?php echo escape($d['text']); ?>"></td>
+            <td data-label="Tip"><input type="text" name="tip<?php echo $id; ?>" value="<?php echo escape($d['tip']); ?>"></td>
+            <td data-label="Löschen"><input type="checkbox" name="weg<?php echo $id; ?>" value="1"></td>
         </tr>
         <?php endforeach; ?>
 
         <!-- Neue Zeile -->
         <?php $id = $idmax + 1; ?>
         <tr style="background: #f0f8ff;">
-            <td><input type="text" name="tvon<?php echo $id; ?>" placeholder="tt.mm.jjjj"></td>
-            <td><input type="text" name="tbis<?php echo $id; ?>" placeholder="tt.mm.jjjj"></td>
-            <td><input type="text" size="1" name="kat<?php echo $id; ?>" value="<?php echo ($welche < 9) ? $welche : 5; ?>"></td>
-            <td><input type="text" size="1" name="farbe<?php echo $id; ?>" value="0"></td>
-            <td><input type="text" name="text<?php echo $id; ?>" placeholder="Text"></td>
-            <td><input type="text" name="tip<?php echo $id; ?>" placeholder="Tooltip"></td>
+            <td data-label="Von"><input type="text" name="tvon<?php echo $id; ?>" placeholder="tt.mm.jjjj"></td>
+            <td data-label="Bis"><input type="text" name="tbis<?php echo $id; ?>" placeholder="tt.mm.jjjj"></td>
+            <td data-label="Spalte"><input type="text" size="1" name="kat<?php echo $id; ?>" value="<?php echo ($welche < 9) ? $welche : 5; ?>"></td>
+            <td data-label="Farbe"><input type="text" size="1" name="farbe<?php echo $id; ?>" value="0"></td>
+            <td data-label="Text"><input type="text" name="text<?php echo $id; ?>" placeholder="Text"></td>
+            <td data-label="Tip"><input type="text" name="tip<?php echo $id; ?>" placeholder="Tooltip"></td>
             <td></td>
         </tr>
     </table>
