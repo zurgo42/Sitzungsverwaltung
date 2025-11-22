@@ -742,7 +742,7 @@ while ($dt <= $endt):
 
     // Daten für diesen Tag laden
     $daten = dbFetchAll(
-        "SELECT kaldaten.*, kaluser.* FROM kaldaten
+        "SELECT kaldaten.*, kaldaten.id AS eintrag_id, kaluser.* FROM kaldaten
          INNER JOIN kaluser ON kaldaten.user = kaluser.id
          WHERE kaldaten.user = ? AND kaldaten.tvon <= ? AND kaldaten.tbis >= ?
          ORDER BY kat ASC, tvon ASC",
@@ -790,8 +790,8 @@ while ($dt <= $endt):
                 }
 
                 // Tooltip - nur beim ersten Vorkommen des Eintrags anzeigen
-                if ($tipzeigen && strlen($d['tip'] ?? '') > 2 && !isset($shownTips[$d['id']])) {
-                    $shownTips[$d['id']] = true;
+                if ($tipzeigen && strlen($d['tip'] ?? '') > 2 && !isset($shownTips[$d['eintrag_id']])) {
+                    $shownTips[$d['eintrag_id']] = true;
                     $tipClass = ($k / $anzkat < 0.4) ? 'tiprechts' : 'tiplinks';
                     $zeile .= '<br><a class="tip ' . $tipClass . '" href="#">&#9432;<span>' . escape($d['tip']) . '</span></a>';
                 }
