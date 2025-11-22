@@ -330,12 +330,13 @@ $isAdmin = ($adminPass == "1kmPgg!");
             width: 200px;
             z-index: 100;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            pointer-events: none;
         }
 
         .tip:hover span,
         .tip:focus span,
         .tip:active span {
-            display: block;
+            display: block !important;
         }
 
         .tip:focus {
@@ -381,6 +382,11 @@ $isAdmin = ($adminPass == "1kmPgg!");
         .admin-table input[type="text"] {
             width: 100%;
             max-width: 120px;
+        }
+
+        .admin-table input[type="text"][name^="text"],
+        .admin-table input[type="text"][name^="tip"] {
+            max-width: 250px;
         }
 
         .admin-table input[type="text"][size="1"] {
