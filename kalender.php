@@ -456,7 +456,8 @@ $isAdmin = ($adminPass == "1kmPgg!");
                 display: block !important;
             }
 
-            .admin-table thead {
+            .admin-table thead,
+            .admin-table tr:first-child {
                 display: none !important;
             }
 
