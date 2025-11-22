@@ -717,6 +717,7 @@ $endt = dzut($enddatum);
 $wt = date("w", $dt);
 $bg = "mbgrau";
 $zeile0 = "";
+$shownTips = []; // Track welche Einträge bereits Tooltip gezeigt haben
 $z0 = 0;
 
 // Jahreszeile am Anfang
@@ -788,8 +789,9 @@ while ($dt <= $endt):
                     $zeile .= escape($user["std$k"] ?? '');
                 }
 
-                // Tooltip - Vergleich als formatierte Datumsstrings
-                if ($tipzeigen && strlen($d['tip'] ?? '') > 2 && tzud($d['tvon']) == tzud($dt)) {
+                // Tooltip - nur beim ersten Vorkommen des Eintrags anzeigen
+                if ($tipzeigen && strlen($d['tip'] ?? '') > 2 && !isset($shownTips[$d['id']])) {
+                    $shownTips[$d['id']] = true;
                     $tipClass = ($k / $anzkat < 0.4) ? 'tiprechts' : 'tiplinks';
                     $zeile .= '<br><a class="tip ' . $tipClass . '" href="#">&#9432;<span>' . escape($d['tip']) . '</span></a>';
                 }
