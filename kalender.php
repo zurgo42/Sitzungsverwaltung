@@ -789,7 +789,7 @@ while ($dt <= $endt):
                 }
 
                 // Tooltip
-                if ($tipzeigen && strlen($d['tip'] ?? '') > 2 && $d['tvon'] == $dt) {
+                if ($tipzeigen && strlen($d['tip'] ?? '') > 2 && (int)$d['tvon'] === (int)$dt) {
                     $tipClass = ($k / $anzkat < 0.4) ? 'tiprechts' : 'tiplinks';
                     $zeile .= '<br><a class="tip ' . $tipClass . '" href="#">&#9432;<span>' . escape($d['tip']) . '</span></a>';
                 }
