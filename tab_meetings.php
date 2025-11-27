@@ -221,6 +221,16 @@ $all_members = get_all_members($pdo);
                         <?php elseif (!empty($m['expected_end_date'])): ?>
                             <br><small>Voraussichtliches Ende: <?php echo date('d.m.Y H:i', strtotime($m['expected_end_date'])); ?></small>
                         <?php endif; ?>
+                        <?php if ($m['status'] === 'preparation' && !empty($m['submission_deadline'])): ?>
+                            <?php
+                            $deadline_passed = (strtotime($m['submission_deadline']) < time());
+                            $deadline_color = $deadline_passed ? '#f44336' : '#2196f3';
+                            $deadline_icon = $deadline_passed ? '⚠️' : '⏰';
+                            ?>
+                            <br><small style="color: <?php echo $deadline_color; ?>; font-weight: 600;">
+                                <?php echo $deadline_icon; ?> Antragsschluss: <?php echo date('d.m.Y H:i', strtotime($m['submission_deadline'])); ?> Uhr
+                            </small>
+                        <?php endif; ?>
                     </div>
                     <div class="agenda-meta">
                         <?php
