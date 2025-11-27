@@ -224,12 +224,14 @@ $all_members = get_all_members($pdo);
                         <?php if ($m['status'] === 'preparation' && !empty($m['submission_deadline'])): ?>
                             <?php
                             $deadline_passed = (strtotime($m['submission_deadline']) < time());
-                            $deadline_color = $deadline_passed ? '#f44336' : '#2196f3';
-                            $deadline_icon = $deadline_passed ? '⚠️' : '⏰';
+                            if ($deadline_passed) {
+                                // Antragsschluss überschritten - kleinerer, dezenterer Text
+                                echo '<br><small style="color: #999; font-size: 0.85em;">(Antragsschluss war ' . date('d.m.Y H:i', strtotime($m['submission_deadline'])) . ' Uhr)</small>';
+                            } else {
+                                // Antragsschluss noch offen - prominent
+                                echo '<br><small style="color: #2196f3; font-weight: 600;">⏰ Antragsschluss: ' . date('d.m.Y H:i', strtotime($m['submission_deadline'])) . ' Uhr</small>';
+                            }
                             ?>
-                            <br><small style="color: <?php echo $deadline_color; ?>; font-weight: 600;">
-                                <?php echo $deadline_icon; ?> Antragsschluss: <?php echo date('d.m.Y H:i', strtotime($m['submission_deadline'])); ?> Uhr
-                            </small>
                         <?php endif; ?>
                     </div>
                     <div class="agenda-meta">

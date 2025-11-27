@@ -171,15 +171,19 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             Dieses Skript setzt die Datenbank auf einen sauberen Demo-Stand zurück.
         </p>
         <p><strong>Was wird gelöscht:</strong></p>
+        <p>
+            <strong>Alle Tabellen mit "sv"-Prefix werden komplett geleert!</strong> Dies umfasst:
+        </p>
         <ul>
-            <li>Alle Meetings & Teilnehmer</li>
-            <li>Alle Tagesordnungspunkte & Kommentare</li>
-            <li>Alle Protokolle & Änderungswünsche</li>
-            <li>Alle TODOs & Historie</li>
-            <li>Alle Terminabstimmungen & Antworten</li>
-            <li>Alle Meinungsbilder & Antworten</li>
-            <li>Alle Dokumente & Download-Historie</li>
-            <li>Alle Mitglieder (members-Tabelle)</li>
+            <li>svmembers (Alle Mitglieder)</li>
+            <li>svmeetings (Alle Meetings & Teilnehmer)</li>
+            <li>svagenda_items (Alle Tagesordnungspunkte & Kommentare)</li>
+            <li>svprotocols (Alle Protokolle & Änderungswünsche)</li>
+            <li>svtodos (Alle TODOs & Historie)</li>
+            <li>svpolls (Alle Terminabstimmungen & Antworten)</li>
+            <li>svopinion_polls (Alle Meinungsbilder & Antworten)</li>
+            <li>svdocuments (Alle Dokumente & Download-Historie)</li>
+            <li>...und alle weiteren sv*-Tabellen</li>
         </ul>
         <p><strong>Was wird importiert:</strong></p>
         <ul>
@@ -229,39 +233,16 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
         try {
             $pdo->beginTransaction();
 
-            // 1. Alle Daten löschen (in der richtigen Reihenfolge wegen Foreign Keys)
+            // 1. Alle Daten löschen
             echo '<div class="card">';
             echo '<h2>🗑️ Lösche bestehende Daten...</h2>';
 
-            $tables_to_clear = [
-                // Dokumenten-Daten (in korrekter Reihenfolge wegen FK)
-                'document_downloads',
-                'documents',
-                // Meinungsbild-Daten (in korrekter Reihenfolge wegen FK)
-                'opinion_response_options',
-                'opinion_responses',
-                'opinion_poll_participants',
-                'opinion_poll_options',
-                'opinion_polls',
-                // Terminabstimmungs-Daten
-                'poll_responses',
-                'poll_participants',
-                'poll_dates',
-                'polls',
-                // TODO-Daten
-                'todo_log',
-                'todos',
-                // Protokoll-Daten
-                'protocol_change_requests',
-                'protocols',
-                // Meeting-Daten
-                'agenda_comments',
-                'agenda_items',
-                'meeting_participants',
-                'meetings',
-                // Mitglieder
-                'members'
-            ];
+            // Alle Tabellen mit "sv"-Prefix automatisch finden
+            $stmt = $pdo->query("SHOW TABLES LIKE 'sv%'");
+            $tables_to_clear = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            // Foreign Key Checks temporär deaktivieren für einfacheres Löschen
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
 
             foreach ($tables_to_clear as $table) {
                 $stmt = $pdo->prepare("DELETE FROM $table");
@@ -274,6 +255,9 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             foreach ($tables_to_clear as $table) {
                 $pdo->exec("ALTER TABLE $table AUTO_INCREMENT = 1");
             }
+
+            // Foreign Key Checks wieder aktivieren
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
 
             echo '</div>';
 

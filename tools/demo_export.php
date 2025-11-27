@@ -119,28 +119,21 @@ try {
             in eine JSON-Datei. Diese kann später als "Demoversion" eingespielt werden.
         </p>
         <p><strong>Exportierte Tabellen:</strong></p>
+        <p>
+            Alle Tabellen mit dem Prefix "sv" werden automatisch exportiert. Dies umfasst:
+        </p>
         <ul>
-            <li>members (Mitglieder)</li>
-            <li>meetings (Sitzungen)</li>
-            <li>meeting_participants (Teilnehmer)</li>
-            <li>agenda_items (Tagesordnungspunkte)</li>
-            <li>agenda_comments (Kommentare)</li>
-            <li>protocols (Protokolle)</li>
-            <li>protocol_change_requests (Änderungswünsche)</li>
-            <li>todos (Aufgaben)</li>
-            <li>todo_log (Aufgaben-Historie)</li>
-            <li>polls (Terminabstimmungen)</li>
-            <li>poll_dates (Terminvorschläge)</li>
-            <li>poll_participants (Umfrage-Teilnehmer)</li>
-            <li>poll_responses (Abstimmungen)</li>
-            <li>opinion_answer_templates (Meinungsbild-Templates)</li>
-            <li>opinion_polls (Meinungsbilder)</li>
-            <li>opinion_poll_options (Meinungsbild-Optionen)</li>
-            <li>opinion_poll_participants (Meinungsbild-Teilnehmer)</li>
-            <li>opinion_responses (Meinungsbild-Antworten)</li>
-            <li>opinion_response_options (Gewählte Optionen)</li>
-            <li>documents (Dokumente)</li>
-            <li>document_downloads (Download-Tracking)</li>
+            <li>svmembers (Mitglieder)</li>
+            <li>svmeetings (Sitzungen)</li>
+            <li>svmeeting_participants (Teilnehmer)</li>
+            <li>svagenda_items (Tagesordnungspunkte)</li>
+            <li>svagenda_comments (Kommentare)</li>
+            <li>svprotocols (Protokolle)</li>
+            <li>svtodos (Aufgaben)</li>
+            <li>svpolls (Terminabstimmungen)</li>
+            <li>svopinion_polls (Meinungsbilder)</li>
+            <li>svdocuments (Dokumente)</li>
+            <li>...und alle weiteren sv*-Tabellen</li>
         </ul>
     </div>
 
@@ -153,30 +146,13 @@ try {
             'tables' => []
         ];
 
-        // Liste der zu exportierenden Tabellen
-        $tables_to_export = [
-            'members',
-            'meetings',
-            'meeting_participants',
-            'agenda_items',
-            'agenda_comments',
-            'protocols',
-            'protocol_change_requests',
-            'todos',
-            'todo_log',
-            'polls',
-            'poll_dates',
-            'poll_participants',
-            'poll_responses',
-            'opinion_answer_templates',
-            'opinion_polls',
-            'opinion_poll_options',
-            'opinion_poll_participants',
-            'opinion_responses',
-            'opinion_response_options',
-            'documents',
-            'document_downloads'
-        ];
+        // Alle Tabellen mit "sv"-Prefix automatisch finden
+        $stmt = $pdo->query("SHOW TABLES LIKE 'sv%'");
+        $tables_to_export = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        if (empty($tables_to_export)) {
+            throw new Exception('Keine Tabellen mit "sv"-Prefix gefunden. Bitte prüfen Sie die Datenbank.');
+        }
 
         $total_records = 0;
 
