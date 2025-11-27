@@ -137,7 +137,7 @@ function can_edit_poll_standalone($poll, $current_user) {
  * Holt eine Umfrage mit ID
  */
 function get_poll_by_id_standalone($pdo, $poll_id) {
-    $stmt = $pdo->prepare("SELECT * FROM polls WHERE poll_id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM svpolls WHERE poll_id = ?");
     $stmt->execute([$poll_id]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
@@ -163,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
 
                 // Umfrage erstellen
                 $stmt = $pdo->prepare("
-                    INSERT INTO polls (title, description, location, created_by_member_id, status, created_at)
+                    INSERT INTO svpolls (title, description, location, created_by_member_id, status, created_at)
                     VALUES (?, ?, ?, ?, 'open', NOW())
                 ");
                 $stmt->execute([$title, $description, $location, $current_user['member_id']]);
@@ -182,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                         $suggested_end = !empty($time_end) ? $date . ' ' . $time_end : null;
 
                         $stmt = $pdo->prepare("
-                            INSERT INTO poll_dates (poll_id, suggested_date, suggested_end_date, location, notes, sort_order)
+                            INSERT INTO svpoll_dates (poll_id, suggested_date, suggested_end_date, location, notes, sort_order)
                             VALUES (?, ?, ?, ?, ?, ?)
                         ");
                         $stmt->execute([$poll_id, $suggested_datetime, $suggested_end, $location, $notes, $i]);
@@ -204,12 +204,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                 }
 
                 // Bestehende Antworten löschen
-                $stmt = $pdo->prepare("DELETE FROM poll_responses WHERE poll_id = ? AND member_id = ?");
+                $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ? AND member_id = ?");
                 $stmt->execute([$poll_id, $current_user['member_id']]);
 
                 // Neue Antworten speichern
                 $stmt = $pdo->prepare("
-                    INSERT INTO poll_responses (poll_id, date_id, member_id, vote, created_at)
+                    INSERT INTO svpoll_responses (poll_id, date_id, member_id, vote, created_at)
                     VALUES (?, ?, ?, ?, NOW())
                 ");
 
@@ -237,7 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                 }
 
                 $stmt = $pdo->prepare("
-                    UPDATE polls SET status = 'finalized', final_date_id = ?, finalized_at = NOW()
+                    UPDATE svpolls SET status = 'finalized', final_date_id = ?, finalized_at = NOW()
                     WHERE poll_id = ?
                 ");
                 $stmt->execute([$final_date_id, $poll_id]);
@@ -254,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                     break;
                 }
 
-                $stmt = $pdo->prepare("DELETE FROM polls WHERE poll_id = ?");
+                $stmt = $pdo->prepare("DELETE FROM svpolls WHERE poll_id = ?");
                 $stmt->execute([$poll_id]);
 
                 $success_message = 'Umfrage wurde gelöscht';
@@ -314,7 +314,7 @@ if ($view === 'dashboard') {
     echo '<p><a href="?view=create" class="btn-primary">+ Neue Umfrage erstellen</a></p>';
 
     // Umfragen auflisten
-    $stmt = $pdo->query("SELECT * FROM polls ORDER BY created_at DESC");
+    $stmt = $pdo->query("SELECT * FROM svpolls ORDER BY created_at DESC");
     $polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($polls as $poll) {
@@ -355,7 +355,7 @@ if ($view === 'dashboard') {
         echo '<p>' . nl2br(htmlspecialchars($poll['description'])) . '</p>';
 
         // Terminvorschläge und Abstimmung
-        $stmt = $pdo->prepare("SELECT * FROM poll_dates WHERE poll_id = ? ORDER BY suggested_date");
+        $stmt = $pdo->prepare("SELECT * FROM svpoll_dates WHERE poll_id = ? ORDER BY suggested_date");
         $stmt->execute([$poll_id]);
         $dates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

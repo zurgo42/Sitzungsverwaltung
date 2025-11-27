@@ -14,8 +14,8 @@ $poll_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 // Umfrage laden
 $stmt = $pdo->prepare("
     SELECT p.*, pd.suggested_date, pd.suggested_end_date
-    FROM polls p
-    LEFT JOIN poll_dates pd ON p.final_date_id = pd.date_id
+    FROM svpolls p
+    LEFT JOIN svpoll_dates pd ON p.final_date_id = pd.date_id
     WHERE p.poll_id = ? AND p.status = 'finalized'
 ");
 $stmt->execute([$poll_id]);

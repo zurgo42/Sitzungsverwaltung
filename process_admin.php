@@ -50,7 +50,7 @@ function log_admin_action($pdo, $admin_id, $action_type, $description, $target_t
     
     // In Datenbank speichern
     $stmt = $pdo->prepare("
-        INSERT INTO admin_log 
+        INSERT INTO svadmin_log 
         (admin_member_id, action_type, action_description, target_type, target_id, 
          old_values, new_values, ip_address, user_agent) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -108,7 +108,7 @@ if (isset($_POST['edit_meeting'])) {
     } else {
         try {
             // Alte Daten für Log abrufen
-            $stmt = $pdo->prepare("SELECT * FROM meetings WHERE meeting_id = ?");
+            $stmt = $pdo->prepare("SELECT * FROM svmeetings WHERE meeting_id = ?");
             $stmt->execute([$meeting_id]);
             $old_meeting = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -117,7 +117,7 @@ if (isset($_POST['edit_meeting'])) {
             } else {
                 // Meeting aktualisieren
                 $stmt = $pdo->prepare("
-                    UPDATE meetings
+                    UPDATE svmeetings
                     SET meeting_name = ?,
                         meeting_date = ?,
                         expected_end_date = ?,
@@ -145,12 +145,12 @@ if (isset($_POST['edit_meeting'])) {
                 ]);
 
                 // Teilnehmer aktualisieren
-                $stmt = $pdo->prepare("DELETE FROM meeting_participants WHERE meeting_id = ?");
+                $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
                 $stmt->execute([$meeting_id]);
 
                 if (!empty($participant_ids)) {
                     $stmt = $pdo->prepare("
-                        INSERT INTO meeting_participants (meeting_id, member_id, attendance_status)
+                        INSERT INTO svmeeting_participants (meeting_id, member_id, attendance_status)
                         VALUES (?, ?, 'absent')
                     ");
                     foreach ($participant_ids as $member_id) {
@@ -216,7 +216,7 @@ if (isset($_POST['delete_meeting'])) {
             $pdo->beginTransaction();
             
             // Alte Daten für Log abrufen
-            $stmt = $pdo->prepare("SELECT * FROM meetings WHERE meeting_id = ?");
+            $stmt = $pdo->prepare("SELECT * FROM svmeetings WHERE meeting_id = ?");
             $stmt->execute([$meeting_id]);
             $old_meeting = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -227,33 +227,33 @@ if (isset($_POST['delete_meeting'])) {
                 // Reihenfolge wichtig wegen Foreign Keys!
                 
                 // 1. ToDos löschen
-                $stmt = $pdo->prepare("DELETE FROM todos WHERE meeting_id = ?");
+                $stmt = $pdo->prepare("DELETE FROM svtodos WHERE meeting_id = ?");
                 $stmt->execute([$meeting_id]);
                 
                 // 2. Kommentare löschen (über Agenda Items)
                 $stmt = $pdo->prepare("
-                    DELETE FROM agenda_comments
-                    WHERE item_id IN (SELECT item_id FROM agenda_items WHERE meeting_id = ?)
+                    DELETE FROM svagenda_comments
+                    WHERE item_id IN (SELECT item_id FROM svagenda_items WHERE meeting_id = ?)
                 ");
                 $stmt->execute([$meeting_id]);
 
                 // 2b. Post-Kommentare löschen (über Agenda Items)
                 $stmt = $pdo->prepare("
                     DELETE FROM agenda_post_comments
-                    WHERE item_id IN (SELECT item_id FROM agenda_items WHERE meeting_id = ?)
+                    WHERE item_id IN (SELECT item_id FROM svagenda_items WHERE meeting_id = ?)
                 ");
                 $stmt->execute([$meeting_id]);
 
                 // 3. Agenda Items löschen
-                $stmt = $pdo->prepare("DELETE FROM agenda_items WHERE meeting_id = ?");
+                $stmt = $pdo->prepare("DELETE FROM svagenda_items WHERE meeting_id = ?");
                 $stmt->execute([$meeting_id]);
                 
                 // 4. Teilnehmer löschen
-                $stmt = $pdo->prepare("DELETE FROM meeting_participants WHERE meeting_id = ?");
+                $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
                 $stmt->execute([$meeting_id]);
                 
                 // 5. Meeting löschen
-                $stmt = $pdo->prepare("DELETE FROM meetings WHERE meeting_id = ?");
+                $stmt = $pdo->prepare("DELETE FROM svmeetings WHERE meeting_id = ?");
                 $stmt->execute([$meeting_id]);
                 
                 // Admin-Log
@@ -407,7 +407,7 @@ if (isset($_POST['edit_member'])) {
                 $password_changed = false;
                 if (!empty($_POST['password'])) {
                     $password_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
-                    $stmt = $pdo->prepare("UPDATE members SET password_hash = ? WHERE member_id = ?");
+                    $stmt = $pdo->prepare("UPDATE svmembers SET password_hash = ? WHERE member_id = ?");
                     $stmt->execute([$password_hash, $member_id]);
                     $password_changed = true;
                 }
@@ -519,7 +519,7 @@ if (isset($_POST['close_todo'])) {
     } else {
         try {
             // Alte Daten für Log abrufen
-            $stmt = $pdo->prepare("SELECT * FROM todos WHERE todo_id = ?");
+            $stmt = $pdo->prepare("SELECT * FROM svtodos WHERE todo_id = ?");
             $stmt->execute([$todo_id]);
             $old_todo = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -528,7 +528,7 @@ if (isset($_POST['close_todo'])) {
             } else {
                 // ToDo schließen
                 $stmt = $pdo->prepare("
-                    UPDATE todos 
+                    UPDATE svtodos 
                     SET status = 'done', completed_at = NOW() 
                     WHERE todo_id = ?
                 ");
@@ -586,7 +586,7 @@ if (isset($_POST['edit_todo'])) {
     } else {
         try {
             // Alte Daten für Log abrufen
-            $stmt = $pdo->prepare("SELECT * FROM todos WHERE todo_id = ?");
+            $stmt = $pdo->prepare("SELECT * FROM svtodos WHERE todo_id = ?");
             $stmt->execute([$todo_id]);
             $old_todo = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -595,7 +595,7 @@ if (isset($_POST['edit_todo'])) {
             } else {
                 // ToDo aktualisieren
                 $stmt = $pdo->prepare("
-                    UPDATE todos
+                    UPDATE svtodos
                     SET title = ?, description = ?, assigned_to_member_id = ?,
                         status = ?, entry_date = ?, due_date = ?
                     WHERE todo_id = ?
@@ -657,7 +657,7 @@ if (isset($_POST['delete_todo'])) {
     } else {
         try {
             // ToDo-Daten für Log abrufen
-            $stmt = $pdo->prepare("SELECT * FROM todos WHERE todo_id = ?");
+            $stmt = $pdo->prepare("SELECT * FROM svtodos WHERE todo_id = ?");
             $stmt->execute([$todo_id]);
             $old_todo = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -665,7 +665,7 @@ if (isset($_POST['delete_todo'])) {
                 $error_message = "ToDo nicht gefunden.";
             } else {
                 // ToDo löschen
-                $stmt = $pdo->prepare("DELETE FROM todos WHERE todo_id = ?");
+                $stmt = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
                 $stmt->execute([$todo_id]);
 
                 // Admin-Log
@@ -698,16 +698,16 @@ $meetings = $pdo->query("
     SELECT m.*,
         mem_inv.first_name as inviter_first_name,
         mem_inv.last_name as inviter_last_name,
-        (SELECT COUNT(*) FROM meeting_participants WHERE meeting_id = m.meeting_id) as participant_count,
-        (SELECT COUNT(*) FROM agenda_items WHERE meeting_id = m.meeting_id) as agenda_count
-    FROM meetings m
-    LEFT JOIN members mem_inv ON m.invited_by_member_id = mem_inv.member_id
+        (SELECT COUNT(*) FROM svmeeting_participants WHERE meeting_id = m.meeting_id) as participant_count,
+        (SELECT COUNT(*) FROM svagenda_items WHERE meeting_id = m.meeting_id) as agenda_count
+    FROM svmeetings m
+    LEFT JOIN svmembers mem_inv ON m.invited_by_member_id = mem_inv.member_id
     ORDER BY m.meeting_date DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 // Teilnehmer für jedes Meeting laden
 foreach ($meetings as &$meeting) {
-    $stmt = $pdo->prepare("SELECT member_id FROM meeting_participants WHERE meeting_id = ?");
+    $stmt = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
     $stmt->execute([$meeting['meeting_id']]);
     $meeting['participant_ids'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
@@ -722,10 +722,10 @@ $open_todos = $pdo->query("
         m.first_name, m.last_name,
         ai.title as agenda_title,
         meet.meeting_name, meet.meeting_date
-    FROM todos t
-    LEFT JOIN members m ON t.assigned_to_member_id = m.member_id
-    LEFT JOIN agenda_items ai ON t.item_id = ai.item_id
-    LEFT JOIN meetings meet ON t.meeting_id = meet.meeting_id
+    FROM svtodos t
+    LEFT JOIN svmembers m ON t.assigned_to_member_id = m.member_id
+    LEFT JOIN svagenda_items ai ON t.item_id = ai.item_id
+    LEFT JOIN svmeetings meet ON t.meeting_id = meet.meeting_id
     WHERE t.status = 'open'
     ORDER BY t.due_date ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
@@ -734,8 +734,8 @@ $open_todos = $pdo->query("
 $admin_logs = $pdo->query("
     SELECT al.*, 
         m.first_name, m.last_name
-    FROM admin_log al
-    LEFT JOIN members m ON al.admin_member_id = m.member_id
+    FROM svadmin_log al
+    LEFT JOIN svmembers m ON al.admin_member_id = m.member_id
     ORDER BY al.created_at DESC
     LIMIT 50
 ")->fetchAll(PDO::FETCH_ASSOC);

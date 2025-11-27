@@ -100,7 +100,7 @@ function can_delete_meeting($meeting, $current_user) {
 function create_default_tops($pdo, $meeting_id, $creator_member_id) {
     // TOP 0: Wahl der Sitzungsleitung und Protokollführung - Kategorie: wahl
     $stmt = $pdo->prepare("
-        INSERT INTO agenda_items
+        INSERT INTO svagenda_items
         (meeting_id, top_number, title, description, category, priority, estimated_duration,
          is_confidential, is_active, created_by_member_id, created_at)
         VALUES (?, 0, ?, ?, 'wahl', NULL, NULL, 0, 0, ?, NOW())
@@ -114,7 +114,7 @@ function create_default_tops($pdo, $meeting_id, $creator_member_id) {
 
     // TOP 99: Verschiedenes - Kategorie: sonstiges
     $stmt = $pdo->prepare("
-        INSERT INTO agenda_items
+        INSERT INTO svagenda_items
         (meeting_id, top_number, title, description, category, priority, estimated_duration,
          is_confidential, is_active, created_by_member_id, created_at)
         VALUES (?, 99, ?, ?, 'sonstiges', NULL, NULL, 0, 0, ?, NOW())
@@ -140,7 +140,7 @@ function add_participants($pdo, $meeting_id, $participant_ids) {
     }
     
     $stmt = $pdo->prepare("
-        INSERT INTO meeting_participants (meeting_id, member_id, attendance_status) 
+        INSERT INTO svmeeting_participants (meeting_id, member_id, attendance_status) 
         VALUES (?, ?, 'absent')
     ");
     
@@ -179,6 +179,7 @@ if (isset($_POST['create_meeting'])) {
     $meeting_name = trim($_POST['meeting_name'] ?? '');
     $meeting_date = $_POST['meeting_date'] ?? '';
     $expected_end_date = !empty($_POST['expected_end_date']) ? $_POST['expected_end_date'] : null;
+    $submission_deadline = !empty($_POST['submission_deadline']) ? $_POST['submission_deadline'] : null;
     $location = trim($_POST['location'] ?? '');
     $video_link = trim($_POST['video_link'] ?? '');
     $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
@@ -192,6 +193,11 @@ if (isset($_POST['create_meeting'])) {
         exit;
     }
 
+    // Wenn kein Antragsschluss gesetzt wurde, automatisch 24 Stunden vor Start setzen
+    if (empty($submission_deadline) && !empty($meeting_date)) {
+        $submission_deadline = date('Y-m-d H:i:s', strtotime($meeting_date . ' -24 hours'));
+    }
+
     // Sichtbarkeitstyp validieren
     if (!in_array($visibility_type, ['public', 'authenticated', 'invited_only'])) {
         $visibility_type = 'invited_only';
@@ -202,15 +208,16 @@ if (isset($_POST['create_meeting'])) {
 
         // 1. Meeting erstellen
         $stmt = $pdo->prepare("
-            INSERT INTO meetings
-            (meeting_name, meeting_date, expected_end_date, location, video_link,
+            INSERT INTO svmeetings
+            (meeting_name, meeting_date, expected_end_date, submission_deadline, location, video_link,
              chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
         ");
         $stmt->execute([
             $meeting_name,
             $meeting_date,
             $expected_end_date,
+            $submission_deadline,
             $location,
             $video_link,
             $chairman_member_id,
@@ -276,7 +283,7 @@ if (isset($_POST['edit_meeting'])) {
     }
     
     // Meeting laden und Berechtigung prüfen
-    $stmt = $pdo->prepare("SELECT * FROM meetings WHERE meeting_id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM svmeetings WHERE meeting_id = ?");
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -289,6 +296,7 @@ if (isset($_POST['edit_meeting'])) {
     $meeting_name = trim($_POST['meeting_name'] ?? '');
     $meeting_date = $_POST['meeting_date'] ?? '';
     $expected_end_date = !empty($_POST['expected_end_date']) ? $_POST['expected_end_date'] : null;
+    $submission_deadline = !empty($_POST['submission_deadline']) ? $_POST['submission_deadline'] : null;
     $location = trim($_POST['location'] ?? '');
     $video_link = trim($_POST['video_link'] ?? '');
     $chairman_member_id = !empty($_POST['chairman_member_id']) ? intval($_POST['chairman_member_id']) : null;
@@ -301,6 +309,11 @@ if (isset($_POST['edit_meeting'])) {
         exit;
     }
 
+    // Wenn kein Antragsschluss gesetzt wurde, automatisch 24 Stunden vor Start setzen
+    if (empty($submission_deadline) && !empty($meeting_date)) {
+        $submission_deadline = date('Y-m-d H:i:s', strtotime($meeting_date . ' -24 hours'));
+    }
+
     // Sichtbarkeitstyp validieren
     if (!in_array($visibility_type, ['public', 'authenticated', 'invited_only'])) {
         $visibility_type = 'invited_only';
@@ -311,8 +324,8 @@ if (isset($_POST['edit_meeting'])) {
 
         // 1. Meeting aktualisieren
         $stmt = $pdo->prepare("
-            UPDATE meetings
-            SET meeting_name = ?, meeting_date = ?, expected_end_date = ?,
+            UPDATE svmeetings
+            SET meeting_name = ?, meeting_date = ?, expected_end_date = ?, submission_deadline = ?,
                 location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?, visibility_type = ?
             WHERE meeting_id = ?
         ");
@@ -320,6 +333,7 @@ if (isset($_POST['edit_meeting'])) {
             $meeting_name,
             $meeting_date,
             $expected_end_date,
+            $submission_deadline,
             $location,
             $video_link,
             $chairman_member_id,
@@ -329,7 +343,7 @@ if (isset($_POST['edit_meeting'])) {
         ]);
         
         // 2. Teilnehmer neu setzen
-        $stmt = $pdo->prepare("DELETE FROM meeting_participants WHERE meeting_id = ?");
+        $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
         $stmt->execute([$meeting_id]);
         
         add_participants($pdo, $meeting_id, $participant_ids);
@@ -379,7 +393,7 @@ if (isset($_POST['delete_meeting'])) {
     }
     
     // Meeting laden und Berechtigung prüfen
-    $stmt = $pdo->prepare("SELECT * FROM meetings WHERE meeting_id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM svmeetings WHERE meeting_id = ?");
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -394,33 +408,33 @@ if (isset($_POST['delete_meeting'])) {
         // Reihenfolge wichtig wegen Foreign Keys!
         
         // 1. ToDos löschen
-        $stmt = $pdo->prepare("DELETE FROM todos WHERE meeting_id = ?");
+        $stmt = $pdo->prepare("DELETE FROM svtodos WHERE meeting_id = ?");
         $stmt->execute([$meeting_id]);
         
         // 2. Kommentare löschen (über Agenda Items)
         $stmt = $pdo->prepare("
-            DELETE FROM agenda_comments
-            WHERE item_id IN (SELECT item_id FROM agenda_items WHERE meeting_id = ?)
+            DELETE FROM svagenda_comments
+            WHERE item_id IN (SELECT item_id FROM svagenda_items WHERE meeting_id = ?)
         ");
         $stmt->execute([$meeting_id]);
 
         // 2b. Post-Kommentare löschen (über Agenda Items)
         $stmt = $pdo->prepare("
             DELETE FROM agenda_post_comments
-            WHERE item_id IN (SELECT item_id FROM agenda_items WHERE meeting_id = ?)
+            WHERE item_id IN (SELECT item_id FROM svagenda_items WHERE meeting_id = ?)
         ");
         $stmt->execute([$meeting_id]);
 
         // 3. Agenda Items löschen
-        $stmt = $pdo->prepare("DELETE FROM agenda_items WHERE meeting_id = ?");
+        $stmt = $pdo->prepare("DELETE FROM svagenda_items WHERE meeting_id = ?");
         $stmt->execute([$meeting_id]);
         
         // 4. Teilnehmer löschen
-        $stmt = $pdo->prepare("DELETE FROM meeting_participants WHERE meeting_id = ?");
+        $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
         $stmt->execute([$meeting_id]);
         
         // 5. Meeting löschen
-        $stmt = $pdo->prepare("DELETE FROM meetings WHERE meeting_id = ?");
+        $stmt = $pdo->prepare("DELETE FROM svmeetings WHERE meeting_id = ?");
         $stmt->execute([$meeting_id]);
         
         $pdo->commit();
@@ -472,7 +486,7 @@ if (isset($_POST['start_meeting'])) {
     }
     
     // Meeting laden und Berechtigung prüfen
-    $stmt = $pdo->prepare("SELECT * FROM meetings WHERE meeting_id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM svmeetings WHERE meeting_id = ?");
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -486,7 +500,7 @@ if (isset($_POST['start_meeting'])) {
 
         // 1. Meeting-Status auf 'active' setzen und Rollen speichern
         $stmt = $pdo->prepare("
-            UPDATE meetings 
+            UPDATE svmeetings 
             SET status = 'active', 
                 chairman_member_id = ?, 
                 secretary_member_id = ?,
@@ -497,7 +511,7 @@ if (isset($_POST['start_meeting'])) {
         
         // 2. TOP 0 als aktiv markieren
         $stmt = $pdo->prepare("
-            UPDATE agenda_items 
+            UPDATE svagenda_items 
             SET is_active = 1 
             WHERE meeting_id = ? AND top_number = 0
         ");
@@ -520,7 +534,7 @@ if (isset($_POST['start_meeting'])) {
         
         // In TOP 0 speichern
         $stmt = $pdo->prepare("
-            UPDATE agenda_items 
+            UPDATE svagenda_items 
             SET protocol_notes = ? 
             WHERE meeting_id = ? AND top_number = 0
         ");

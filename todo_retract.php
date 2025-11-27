@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Prüfen, ob der aktuelle Nutzer Ersteller ist und der Status noch zurückziehbar
     $stmt = $pdo->prepare(
-        "SELECT created_by_member_id, status, title FROM todos WHERE todo_id = ?"
+        "SELECT created_by_member_id, status, title FROM svtodos WHERE todo_id = ?"
     );
     $stmt->execute([$todo_id]);
     $todo = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -28,12 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // ToDo löschen (oder Status setzen, falls du Soft-Delete bevorzugst)
-    $delete = $pdo->prepare("DELETE FROM todos WHERE todo_id = ?");
+    $delete = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
     $delete->execute([$todo_id]);
 
     // Logging
     $log = $pdo->prepare(
-        "INSERT INTO todo_log (todo_id, changed_by, change_type, old_value, new_value)
+        "INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value)
          VALUES (?, ?, 'todo-retract', ?, NULL)"
     );
     $log->execute([

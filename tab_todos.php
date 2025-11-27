@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // Berechtigung prüfen (nur Empfänger)
-        $stmt = $pdo->prepare("SELECT status, assigned_to_member_id FROM todos WHERE todo_id = ?");
+        $stmt = $pdo->prepare("SELECT status, assigned_to_member_id FROM svtodos WHERE todo_id = ?");
         $stmt->execute([$todo_id]);
         $todo = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -60,14 +60,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         try {
             if ($new_status === 'done') {
-                $stmt = $pdo->prepare("UPDATE todos SET status = ?, completed_at = NOW() WHERE todo_id = ?");
+                $stmt = $pdo->prepare("UPDATE svtodos SET status = ?, completed_at = NOW() WHERE todo_id = ?");
             } else {
-                $stmt = $pdo->prepare("UPDATE todos SET status = ?, completed_at = NULL WHERE todo_id = ?");
+                $stmt = $pdo->prepare("UPDATE svtodos SET status = ?, completed_at = NULL WHERE todo_id = ?");
             }
             $stmt->execute([$new_status, $todo_id]);
             
             // Logging
-            $logstmt = $pdo->prepare("INSERT INTO todo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'status-change', ?, ?)");
+            $logstmt = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'status-change', ?, ?)");
             $logstmt->execute([$todo_id, $currentMemberID, $todo['status'], $new_status]);
             
             header('Location: index.php?tab=todos&msg=status_changed');
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             die('❌ Ungültige ToDo-ID.');
         }
         
-        $stmt = $pdo->prepare("SELECT created_by_member_id, status, title FROM todos WHERE todo_id = ?");
+        $stmt = $pdo->prepare("SELECT created_by_member_id, status, title FROM svtodos WHERE todo_id = ?");
         $stmt->execute([$todo_id]);
         $todo = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -100,10 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         try {
             // Logging (vor dem Löschen!)
-            $log = $pdo->prepare("INSERT INTO todo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'todo-retract', ?, NULL)");
+            $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'todo-retract', ?, NULL)");
             $log->execute([$todo_id, $currentMemberID, $todo['status']]);
             
-            $delete = $pdo->prepare("DELETE FROM todos WHERE todo_id = ?");
+            $delete = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
             $delete->execute([$todo_id]);
             
             header('Location: index.php?tab=todos&msg=todo_retracted');
@@ -146,10 +146,10 @@ SELECT
         WHEN t.status <> 'done' THEN 'active'
         ELSE 'done'
     END AS todo_typ
-FROM todos t
-LEFT JOIN members m1 ON t.assigned_to_member_id = m1.member_id
-LEFT JOIN members m2 ON t.created_by_member_id = m2.member_id
-LEFT JOIN meetings ON t.meeting_id = meetings.meeting_id
+FROM svtodos t
+LEFT JOIN svmembers m1 ON t.assigned_to_member_id = m1.member_id
+LEFT JOIN svmembers m2 ON t.created_by_member_id = m2.member_id
+LEFT JOIN svmeetings ON t.meeting_id = meetings.meeting_id
 WHERE
     (
         t.is_private = 0

@@ -61,7 +61,7 @@ function get_or_create_session_token() {
  * Lädt eine Umfrage
  */
 function get_opinion_poll($pdo, $poll_id) {
-    $stmt = $pdo->prepare("SELECT * FROM opinion_polls WHERE poll_id = ? AND status != 'deleted'");
+    $stmt = $pdo->prepare("SELECT * FROM svopinion_polls WHERE poll_id = ? AND status != 'deleted'");
     $stmt->execute([$poll_id]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
@@ -71,7 +71,7 @@ function get_opinion_poll($pdo, $poll_id) {
  */
 function get_poll_options($pdo, $poll_id) {
     $stmt = $pdo->prepare("
-        SELECT * FROM opinion_poll_options
+        SELECT * FROM svopinion_poll_options
         WHERE poll_id = ?
         ORDER BY sort_order ASC
     ");
@@ -115,7 +115,7 @@ try {
 
             // Umfrage erstellen
             $stmt = $pdo->prepare("
-                INSERT INTO opinion_polls
+                INSERT INTO svopinion_polls
                 (title, creator_member_id, target_type, list_id, template_id,
                  allow_multiple_answers, is_anonymous, duration_days,
                  show_intermediate_after_days, delete_after_days, status, created_at)
@@ -131,7 +131,7 @@ try {
             // Access-Token für individual-Typ generieren
             if ($target_type === 'individual') {
                 $access_token = bin2hex(random_bytes(32));
-                $pdo->prepare("UPDATE opinion_polls SET access_token = ? WHERE poll_id = ?")
+                $pdo->prepare("UPDATE svopinion_polls SET access_token = ? WHERE poll_id = ?")
                     ->execute([$access_token, $poll_id]);
             }
 
@@ -143,7 +143,7 @@ try {
                 $option_text = trim($_POST["custom_option_$i"] ?? '');
                 if (!empty($option_text)) {
                     $stmt = $pdo->prepare("
-                        INSERT INTO opinion_poll_options (poll_id, option_text, sort_order)
+                        INSERT INTO svopinion_poll_options (poll_id, option_text, sort_order)
                         VALUES (?, ?, ?)
                     ");
                     $stmt->execute([$poll_id, $option_text, $option_count++]);
@@ -152,7 +152,7 @@ try {
 
             // Wenn Template gewählt und keine custom options, Template-Optionen verwenden
             if ($template_id && $option_count == 0) {
-                $template_stmt = $pdo->prepare("SELECT * FROM opinion_answer_templates WHERE template_id = ?");
+                $template_stmt = $pdo->prepare("SELECT * FROM svopinion_answer_templates WHERE template_id = ?");
                 $template_stmt->execute([$template_id]);
                 $template = $template_stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -161,7 +161,7 @@ try {
                         $option_text = $template["option_$i"];
                         if (!empty($option_text)) {
                             $stmt = $pdo->prepare("
-                                INSERT INTO opinion_poll_options (poll_id, option_text, sort_order)
+                                INSERT INTO svopinion_poll_options (poll_id, option_text, sort_order)
                                 VALUES (?, ?, ?)
                             ");
                             $stmt->execute([$poll_id, $option_text, $option_count++]);
@@ -175,7 +175,7 @@ try {
                 if (!empty($opinion_participant_ids)) {
                     // Direkt ausgewählte Teilnehmer
                     $invite_stmt = $pdo->prepare("
-                        INSERT INTO opinion_poll_participants (poll_id, member_id)
+                        INSERT INTO svopinion_poll_participants (poll_id, member_id)
                         VALUES (?, ?)
                     ");
                     foreach ($opinion_participant_ids as $member_id) {
@@ -185,14 +185,14 @@ try {
                     // Fallback: Hole Teilnehmer vom Meeting (legacy)
                     $participants_stmt = $pdo->prepare("
                         SELECT DISTINCT member_id
-                        FROM meeting_participants
+                        FROM svmeeting_participants
                         WHERE meeting_id = ?
                     ");
                     $participants_stmt->execute([$list_id]);
                     $participants = $participants_stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     $invite_stmt = $pdo->prepare("
-                        INSERT INTO opinion_poll_participants (poll_id, member_id)
+                        INSERT INTO svopinion_poll_participants (poll_id, member_id)
                         VALUES (?, ?)
                     ");
                     foreach ($participants as $participant) {
@@ -245,14 +245,14 @@ try {
             if ($member_id !== null) {
                 // Logged-in User: Nur nach member_id suchen
                 $check_stmt = $pdo->prepare("
-                    SELECT response_id FROM opinion_responses
+                    SELECT response_id FROM svopinion_responses
                     WHERE poll_id = ? AND member_id = ?
                 ");
                 $check_stmt->execute([$poll_id, $member_id]);
             } else if ($session_token !== null) {
                 // Anonymous User: Nur nach session_token suchen
                 $check_stmt = $pdo->prepare("
-                    SELECT response_id FROM opinion_responses
+                    SELECT response_id FROM svopinion_responses
                     WHERE poll_id = ? AND session_token = ?
                 ");
                 $check_stmt->execute([$poll_id, $session_token]);
@@ -263,7 +263,7 @@ try {
 
             if ($existing) {
                 // Editieren erlaubt wenn Ersteller und nur 1 Antwort
-                $count_stmt = $pdo->prepare("SELECT COUNT(*) as cnt FROM opinion_responses WHERE poll_id = ?");
+                $count_stmt = $pdo->prepare("SELECT COUNT(*) as cnt FROM svopinion_responses WHERE poll_id = ?");
                 $count_stmt->execute([$poll_id]);
                 $count = $count_stmt->fetch()['cnt'];
 
@@ -275,15 +275,15 @@ try {
 
                 // Update bestehende Antwort
                 $response_id = $existing['response_id'];
-                $pdo->prepare("UPDATE opinion_responses SET free_text = ?, force_anonymous = ? WHERE response_id = ?")
+                $pdo->prepare("UPDATE svopinion_responses SET free_text = ?, force_anonymous = ? WHERE response_id = ?")
                     ->execute([$free_text, $force_anonymous, $response_id]);
 
                 // Optionen löschen und neu einfügen
-                $pdo->prepare("DELETE FROM opinion_response_options WHERE response_id = ?")->execute([$response_id]);
+                $pdo->prepare("DELETE FROM svopinion_response_options WHERE response_id = ?")->execute([$response_id]);
             } else {
                 // Neue Antwort erstellen
                 $stmt = $pdo->prepare("
-                    INSERT INTO opinion_responses (poll_id, member_id, session_token, free_text, force_anonymous)
+                    INSERT INTO svopinion_responses (poll_id, member_id, session_token, free_text, force_anonymous)
                     VALUES (?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([$poll_id, $member_id, $session_token, $free_text, $force_anonymous]);
@@ -292,7 +292,7 @@ try {
 
             // Gewählte Optionen speichern
             $option_stmt = $pdo->prepare("
-                INSERT INTO opinion_response_options (response_id, option_id)
+                INSERT INTO svopinion_response_options (response_id, option_id)
                 VALUES (?, ?)
             ");
             foreach ($selected_options as $option_id) {
@@ -322,7 +322,7 @@ try {
             }
 
             // Soft-Delete
-            $pdo->prepare("UPDATE opinion_polls SET status = 'deleted' WHERE poll_id = ?")
+            $pdo->prepare("UPDATE svopinion_polls SET status = 'deleted' WHERE poll_id = ?")
                 ->execute([$poll_id]);
 
             $_SESSION['success'] = 'Meinungsbild wurde gelöscht';
@@ -347,7 +347,7 @@ try {
                 exit;
             }
 
-            $pdo->prepare("UPDATE opinion_polls SET status = 'ended', ends_at = NOW() WHERE poll_id = ?")
+            $pdo->prepare("UPDATE svopinion_polls SET status = 'ended', ends_at = NOW() WHERE poll_id = ?")
                 ->execute([$poll_id]);
 
             $_SESSION['success'] = 'Meinungsbild wurde beendet';

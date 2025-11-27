@@ -39,7 +39,7 @@ if (!$meeting) {
 // Alle TOPs abrufen (ohne JOIN auf members!)
 $stmt = $pdo->prepare("
     SELECT ai.*
-    FROM agenda_items ai
+    FROM svagenda_items ai
     WHERE ai.meeting_id = ?
     ORDER BY
         CASE
@@ -75,7 +75,7 @@ $all_members = get_all_members($pdo);
 // Teilnehmer des Meetings laden (über Adapter!)
 $stmt = $pdo->prepare("
     SELECT member_id
-    FROM meeting_participants
+    FROM svmeeting_participants
     WHERE meeting_id = ?
 ");
 $stmt->execute([$current_meeting_id]);

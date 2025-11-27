@@ -116,8 +116,8 @@ function get_documents($pdo, $filters = [], $member_access_level = 0) {
             m.first_name,
             m.last_name,
             m.email as uploader_email
-        FROM documents d
-        LEFT JOIN members m ON d.uploaded_by_member_id = m.member_id
+        FROM svdocuments d
+        LEFT JOIN svmembers m ON d.uploaded_by_member_id = m.member_id
         WHERE " . implode(' AND ', $where) . "
         ORDER BY $order
     ";
@@ -137,8 +137,8 @@ function get_document_by_id($pdo, $document_id) {
             m.first_name,
             m.last_name,
             m.email as uploader_email
-        FROM documents d
-        LEFT JOIN members m ON d.uploaded_by_member_id = m.member_id
+        FROM svdocuments d
+        LEFT JOIN svmembers m ON d.uploaded_by_member_id = m.member_id
         WHERE d.document_id = ?
     ");
     $stmt->execute([$document_id]);
@@ -191,7 +191,7 @@ function upload_document($pdo, $file, $data, $member_id) {
     // In Datenbank eintragen
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO documents (
+            INSERT INTO svdocuments (
                 filename,
                 original_filename,
                 filepath,
@@ -309,7 +309,7 @@ function update_document($pdo, $document_id, $data, $member_id = null) {
     $params[] = $document_id;
 
     try {
-        $sql = "UPDATE documents SET " . implode(', ', $fields) . " WHERE document_id = ?";
+        $sql = "UPDATE svdocuments SET " . implode(', ', $fields) . " WHERE document_id = ?";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
@@ -339,7 +339,7 @@ function delete_document($pdo, $document_id, $permanent = false) {
             }
 
             // DB-Eintrag löschen
-            $stmt = $pdo->prepare("DELETE FROM documents WHERE document_id = ?");
+            $stmt = $pdo->prepare("DELETE FROM svdocuments WHERE document_id = ?");
             $stmt->execute([$document_id]);
 
             return ['success' => true, 'message' => 'Dokument permanent gelöscht'];
@@ -375,7 +375,7 @@ function format_filesize($bytes) {
 function track_download($pdo, $document_id, $member_id = null) {
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO document_downloads (document_id, member_id, downloaded_at, ip_address)
+            INSERT INTO svdocument_downloads (document_id, member_id, downloaded_at, ip_address)
             VALUES (?, ?, NOW(), ?)
         ");
         $stmt->execute([
@@ -396,7 +396,7 @@ function track_download($pdo, $document_id, $member_id = null) {
 function get_document_download_stats($pdo, $document_id) {
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as download_count
-        FROM document_downloads
+        FROM svdocument_downloads
         WHERE document_id = ?
     ");
     $stmt->execute([$document_id]);

@@ -53,7 +53,7 @@ function get_all_meetings($pdo) {
     try {
         // Nur Meeting-Daten holen, OHNE JOIN auf members
         $stmt = $pdo->query("SELECT m.*
-                FROM meetings m
+                FROM svmeetings m
                 ORDER BY FIELD(status, 'active', 'preparation', 'ended', 'protocol_ready', 'archived'), meeting_date ASC");
         $meetings = $stmt->fetchAll();
 
@@ -98,7 +98,7 @@ function get_all_meetings($pdo) {
 function get_meeting_details($pdo, $meeting_id) {
     try {
         // Nur Meeting-Daten holen, OHNE JOIN auf members
-        $stmt = $pdo->prepare("SELECT m.* FROM meetings m WHERE m.meeting_id = ?");
+        $stmt = $pdo->prepare("SELECT m.* FROM svmeetings m WHERE m.meeting_id = ?");
         $stmt->execute([$meeting_id]);
         $meeting = $stmt->fetch();
 
@@ -151,7 +151,7 @@ function get_agenda_with_comments($pdo, $meeting_id, $user_role) {
         }
         
         $stmt = $pdo->prepare("SELECT ai.*
-                FROM agenda_items ai
+                FROM svagenda_items ai
                 WHERE ai.meeting_id = ? $confidential_filter
                 ORDER BY
                     CASE
@@ -181,7 +181,7 @@ function get_agenda_with_comments($pdo, $meeting_id, $user_role) {
         // Kommentare für jeden TOP laden (ohne JOIN!)
         foreach ($agenda as &$item) {
             $stmt = $pdo->prepare("SELECT ac.*
-                    FROM agenda_comments ac
+                    FROM svagenda_comments ac
                     WHERE ac.item_id = ?
                     ORDER BY ac.created_at ASC");
             $stmt->execute([$item['item_id']]);
@@ -214,7 +214,7 @@ function get_next_top_number($pdo, $meeting_id, $is_confidential) {
     try {
         if ($is_confidential) {
             // Vertrauliche TOPs beginnen bei 101
-            $stmt = $pdo->prepare("SELECT MAX(top_number) as max_top FROM agenda_items 
+            $stmt = $pdo->prepare("SELECT MAX(top_number) as max_top FROM svagenda_items 
                     WHERE meeting_id = ? AND is_confidential = 1");
             $stmt->execute([$meeting_id]);
             $result = $stmt->fetch();
@@ -223,7 +223,7 @@ function get_next_top_number($pdo, $meeting_id, $is_confidential) {
             return ($result['max_top'] ?? 100) + 1;
         } else {
             // Öffentliche TOPs: 1-98
-            $stmt = $pdo->prepare("SELECT MAX(top_number) as max_top FROM agenda_items 
+            $stmt = $pdo->prepare("SELECT MAX(top_number) as max_top FROM svagenda_items 
                     WHERE meeting_id = ? AND top_number BETWEEN 1 AND 98 AND is_confidential = 0");
             $stmt->execute([$meeting_id]);
             $result = $stmt->fetch();
@@ -244,13 +244,13 @@ function get_next_top_number($pdo, $meeting_id, $is_confidential) {
 function create_standard_tops($pdo, $meeting_id, $creator_id) {
     try {
         // TOP 0 - Antrag/Beschluss
-        $stmt = $pdo->prepare("INSERT INTO agenda_items 
+        $stmt = $pdo->prepare("INSERT INTO svagenda_items 
                 (meeting_id, top_number, title, description, category, priority, estimated_duration, is_confidential, created_by_member_id) 
                 VALUES (?, 0, 'Wahl von Sitzungsleitung und Protokoll', 'Formale Wahl zu Beginn der Sitzung', 'antrag_beschluss', 10.00, 5, 0, ?)");
         $stmt->execute([$meeting_id, $creator_id]);
         
         // TOP 99 - Sonstiges
-        $stmt = $pdo->prepare("INSERT INTO agenda_items 
+        $stmt = $pdo->prepare("INSERT INTO svagenda_items 
                 (meeting_id, top_number, title, description, category, priority, estimated_duration, is_confidential, created_by_member_id) 
                 VALUES (?, 99, 'Verschiedenes', 'Sonstige Punkte und Anmerkungen', 'sonstiges', 1.00, 5, 0, ?)");
         $stmt->execute([$meeting_id, $creator_id]);
@@ -274,7 +274,7 @@ function recalculate_item_metrics($pdo, $item_id) {
             SELECT
                 AVG(priority_rating) as avg_priority,
                 AVG(duration_estimate) as avg_duration
-            FROM agenda_comments
+            FROM svagenda_comments
             WHERE item_id = ?
         ");
         $stmt->execute([$item_id]);
@@ -296,7 +296,7 @@ function recalculate_item_metrics($pdo, $item_id) {
 
         // Nur updaten wenn mindestens ein Wert vorhanden
         if (!empty($updates)) {
-            $sql = "UPDATE agenda_items SET " . implode(", ", $updates) . " WHERE item_id = ?";
+            $sql = "UPDATE svagenda_items SET " . implode(", ", $updates) . " WHERE item_id = ?";
             $params[] = $item_id;
 
             $stmt = $pdo->prepare($sql);
@@ -436,7 +436,7 @@ function show_message($message, $type = 'success') {
 function can_user_access_meeting($pdo, $meeting_id, $member_id) {
     try {
         // Meeting-Details laden
-        $stmt = $pdo->prepare("SELECT visibility_type FROM meetings WHERE meeting_id = ?");
+        $stmt = $pdo->prepare("SELECT visibility_type FROM svmeetings WHERE meeting_id = ?");
         $stmt->execute([$meeting_id]);
         $meeting = $stmt->fetch();
 
@@ -445,7 +445,7 @@ function can_user_access_meeting($pdo, $meeting_id, $member_id) {
         }
 
         // User-Details laden
-        $stmt = $pdo->prepare("SELECT email FROM members WHERE member_id = ?");
+        $stmt = $pdo->prepare("SELECT email FROM svmembers WHERE member_id = ?");
         $stmt->execute([$member_id]);
         $user = $stmt->fetch();
 
@@ -467,7 +467,7 @@ function can_user_access_meeting($pdo, $meeting_id, $member_id) {
 
         // Eingeladene: Nur invited participants
         if ($visibility === 'invited_only') {
-            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM meeting_participants WHERE meeting_id = ? AND member_id = ?");
+            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM svmeeting_participants WHERE meeting_id = ? AND member_id = ?");
             $stmt->execute([$meeting_id, $member_id]);
             $result = $stmt->fetch();
             return $result['count'] > 0;
@@ -492,7 +492,7 @@ function can_user_access_meeting($pdo, $meeting_id, $member_id) {
 function get_visible_meetings($pdo, $member_id) {
     try {
         // User-Details laden
-        $stmt = $pdo->prepare("SELECT email FROM members WHERE member_id = ?");
+        $stmt = $pdo->prepare("SELECT email FROM svmembers WHERE member_id = ?");
         $stmt->execute([$member_id]);
         $user = $stmt->fetch();
 
@@ -506,8 +506,8 @@ function get_visible_meetings($pdo, $member_id) {
             // Öffentlicher User sieht nur public meetings
             $stmt = $pdo->query("
                 SELECT m.*, mem.first_name, mem.last_name
-                FROM meetings m
-                LEFT JOIN members mem ON m.invited_by_member_id = mem.member_id
+                FROM svmeetings m
+                LEFT JOIN svmembers mem ON m.invited_by_member_id = mem.member_id
                 WHERE m.visibility_type = 'public'
                 ORDER BY FIELD(status, 'active', 'preparation', 'ended', 'protocol_ready', 'archived'), meeting_date ASC
             ");
@@ -519,9 +519,9 @@ function get_visible_meetings($pdo, $member_id) {
             // - invited_only meetings (nur wenn sie Teilnehmer sind)
             $stmt = $pdo->prepare("
                 SELECT DISTINCT m.*, mem.first_name, mem.last_name
-                FROM meetings m
-                LEFT JOIN members mem ON m.invited_by_member_id = mem.member_id
-                LEFT JOIN meeting_participants mp ON m.meeting_id = mp.meeting_id AND mp.member_id = ?
+                FROM svmeetings m
+                LEFT JOIN svmembers mem ON m.invited_by_member_id = mem.member_id
+                LEFT JOIN svmeeting_participants mp ON m.meeting_id = mp.meeting_id AND mp.member_id = ?
                 WHERE m.visibility_type = 'authenticated'
                    OR ((m.visibility_type = 'public' OR m.visibility_type = 'invited_only') AND mp.member_id IS NOT NULL)
                 ORDER BY FIELD(m.status, 'active', 'preparation', 'ended', 'protocol_ready', 'archived'), m.meeting_date ASC
@@ -545,7 +545,7 @@ function get_visible_meetings($pdo, $member_id) {
  */
 function is_readonly_user($pdo, $member_id) {
     try {
-        $stmt = $pdo->prepare("SELECT email FROM members WHERE member_id = ?");
+        $stmt = $pdo->prepare("SELECT email FROM svmembers WHERE member_id = ?");
         $stmt->execute([$member_id]);
         $user = $stmt->fetch();
 

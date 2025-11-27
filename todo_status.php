@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $new_status = $_POST['new_status'] ?? '';
 
     // Status nur für Zuweisungsempfänger änderbar!
-    $stmt = $pdo->prepare("SELECT status, assigned_to_member_id FROM todos WHERE todo_id = ?");
+    $stmt = $pdo->prepare("SELECT status, assigned_to_member_id FROM svtodos WHERE todo_id = ?");
     $stmt->execute([$todo_id]);
     $todo = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -36,16 +36,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Status (und bei "done" auch completed_at) aktualisieren
     if ($new_status === "done") {
-        $stmt = $pdo->prepare("UPDATE todos SET status=?, completed_at=NOW() WHERE todo_id=?");
+        $stmt = $pdo->prepare("UPDATE svtodos SET status=?, completed_at=NOW() WHERE todo_id=?");
         $stmt->execute([$new_status, $todo_id]);
     } else {
-        $stmt = $pdo->prepare("UPDATE todos SET status=?, completed_at=NULL WHERE todo_id=?");
+        $stmt = $pdo->prepare("UPDATE svtodos SET status=?, completed_at=NULL WHERE todo_id=?");
         $stmt->execute([$new_status, $todo_id]);
     }
 
     // Logging machen (Tabelle: todo_log, s.o.)
     $logstmt = $pdo->prepare(
-        "INSERT INTO todo_log (todo_id, changed_by, change_type, old_value, new_value)
+        "INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value)
          VALUES (?, ?, 'status-change', ?, ?)"
     );
     $logstmt->execute([

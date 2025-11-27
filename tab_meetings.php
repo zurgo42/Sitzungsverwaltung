@@ -103,7 +103,16 @@ $all_members = get_all_members($pdo);
                 <label>Voraussichtliches Ende:</label>
                 <input type="datetime-local" name="expected_end_date" id="expected_end_date">
             </div>
-            
+
+            <div class="form-group">
+                <label>Antragsschluss:</label>
+                <input type="datetime-local" name="submission_deadline" id="submission_deadline">
+                <small style="display: block; margin-top: 5px; color: #666;">
+                    Bis zu diesem Zeitpunkt dürfen Teilnehmer neue Tagesordnungspunkte hinzufügen.<br>
+                    Standard: 24 Stunden vor Sitzungsbeginn. Danach können nur noch Protokollant und Admins TOPs hinzufügen.
+                </small>
+            </div>
+
             <div class="form-group">
                 <label>Ort:</label>
                 <input type="text" name="location" value="<?php echo htmlspecialchars(DEFAULT_LOCATION); ?>">
@@ -289,7 +298,16 @@ $all_members = get_all_members($pdo);
                             <label>Voraussichtliches Ende:</label>
                             <input type="datetime-local" name="expected_end_date" value="<?php echo $m['expected_end_date'] ? date('Y-m-d\TH:i', strtotime($m['expected_end_date'])) : ''; ?>">
                         </div>
-                        
+
+                        <div class="form-group">
+                            <label>Antragsschluss:</label>
+                            <input type="datetime-local" name="submission_deadline" value="<?php echo $m['submission_deadline'] ? date('Y-m-d\TH:i', strtotime($m['submission_deadline'])) : ''; ?>">
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                Bis zu diesem Zeitpunkt dürfen Teilnehmer neue Tagesordnungspunkte hinzufügen.<br>
+                                Standard: 24 Stunden vor Sitzungsbeginn. Danach können nur noch Protokollant und Admins TOPs hinzufügen.
+                            </small>
+                        </div>
+
                         <div class="form-group">
                             <label>Ort:</label>
                             <input type="text" name="location" value="<?php echo htmlspecialchars($m['location']); ?>">
@@ -349,7 +367,7 @@ $all_members = get_all_members($pdo);
                             </div>
                             <div class="participants-selector">
                                 <?php
-                                $stmt_current_participants = $pdo->prepare("SELECT member_id FROM meeting_participants WHERE meeting_id = ?");
+                                $stmt_current_participants = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
                                 $stmt_current_participants->execute([$m['meeting_id']]);
                                 $current_participant_ids = $stmt_current_participants->fetchAll(PDO::FETCH_COLUMN);
 
@@ -386,8 +404,8 @@ $all_members = get_all_members($pdo);
                         <?php
                         $stmt_participants = $pdo->prepare("
                             SELECT m.member_id, m.first_name, m.last_name 
-                            FROM meeting_participants mp
-                            JOIN members m ON mp.member_id = m.member_id
+                            FROM svmeeting_participants mp
+                            JOIN svmembers m ON mp.member_id = m.member_id
                             WHERE mp.meeting_id = ?
                             ORDER BY m.last_name, m.first_name
                         ");
@@ -502,18 +520,34 @@ function combineDateTimeEdit(meetingId) {
 function updateEndDateTime() {
     const hiddenInput = document.getElementById('meeting_date');
     const endInput = document.getElementById('expected_end_date');
-    
+    const submissionInput = document.getElementById('submission_deadline');
+
     if (hiddenInput.value) {
         const startDate = new Date(hiddenInput.value);
-        startDate.setHours(startDate.getHours() + 2);
-        
-        const year = startDate.getFullYear();
-        const month = String(startDate.getMonth() + 1).padStart(2, '0');
-        const day = String(startDate.getDate()).padStart(2, '0');
-        const hours = String(startDate.getHours()).padStart(2, '0');
-        const minutes = String(startDate.getMinutes()).padStart(2, '0');
-        
+
+        // Voraussichtliches Ende: +2 Stunden
+        const endDate = new Date(startDate);
+        endDate.setHours(endDate.getHours() + 2);
+
+        const year = endDate.getFullYear();
+        const month = String(endDate.getMonth() + 1).padStart(2, '0');
+        const day = String(endDate.getDate()).padStart(2, '0');
+        const hours = String(endDate.getHours()).padStart(2, '0');
+        const minutes = String(endDate.getMinutes()).padStart(2, '0');
+
         endInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+        // Antragsschluss: -24 Stunden vor Start
+        const submissionDate = new Date(startDate);
+        submissionDate.setHours(submissionDate.getHours() - 24);
+
+        const subYear = submissionDate.getFullYear();
+        const subMonth = String(submissionDate.getMonth() + 1).padStart(2, '0');
+        const subDay = String(submissionDate.getDate()).padStart(2, '0');
+        const subHours = String(submissionDate.getHours()).padStart(2, '0');
+        const subMinutes = String(submissionDate.getMinutes()).padStart(2, '0');
+
+        submissionInput.value = `${subYear}-${subMonth}-${subDay}T${subHours}:${subMinutes}`;
     }
 }
 

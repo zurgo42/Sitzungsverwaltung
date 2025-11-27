@@ -13,7 +13,7 @@
 function get_item_comments($pdo, $item_id) {
     $stmt = $pdo->prepare("
         SELECT ac.*
-        FROM agenda_comments ac
+        FROM svagenda_comments ac
         WHERE ac.item_id = ?
         ORDER BY ac.created_at ASC
     ");
@@ -37,7 +37,7 @@ function get_item_comments($pdo, $item_id) {
 function get_my_comment($pdo, $item_id, $member_id) {
     $stmt = $pdo->prepare("
         SELECT comment_text, comment_id
-        FROM agenda_comments 
+        FROM svagenda_comments 
         WHERE item_id = ? AND member_id = ?
     ");
     $stmt->execute([$item_id, $member_id]);

@@ -20,7 +20,7 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
     // === HEADER: Meeting-Informationen ===
     
     // Endzeitpunkt aus TOP 999 holen
-    $stmt = $pdo->prepare("SELECT updated_at FROM agenda_items WHERE top_number = 999 AND meeting_id = ?");
+    $stmt = $pdo->prepare("SELECT updated_at FROM svagenda_items WHERE top_number = 999 AND meeting_id = ?");
     $stmt->execute([$meeting['meeting_id']]);
     $end_time = $stmt->fetchColumn();
     
@@ -45,7 +45,7 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
     // === TEILNEHMER ===
     $present_list = [];
     foreach ($participants as $p) {
-        $stmt = $pdo->prepare("SELECT attendance_status FROM meeting_participants WHERE meeting_id = ? AND member_id = ?");
+        $stmt = $pdo->prepare("SELECT attendance_status FROM svmeeting_participants WHERE meeting_id = ? AND member_id = ?");
         $stmt->execute([$meeting['meeting_id'], $p['member_id']]);
         $attendance = $stmt->fetch();
         $status = $attendance['attendance_status'] ?? 'absent';

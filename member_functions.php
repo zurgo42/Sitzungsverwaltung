@@ -42,10 +42,10 @@
  * FÜR NACHFOLGER: WAS IST WICHTIG?
  * ========================================
  *
- * 1. NIEMALS direkt "SELECT * FROM members" im Code schreiben
+ * 1. NIEMALS direkt "SELECT * FROM svmembers" im Code schreiben
  *    → Stattdessen get_all_members() verwenden
  *
- * 2. NIEMALS direkt "INSERT INTO members ..." im Code schreiben
+ * 2. NIEMALS direkt "INSERT INTO svmembers ..." im Code schreiben
  *    → Stattdessen create_member() verwenden
  *
  * 3. Die Funktionen geben IMMER das gleiche Format zurück:
@@ -280,7 +280,7 @@ function authenticate_member($pdo, $email, $password) {
 if (!function_exists('get_all_members_OLD')) {
     function get_all_members_OLD($pdo) {
         // Alte Implementierung bleibt unverändert
-        return $pdo->query("SELECT * FROM members ORDER BY last_name, first_name")->fetchAll(PDO::FETCH_ASSOC);
+        return $pdo->query("SELECT * FROM svmembers ORDER BY last_name, first_name")->fetchAll(PDO::FETCH_ASSOC);
     }
 }
 

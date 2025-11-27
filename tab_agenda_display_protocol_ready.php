@@ -85,7 +85,7 @@ foreach ($agenda_items as $item):
         $stmt = $pdo->prepare("
             SELECT alc.*, m.first_name, m.last_name
             FROM agenda_live_comments alc
-            JOIN members m ON alc.member_id = m.member_id
+            JOIN svmembers m ON alc.member_id = m.member_id
             WHERE alc.item_id = ?
             ORDER BY alc.created_at ASC
         ");
@@ -95,7 +95,7 @@ foreach ($agenda_items as $item):
         $stmt = $pdo->prepare("
             SELECT apc.*, m.first_name, m.last_name
             FROM agenda_post_comments apc
-            JOIN members m ON apc.member_id = m.member_id
+            JOIN svmembers m ON apc.member_id = m.member_id
             WHERE apc.item_id = ?
             ORDER BY apc.created_at ASC
         ");
@@ -184,7 +184,7 @@ foreach ($agenda_items as $item):
             $stmt = $pdo->prepare("
                 SELECT apc.*, m.first_name, m.last_name
                 FROM agenda_post_comments apc
-                JOIN members m ON apc.member_id = m.member_id
+                JOIN svmembers m ON apc.member_id = m.member_id
                 WHERE apc.item_id = ?
                 ORDER BY apc.created_at ASC
             ");
@@ -218,7 +218,7 @@ foreach ($agenda_items as $item):
                 $stmt = $pdo->prepare("
                     SELECT apc.*, m.first_name, m.last_name
                     FROM agenda_post_comments apc
-                    JOIN members m ON apc.member_id = m.member_id
+                    JOIN svmembers m ON apc.member_id = m.member_id
                     WHERE apc.item_id = ? AND apc.member_id = ?
                     ORDER BY apc.created_at DESC
                     LIMIT 1

@@ -28,30 +28,30 @@ class StandardMemberAdapter implements MemberAdapterInterface {
     }
 
     public function getMemberById($id) {
-        $stmt = $this->pdo->prepare("SELECT * FROM members WHERE member_id = ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM svmembers WHERE member_id = ?");
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function getAllMembers() {
-        return $this->pdo->query("SELECT * FROM members ORDER BY last_name, first_name")->fetchAll(PDO::FETCH_ASSOC);
+        return $this->pdo->query("SELECT * FROM svmembers ORDER BY last_name, first_name")->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getMemberByEmail($email) {
-        $stmt = $this->pdo->prepare("SELECT * FROM members WHERE email = ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM svmembers WHERE email = ?");
         $stmt->execute([$email]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function getMemberByMembershipNumber($mnr) {
-        $stmt = $this->pdo->prepare("SELECT * FROM members WHERE membership_number = ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM svmembers WHERE membership_number = ?");
         $stmt->execute([$mnr]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function createMember($data) {
         $stmt = $this->pdo->prepare("
-            INSERT INTO members (first_name, last_name, email, password_hash, role, is_admin, is_confidential)
+            INSERT INTO svmembers (first_name, last_name, email, password_hash, role, is_admin, is_confidential)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
@@ -68,7 +68,7 @@ class StandardMemberAdapter implements MemberAdapterInterface {
 
     public function updateMember($id, $data) {
         $stmt = $this->pdo->prepare("
-            UPDATE members
+            UPDATE svmembers
             SET first_name = ?, last_name = ?, email = ?, role = ?, is_admin = ?, is_confidential = ?
             WHERE member_id = ?
         ");
@@ -84,7 +84,7 @@ class StandardMemberAdapter implements MemberAdapterInterface {
     }
 
     public function deleteMember($id) {
-        $stmt = $this->pdo->prepare("DELETE FROM members WHERE member_id = ?");
+        $stmt = $this->pdo->prepare("DELETE FROM svmembers WHERE member_id = ?");
         return $stmt->execute([$id]);
     }
 

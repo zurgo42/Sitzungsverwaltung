@@ -14,7 +14,7 @@ $templates = get_answer_templates($pdo);
 // Meetings für list-Auswahl laden (optional, falls noch verwendet)
 $stmt = $pdo->prepare("
     SELECT meeting_id, meeting_name, meeting_date
-    FROM meetings
+    FROM svmeetings
     WHERE status IN ('preparation', 'active')
     ORDER BY meeting_date DESC
     LIMIT 50

@@ -25,8 +25,8 @@ function sendReminderMail($to, $recipientName, $todoTitle, $dueDate) {
 $tomorrow = (new DateTime('+1 day'))->format('Y-m-d');
 $sql = "SELECT t.todo_id, t.title, t.due_date, t.status,
                m.email, m.first_name, m.last_name
-        FROM todos t
-        JOIN members m ON t.assigned_to_member_id = m.member_id
+        FROM svtodos t
+        JOIN svmembers m ON t.assigned_to_member_id = m.member_id
         WHERE t.status = 'open' AND t.due_date = ?";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$tomorrow]);
@@ -40,7 +40,7 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
 // 2. Erledigte ToDos nach 14 Tagen löschen
 $deleteDate = (new DateTime('-14 days'))->format('Y-m-d');
-$sql = "DELETE FROM todos WHERE status = 'closed' AND due_date <= ?";
+$sql = "DELETE FROM svtodos WHERE status = 'closed' AND due_date <= ?";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$deleteDate]);
 

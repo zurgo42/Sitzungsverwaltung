@@ -38,8 +38,8 @@ try {
     // Finde alle Umfragen mit aktivierter Erinnerung die noch nicht versendet wurde
     $stmt = $pdo->prepare("
         SELECT p.poll_id, p.title, p.reminder_days, p.final_date_id, pd.suggested_date
-        FROM polls p
-        LEFT JOIN poll_dates pd ON p.final_date_id = pd.date_id
+        FROM svpolls p
+        LEFT JOIN svpoll_dates pd ON p.final_date_id = pd.date_id
         WHERE p.status = 'finalized'
           AND p.reminder_enabled = 1
           AND p.reminder_sent = 0
@@ -70,7 +70,7 @@ try {
             if ($sent_count > 0) {
                 // Markiere als versendet
                 $update_stmt = $pdo->prepare("
-                    UPDATE polls
+                    UPDATE svpolls
                     SET reminder_sent = 1
                     WHERE poll_id = ?
                 ");
@@ -82,7 +82,7 @@ try {
                 log_message("  ⚠ Warnung: Keine E-Mails versendet für Umfrage #$poll_id (evtl. keine Empfänger)");
                 // Trotzdem als versendet markieren um Endlos-Wiederholungen zu vermeiden
                 $update_stmt = $pdo->prepare("
-                    UPDATE polls
+                    UPDATE svpolls
                     SET reminder_sent = 1
                     WHERE poll_id = ?
                 ");

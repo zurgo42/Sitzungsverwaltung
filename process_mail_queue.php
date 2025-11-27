@@ -37,7 +37,7 @@ if (PHP_SAPI === 'cli') {
         die('Nicht autorisiert');
     }
 
-    $stmt = $pdo->prepare("SELECT role FROM members WHERE member_id = ?");
+    $stmt = $pdo->prepare("SELECT role FROM svmembers WHERE member_id = ?");
     $stmt->execute([$_SESSION['member_id']]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -71,7 +71,7 @@ $stats = [
 try {
     // Pending Mails holen (sortiert nach Priorität und Erstellungsdatum)
     $stmt = $pdo->prepare("
-        SELECT * FROM mail_queue
+        SELECT * FROM svmail_queue
         WHERE status = 'pending'
         AND attempts < max_attempts
         AND (send_at IS NULL OR send_at <= NOW())
@@ -98,7 +98,7 @@ try {
 
         // Status auf 'sending' setzen
         $update_stmt = $pdo->prepare("
-            UPDATE mail_queue
+            UPDATE svmail_queue
             SET status = 'sending', attempts = attempts + 1
             WHERE queue_id = ?
         ");
@@ -118,7 +118,7 @@ try {
             if ($result) {
                 // Erfolgreich versendet
                 $update_stmt = $pdo->prepare("
-                    UPDATE mail_queue
+                    UPDATE svmail_queue
                     SET status = 'sent', sent_at = NOW(), last_error = NULL
                     WHERE queue_id = ?
                 ");
@@ -133,7 +133,7 @@ try {
                 // Max attempts erreicht?
                 if ($mail['attempts'] + 1 >= $max_attempts) {
                     $update_stmt = $pdo->prepare("
-                        UPDATE mail_queue
+                        UPDATE svmail_queue
                         SET status = 'failed', last_error = ?
                         WHERE queue_id = ?
                     ");
@@ -143,7 +143,7 @@ try {
                 } else {
                     // Zurück auf pending für nächsten Versuch
                     $update_stmt = $pdo->prepare("
-                        UPDATE mail_queue
+                        UPDATE svmail_queue
                         SET status = 'pending', last_error = ?
                         WHERE queue_id = ?
                     ");
@@ -159,7 +159,7 @@ try {
 
             if ($mail['attempts'] + 1 >= $max_attempts) {
                 $update_stmt = $pdo->prepare("
-                    UPDATE mail_queue
+                    UPDATE svmail_queue
                     SET status = 'failed', last_error = ?
                     WHERE queue_id = ?
                 ");
@@ -168,7 +168,7 @@ try {
                 log_message("  ✗ Exception: $error");
             } else {
                 $update_stmt = $pdo->prepare("
-                    UPDATE mail_queue
+                    UPDATE svmail_queue
                     SET status = 'pending', last_error = ?
                     WHERE queue_id = ?
                 ");

@@ -10,10 +10,10 @@ if (isset($_POST['add_protocol'])) {
     
     if ($item_id) {
         try {
-            $stmt = $pdo->prepare("UPDATE agenda_items SET protocol_notes = ? WHERE item_id = ?");
+            $stmt = $pdo->prepare("UPDATE svagenda_items SET protocol_notes = ? WHERE item_id = ?");
             $stmt->execute([$notes, $item_id]);
             
-            $stmt = $pdo->prepare("SELECT meeting_id FROM agenda_items WHERE item_id = ?");
+            $stmt = $pdo->prepare("SELECT meeting_id FROM svagenda_items WHERE item_id = ?");
             $stmt->execute([$item_id]);
             $meeting_id = $stmt->fetch()['meeting_id'];
             

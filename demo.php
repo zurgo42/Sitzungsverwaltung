@@ -53,7 +53,7 @@ try {
 
     $member_ids = [];
     $stmt = $pdo->prepare("
-        INSERT INTO members (first_name, last_name, role, email, password_hash, is_admin, is_active, membership_number)
+        INSERT INTO svmembers (first_name, last_name, role, email, password_hash, is_admin, is_active, membership_number)
         VALUES (?, ?, ?, ?, ?, ?, 1, ?)
     ");
 
@@ -107,7 +107,7 @@ try {
     $meeting_ids = [];
     foreach ($meetings_data as $idx => $meeting) {
         $stmt = $pdo->prepare("
-            INSERT INTO meetings (meeting_name, meeting_date, expected_end_date, location, invited_by_member_id, status, created_at)
+            INSERT INTO svmeetings (meeting_name, meeting_date, expected_end_date, location, invited_by_member_id, status, created_at)
             VALUES (?, ?, ?, ?, ?, ?, NOW())
         ");
         $stmt->execute([
@@ -123,7 +123,7 @@ try {
 
         // Teilnehmer hinzufügen
         $stmt = $pdo->prepare("
-            INSERT INTO meeting_participants (meeting_id, member_id, status)
+            INSERT INTO svmeeting_participants (meeting_id, member_id, status)
             VALUES (?, ?, 'invited')
         ");
         foreach ($meeting['participants'] as $participant_id) {
@@ -149,7 +149,7 @@ try {
 
     foreach ($tops_meeting1 as $idx => $top) {
         $stmt = $pdo->prepare("
-            INSERT INTO agenda_items (meeting_id, top_number, title, category, description, created_by_member_id)
+            INSERT INTO svagenda_items (meeting_id, top_number, title, category, description, created_by_member_id)
             VALUES (?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
@@ -176,7 +176,7 @@ try {
     ];
 
     $stmt = $pdo->prepare("
-        INSERT INTO todos (title, assigned_to_member_id, created_by_member_id, due_date, status, entry_date)
+        INSERT INTO svtodos (title, assigned_to_member_id, created_by_member_id, due_date, status, entry_date)
         VALUES (?, ?, ?, ?, 'open', CURDATE())
     ");
 
@@ -197,7 +197,7 @@ try {
     echo "<h2>5. Erstelle Terminabstimmung...</h2>";
 
     $stmt = $pdo->prepare("
-        INSERT INTO polls (title, description, location, created_by_member_id, status)
+        INSERT INTO svpolls (title, description, location, created_by_member_id, status)
         VALUES (?, ?, ?, ?, 'open')
     ");
     $stmt->execute([
@@ -218,7 +218,7 @@ try {
 
     $poll_date_ids = [];
     $stmt = $pdo->prepare("
-        INSERT INTO poll_dates (poll_id, suggested_date, suggested_end_date, sort_order)
+        INSERT INTO svpoll_dates (poll_id, suggested_date, suggested_end_date, sort_order)
         VALUES (?, ?, ?, ?)
     ");
     foreach ($poll_dates_data as $idx => $dates) {
@@ -228,8 +228,8 @@ try {
     }
 
     // Teilnehmer & Antworten
-    $stmt_participant = $pdo->prepare("INSERT INTO poll_participants (poll_id, member_id) VALUES (?, ?)");
-    $stmt_response = $pdo->prepare("INSERT INTO poll_responses (poll_id, date_id, member_id, vote) VALUES (?, ?, ?, ?)");
+    $stmt_participant = $pdo->prepare("INSERT INTO svpoll_participants (poll_id, member_id) VALUES (?, ?)");
+    $stmt_response = $pdo->prepare("INSERT INTO svpoll_responses (poll_id, date_id, member_id, vote) VALUES (?, ?, ?, ?)");
 
     foreach ($member_ids as $idx => $member_id) {
         if ($idx < 5) { // Erste 5 Mitglieder
@@ -267,7 +267,7 @@ try {
         $access_token = bin2hex(random_bytes(16));
 
         $stmt = $pdo->prepare("
-            INSERT INTO opinion_polls (title, description, creator_member_id, target_type, access_token, allow_multiple_answers, is_anonymous, duration_days, status)
+            INSERT INTO svopinion_polls (title, description, creator_member_id, target_type, access_token, allow_multiple_answers, is_anonymous, duration_days, status)
             VALUES (?, ?, ?, ?, ?, 0, 0, 14, 'active')
         ");
         $stmt->execute([
@@ -281,7 +281,7 @@ try {
 
         // Optionen hinzufügen
         $stmt_option = $pdo->prepare("
-            INSERT INTO opinion_poll_options (poll_id, option_text, sort_order)
+            INSERT INTO svopinion_poll_options (poll_id, option_text, sort_order)
             VALUES (?, ?, ?)
         ");
         foreach ($opinion['options'] as $idx => $option_text) {

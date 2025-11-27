@@ -216,7 +216,7 @@ function queue_mail($to, $subject, $message_text, $message_html, $from_email, $f
 
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO mail_queue
+            INSERT INTO svmail_queue
             (recipient, subject, message_text, message_html, from_email, from_name, status, created_at, priority)
             VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW(), 5)
         ");
@@ -255,8 +255,8 @@ function send_poll_invitation($pdo, $poll_id, $host_url_base = null) {
     // Umfrage-Daten laden
     $stmt = $pdo->prepare("
         SELECT p.*, m.first_name, m.last_name, m.email as creator_email
-        FROM polls p
-        LEFT JOIN members m ON p.created_by_member_id = m.member_id
+        FROM svpolls p
+        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         WHERE p.poll_id = ?
     ");
     $stmt->execute([$poll_id]);
@@ -268,7 +268,7 @@ function send_poll_invitation($pdo, $poll_id, $host_url_base = null) {
 
     // Terminvorschläge laden
     $stmt = $pdo->prepare("
-        SELECT * FROM poll_dates
+        SELECT * FROM svpoll_dates
         WHERE poll_id = ?
         ORDER BY suggested_date ASC
     ");
@@ -278,8 +278,8 @@ function send_poll_invitation($pdo, $poll_id, $host_url_base = null) {
     // Ausgewählte Teilnehmer laden
     $stmt = $pdo->prepare("
         SELECT m.email, m.first_name, m.last_name
-        FROM poll_participants pp
-        LEFT JOIN members m ON pp.member_id = m.member_id
+        FROM svpoll_participants pp
+        LEFT JOIN svmembers m ON pp.member_id = m.member_id
         WHERE pp.poll_id = ? AND m.email IS NOT NULL AND m.email != ''
     ");
     $stmt->execute([$poll_id]);
@@ -417,8 +417,8 @@ function send_poll_finalization_notification($pdo, $poll_id, $final_date_id, $ho
     // Umfrage-Daten laden
     $stmt = $pdo->prepare("
         SELECT p.*, m.first_name, m.last_name, m.email as creator_email
-        FROM polls p
-        LEFT JOIN members m ON p.created_by_member_id = m.member_id
+        FROM svpolls p
+        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         WHERE p.poll_id = ?
     ");
     $stmt->execute([$poll_id]);
@@ -429,7 +429,7 @@ function send_poll_finalization_notification($pdo, $poll_id, $final_date_id, $ho
     }
 
     // Finalen Termin laden
-    $stmt = $pdo->prepare("SELECT * FROM poll_dates WHERE date_id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM svpoll_dates WHERE date_id = ?");
     $stmt->execute([$final_date_id]);
     $final_date = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -442,8 +442,8 @@ function send_poll_finalization_notification($pdo, $poll_id, $final_date_id, $ho
         // Alle ausgewählten Teilnehmer
         $stmt = $pdo->prepare("
             SELECT DISTINCT m.email, m.first_name, m.last_name
-            FROM poll_participants pp
-            LEFT JOIN members m ON pp.member_id = m.member_id
+            FROM svpoll_participants pp
+            LEFT JOIN svmembers m ON pp.member_id = m.member_id
             WHERE pp.poll_id = ? AND m.email IS NOT NULL AND m.email != ''
         ");
         $stmt->execute([$poll_id]);
@@ -452,8 +452,8 @@ function send_poll_finalization_notification($pdo, $poll_id, $final_date_id, $ho
         // Nur Teilnehmer die abgestimmt haben (Standard)
         $stmt = $pdo->prepare("
             SELECT DISTINCT m.email, m.first_name, m.last_name
-            FROM poll_responses pr
-            LEFT JOIN members m ON pr.member_id = m.member_id
+            FROM svpoll_responses pr
+            LEFT JOIN svmembers m ON pr.member_id = m.member_id
             WHERE pr.poll_id = ? AND m.email IS NOT NULL AND m.email != ''
         ");
         $stmt->execute([$poll_id]);
@@ -593,8 +593,8 @@ function send_poll_reminder($pdo, $poll_id, $host_url_base = null) {
     // Umfrage-Daten laden
     $stmt = $pdo->prepare("
         SELECT p.*, m.first_name, m.last_name, m.email as creator_email
-        FROM polls p
-        LEFT JOIN members m ON p.created_by_member_id = m.member_id
+        FROM svpolls p
+        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         WHERE p.poll_id = ? AND p.status = 'finalized' AND p.reminder_enabled = 1 AND p.reminder_sent = 0
     ");
     $stmt->execute([$poll_id]);
@@ -605,7 +605,7 @@ function send_poll_reminder($pdo, $poll_id, $host_url_base = null) {
     }
 
     // Finalen Termin laden
-    $stmt = $pdo->prepare("SELECT * FROM poll_dates WHERE date_id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM svpoll_dates WHERE date_id = ?");
     $stmt->execute([$poll['final_date_id']]);
     $final_date = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -624,8 +624,8 @@ function send_poll_reminder($pdo, $poll_id, $host_url_base = null) {
         // Alle ausgewählten Teilnehmer
         $stmt = $pdo->prepare("
             SELECT DISTINCT m.email, m.first_name, m.last_name
-            FROM poll_participants pp
-            LEFT JOIN members m ON pp.member_id = m.member_id
+            FROM svpoll_participants pp
+            LEFT JOIN svmembers m ON pp.member_id = m.member_id
             WHERE pp.poll_id = ? AND m.email IS NOT NULL AND m.email != ''
         ");
         $stmt->execute([$poll_id]);
@@ -634,8 +634,8 @@ function send_poll_reminder($pdo, $poll_id, $host_url_base = null) {
         // Nur Teilnehmer die abgestimmt haben
         $stmt = $pdo->prepare("
             SELECT DISTINCT m.email, m.first_name, m.last_name
-            FROM poll_responses pr
-            LEFT JOIN members m ON pr.member_id = m.member_id
+            FROM svpoll_responses pr
+            LEFT JOIN svmembers m ON pr.member_id = m.member_id
             WHERE pr.poll_id = ? AND m.email IS NOT NULL AND m.email != ''
         ");
         $stmt->execute([$poll_id]);

@@ -32,7 +32,7 @@ try {
     // Finde alle Meinungsbilder die gelöscht werden sollen
     $stmt = $pdo->prepare("
         SELECT poll_id, title, delete_at
-        FROM opinion_polls
+        FROM svopinion_polls
         WHERE status != 'deleted'
           AND delete_at < NOW()
     ");
@@ -53,7 +53,7 @@ try {
         try {
             // Soft-Delete
             $delete_stmt = $pdo->prepare("
-                UPDATE opinion_polls
+                UPDATE svopinion_polls
                 SET status = 'deleted'
                 WHERE poll_id = ?
             ");

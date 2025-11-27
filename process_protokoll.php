@@ -12,9 +12,9 @@ function generate_compact_protocol($pdo, $meeting_id) {
         SELECT m.*,
             chairman.first_name as chairman_first, chairman.last_name as chairman_last,
             secretary.first_name as secretary_first, secretary.last_name as secretary_last
-        FROM meetings m
-        LEFT JOIN members chairman ON m.chairman_member_id = chairman.member_id
-        LEFT JOIN members secretary ON m.secretary_member_id = secretary.member_id
+        FROM svmeetings m
+        LEFT JOIN svmembers chairman ON m.chairman_member_id = chairman.member_id
+        LEFT JOIN svmembers secretary ON m.secretary_member_id = secretary.member_id
         WHERE m.meeting_id = ?
     ");
     $stmt->execute([$meeting_id]);
@@ -27,8 +27,8 @@ function generate_compact_protocol($pdo, $meeting_id) {
     // Teilnehmer laden
     $stmt = $pdo->prepare("
         SELECT m.first_name, m.last_name
-        FROM meeting_participants mp
-        JOIN members m ON mp.member_id = m.member_id
+        FROM svmeeting_participants mp
+        JOIN svmembers m ON mp.member_id = m.member_id
         WHERE mp.meeting_id = ?
         ORDER BY m.last_name, m.first_name
     ");
@@ -38,7 +38,7 @@ function generate_compact_protocol($pdo, $meeting_id) {
     // Agenda Items laden (nur nicht-vertrauliche, sortiert nach TOP-Nummer)
     $stmt = $pdo->prepare("
         SELECT *
-        FROM agenda_items
+        FROM svagenda_items
         WHERE meeting_id = ? AND is_confidential = 0
         ORDER BY 
             CASE 
@@ -149,7 +149,7 @@ function save_approved_protocol($pdo, $meeting_id) {
     $protokoll_html = generate_compact_protocol($pdo, $meeting_id);
     
     if ($protokoll_html) {
-        $stmt = $pdo->prepare("UPDATE meetings SET protokoll = ? WHERE meeting_id = ?");
+        $stmt = $pdo->prepare("UPDATE svmeetings SET protokoll = ? WHERE meeting_id = ?");
         $stmt->execute([$protokoll_html, $meeting_id]);
         return true;
     }

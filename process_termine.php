@@ -72,7 +72,7 @@ function can_edit_poll($poll, $current_user) {
  * @return array|false
  */
 function get_poll_by_id($pdo, $poll_id) {
-    $stmt = $pdo->prepare("SELECT * FROM polls WHERE poll_id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM svpolls WHERE poll_id = ?");
     $stmt->execute([$poll_id]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
@@ -86,12 +86,12 @@ function cleanup_old_polls($pdo) {
     try {
         // Finde Umfragen wo der letzte Terminvorschlag >1 Monat her ist
         $stmt = $pdo->prepare("
-            DELETE FROM polls
+            DELETE FROM svpolls
             WHERE poll_id IN (
                 SELECT p.poll_id FROM (
                     SELECT polls.poll_id, MAX(poll_dates.suggested_date) as last_date
-                    FROM polls
-                    LEFT JOIN poll_dates ON polls.poll_id = poll_dates.poll_id
+                    FROM svpolls
+                    LEFT JOIN svpoll_dates ON polls.poll_id = poll_dates.poll_id
                     WHERE polls.status != 'finalized'
                     GROUP BY polls.poll_id
                     HAVING last_date < DATE_SUB(NOW(), INTERVAL 1 MONTH)
@@ -134,7 +134,7 @@ try {
 
             // Umfrage erstellen (meeting_id wird später beim Finalisieren gesetzt)
             $stmt = $pdo->prepare("
-                INSERT INTO polls (title, description, location, created_by_member_id, meeting_id, status, created_at)
+                INSERT INTO svpolls (title, description, location, created_by_member_id, meeting_id, status, created_at)
                 VALUES (?, ?, ?, ?, NULL, 'open', NOW())
             ");
             $stmt->execute([$title, $description, $location, $current_user['member_id']]);
@@ -142,7 +142,7 @@ try {
 
             // Teilnehmer hinzufügen
             $stmt = $pdo->prepare("
-                INSERT INTO poll_participants (poll_id, member_id)
+                INSERT INTO svpoll_participants (poll_id, member_id)
                 VALUES (?, ?)
             ");
             foreach ($participant_ids as $member_id) {
@@ -164,7 +164,7 @@ try {
                     }
 
                     $stmt = $pdo->prepare("
-                        INSERT INTO poll_dates (poll_id, suggested_date, suggested_end_date, sort_order)
+                        INSERT INTO svpoll_dates (poll_id, suggested_date, suggested_end_date, sort_order)
                         VALUES (?, ?, ?, ?)
                     ");
                     $stmt->execute([$poll_id, $suggested_datetime, $suggested_end, $i]);
@@ -212,14 +212,14 @@ try {
 
             // Bestehende Antworten des Users löschen
             $stmt = $pdo->prepare("
-                DELETE FROM poll_responses
+                DELETE FROM svpoll_responses
                 WHERE poll_id = ? AND member_id = ?
             ");
             $stmt->execute([$poll_id, $current_user['member_id']]);
 
             // Neue Antworten speichern
             $stmt = $pdo->prepare("
-                INSERT INTO poll_responses (poll_id, date_id, member_id, vote, created_at)
+                INSERT INTO svpoll_responses (poll_id, date_id, member_id, vote, created_at)
                 VALUES (?, ?, ?, ?, NOW())
             ");
 
@@ -267,7 +267,7 @@ try {
 
             // Umfrage finalisieren
             $stmt = $pdo->prepare("
-                UPDATE polls
+                UPDATE svpolls
                 SET status = 'finalized', final_date_id = ?, finalized_at = NOW()
                 WHERE poll_id = ?
             ");
@@ -277,7 +277,7 @@ try {
             $create_meeting = !empty($_POST['create_meeting']);
             $meeting_created = false;
             if ($create_meeting && !empty($final_date_id)) {
-                $date_stmt = $pdo->prepare("SELECT * FROM poll_dates WHERE date_id = ?");
+                $date_stmt = $pdo->prepare("SELECT * FROM svpoll_dates WHERE date_id = ?");
                 $date_stmt->execute([$final_date_id]);
                 $final_date = $date_stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -287,7 +287,7 @@ try {
 
                     // Meeting erstellen
                     $meeting_stmt = $pdo->prepare("
-                        INSERT INTO meetings
+                        INSERT INTO svmeetings
                         (meeting_name, meeting_date, expected_end_date, location, invited_by_member_id, status, created_at)
                         VALUES (?, ?, ?, ?, ?, 'preparation', NOW())
                     ");
@@ -301,19 +301,19 @@ try {
                     $new_meeting_id = $pdo->lastInsertId();
 
                     // Verknüpfung setzen
-                    $pdo->prepare("UPDATE polls SET meeting_id = ? WHERE poll_id = ?")->execute([$new_meeting_id, $poll_id]);
+                    $pdo->prepare("UPDATE svpolls SET meeting_id = ? WHERE poll_id = ?")->execute([$new_meeting_id, $poll_id]);
 
                     // Teilnehmer vom Poll zum Meeting hinzufügen
                     $participants_stmt = $pdo->prepare("
                         SELECT DISTINCT member_id
-                        FROM poll_participants
+                        FROM svpoll_participants
                         WHERE poll_id = ?
                     ");
                     $participants_stmt->execute([$poll_id]);
                     $participants = $participants_stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     $invite_stmt = $pdo->prepare("
-                        INSERT INTO meeting_participants (meeting_id, member_id, status)
+                        INSERT INTO svmeeting_participants (meeting_id, member_id, status)
                         VALUES (?, ?, 'invited')
                     ");
                     foreach ($participants as $participant) {
@@ -355,7 +355,7 @@ try {
                 if ($reminder_days > 0 && $reminder_days <= 30) {
                     try {
                         $stmt = $pdo->prepare("
-                            UPDATE polls
+                            UPDATE svpolls
                             SET reminder_enabled = 1,
                                 reminder_days = ?,
                                 reminder_recipients = ?,
@@ -393,7 +393,7 @@ try {
                 exit;
             }
 
-            $stmt = $pdo->prepare("UPDATE polls SET status = 'closed' WHERE poll_id = ?");
+            $stmt = $pdo->prepare("UPDATE svpolls SET status = 'closed' WHERE poll_id = ?");
             $stmt->execute([$poll_id]);
 
             $_SESSION['success'] = 'Umfrage wurde geschlossen';
@@ -418,7 +418,7 @@ try {
                 exit;
             }
 
-            $stmt = $pdo->prepare("UPDATE polls SET status = 'open', final_date_id = NULL, finalized_at = NULL WHERE poll_id = ?");
+            $stmt = $pdo->prepare("UPDATE svpolls SET status = 'open', final_date_id = NULL, finalized_at = NULL WHERE poll_id = ?");
             $stmt->execute([$poll_id]);
 
             $_SESSION['success'] = 'Umfrage wurde wieder geöffnet';
@@ -444,7 +444,7 @@ try {
             }
 
             // Löschen (CASCADE löscht auch poll_dates und poll_responses)
-            $stmt = $pdo->prepare("DELETE FROM polls WHERE poll_id = ?");
+            $stmt = $pdo->prepare("DELETE FROM svpolls WHERE poll_id = ?");
             $stmt->execute([$poll_id]);
 
             $_SESSION['success'] = 'Umfrage wurde gelöscht';

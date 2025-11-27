@@ -51,8 +51,8 @@ try {
             ai.vote_result,
             m.active_item_id,
             m.status
-        FROM agenda_items ai
-        JOIN meetings m ON ai.meeting_id = m.meeting_id
+        FROM svagenda_items ai
+        JOIN svmeetings m ON ai.meeting_id = m.meeting_id
         WHERE ai.item_id = ?
     ");
     $stmt->execute([$item_id]);
@@ -71,7 +71,7 @@ try {
         $stmt = $pdo->prepare("
             SELECT alc.*, m.first_name, m.last_name
             FROM agenda_live_comments alc
-            JOIN members m ON alc.member_id = m.member_id
+            JOIN svmembers m ON alc.member_id = m.member_id
             WHERE alc.item_id = ?
             ORDER BY alc.created_at ASC
         ");

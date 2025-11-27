@@ -44,7 +44,7 @@ function render_agenda_overview($agenda_items, $current_user = null, $current_me
     // Meeting-Details laden für Berechtigungs-Prüfung und Anzeige
     $stmt = $pdo->prepare("
         SELECT secretary_member_id, chairman_member_id, meeting_date
-        FROM meetings
+        FROM svmeetings
         WHERE meeting_id = ?
     ");
     $stmt->execute([$current_meeting_id]);
@@ -78,8 +78,8 @@ function render_agenda_overview($agenda_items, $current_user = null, $current_me
     try {
         $stmt = $pdo->prepare("
             SELECT item_id, priority_rating, duration_estimate 
-            FROM agenda_comments 
-            WHERE member_id = ? AND item_id IN (SELECT item_id FROM agenda_items WHERE meeting_id = ?)
+            FROM svagenda_comments 
+            WHERE member_id = ? AND item_id IN (SELECT item_id FROM svagenda_items WHERE meeting_id = ?)
         ");
         $stmt->execute([$current_user['member_id'], $current_meeting_id]);
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -238,7 +238,7 @@ function render_simple_agenda_overview($agenda_items, $current_user = null, $cur
     $is_secretary = false;
     $is_chairman = false;
     if ($pdo && $current_meeting_id) {
-        $stmt = $pdo->prepare("SELECT secretary_member_id, chairman_member_id FROM meetings WHERE meeting_id = ?");
+        $stmt = $pdo->prepare("SELECT secretary_member_id, chairman_member_id FROM svmeetings WHERE meeting_id = ?");
         $stmt->execute([$current_meeting_id]);
         $meeting_data = $stmt->fetch(PDO::FETCH_ASSOC);
         

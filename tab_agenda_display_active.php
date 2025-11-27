@@ -17,7 +17,7 @@ if (empty($agenda_items)) {
 render_simple_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
 
 // Aktiven TOP ermitteln
-$stmt = $pdo->prepare("SELECT active_item_id FROM meetings WHERE meeting_id = ?");
+$stmt = $pdo->prepare("SELECT active_item_id FROM svmeetings WHERE meeting_id = ?");
 $stmt->execute([$current_meeting_id]);
 $active_item_id = $stmt->fetchColumn();
 ?>
@@ -63,7 +63,7 @@ $active_item_id = $stmt->fetchColumn();
             
             <div style="display: grid; gap: 10px;">
                 <?php foreach ($participants as $p): 
-                    $stmt = $pdo->prepare("SELECT attendance_status FROM meeting_participants WHERE meeting_id = ? AND member_id = ?");
+                    $stmt = $pdo->prepare("SELECT attendance_status FROM svmeeting_participants WHERE meeting_id = ? AND member_id = ?");
                     $stmt->execute([$current_meeting_id, $p['member_id']]);
                     $attendance = $stmt->fetch();
                     $status = $attendance['attendance_status'] ?? 'absent';
@@ -117,9 +117,9 @@ $active_item_id = $stmt->fetchColumn();
                 // Alle Members laden, die NICHT eingeladen sind
                 $stmt_uninvited = $pdo->prepare("
                     SELECT m.member_id, m.first_name, m.last_name, m.role
-                    FROM members m
+                    FROM svmembers m
                     WHERE m.member_id NOT IN (
-                        SELECT member_id FROM meeting_participants WHERE meeting_id = ?
+                        SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?
                     )
                     AND m.is_active = 1
                     ORDER BY m.last_name, m.first_name
@@ -365,7 +365,7 @@ foreach ($agenda_items as $item):
                 $stmt = $pdo->prepare("
                     SELECT alc.*, m.first_name, m.last_name
                     FROM agenda_live_comments alc
-                    JOIN members m ON alc.member_id = m.member_id
+                    JOIN svmembers m ON alc.member_id = m.member_id
                     WHERE alc.item_id = ?
                     ORDER BY alc.created_at ASC
                 ");
@@ -444,7 +444,7 @@ foreach ($agenda_items as $item):
                     // Zukünftige Meetings laden
                     $stmt_future = $pdo->prepare("
                         SELECT meeting_id, meeting_name, meeting_date, location
-                        FROM meetings
+                        FROM svmeetings
                         WHERE meeting_id != ? 
                         AND (status = 'preparation' OR meeting_date > ?)
                         ORDER BY meeting_date ASC

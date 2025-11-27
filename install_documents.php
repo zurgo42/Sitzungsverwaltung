@@ -70,7 +70,7 @@ output_step('Erstelle Datenbank-Tabellen...', 'info');
 try {
     // Tabelle: documents
     $pdo->exec("
-        CREATE TABLE IF NOT EXISTS documents (
+        CREATE TABLE IF NOT EXISTS svdocuments (
             document_id INT AUTO_INCREMENT PRIMARY KEY,
             filename VARCHAR(255) NOT NULL,
             original_filename VARCHAR(255) NOT NULL,
@@ -95,7 +95,7 @@ try {
             INDEX idx_created_at (created_at),
             INDEX idx_title (title),
             FULLTEXT INDEX idx_search (title, description, keywords),
-            FOREIGN KEY (uploaded_by_member_id) REFERENCES members(member_id) ON DELETE SET NULL
+            FOREIGN KEY (uploaded_by_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
 
@@ -103,7 +103,7 @@ try {
 
     // Tabelle: document_downloads
     $pdo->exec("
-        CREATE TABLE IF NOT EXISTS document_downloads (
+        CREATE TABLE IF NOT EXISTS svdocument_downloads (
             download_id INT AUTO_INCREMENT PRIMARY KEY,
             document_id INT NOT NULL,
             member_id INT,
@@ -112,8 +112,8 @@ try {
             INDEX idx_document (document_id),
             INDEX idx_member (member_id),
             INDEX idx_downloaded_at (downloaded_at),
-            FOREIGN KEY (document_id) REFERENCES documents(document_id) ON DELETE CASCADE,
-            FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE SET NULL
+            FOREIGN KEY (document_id) REFERENCES svdocuments(document_id) ON DELETE CASCADE,
+            FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
 

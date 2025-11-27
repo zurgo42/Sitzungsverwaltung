@@ -60,8 +60,8 @@ try {
             m.first_name,
             m.last_name,
             m.member_id
-        FROM agenda_comments ac
-        JOIN members m ON ac.member_id = m.member_id
+        FROM svagenda_comments ac
+        JOIN svmembers m ON ac.member_id = m.member_id
         WHERE ac.item_id = ?
         ORDER BY ac.created_at ASC
     ");

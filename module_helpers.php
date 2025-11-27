@@ -14,7 +14,7 @@
 function render_participant_list($pdo, $meeting_id, $participants) {
     $present_list = [];
     foreach ($participants as $p) {
-        $stmt = $pdo->prepare("SELECT attendance_status FROM meeting_participants WHERE meeting_id = ? AND member_id = ?");
+        $stmt = $pdo->prepare("SELECT attendance_status FROM svmeeting_participants WHERE meeting_id = ? AND member_id = ?");
         $stmt->execute([$meeting_id, $p['member_id']]);
         $attendance = $stmt->fetch();
         $status = $attendance['attendance_status'] ?? 'absent';
@@ -89,7 +89,7 @@ function render_editable_participant_list($pdo, $meeting_id, $participants, $mee
             
             <div style="display: grid; gap: 10px;">
                 <?php foreach ($participants as $p): 
-                    $stmt = $pdo->prepare("SELECT attendance_status FROM meeting_participants WHERE meeting_id = ? AND member_id = ?");
+                    $stmt = $pdo->prepare("SELECT attendance_status FROM svmeeting_participants WHERE meeting_id = ? AND member_id = ?");
                     $stmt->execute([$meeting_id, $p['member_id']]);
                     $attendance = $stmt->fetch();
                     $status = $attendance['attendance_status'] ?? 'absent';

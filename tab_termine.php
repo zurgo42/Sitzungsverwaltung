@@ -24,11 +24,11 @@ if ($is_admin) {
                COUNT(DISTINCT pr.member_id) as response_count,
                final_pd.suggested_date as final_date,
                final_pd.suggested_end_date as final_end_date
-        FROM polls p
-        LEFT JOIN members m ON p.created_by_member_id = m.member_id
-        LEFT JOIN poll_dates pd ON p.poll_id = pd.poll_id
-        LEFT JOIN poll_responses pr ON p.poll_id = pr.poll_id
-        LEFT JOIN poll_dates final_pd ON p.final_date_id = final_pd.date_id
+        FROM svpolls p
+        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
+        LEFT JOIN svpoll_dates pd ON p.poll_id = pd.poll_id
+        LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id
+        LEFT JOIN svpoll_dates final_pd ON p.final_date_id = final_pd.date_id
         GROUP BY p.poll_id
         ORDER BY p.created_at DESC
     ");
@@ -43,12 +43,12 @@ if ($is_admin) {
                COUNT(DISTINCT pr.member_id) as response_count,
                final_pd.suggested_date as final_date,
                final_pd.suggested_end_date as final_end_date
-        FROM polls p
-        LEFT JOIN members m ON p.created_by_member_id = m.member_id
-        LEFT JOIN poll_dates pd ON p.poll_id = pd.poll_id
-        LEFT JOIN poll_responses pr ON p.poll_id = pr.poll_id
-        LEFT JOIN poll_dates final_pd ON p.final_date_id = final_pd.date_id
-        INNER JOIN poll_participants pp ON p.poll_id = pp.poll_id
+        FROM svpolls p
+        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
+        LEFT JOIN svpoll_dates pd ON p.poll_id = pd.poll_id
+        LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id
+        LEFT JOIN svpoll_dates final_pd ON p.final_date_id = final_pd.date_id
+        INNER JOIN svpoll_participants pp ON p.poll_id = pp.poll_id
         WHERE pp.member_id = ?
         GROUP BY p.poll_id
         ORDER BY p.created_at DESC
@@ -692,8 +692,8 @@ if (isset($_SESSION['error'])) {
         SELECT p.*,
                m.first_name as creator_first_name,
                m.last_name as creator_last_name
-        FROM polls p
-        LEFT JOIN members m ON p.created_by_member_id = m.member_id
+        FROM svpolls p
+        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         WHERE p.poll_id = ?
     ");
     $stmt->execute([$poll_id]);
@@ -705,7 +705,7 @@ if (isset($_SESSION['error'])) {
     } else {
         // Terminvorschläge laden
         $stmt = $pdo->prepare("
-            SELECT * FROM poll_dates
+            SELECT * FROM svpoll_dates
             WHERE poll_id = ?
             ORDER BY sort_order, suggested_date
         ");
@@ -715,8 +715,8 @@ if (isset($_SESSION['error'])) {
         // Alle Antworten laden
         $stmt = $pdo->prepare("
             SELECT pr.*, m.first_name, m.last_name
-            FROM poll_responses pr
-            LEFT JOIN members m ON pr.member_id = m.member_id
+            FROM svpoll_responses pr
+            LEFT JOIN svmembers m ON pr.member_id = m.member_id
             WHERE pr.poll_id = ?
         ");
         $stmt->execute([$poll_id]);
@@ -725,8 +725,8 @@ if (isset($_SESSION['error'])) {
         // Alle eingeladenen Teilnehmer laden
         $stmt = $pdo->prepare("
             SELECT pp.member_id, m.first_name, m.last_name
-            FROM poll_participants pp
-            LEFT JOIN members m ON pp.member_id = m.member_id
+            FROM svpoll_participants pp
+            LEFT JOIN svmembers m ON pp.member_id = m.member_id
             WHERE pp.poll_id = ?
             ORDER BY m.last_name, m.first_name
         ");
@@ -736,7 +736,7 @@ if (isset($_SESSION['error'])) {
         // User's aktuelle Antworten laden
         $stmt = $pdo->prepare("
             SELECT date_id, vote
-            FROM poll_responses
+            FROM svpoll_responses
             WHERE poll_id = ? AND member_id = ?
         ");
         $stmt->execute([$poll_id, $current_user['member_id']]);
@@ -780,7 +780,7 @@ if (isset($_SESSION['error'])) {
 
                 <?php if ($poll['status'] === 'finalized' && !empty($poll['final_date_id'])):
                     // Finales Datum laden
-                    $final_date_stmt = $pdo->prepare("SELECT suggested_date, suggested_end_date FROM poll_dates WHERE date_id = ?");
+                    $final_date_stmt = $pdo->prepare("SELECT suggested_date, suggested_end_date FROM svpoll_dates WHERE date_id = ?");
                     $final_date_stmt->execute([$poll['final_date_id']]);
                     $final_date_info = $final_date_stmt->fetch(PDO::FETCH_ASSOC);
                     if ($final_date_info):
@@ -979,7 +979,7 @@ if (isset($_SESSION['error'])) {
         <?php if ($poll['status'] === 'finalized' && !empty($poll['final_date_id'])): ?>
             <?php
             // Finalen Termin laden
-            $final_stmt = $pdo->prepare("SELECT * FROM poll_dates WHERE date_id = ?");
+            $final_stmt = $pdo->prepare("SELECT * FROM svpoll_dates WHERE date_id = ?");
             $final_stmt->execute([$poll['final_date_id']]);
             $final_date = $final_stmt->fetch(PDO::FETCH_ASSOC);
 

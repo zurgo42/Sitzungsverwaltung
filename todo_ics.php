@@ -1,7 +1,7 @@
 <?php
 require_once 'functions.php';
 $todo_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-$stmt = $pdo->prepare("SELECT * FROM todos WHERE todo_id = ?");
+$stmt = $pdo->prepare("SELECT * FROM svtodos WHERE todo_id = ?");
 $stmt->execute([$todo_id]);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$row) {

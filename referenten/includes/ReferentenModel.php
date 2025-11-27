@@ -17,7 +17,7 @@ class ReferentenModel {
      * Lädt persönliche Daten eines Referenten
      */
     public function getPersonData($mNr) {
-        $stmt = $this->db->prepare("SELECT * FROM Refname WHERE MNr = ?");
+        $stmt = $this->db->prepare("SELECT * FROM svRefname WHERE MNr = ?");
         $stmt->execute([$mNr]);
         return $stmt->fetch();
     }
@@ -30,7 +30,7 @@ class ReferentenModel {
 
         if ($existing) {
             $stmt = $this->db->prepare("
-                UPDATE Refname SET
+                UPDATE svRefname SET
                     Vorname = ?, Name = ?, Titel = ?, PLZ = ?, Ort = ?,
                     Gebj = ?, Beruf = ?, Telefon = ?, eMail = ?, datum = NOW()
                 WHERE MNr = ?
@@ -42,7 +42,7 @@ class ReferentenModel {
             ]);
         } else {
             $stmt = $this->db->prepare("
-                INSERT INTO Refname
+                INSERT INTO svRefname
                 (MNr, Vorname, Name, Titel, PLZ, Ort, Gebj, Beruf, Telefon, eMail, datum)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
             ");
@@ -59,10 +59,10 @@ class ReferentenModel {
      */
     public function getVortrag($id, $mNr = null) {
         if ($mNr) {
-            $stmt = $this->db->prepare("SELECT * FROM Refpool WHERE ID = ? AND MNr = ?");
+            $stmt = $this->db->prepare("SELECT * FROM svRefpool WHERE ID = ? AND MNr = ?");
             $stmt->execute([$id, $mNr]);
         } else {
-            $stmt = $this->db->prepare("SELECT * FROM Refpool WHERE ID = ?");
+            $stmt = $this->db->prepare("SELECT * FROM svRefpool WHERE ID = ?");
             $stmt->execute([$id]);
         }
         return $stmt->fetch();
@@ -73,7 +73,7 @@ class ReferentenModel {
      */
     public function getVortraegeByMNr($mNr) {
         $stmt = $this->db->prepare("
-            SELECT * FROM Refpool
+            SELECT * FROM svRefpool
             WHERE MNr = ?
             ORDER BY datum DESC, aktiv DESC, ID ASC
         ");
@@ -106,8 +106,8 @@ class ReferentenModel {
                 Refname.MNr AS PersMNr,
                 Refname.eMail AS eMail,
                 Refname.Ort AS Ort
-            FROM Refname
-            INNER JOIN Refpool ON Refpool.MNr = Refname.MNr
+            FROM svRefname
+            INNER JOIN svRefpool ON Refpool.MNr = Refname.MNr
             WHERE Refpool.aktiv = 1
             ORDER BY $sortBy, Name, Thema ASC
         ");
@@ -120,7 +120,7 @@ class ReferentenModel {
      */
     public function saveVortrag($data) {
         $stmt = $this->db->prepare("
-            INSERT INTO Refpool
+            INSERT INTO svRefpool
             (MNr, Was, Wo, Entf, Thema, Inhalt, Kategorie, Equipment,
              Dauer, Kompetenz, Bemerkung, aktiv, IP, datum)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
@@ -139,7 +139,7 @@ class ReferentenModel {
      */
     public function updateVortrag($id, $mNr, $data) {
         $stmt = $this->db->prepare("
-            UPDATE Refpool SET
+            UPDATE svRefpool SET
                 Was = ?, Wo = ?, Entf = ?, Thema = ?, Inhalt = ?,
                 Kategorie = ?, Equipment = ?, Dauer = ?, Kompetenz = ?,
                 Bemerkung = ?, aktiv = ?, IP = ?, datum = NOW()
@@ -158,7 +158,7 @@ class ReferentenModel {
      * Zählt aktive Vorträge
      */
     public function countActiveVortraege() {
-        $stmt = $this->db->query("SELECT COUNT(*) FROM Refpool WHERE aktiv = 1");
+        $stmt = $this->db->query("SELECT COUNT(*) FROM svRefpool WHERE aktiv = 1");
         return $stmt->fetchColumn();
     }
 
@@ -166,7 +166,7 @@ class ReferentenModel {
      * Berechnet Koordinaten einer PLZ
      */
     public function getKoordinaten($plz) {
-        $stmt = $this->db->prepare("SELECT lon, lat, Ort FROM PLZ WHERE plz LIKE ?");
+        $stmt = $this->db->prepare("SELECT lon, lat, Ort FROM svPLZ WHERE plz LIKE ?");
         $stmt->execute([$plz . '%']);
         return $stmt->fetch();
     }

@@ -25,8 +25,8 @@ function render_todo_creation_form($pdo, $item, $meeting_id, $is_secretary, $mee
     // Teilnehmer mit Anwesenheitsstatus laden
     $stmt = $pdo->prepare("
         SELECT m.*, mp.attendance_status
-        FROM members m
-        JOIN meeting_participants mp ON m.member_id = mp.member_id
+        FROM svmembers m
+        JOIN svmeeting_participants mp ON m.member_id = mp.member_id
         WHERE mp.meeting_id = ?
         ORDER BY m.last_name, m.first_name
     ");

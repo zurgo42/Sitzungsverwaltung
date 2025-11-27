@@ -34,7 +34,7 @@ try {
     // =========================================================
 
     // Mitglieder-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS members (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svmembers (
         member_id INT PRIMARY KEY AUTO_INCREMENT,
         membership_number VARCHAR(50) DEFAULT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -57,11 +57,12 @@ try {
     // =========================================================
 
     // Meetings-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS meetings (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svmeetings (
         meeting_id INT PRIMARY KEY AUTO_INCREMENT,
         meeting_name VARCHAR(255) DEFAULT NULL,
         meeting_date DATETIME NOT NULL,
         expected_end_date DATETIME DEFAULT NULL,
+        submission_deadline DATETIME DEFAULT NULL COMMENT 'Antragsschluss für neue TOPs durch Teilnehmer',
         location VARCHAR(255) DEFAULT NULL,
         video_link VARCHAR(500) DEFAULT NULL,
         invited_by_member_id INT NOT NULL,
@@ -77,32 +78,33 @@ try {
         prot_intern TEXT DEFAULT NULL,
         protocol_intern TEXT NOT NULL DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (invited_by_member_id) REFERENCES members(member_id) ON DELETE CASCADE,
-        FOREIGN KEY (chairman_member_id) REFERENCES members(member_id) ON DELETE SET NULL,
-        FOREIGN KEY (secretary_member_id) REFERENCES members(member_id) ON DELETE SET NULL,
+        FOREIGN KEY (invited_by_member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (chairman_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL,
+        FOREIGN KEY (secretary_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL,
         INDEX idx_meeting_date (meeting_date),
         INDEX idx_status (status),
         INDEX idx_visibility (visibility_type),
-        INDEX idx_protokoll (protokoll(768))
+        INDEX idx_protokoll (protokoll(768)),
+        INDEX idx_submission_deadline (submission_deadline)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Meeting-Teilnehmer-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS meeting_participants (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svmeeting_participants (
         participant_id INT PRIMARY KEY AUTO_INCREMENT,
         meeting_id INT NOT NULL,
         member_id INT NOT NULL,
         status ENUM('invited', 'confirmed', 'present', 'absent') DEFAULT 'invited',
         attendance_status ENUM('present', 'partial', 'absent') DEFAULT 'absent',
         invited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (meeting_id) REFERENCES meetings(meeting_id) ON DELETE CASCADE,
-        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (meeting_id) REFERENCES svmeetings(meeting_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
         UNIQUE KEY unique_participant (meeting_id, member_id),
         INDEX idx_meeting (meeting_id),
         INDEX idx_member (member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Tagesordnungspunkte-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS agenda_items (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svagenda_items (
         item_id INT PRIMARY KEY AUTO_INCREMENT,
         meeting_id INT NOT NULL,
         top_number INT NOT NULL,
@@ -123,9 +125,9 @@ try {
         grouped_with_item_id INT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (meeting_id) REFERENCES meetings(meeting_id) ON DELETE CASCADE,
-        FOREIGN KEY (created_by_member_id) REFERENCES members(member_id) ON DELETE SET NULL,
-        FOREIGN KEY (grouped_with_item_id) REFERENCES agenda_items(item_id) ON DELETE SET NULL,
+        FOREIGN KEY (meeting_id) REFERENCES svmeetings(meeting_id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL,
+        FOREIGN KEY (grouped_with_item_id) REFERENCES svagenda_items(item_id) ON DELETE SET NULL,
         INDEX idx_meeting (meeting_id),
         INDEX idx_top_number (top_number),
         INDEX idx_is_active (is_active),
@@ -135,7 +137,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Kommentare-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS agenda_comments (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svagenda_comments (
         comment_id INT PRIMARY KEY AUTO_INCREMENT,
         item_id INT NOT NULL,
         member_id INT NOT NULL,
@@ -144,8 +146,8 @@ try {
         duration_estimate DECIMAL(5,2) DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (item_id) REFERENCES agenda_items(item_id) ON DELETE CASCADE,
-        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
         INDEX idx_item (item_id),
         INDEX idx_member (member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
@@ -155,27 +157,27 @@ try {
     // =========================================================
 
     // Protokolle-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS protocols (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svprotocols (
         protocol_id INT PRIMARY KEY AUTO_INCREMENT,
         meeting_id INT DEFAULT NULL,
         protocol_type ENUM('public', 'confidential') DEFAULT 'public',
         content TEXT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (meeting_id) REFERENCES meetings(meeting_id) ON DELETE CASCADE,
+        FOREIGN KEY (meeting_id) REFERENCES svmeetings(meeting_id) ON DELETE CASCADE,
         INDEX idx_meeting (meeting_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Protokolländerungs-Anfragen-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS protocol_change_requests (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svprotocol_change_requests (
         request_id INT PRIMARY KEY AUTO_INCREMENT,
         protocol_id INT DEFAULT NULL,
         member_id INT DEFAULT NULL,
         item_id INT DEFAULT NULL,
         change_request TEXT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (protocol_id) REFERENCES protocols(protocol_id) ON DELETE CASCADE,
-        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
-        FOREIGN KEY (item_id) REFERENCES agenda_items(item_id) ON DELETE CASCADE,
+        FOREIGN KEY (protocol_id) REFERENCES svprotocols(protocol_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE,
         INDEX idx_protocol (protocol_id),
         INDEX idx_member (member_id),
         INDEX idx_item (item_id)
@@ -186,7 +188,7 @@ try {
     // =========================================================
 
     // ToDos-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS todos (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svtodos (
         todo_id INT PRIMARY KEY AUTO_INCREMENT,
         meeting_id INT DEFAULT NULL,
         item_id INT DEFAULT NULL,
@@ -201,9 +203,9 @@ try {
         completed_at DATETIME DEFAULT NULL,
         protocol_link VARCHAR(500) DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (meeting_id) REFERENCES meetings(meeting_id) ON DELETE CASCADE,
-        FOREIGN KEY (item_id) REFERENCES agenda_items(item_id) ON DELETE SET NULL,
-        FOREIGN KEY (assigned_to_member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (meeting_id) REFERENCES svmeetings(meeting_id) ON DELETE CASCADE,
+        FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE SET NULL,
+        FOREIGN KEY (assigned_to_member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
         INDEX idx_meeting (meeting_id),
         INDEX idx_item (item_id),
         INDEX idx_assigned_to (assigned_to_member_id),
@@ -212,7 +214,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // ToDo-Log-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS todo_log (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svtodo_log (
         log_id INT PRIMARY KEY AUTO_INCREMENT,
         todo_id INT NOT NULL,
         changed_by INT NOT NULL,
@@ -229,7 +231,7 @@ try {
     // =========================================================
 
     // Admin-Log-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS admin_log (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svadmin_log (
         log_id INT PRIMARY KEY AUTO_INCREMENT,
         admin_member_id INT NOT NULL,
         action_type VARCHAR(50) NOT NULL,
@@ -241,7 +243,7 @@ try {
         ip_address VARCHAR(45) DEFAULT NULL,
         user_agent TEXT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (admin_member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (admin_member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
         INDEX idx_admin (admin_member_id),
         INDEX idx_action_type (action_type),
         INDEX idx_target_type (target_type),
@@ -253,7 +255,7 @@ try {
     // =========================================================
 
     // Umfragen/Terminplanung-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS polls (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svpolls (
         poll_id INT PRIMARY KEY AUTO_INCREMENT,
         title VARCHAR(255) NOT NULL,
         description TEXT,
@@ -271,8 +273,8 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         finalized_at DATETIME DEFAULT NULL,
-        FOREIGN KEY (created_by_member_id) REFERENCES members(member_id) ON DELETE CASCADE,
-        FOREIGN KEY (meeting_id) REFERENCES meetings(meeting_id) ON DELETE SET NULL,
+        FOREIGN KEY (created_by_member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (meeting_id) REFERENCES svmeetings(meeting_id) ON DELETE SET NULL,
         INDEX idx_status (status),
         INDEX idx_created_by (created_by_member_id),
         INDEX idx_meeting (meeting_id),
@@ -281,7 +283,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Terminvorschläge-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS poll_dates (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svpoll_dates (
         date_id INT PRIMARY KEY AUTO_INCREMENT,
         poll_id INT NOT NULL,
         suggested_date DATETIME NOT NULL,
@@ -290,26 +292,26 @@ try {
         notes TEXT,
         sort_order INT DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (poll_id) REFERENCES polls(poll_id) ON DELETE CASCADE,
+        FOREIGN KEY (poll_id) REFERENCES svpolls(poll_id) ON DELETE CASCADE,
         INDEX idx_poll (poll_id),
         INDEX idx_date (suggested_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Teilnehmer an Umfragen
-    $tables[] = "CREATE TABLE IF NOT EXISTS poll_participants (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svpoll_participants (
         participant_id INT PRIMARY KEY AUTO_INCREMENT,
         poll_id INT NOT NULL,
         member_id INT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (poll_id) REFERENCES polls(poll_id) ON DELETE CASCADE,
-        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (poll_id) REFERENCES svpolls(poll_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
         UNIQUE KEY unique_participant (poll_id, member_id),
         INDEX idx_poll (poll_id),
         INDEX idx_member (member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Abstimmungen zu Terminvorschlägen
-    $tables[] = "CREATE TABLE IF NOT EXISTS poll_responses (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svpoll_responses (
         response_id INT PRIMARY KEY AUTO_INCREMENT,
         poll_id INT NOT NULL,
         date_id INT NOT NULL,
@@ -318,9 +320,9 @@ try {
         comment TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (poll_id) REFERENCES polls(poll_id) ON DELETE CASCADE,
-        FOREIGN KEY (date_id) REFERENCES poll_dates(date_id) ON DELETE CASCADE,
-        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (poll_id) REFERENCES svpolls(poll_id) ON DELETE CASCADE,
+        FOREIGN KEY (date_id) REFERENCES svpoll_dates(date_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
         UNIQUE KEY unique_vote (poll_id, date_id, member_id),
         INDEX idx_poll (poll_id),
         INDEX idx_date (date_id),
@@ -332,7 +334,7 @@ try {
     // =========================================================
 
     // Antwort-Templates für Meinungsbilder
-    $tables[] = "CREATE TABLE IF NOT EXISTS opinion_answer_templates (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svopinion_answer_templates (
         template_id INT PRIMARY KEY AUTO_INCREMENT,
         template_name VARCHAR(100) NOT NULL,
         option_1 VARCHAR(100) DEFAULT NULL,
@@ -350,7 +352,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Meinungsbilder/Umfragen
-    $tables[] = "CREATE TABLE IF NOT EXISTS opinion_polls (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svopinion_polls (
         poll_id INT PRIMARY KEY AUTO_INCREMENT,
         title VARCHAR(255) NOT NULL COMMENT 'Die gestellte Frage',
         creator_member_id INT NOT NULL,
@@ -367,9 +369,9 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         ends_at DATETIME DEFAULT NULL,
         delete_at DATETIME DEFAULT NULL,
-        FOREIGN KEY (creator_member_id) REFERENCES members(member_id) ON DELETE CASCADE,
-        FOREIGN KEY (list_id) REFERENCES meetings(meeting_id) ON DELETE SET NULL,
-        FOREIGN KEY (template_id) REFERENCES opinion_answer_templates(template_id) ON DELETE SET NULL,
+        FOREIGN KEY (creator_member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (list_id) REFERENCES svmeetings(meeting_id) ON DELETE SET NULL,
+        FOREIGN KEY (template_id) REFERENCES svopinion_answer_templates(template_id) ON DELETE SET NULL,
         UNIQUE KEY unique_access_token (access_token),
         INDEX idx_creator (creator_member_id),
         INDEX idx_status (status),
@@ -380,31 +382,31 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Antwortoptionen für Meinungsbilder
-    $tables[] = "CREATE TABLE IF NOT EXISTS opinion_poll_options (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svopinion_poll_options (
         option_id INT PRIMARY KEY AUTO_INCREMENT,
         poll_id INT NOT NULL,
         option_text VARCHAR(255) NOT NULL,
         sort_order INT DEFAULT 0,
-        FOREIGN KEY (poll_id) REFERENCES opinion_polls(poll_id) ON DELETE CASCADE,
+        FOREIGN KEY (poll_id) REFERENCES svopinion_polls(poll_id) ON DELETE CASCADE,
         INDEX idx_poll (poll_id),
         INDEX idx_sort_order (sort_order)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Teilnehmer bei list-Typ Meinungsbildern
-    $tables[] = "CREATE TABLE IF NOT EXISTS opinion_poll_participants (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svopinion_poll_participants (
         participant_id INT PRIMARY KEY AUTO_INCREMENT,
         poll_id INT NOT NULL,
         member_id INT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (poll_id) REFERENCES opinion_polls(poll_id) ON DELETE CASCADE,
-        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (poll_id) REFERENCES svopinion_polls(poll_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
         UNIQUE KEY unique_opinion_participant (poll_id, member_id),
         INDEX idx_poll (poll_id),
         INDEX idx_member (member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Antworten auf Meinungsbilder
-    $tables[] = "CREATE TABLE IF NOT EXISTS opinion_responses (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svopinion_responses (
         response_id INT PRIMARY KEY AUTO_INCREMENT,
         poll_id INT NOT NULL,
         member_id INT DEFAULT NULL COMMENT 'NULL bei anonymen public-Umfragen',
@@ -412,20 +414,20 @@ try {
         free_text TEXT DEFAULT NULL COMMENT 'Optionaler Kommentar',
         force_anonymous TINYINT(1) DEFAULT 0 COMMENT 'User will anonym bleiben',
         responded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (poll_id) REFERENCES opinion_polls(poll_id) ON DELETE CASCADE,
-        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (poll_id) REFERENCES svopinion_polls(poll_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
         INDEX idx_poll (poll_id),
         INDEX idx_member (member_id),
         INDEX idx_session_token (session_token)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Gewählte Optionen (M:N zwischen responses und options)
-    $tables[] = "CREATE TABLE IF NOT EXISTS opinion_response_options (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svopinion_response_options (
         response_option_id INT PRIMARY KEY AUTO_INCREMENT,
         response_id INT NOT NULL,
         option_id INT NOT NULL,
-        FOREIGN KEY (response_id) REFERENCES opinion_responses(response_id) ON DELETE CASCADE,
-        FOREIGN KEY (option_id) REFERENCES opinion_poll_options(option_id) ON DELETE CASCADE,
+        FOREIGN KEY (response_id) REFERENCES svopinion_responses(response_id) ON DELETE CASCADE,
+        FOREIGN KEY (option_id) REFERENCES svopinion_poll_options(option_id) ON DELETE CASCADE,
         UNIQUE KEY unique_response_option (response_id, option_id),
         INDEX idx_response (response_id),
         INDEX idx_option (option_id)
@@ -436,7 +438,7 @@ try {
     // =========================================================
 
     // E-Mail-Warteschlange (für Queue-basiertes Mail-System)
-    $tables[] = "CREATE TABLE IF NOT EXISTS mail_queue (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svmail_queue (
         queue_id INT PRIMARY KEY AUTO_INCREMENT,
         recipient VARCHAR(255) NOT NULL,
         subject VARCHAR(500) NOT NULL,
@@ -463,7 +465,7 @@ try {
     // =========================================================
 
     // Dokumente-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS documents (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svdocuments (
         document_id INT PRIMARY KEY AUTO_INCREMENT,
         filename VARCHAR(255) NOT NULL,
         original_filename VARCHAR(255) NOT NULL,
@@ -482,7 +484,7 @@ try {
         created_at DATETIME NOT NULL,
         updated_at DATETIME,
         admin_notes TEXT,
-        FOREIGN KEY (uploaded_by_member_id) REFERENCES members(member_id) ON DELETE SET NULL,
+        FOREIGN KEY (uploaded_by_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL,
         INDEX idx_category (category),
         INDEX idx_access_level (access_level),
         INDEX idx_status (status),
@@ -492,14 +494,14 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Dokument-Downloads-Tabelle (Download-Tracking)
-    $tables[] = "CREATE TABLE IF NOT EXISTS document_downloads (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svdocument_downloads (
         download_id INT PRIMARY KEY AUTO_INCREMENT,
         document_id INT NOT NULL,
         member_id INT,
         downloaded_at DATETIME NOT NULL,
         ip_address VARCHAR(45),
-        FOREIGN KEY (document_id) REFERENCES documents(document_id) ON DELETE CASCADE,
-        FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE SET NULL,
+        FOREIGN KEY (document_id) REFERENCES svdocuments(document_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL,
         INDEX idx_document (document_id),
         INDEX idx_member (member_id),
         INDEX idx_downloaded_at (downloaded_at)
@@ -521,59 +523,73 @@ try {
     echo "<p>Prüfe auf fehlende Spalten und führe Migrations aus...</p>";
 
     // Migration: Fehlende Spalten zur members-Tabelle hinzufügen (in korrekter Reihenfolge!)
-    $stmt = $pdo->query("SHOW COLUMNS FROM members LIKE 'membership_number'");
+    $stmt = $pdo->query("SHOW COLUMNS FROM svmembers LIKE 'membership_number'");
     if (!$stmt->fetch()) {
         echo "<p>Füge Spalte 'membership_number' zu members hinzu...</p>";
-        $pdo->exec("ALTER TABLE members ADD COLUMN membership_number VARCHAR(50) DEFAULT NULL AFTER member_id");
+        $pdo->exec("ALTER TABLE svmembers ADD COLUMN membership_number VARCHAR(50) DEFAULT NULL AFTER member_id");
         // Unique Key nur hinzufügen, wenn er nicht existiert
         try {
-            $pdo->exec("ALTER TABLE members ADD UNIQUE KEY membership_number (membership_number)");
+            $pdo->exec("ALTER TABLE svmembers ADD UNIQUE KEY membership_number (membership_number)");
         } catch (PDOException $e) {
             // Index existiert bereits - ignorieren
         }
         echo ".";
     }
 
-    $stmt = $pdo->query("SHOW COLUMNS FROM members LIKE 'is_admin'");
+    $stmt = $pdo->query("SHOW COLUMNS FROM svmembers LIKE 'is_admin'");
     if (!$stmt->fetch()) {
         echo "<p>Füge Spalte 'is_admin' zu members hinzu...</p>";
-        $pdo->exec("ALTER TABLE members ADD COLUMN is_admin TINYINT(1) DEFAULT 0 AFTER role");
+        $pdo->exec("ALTER TABLE svmembers ADD COLUMN is_admin TINYINT(1) DEFAULT 0 AFTER role");
         echo ".";
     }
 
-    $stmt = $pdo->query("SHOW COLUMNS FROM members LIKE 'is_active'");
+    $stmt = $pdo->query("SHOW COLUMNS FROM svmembers LIKE 'is_active'");
     if (!$stmt->fetch()) {
         echo "<p>Füge Spalte 'is_active' zu members hinzu...</p>";
-        $pdo->exec("ALTER TABLE members ADD COLUMN is_active TINYINT(1) DEFAULT 1 AFTER is_admin");
+        $pdo->exec("ALTER TABLE svmembers ADD COLUMN is_active TINYINT(1) DEFAULT 1 AFTER is_admin");
         echo ".";
     }
 
-    $stmt = $pdo->query("SHOW COLUMNS FROM members LIKE 'is_confidential'");
+    $stmt = $pdo->query("SHOW COLUMNS FROM svmembers LIKE 'is_confidential'");
     if (!$stmt->fetch()) {
         echo "<p>Füge Spalte 'is_confidential' zu members hinzu...</p>";
-        $pdo->exec("ALTER TABLE members ADD COLUMN is_confidential TINYINT UNSIGNED DEFAULT NULL AFTER is_active");
+        $pdo->exec("ALTER TABLE svmembers ADD COLUMN is_confidential TINYINT UNSIGNED DEFAULT NULL AFTER is_active");
         echo ".";
     }
 
     // Migration: location, video_link, duration zu polls hinzufügen (falls fehlend)
-    $stmt = $pdo->query("SHOW COLUMNS FROM polls LIKE 'location'");
+    $stmt = $pdo->query("SHOW COLUMNS FROM svpolls LIKE 'location'");
     if (!$stmt->fetch()) {
         echo "<p>Füge Spalte 'location' zu polls hinzu...</p>";
-        $pdo->exec("ALTER TABLE polls ADD COLUMN location VARCHAR(255) DEFAULT NULL AFTER meeting_id");
+        $pdo->exec("ALTER TABLE svpolls ADD COLUMN location VARCHAR(255) DEFAULT NULL AFTER meeting_id");
         echo ".";
     }
 
-    $stmt = $pdo->query("SHOW COLUMNS FROM polls LIKE 'video_link'");
+    $stmt = $pdo->query("SHOW COLUMNS FROM svpolls LIKE 'video_link'");
     if (!$stmt->fetch()) {
         echo "<p>Füge Spalte 'video_link' zu polls hinzu...</p>";
-        $pdo->exec("ALTER TABLE polls ADD COLUMN video_link VARCHAR(500) DEFAULT NULL AFTER location");
+        $pdo->exec("ALTER TABLE svpolls ADD COLUMN video_link VARCHAR(500) DEFAULT NULL AFTER location");
         echo ".";
     }
 
-    $stmt = $pdo->query("SHOW COLUMNS FROM polls LIKE 'duration'");
+    $stmt = $pdo->query("SHOW COLUMNS FROM svpolls LIKE 'duration'");
     if (!$stmt->fetch()) {
         echo "<p>Füge Spalte 'duration' zu polls hinzu...</p>";
-        $pdo->exec("ALTER TABLE polls ADD COLUMN duration INT DEFAULT NULL AFTER video_link");
+        $pdo->exec("ALTER TABLE svpolls ADD COLUMN duration INT DEFAULT NULL AFTER video_link");
+        echo ".";
+    }
+
+    // Migration: submission_deadline zu meetings hinzufügen (falls fehlend)
+    $stmt = $pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'submission_deadline'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'submission_deadline' zu meetings hinzu...</p>";
+        $pdo->exec("ALTER TABLE svmeetings ADD COLUMN submission_deadline DATETIME DEFAULT NULL COMMENT 'Antragsschluss für neue TOPs durch Teilnehmer' AFTER expected_end_date");
+        // Index hinzufügen
+        try {
+            $pdo->exec("ALTER TABLE svmeetings ADD INDEX idx_submission_deadline (submission_deadline)");
+        } catch (PDOException $e) {
+            // Index existiert bereits - ignorieren
+        }
         echo ".";
     }
 
@@ -603,7 +619,7 @@ try {
     echo ".";
 
     // Meinungsbild-Templates einfügen (nur wenn leer)
-    $stmt = $pdo->query("SELECT COUNT(*) as count FROM opinion_answer_templates");
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM svopinion_answer_templates");
     if ($stmt->fetch()['count'] == 0) {
         echo "<p>Füge Meinungsbild-Templates ein...</p>";
 
@@ -624,7 +640,7 @@ try {
         ];
 
         $stmt = $pdo->prepare("
-            INSERT INTO opinion_answer_templates
+            INSERT INTO svopinion_answer_templates
             (template_name, option_1, option_2, option_3, option_4, option_5, option_6, option_7, option_8, option_9, option_10)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
@@ -640,7 +656,7 @@ try {
     }
 
     // Default-Admin anlegen (nur wenn members-Tabelle leer ist)
-    $stmt = $pdo->query("SELECT COUNT(*) as count FROM members");
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM svmembers");
     if ($stmt->fetch()['count'] == 0) {
         echo "<p>Erstelle Default-Admin-User...</p>";
 
@@ -648,7 +664,7 @@ try {
         $password_hash = password_hash('admin123', PASSWORD_DEFAULT);
 
         $stmt = $pdo->prepare("
-            INSERT INTO members (email, password_hash, first_name, last_name, role, is_admin, is_active, membership_number)
+            INSERT INTO svmembers (email, password_hash, first_name, last_name, role, is_admin, is_active, membership_number)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([

@@ -21,6 +21,27 @@ render_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
 
 // Prüfen ob User Admin ist
 $is_admin = $current_user['is_admin'] == 1;
+
+// Prüfen ob Antragsschluss überschritten ist
+$submission_deadline_passed = false;
+$submission_deadline_date = null;
+if (!empty($meeting['submission_deadline'])) {
+    $submission_deadline_date = $meeting['submission_deadline'];
+    $submission_deadline_passed = (strtotime($submission_deadline_date) < time());
+}
+
+// Berechtigung zum Hinzufügen neuer TOPs prüfen
+// Vor Antragsschluss: Alle Teilnehmer
+// Nach Antragsschluss: Nur Protokollant und Admins (während status=preparation)
+// Während der Sitzung (status=active): Nur Protokollant
+$can_add_tops = false;
+if (!$submission_deadline_passed) {
+    // Vor Antragsschluss: Alle Teilnehmer dürfen TOPs hinzufügen
+    $can_add_tops = true;
+} else {
+    // Nach Antragsschluss: Nur Protokollant und Admins
+    $can_add_tops = ($is_secretary || $is_admin);
+}
 ?>
 
 <!-- Teilnehmer hinzufügen (nur für Admins) -->
@@ -37,8 +58,8 @@ $is_admin = $current_user['is_admin'] == 1;
                 <?php
                 $stmt_participants = $pdo->prepare("
                     SELECT m.member_id, m.first_name, m.last_name, m.role
-                    FROM meeting_participants mp
-                    JOIN members m ON mp.member_id = m.member_id
+                    FROM svmeeting_participants mp
+                    JOIN svmembers m ON mp.member_id = m.member_id
                     WHERE mp.meeting_id = ?
                     ORDER BY m.last_name, m.first_name
                 ");
@@ -66,9 +87,9 @@ $is_admin = $current_user['is_admin'] == 1;
                 // Alle Members laden, die NICHT eingeladen sind
                 $stmt_uninvited = $pdo->prepare("
                     SELECT m.member_id, m.first_name, m.last_name, m.role
-                    FROM members m
+                    FROM svmembers m
                     WHERE m.member_id NOT IN (
-                        SELECT member_id FROM meeting_participants WHERE meeting_id = ?
+                        SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?
                     )
                     AND m.is_active = 1
                     ORDER BY m.last_name, m.first_name
@@ -112,10 +133,14 @@ $is_admin = $current_user['is_admin'] == 1;
 <?php endif; ?>
 
 <!-- Formular zum Hinzufügen neuer TOPs -->
-<details style="margin: 20px 0; border: 2px solid #4caf50; border-radius: 8px; overflow: hidden;">
-    <summary style="padding: 15px; background: #4caf50; color: white; font-size: 16px; font-weight: 600; cursor: pointer; list-style: none;">
-        <span style="display: inline-block; width: 20px;">▶</span> ➕ Einen neuen TOP hinzufügen
-    </summary>
+<?php if ($can_add_tops): ?>
+    <details style="margin: 20px 0; border: 2px solid #4caf50; border-radius: 8px; overflow: hidden;">
+        <summary style="padding: 15px; background: #4caf50; color: white; font-size: 16px; font-weight: 600; cursor: pointer; list-style: none;">
+            <span style="display: inline-block; width: 20px;">▶</span> ➕ Neuen Tagesordnungspunkt anlegen
+            <?php if ($submission_deadline_date): ?>
+                (Antragsschluss: <?php echo date('d.m.Y H:i', strtotime($submission_deadline_date)); ?> Uhr)
+            <?php endif; ?>
+        </summary>
     
     <div style="padding: 15px; background: #f1f8e9;">
         <form method="POST" action="">
@@ -166,6 +191,17 @@ $is_admin = $current_user['is_admin'] == 1;
         </form>
     </div>
 </details>
+<?php else: ?>
+    <!-- Hinweis: Antragsschluss überschritten -->
+    <div style="margin: 20px 0; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+        <strong>⚠️ Antragsschluss überschritten</strong><br>
+        Der Antragsschluss war am <strong><?php echo date('d.m.Y', strtotime($submission_deadline_date)); ?> um <?php echo date('H:i', strtotime($submission_deadline_date)); ?> Uhr</strong>.<br>
+        Nur noch der Protokollant und Admins können neue Tagesordnungspunkte hinzufügen.
+        <?php if ($is_secretary || $is_admin): ?>
+            <br><em>Sie haben weiterhin die Berechtigung, TOPs hinzuzufügen.</em>
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
 
 <style>
 details[open] summary span {
@@ -213,7 +249,7 @@ foreach ($agenda_items as $item):
     // Eigener Kommentar des Users
     $stmt = $pdo->prepare("
         SELECT comment_text, priority_rating, duration_estimate, created_at
-        FROM agenda_comments 
+        FROM svagenda_comments 
         WHERE item_id = ? AND member_id = ?
     ");
     $stmt->execute([$item['item_id'], $current_user['member_id']]);
@@ -222,8 +258,8 @@ foreach ($agenda_items as $item):
     // Alle Kommentare laden
     $stmt = $pdo->prepare("
         SELECT ac.*, m.first_name, m.last_name, m.member_id
-        FROM agenda_comments ac
-        JOIN members m ON ac.member_id = m.member_id
+        FROM svagenda_comments ac
+        JOIN svmembers m ON ac.member_id = m.member_id
         WHERE ac.item_id = ? AND ac.comment_text != ''
         ORDER BY ac.created_at ASC
     ");

@@ -10,9 +10,9 @@
 function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) {
     $sql = "
         SELECT op.*, m.first_name, m.last_name,
-               (SELECT COUNT(*) FROM opinion_responses WHERE poll_id = op.poll_id) as response_count
-        FROM opinion_polls op
-        LEFT JOIN members m ON op.creator_member_id = m.member_id
+               (SELECT COUNT(*) FROM svopinion_responses WHERE poll_id = op.poll_id) as response_count
+        FROM svopinion_polls op
+        LEFT JOIN svmembers m ON op.creator_member_id = m.member_id
         WHERE op.status != 'deleted'
     ";
 
@@ -23,7 +23,7 @@ function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) 
             op.creator_member_id = ?
             OR op.target_type = 'public'
             OR EXISTS (
-                SELECT 1 FROM opinion_poll_participants opp
+                SELECT 1 FROM svopinion_poll_participants opp
                 WHERE opp.poll_id = op.poll_id AND opp.member_id = ?
             )
         )";
@@ -45,8 +45,8 @@ function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) 
 function get_opinion_poll_with_options($pdo, $poll_id) {
     $stmt = $pdo->prepare("
         SELECT op.*, m.first_name, m.last_name, m.email
-        FROM opinion_polls op
-        LEFT JOIN members m ON op.creator_member_id = m.member_id
+        FROM svopinion_polls op
+        LEFT JOIN svmembers m ON op.creator_member_id = m.member_id
         WHERE op.poll_id = ? AND op.status != 'deleted'
     ");
     $stmt->execute([$poll_id]);
@@ -58,7 +58,7 @@ function get_opinion_poll_with_options($pdo, $poll_id) {
 
     // Optionen laden
     $stmt = $pdo->prepare("
-        SELECT * FROM opinion_poll_options
+        SELECT * FROM svopinion_poll_options
         WHERE poll_id = ?
         ORDER BY sort_order ASC
     ");
@@ -84,7 +84,7 @@ function can_participate($poll, $member_id = null) {
     if ($poll['target_type'] === 'list' && $member_id) {
         global $pdo;
         $stmt = $pdo->prepare("
-            SELECT 1 FROM opinion_poll_participants
+            SELECT 1 FROM svopinion_poll_participants
             WHERE poll_id = ? AND member_id = ?
         ");
         $stmt->execute([$poll['poll_id'], $member_id]);
@@ -102,14 +102,14 @@ function has_responded($pdo, $poll_id, $member_id = null, $session_token = null)
     if ($member_id !== null) {
         // Logged-in User: Nur nach member_id suchen
         $stmt = $pdo->prepare("
-            SELECT response_id FROM opinion_responses
+            SELECT response_id FROM svopinion_responses
             WHERE poll_id = ? AND member_id = ?
         ");
         $stmt->execute([$poll_id, $member_id]);
     } else if ($session_token !== null) {
         // Anonymous User: Nur nach session_token suchen
         $stmt = $pdo->prepare("
-            SELECT response_id FROM opinion_responses
+            SELECT response_id FROM svopinion_responses
             WHERE poll_id = ? AND session_token = ?
         ");
         $stmt->execute([$poll_id, $session_token]);
@@ -132,9 +132,9 @@ function get_user_response($pdo, $poll_id, $member_id = null, $session_token = n
             SELECT r.*,
                    GROUP_CONCAT(oro.option_id ORDER BY opo.sort_order) as selected_option_ids,
                    GROUP_CONCAT(opo.option_text ORDER BY opo.sort_order SEPARATOR ', ') as selected_options_text
-            FROM opinion_responses r
-            LEFT JOIN opinion_response_options oro ON r.response_id = oro.response_id
-            LEFT JOIN opinion_poll_options opo ON oro.option_id = opo.option_id
+            FROM svopinion_responses r
+            LEFT JOIN svopinion_response_options oro ON r.response_id = oro.response_id
+            LEFT JOIN svopinion_poll_options opo ON oro.option_id = opo.option_id
             WHERE r.poll_id = ? AND r.member_id = ?
             GROUP BY r.response_id
         ");
@@ -145,9 +145,9 @@ function get_user_response($pdo, $poll_id, $member_id = null, $session_token = n
             SELECT r.*,
                    GROUP_CONCAT(oro.option_id ORDER BY opo.sort_order) as selected_option_ids,
                    GROUP_CONCAT(opo.option_text ORDER BY opo.sort_order SEPARATOR ', ') as selected_options_text
-            FROM opinion_responses r
-            LEFT JOIN opinion_response_options oro ON r.response_id = oro.response_id
-            LEFT JOIN opinion_poll_options opo ON oro.option_id = opo.option_id
+            FROM svopinion_responses r
+            LEFT JOIN svopinion_response_options oro ON r.response_id = oro.response_id
+            LEFT JOIN svopinion_poll_options opo ON oro.option_id = opo.option_id
             WHERE r.poll_id = ? AND r.session_token = ?
             GROUP BY r.response_id
         ");
@@ -179,7 +179,7 @@ function get_user_response($pdo, $poll_id, $member_id = null, $session_token = n
  */
 function get_opinion_results($pdo, $poll_id) {
     // Gesamtzahl Antworten
-    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM opinion_responses WHERE poll_id = ?");
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM svopinion_responses WHERE poll_id = ?");
     $stmt->execute([$poll_id]);
     $total_responses = $stmt->fetch()['total'];
 
@@ -191,8 +191,8 @@ function get_opinion_results($pdo, $poll_id) {
             opo.sort_order,
             COUNT(oro.response_option_id) as vote_count,
             ROUND(COUNT(oro.response_option_id) * 100.0 / NULLIF(?, 0), 1) as percentage
-        FROM opinion_poll_options opo
-        LEFT JOIN opinion_response_options oro ON opo.option_id = oro.option_id
+        FROM svopinion_poll_options opo
+        LEFT JOIN svopinion_response_options oro ON opo.option_id = oro.option_id
         WHERE opo.poll_id = ?
         GROUP BY opo.option_id
         ORDER BY opo.sort_order ASC
@@ -216,10 +216,10 @@ function get_all_responses($pdo, $poll_id, $show_names = false) {
             m.first_name,
             m.last_name,
             GROUP_CONCAT(opo.option_text ORDER BY opo.sort_order SEPARATOR ', ') as selected_options_text
-        FROM opinion_responses r
-        LEFT JOIN members m ON r.member_id = m.member_id
-        LEFT JOIN opinion_response_options oro ON r.response_id = oro.response_id
-        LEFT JOIN opinion_poll_options opo ON oro.option_id = opo.option_id
+        FROM svopinion_responses r
+        LEFT JOIN svmembers m ON r.member_id = m.member_id
+        LEFT JOIN svopinion_response_options oro ON r.response_id = oro.response_id
+        LEFT JOIN svopinion_poll_options opo ON oro.option_id = opo.option_id
         WHERE r.poll_id = ?
         GROUP BY r.response_id
         ORDER BY r.responded_at DESC
@@ -280,7 +280,7 @@ function can_show_final_results($poll, $user = null, $has_responded = false) {
  * Lädt alle Templates
  */
 function get_answer_templates($pdo) {
-    $stmt = $pdo->query("SELECT * FROM opinion_answer_templates ORDER BY template_id ASC");
+    $stmt = $pdo->query("SELECT * FROM svopinion_answer_templates ORDER BY template_id ASC");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -300,7 +300,7 @@ function get_poll_access_link($poll, $base_url) {
  */
 function get_poll_by_token($pdo, $token) {
     $stmt = $pdo->prepare("
-        SELECT * FROM opinion_polls
+        SELECT * FROM svopinion_polls
         WHERE access_token = ? AND status = 'active'
     ");
     $stmt->execute([$token]);

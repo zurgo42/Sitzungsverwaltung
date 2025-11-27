@@ -285,7 +285,7 @@ define(\'MAIL_ADMIN_PASS\', \'changeme\');  // BITTE ÄNDERN!
 
         try {
             $stmt = $pdo->prepare("
-                INSERT INTO mail_queue
+                INSERT INTO svmail_queue
                 (recipient, subject, message_text, message_html, from_email, from_name, status, created_at, priority)
                 VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW(), 5)
             ");
@@ -747,7 +747,7 @@ Diese Nachricht wurde automatisch generiert.</textarea>
                                 SELECT
                                     status,
                                     COUNT(*) as count
-                                FROM mail_queue
+                                FROM svmail_queue
                                 GROUP BY status
                             ");
                             $queue_stats = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);

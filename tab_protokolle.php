@@ -15,7 +15,7 @@ if ($confidential)
 
 // Einzelnes Protokoll anzeigen
 if ($meeting_id > 0) {
-    $stmt = $pdo->prepare("SELECT protokoll, prot_intern, meeting_name, meeting_date FROM meetings WHERE meeting_id = ? AND protokoll IS NOT NULL");
+    $stmt = $pdo->prepare("SELECT protokoll, prot_intern, meeting_name, meeting_date FROM svmeetings WHERE meeting_id = ? AND protokoll IS NOT NULL");
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch();
     
@@ -77,7 +77,7 @@ if ($meeting_id > 0) {
         // Suche in Protokollen
         $stmt = $pdo->prepare("
             SELECT meeting_id, meeting_name, meeting_date, protokoll
-            FROM meetings 
+            FROM svmeetings 
             WHERE protokoll IS NOT NULL 
             AND (protokoll LIKE ? OR meeting_name LIKE ?)
             ORDER BY meeting_date DESC
@@ -93,7 +93,7 @@ if ($meeting_id > 0) {
         // Alle Protokolle
         $stmt = $pdo->query("
             SELECT meeting_id, meeting_name, meeting_date 
-            FROM meetings 
+            FROM svmeetings 
             WHERE protokoll IS NOT NULL 
             ORDER BY meeting_date DESC
         ");

@@ -77,7 +77,7 @@ if (!$meeting_id) {
 
 // SCHRITT 11: Meeting laden
 try {
-    $stmt = $pdo->prepare("SELECT * FROM meetings WHERE meeting_id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM svmeetings WHERE meeting_id = ?");
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -107,7 +107,7 @@ try {
             }
             
             // Active Item ID setzen
-            $stmt = $pdo->prepare("UPDATE meetings SET active_item_id = ? WHERE meeting_id = ?");
+            $stmt = $pdo->prepare("UPDATE svmeetings SET active_item_id = ? WHERE meeting_id = ?");
             $stmt->execute([$item_id, $meeting_id]);
             
             echo json_encode(['success' => true, 'message' => 'TOP aktiviert']);
@@ -121,7 +121,7 @@ try {
             }
             
             // Active Item ID entfernen
-            $stmt = $pdo->prepare("UPDATE meetings SET active_item_id = NULL WHERE meeting_id = ?");
+            $stmt = $pdo->prepare("UPDATE svmeetings SET active_item_id = NULL WHERE meeting_id = ?");
             $stmt->execute([$meeting_id]);
             
             echo json_encode(['success' => true, 'message' => 'TOP deaktiviert']);

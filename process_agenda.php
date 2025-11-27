@@ -63,7 +63,7 @@ if (isset($_POST['add_agenda_item'])) {
             
             // TOP in Datenbank einfügen
             $stmt = $pdo->prepare("
-                INSERT INTO agenda_items 
+                INSERT INTO svagenda_items 
                 (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
@@ -85,7 +85,7 @@ if (isset($_POST['add_agenda_item'])) {
             // BUGFIX: Keinen initialen "-" Kommentar mehr erstellen
             // Stattdessen nur initiale Bewertung ohne sichtbaren Kommentar
             $stmt = $pdo->prepare("
-                INSERT INTO agenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate, created_at)
+                INSERT INTO svagenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate, created_at)
                 VALUES (?, ?, '', ?, ?, NOW())
             ");
             $stmt->execute([$new_item_id, $current_user['member_id'], $priority, $duration]);
@@ -121,8 +121,8 @@ if (isset($_POST['edit_agenda_item'])) {
             // Prüfen ob User der Ersteller ist
             $stmt = $pdo->prepare("
                 SELECT ai.created_by_member_id, ai.meeting_id, m.status, ai.category as old_category
-                FROM agenda_items ai
-                JOIN meetings m ON ai.meeting_id = m.meeting_id
+                FROM svagenda_items ai
+                JOIN svmeetings m ON ai.meeting_id = m.meeting_id
                 WHERE ai.item_id = ?
             ");
             $stmt->execute([$item_id]);
@@ -138,7 +138,7 @@ if (isset($_POST['edit_agenda_item'])) {
                 $item['status'] === 'preparation') {
 
                 $stmt = $pdo->prepare("
-                    UPDATE agenda_items
+                    UPDATE svagenda_items
                     SET title = ?, description = ?, category = ?, proposal_text = ?
                     WHERE item_id = ?
                 ");
@@ -190,7 +190,7 @@ if (isset($_POST['save_all_changes']) || isset($_POST['save_all_preparation'])) 
             // Prüfen ob User der Ersteller ist
             $stmt = $pdo->prepare("
                 SELECT created_by_member_id 
-                FROM agenda_items 
+                FROM svagenda_items 
                 WHERE item_id = ? AND meeting_id = ?
             ");
             $stmt->execute([$item_id, $current_meeting_id]);
@@ -198,7 +198,7 @@ if (isset($_POST['save_all_changes']) || isset($_POST['save_all_preparation'])) 
             
             if ($item && $item['created_by_member_id'] == $current_user['member_id']) {
                 $stmt = $pdo->prepare("
-                    UPDATE agenda_items 
+                    UPDATE svagenda_items 
                     SET title = ?, description = ?, category = ?, proposal_text = ?
                     WHERE item_id = ?
                 ");
@@ -217,7 +217,7 @@ if (isset($_POST['save_all_changes']) || isset($_POST['save_all_preparation'])) 
                 // Prüfen ob User bereits einen Kommentar hat
                 $stmt = $pdo->prepare("
                     SELECT comment_id 
-                    FROM agenda_comments 
+                    FROM svagenda_comments 
                     WHERE item_id = ? AND member_id = ?
                 ");
                 $stmt->execute([$item_id, $current_user['member_id']]);
@@ -226,7 +226,7 @@ if (isset($_POST['save_all_changes']) || isset($_POST['save_all_preparation'])) 
                 if ($existing) {
                     // Bestehenden Kommentar aktualisieren
                     $stmt = $pdo->prepare("
-                        UPDATE agenda_comments 
+                        UPDATE svagenda_comments 
                         SET priority_rating = ?, duration_estimate = ?
                         WHERE comment_id = ?
                     ");
@@ -234,7 +234,7 @@ if (isset($_POST['save_all_changes']) || isset($_POST['save_all_preparation'])) 
                 } else {
                     // BUGFIX: Neuen Kommentar erstellen (ohne sichtbaren Text)
                     $stmt = $pdo->prepare("
-                        INSERT INTO agenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate, created_at)
+                        INSERT INTO svagenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate, created_at)
                         VALUES (?, ?, '', ?, ?, NOW())
                     ");
                     $stmt->execute([$item_id, $current_user['member_id'], $priority, $duration]);
@@ -256,7 +256,7 @@ if (isset($_POST['save_all_changes']) || isset($_POST['save_all_preparation'])) 
                 // Prüfen ob User bereits Kommentar hat
                 $stmt = $pdo->prepare("
                     SELECT comment_id, comment_text
-                    FROM agenda_comments 
+                    FROM svagenda_comments 
                     WHERE item_id = ? AND member_id = ?
                 ");
                 $stmt->execute([$item_id, $current_user['member_id']]);
@@ -269,7 +269,7 @@ if (isset($_POST['save_all_changes']) || isset($_POST['save_all_preparation'])) 
                     $new_text = empty($old_text) ? "[$timestamp]:\n" . $comment_text : $old_text . "\n\n[$timestamp]:\n" . $comment_text;
                     
                     $stmt = $pdo->prepare("
-                        UPDATE agenda_comments 
+                        UPDATE svagenda_comments 
                         SET comment_text = ?, updated_at = NOW()
                         WHERE comment_id = ?
                     ");
@@ -279,7 +279,7 @@ if (isset($_POST['save_all_changes']) || isset($_POST['save_all_preparation'])) 
                     $new_text = "[$timestamp]:\n" . $comment_text;
                     
                     $stmt = $pdo->prepare("
-                        INSERT INTO agenda_comments (item_id, member_id, comment_text, created_at)
+                        INSERT INTO svagenda_comments (item_id, member_id, comment_text, created_at)
                         VALUES (?, ?, ?, NOW())
                     ");
                     $stmt->execute([$item_id, $current_user['member_id'], $new_text]);
@@ -327,7 +327,7 @@ if (isset($_POST['save_ratings_overview'])) {
                 // Prüfen ob bereits Kommentar/Bewertung existiert
                 $stmt = $pdo->prepare("
                     SELECT comment_id, priority_rating, duration_estimate 
-                    FROM agenda_comments 
+                    FROM svagenda_comments 
                     WHERE item_id = ? AND member_id = ?
                 ");
                 $stmt->execute([$item_id, $current_user['member_id']]);
@@ -348,7 +348,7 @@ if (isset($_POST['save_ratings_overview'])) {
                     }
                     
                     if (!empty($updates)) {
-                        $sql = "UPDATE agenda_comments SET " . implode(", ", $updates) . " WHERE comment_id = ?";
+                        $sql = "UPDATE svagenda_comments SET " . implode(", ", $updates) . " WHERE comment_id = ?";
                         $params[] = $existing['comment_id'];
                         
                         $stmt = $pdo->prepare($sql);
@@ -357,7 +357,7 @@ if (isset($_POST['save_ratings_overview'])) {
                 } else {
                     // INSERT: Neuen Eintrag mit leerem Kommentar aber Bewertungen
                     $stmt = $pdo->prepare("
-                        INSERT INTO agenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate, created_at)
+                        INSERT INTO svagenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate, created_at)
                         VALUES (?, ?, '', ?, ?, NOW())
                     ");
                     $stmt->execute([$item_id, $current_user['member_id'], $priority, $duration]);
@@ -397,7 +397,7 @@ if (isset($_POST['update_meeting_roles'])) {
     $secretary_id = intval($_POST['secretary_id'] ?? 0);
     
     // Prüfen ob User Sekretär ist
-    $stmt = $pdo->prepare("SELECT secretary_member_id FROM meetings WHERE meeting_id = ?");
+    $stmt = $pdo->prepare("SELECT secretary_member_id FROM svmeetings WHERE meeting_id = ?");
     $stmt->execute([$current_meeting_id]);
     $meeting = $stmt->fetch();
     
@@ -405,7 +405,7 @@ if (isset($_POST['update_meeting_roles'])) {
         if ($chairman_id && $secretary_id) {
             try {
                 $stmt = $pdo->prepare("
-                    UPDATE meetings 
+                    UPDATE svmeetings 
                     SET chairman_member_id = ?, secretary_member_id = ? 
                     WHERE meeting_id = ?
                 ");
@@ -436,7 +436,7 @@ if (isset($_POST['save_attendance'])) {
     $attendance = $_POST['attendance'] ?? [];
     
     // Prüfen ob User Sekretär ist
-    $stmt = $pdo->prepare("SELECT secretary_member_id FROM meetings WHERE meeting_id = ?");
+    $stmt = $pdo->prepare("SELECT secretary_member_id FROM svmeetings WHERE meeting_id = ?");
     $stmt->execute([$current_meeting_id]);
     $meeting = $stmt->fetch();
     
@@ -447,7 +447,7 @@ if (isset($_POST['save_attendance'])) {
                 $status = in_array($status, ['present', 'partial', 'absent']) ? $status : 'absent';
                 
                 $stmt = $pdo->prepare("
-                    UPDATE meeting_participants 
+                    UPDATE svmeeting_participants 
                     SET attendance_status = ? 
                     WHERE meeting_id = ? AND member_id = ?
                 ");
@@ -480,7 +480,7 @@ if (isset($_POST['set_active_top'])) {
     // Prüfen ob User Sekretär ist und Meeting aktiv
     $stmt = $pdo->prepare("
         SELECT secretary_member_id, status 
-        FROM meetings 
+        FROM svmeetings 
         WHERE meeting_id = ?
     ");
     $stmt->execute([$current_meeting_id]);
@@ -493,7 +493,7 @@ if (isset($_POST['set_active_top'])) {
         try {
             // Alle TOPs auf inaktiv setzen
             $stmt = $pdo->prepare("
-                UPDATE agenda_items 
+                UPDATE svagenda_items 
                 SET is_active = 0 
                 WHERE meeting_id = ?
             ");
@@ -501,7 +501,7 @@ if (isset($_POST['set_active_top'])) {
             
             // Gewählten TOP aktivieren
             $stmt = $pdo->prepare("
-                UPDATE agenda_items 
+                UPDATE svagenda_items 
                 SET is_active = 1 
                 WHERE item_id = ? AND meeting_id = ?
             ");
@@ -538,7 +538,7 @@ if (isset($_POST['end_meeting'])) {
 
 	$stmt = $pdo->prepare("
         SELECT secretary_member_id, chairman_member_id, status 
-        FROM meetings 
+        FROM svmeetings 
         WHERE meeting_id = ?
     ");
     $stmt->execute([$current_meeting_id]);
@@ -552,7 +552,7 @@ if (isset($_POST['end_meeting'])) {
         try {
             // 1. Meeting beenden
             $stmt = $pdo->prepare("
-                UPDATE meetings 
+                UPDATE svmeetings 
                 SET status = 'ended', ended_at = NOW() 
                 WHERE meeting_id = ?
             ");
@@ -561,14 +561,14 @@ if (isset($_POST['end_meeting'])) {
             // 2. TOP 999 (Sitzungsende) erstellen falls nicht vorhanden
             $stmt = $pdo->prepare("
                 SELECT item_id 
-                FROM agenda_items 
+                FROM svagenda_items 
                 WHERE meeting_id = ? AND top_number = 999
             ");
             $stmt->execute([$current_meeting_id]);
             
             if (!$stmt->fetch()) {
                 $stmt = $pdo->prepare("
-                    INSERT INTO agenda_items 
+                    INSERT INTO svagenda_items 
                     (meeting_id, top_number, title, description, is_confidential, created_by_member_id, protocol_notes)
                     VALUES (?, 999, 'Sitzungsende', 'Automatisch erstellt', 0, ?, '')
                 ");
@@ -580,7 +580,7 @@ if (isset($_POST['end_meeting'])) {
             $due_date = date('Y-m-d', strtotime("+$feedback_hours hours +1 day"));
 
             // Meeting-Daten für ToDo holen
-            $stmt_meeting = $pdo->prepare("SELECT meeting_name, meeting_date FROM meetings WHERE meeting_id = ?");
+            $stmt_meeting = $pdo->prepare("SELECT meeting_name, meeting_date FROM svmeetings WHERE meeting_id = ?");
             $stmt_meeting->execute([$current_meeting_id]);
             $meeting_data = $stmt_meeting->fetch();
 
@@ -588,7 +588,7 @@ if (isset($_POST['end_meeting'])) {
             $todo_description = "Bitte das Protokoll vervollständigen und zur Genehmigung freigeben.\n\nLink: " . get_full_meeting_link($current_meeting_id);
 
             $stmt = $pdo->prepare("
-                INSERT INTO todos
+                INSERT INTO svtodos
                 (meeting_id, assigned_to_member_id, title, description, status, due_date, created_by_member_id, entry_date)
                 VALUES (?, ?, ?, ?, 'open', ?, ?, CURDATE())
             ");
@@ -628,7 +628,7 @@ if (isset($_POST['approve_protocol'])) {
     // Prüfen ob User Vorsitzender ist
     $stmt = $pdo->prepare("
         SELECT chairman_member_id, status 
-        FROM meetings 
+        FROM svmeetings 
         WHERE meeting_id = ?
     ");
     $stmt->execute([$current_meeting_id]);
@@ -641,7 +641,7 @@ if (isset($_POST['approve_protocol'])) {
         try {
             // 1. Meeting archivieren
             $stmt = $pdo->prepare("
-                UPDATE meetings 
+                UPDATE svmeetings 
                 SET status = 'archived' 
                 WHERE meeting_id = ?
             ");
@@ -649,7 +649,7 @@ if (isset($_POST['approve_protocol'])) {
             
             // 2. ToDo "Protokoll genehmigen" als erledigt markieren
             $stmt = $pdo->prepare("
-                UPDATE todos 
+                UPDATE svtodos 
                 SET status = 'done', completed_at = NOW() 
                 WHERE meeting_id = ? 
                 AND assigned_to_member_id = ? 
@@ -690,7 +690,7 @@ if (isset($_POST['save_single_comment'])) {
     if ($item_id && $comment_text) {
         try {
             $stmt = $pdo->prepare("
-                INSERT INTO agenda_comments (item_id, member_id, comment_text, created_at)
+                INSERT INTO svagenda_comments (item_id, member_id, comment_text, created_at)
                 VALUES (?, ?, ?, NOW())
             ");
             $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
@@ -728,7 +728,7 @@ if (isset($_POST['save_comment'])) {
             // Prüfen ob User bereits einen Kommentar hat
             $stmt = $pdo->prepare("
                 SELECT comment_id, comment_text
-                FROM agenda_comments 
+                FROM svagenda_comments 
                 WHERE item_id = ? AND member_id = ?
             ");
             $stmt->execute([$item_id, $current_user['member_id']]);
@@ -740,7 +740,7 @@ if (isset($_POST['save_comment'])) {
                 $new_text = $old_text . "\n\n[$timestamp]:\n" . $comment_text;
                 
                 $stmt = $pdo->prepare("
-                    UPDATE agenda_comments 
+                    UPDATE svagenda_comments 
                     SET comment_text = ?, updated_at = NOW()
                     WHERE comment_id = ?
                 ");
@@ -750,7 +750,7 @@ if (isset($_POST['save_comment'])) {
                 $new_text = "[$timestamp]:\n" . $comment_text;
                 
                 $stmt = $pdo->prepare("
-                    INSERT INTO agenda_comments (item_id, member_id, comment_text, created_at)
+                    INSERT INTO svagenda_comments (item_id, member_id, comment_text, created_at)
                     VALUES (?, ?, ?, NOW())
                 ");
                 $stmt->execute([$item_id, $current_user['member_id'], $new_text]);
@@ -784,7 +784,7 @@ if (isset($_POST['delete_comment'])) {
     if ($comment_id && $item_id) {
         try {
             // Meeting-Status prüfen (nur bis 'ended')
-            $stmt = $pdo->prepare("SELECT status FROM meetings WHERE meeting_id = ?");
+            $stmt = $pdo->prepare("SELECT status FROM svmeetings WHERE meeting_id = ?");
             $stmt->execute([$current_meeting_id]);
             $meeting_status = $stmt->fetchColumn();
             
@@ -792,15 +792,15 @@ if (isset($_POST['delete_comment'])) {
                 // Prüfen ob User der Kommentar-Autor ist
                 $stmt = $pdo->prepare("
                     SELECT member_id 
-                    FROM agenda_comments 
-                    WHERE comment_id = ? AND item_id IN (SELECT item_id FROM agenda_items WHERE meeting_id = ?)
+                    FROM svagenda_comments 
+                    WHERE comment_id = ? AND item_id IN (SELECT item_id FROM svagenda_items WHERE meeting_id = ?)
                 ");
                 $stmt->execute([$comment_id, $current_meeting_id]);
                 $comment_owner = $stmt->fetchColumn();
                 
                 if ($comment_owner == $current_user['member_id']) {
                     // Kommentar löschen
-                    $stmt = $pdo->prepare("DELETE FROM agenda_comments WHERE comment_id = ?");
+                    $stmt = $pdo->prepare("DELETE FROM svagenda_comments WHERE comment_id = ?");
                     $stmt->execute([$comment_id]);
                     
                     // Durchschnittswerte neu berechnen
@@ -836,14 +836,14 @@ if (isset($_POST['add_comment_preparation'])) {
     if ($item_id && !empty($comment_text)) {
         try {
             // Meeting-Status prüfen (nur in preparation)
-            $stmt = $pdo->prepare("SELECT status FROM meetings WHERE meeting_id = ?");
+            $stmt = $pdo->prepare("SELECT status FROM svmeetings WHERE meeting_id = ?");
             $stmt->execute([$current_meeting_id]);
             $meeting_status = $stmt->fetchColumn();
             
             if ($meeting_status === 'preparation') {
                 // Neuen Kommentar erstellen
                 $stmt = $pdo->prepare("
-                    INSERT INTO agenda_comments (item_id, member_id, comment_text, created_at)
+                    INSERT INTO svagenda_comments (item_id, member_id, comment_text, created_at)
                     VALUES (?, ?, ?, NOW())
                 ");
                 $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
@@ -893,7 +893,7 @@ if (isset($_POST['save_protocol'])) {
             
             if ($vote_result) {
                 $stmt = $pdo->prepare("
-                    UPDATE agenda_items 
+                    UPDATE svagenda_items 
                     SET vote_yes = ?, vote_no = ?, vote_abstain = ?, vote_result = ?
                     WHERE item_id = ?
                 ");
@@ -902,7 +902,7 @@ if (isset($_POST['save_protocol'])) {
             
             // 2. Protokollnotizen speichern
             $stmt = $pdo->prepare("
-                UPDATE agenda_items 
+                UPDATE svagenda_items 
                 SET protocol_notes = ? 
                 WHERE item_id = ?
             ");
@@ -938,7 +938,7 @@ if (isset($_POST['save_protocol'])) {
                     // Protokoll mit ToDo aktualisieren
                     $updated_protocol = $protocol_text . $todo_text;
                     $stmt = $pdo->prepare("
-                        UPDATE agenda_items
+                        UPDATE svagenda_items
                         SET protocol_notes = ?
                         WHERE item_id = ?
                     ");
@@ -949,7 +949,7 @@ if (isset($_POST['save_protocol'])) {
 
                     // ToDo in Datenbank speichern
                     $stmt = $pdo->prepare("
-                        INSERT INTO todos
+                        INSERT INTO svtodos
                         (meeting_id, item_id, assigned_to_member_id, title, description, status, is_private, due_date, entry_date, created_by_member_id)
                         VALUES (?, ?, ?, ?, ?, 'open', ?, ?, CURDATE(), ?)
                     ");
@@ -976,8 +976,8 @@ if (isset($_POST['save_protocol'])) {
                 // Aktuellen TOP laden
                 $stmt = $pdo->prepare("
                     SELECT ai.*, m.meeting_date, m.meeting_name
-                    FROM agenda_items ai
-                    JOIN meetings m ON ai.meeting_id = m.meeting_id
+                    FROM svagenda_items ai
+                    JOIN svmeetings m ON ai.meeting_id = m.meeting_id
                     WHERE ai.item_id = ?
                 ");
                 $stmt->execute([$item_id]);
@@ -985,7 +985,7 @@ if (isset($_POST['save_protocol'])) {
                 
                 if ($current_item) {
                     // Prüfen ob Ziel-Meeting in Vorbereitung ist
-                    $stmt = $pdo->prepare("SELECT status FROM meetings WHERE meeting_id = ?");
+                    $stmt = $pdo->prepare("SELECT status FROM svmeetings WHERE meeting_id = ?");
                     $stmt->execute([$target_meeting_id]);
                     $target_meeting = $stmt->fetch();
                     
@@ -1002,7 +1002,7 @@ if (isset($_POST['save_protocol'])) {
                         $resubmit_note = "Wiedervorlage aus Sitzung vom {$meeting_date_formatted}, TOP {$current_item['top_number']}";
                         
                         $stmt = $pdo->prepare("
-                            INSERT INTO agenda_items 
+                            INSERT INTO svagenda_items 
                             (meeting_id, top_number, title, description, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ");
@@ -1047,8 +1047,8 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
             // TOP-Daten laden
             $stmt = $pdo->prepare("
                 SELECT ai.*, m.meeting_date 
-                FROM agenda_items ai
-                JOIN meetings m ON ai.meeting_id = m.meeting_id
+                FROM svagenda_items ai
+                JOIN svmeetings m ON ai.meeting_id = m.meeting_id
                 WHERE ai.item_id = ?
             ");
             $stmt->execute([$item_id]);
@@ -1056,7 +1056,7 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
             
             if ($current_item) {
                 // Ziel-Meeting Status prüfen
-                $stmt = $pdo->prepare("SELECT status FROM meetings WHERE meeting_id = ?");
+                $stmt = $pdo->prepare("SELECT status FROM svmeetings WHERE meeting_id = ?");
                 $stmt->execute([$target_meeting_id]);
                 $target_meeting = $stmt->fetch();
                 
@@ -1069,7 +1069,7 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
                     $resubmit_note = "Wiedervorlage aus Sitzung vom {$meeting_date_formatted}, TOP {$current_item['top_number']}";
                     
                     $stmt = $pdo->prepare("
-                        INSERT INTO agenda_items 
+                        INSERT INTO svagenda_items 
                         (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
@@ -1115,7 +1115,7 @@ if (isset($_POST['update_attendance']) && $is_secretary && $meeting['status'] ==
     try {
         foreach ($attendance_data as $member_id => $status) {
             $stmt = $pdo->prepare("
-                UPDATE meeting_participants 
+                UPDATE svmeeting_participants 
                 SET attendance_status = ? 
                 WHERE meeting_id = ? AND member_id = ?
             ");
@@ -1148,14 +1148,14 @@ if (isset($_POST['add_uninvited_participant'])) {
     if ($is_allowed && $new_participant_id > 0) {
         try {
             // Prüfen ob Teilnehmer bereits eingeladen ist
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM meeting_participants WHERE meeting_id = ? AND member_id = ?");
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM svmeeting_participants WHERE meeting_id = ? AND member_id = ?");
             $stmt->execute([$current_meeting_id, $new_participant_id]);
             $already_invited = $stmt->fetchColumn() > 0;
 
             if (!$already_invited) {
                 // Teilnehmer hinzufügen mit Status invited und present
                 $stmt = $pdo->prepare("
-                    INSERT INTO meeting_participants (meeting_id, member_id, attendance_status)
+                    INSERT INTO svmeeting_participants (meeting_id, member_id, attendance_status)
                     VALUES (?, ?, 'present')
                 ");
                 $stmt->execute([$current_meeting_id, $new_participant_id]);
@@ -1176,7 +1176,7 @@ if (isset($_POST['set_active_top']) && $is_secretary && $meeting['status'] === '
     $item_id = intval($_POST['item_id']);
     
     try {
-        $stmt = $pdo->prepare("UPDATE meetings SET active_item_id = ? WHERE meeting_id = ?");
+        $stmt = $pdo->prepare("UPDATE svmeetings SET active_item_id = ? WHERE meeting_id = ?");
         $stmt->execute([$item_id, $current_meeting_id]);
         
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
@@ -1191,7 +1191,7 @@ if (isset($_POST['set_active_top']) && $is_secretary && $meeting['status'] === '
  */
 if (isset($_POST['unset_active_top']) && $is_secretary && $meeting['status'] === 'active') {
     try {
-        $stmt = $pdo->prepare("UPDATE meetings SET active_item_id = NULL WHERE meeting_id = ?");
+        $stmt = $pdo->prepare("UPDATE svmeetings SET active_item_id = NULL WHERE meeting_id = ?");
         $stmt->execute([$current_meeting_id]);
         
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
@@ -1209,7 +1209,7 @@ if (isset($_POST['toggle_confidential']) && $is_secretary && $meeting['status'] 
     
     try {
         // Aktuellen Status ermitteln
-        $stmt = $pdo->prepare("SELECT is_confidential FROM agenda_items WHERE item_id = ?");
+        $stmt = $pdo->prepare("SELECT is_confidential FROM svagenda_items WHERE item_id = ?");
         $stmt->execute([$item_id]);
         $item = $stmt->fetch();
         
@@ -1221,7 +1221,7 @@ if (isset($_POST['toggle_confidential']) && $is_secretary && $meeting['status'] 
             
             // TOP aktualisieren
             $stmt = $pdo->prepare("
-                UPDATE agenda_items 
+                UPDATE svagenda_items 
                 SET is_confidential = ?, top_number = ? 
                 WHERE item_id = ?
             ");
@@ -1245,7 +1245,7 @@ if (isset($_POST['update_active_priority']) && $is_secretary && $meeting['status
     if ($item_id && $priority >= 1 && $priority <= 10) {
         try {
             $stmt = $pdo->prepare("
-                UPDATE agenda_items
+                UPDATE svagenda_items
                 SET priority = ?
                 WHERE item_id = ? AND meeting_id = ?
             ");
@@ -1297,7 +1297,7 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
             $top_number = get_next_top_number($pdo, $current_meeting_id, $is_confidential);
             
             $stmt = $pdo->prepare("
-                INSERT INTO agenda_items 
+                INSERT INTO svagenda_items 
                 (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id) 
                 VALUES (?, ?, ?, ?, ?, ?, 5, 10, ?, ?)
             ");
@@ -1340,13 +1340,13 @@ if (isset($_POST['save_all_protocols']) && $is_secretary && $meeting['status'] =
             $item_id = intval($item_id);
             $text = trim($text);
             
-            $stmt = $pdo->prepare("UPDATE agenda_items SET protocol_notes = ? WHERE item_id = ?");
+            $stmt = $pdo->prepare("UPDATE svagenda_items SET protocol_notes = ? WHERE item_id = ?");
             $stmt->execute([$text, $item_id]);
             
             // Abstimmungsdaten speichern (falls vorhanden)
             if (isset($vote_result[$item_id]) && !empty($vote_result[$item_id])) {
                 $stmt = $pdo->prepare("
-                    UPDATE agenda_items 
+                    UPDATE svagenda_items 
                     SET vote_yes = ?, vote_no = ?, vote_abstain = ?, vote_result = ?
                     WHERE item_id = ?
                 ");
@@ -1370,8 +1370,8 @@ if (isset($_POST['save_all_protocols']) && $is_secretary && $meeting['status'] =
             // TOP-Daten laden
             $stmt = $pdo->prepare("
                 SELECT ai.*, m.meeting_date 
-                FROM agenda_items ai
-                JOIN meetings m ON ai.meeting_id = m.meeting_id
+                FROM svagenda_items ai
+                JOIN svmeetings m ON ai.meeting_id = m.meeting_id
                 WHERE ai.item_id = ?
             ");
             $stmt->execute([$item_id]);
@@ -1379,7 +1379,7 @@ if (isset($_POST['save_all_protocols']) && $is_secretary && $meeting['status'] =
             
             if ($current_item) {
                 // Ziel-Meeting Status prüfen
-                $stmt = $pdo->prepare("SELECT status FROM meetings WHERE meeting_id = ?");
+                $stmt = $pdo->prepare("SELECT status FROM svmeetings WHERE meeting_id = ?");
                 $stmt->execute([$target_meeting_id]);
                 $target_meeting = $stmt->fetch();
                 
@@ -1392,7 +1392,7 @@ if (isset($_POST['save_all_protocols']) && $is_secretary && $meeting['status'] =
                     $resubmit_note = "Wiedervorlage aus Sitzung vom {$meeting_date_formatted}, TOP {$current_item['top_number']}";
                     
                     $stmt = $pdo->prepare("
-                        INSERT INTO agenda_items 
+                        INSERT INTO svagenda_items 
                         (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
@@ -1440,7 +1440,7 @@ if (isset($_POST['start_meeting']) && ($is_secretary || $is_chairman) && $meetin
         $top0_protocol .= "Gäste: ";
         
         $stmt = $pdo->prepare("
-            UPDATE agenda_items 
+            UPDATE svagenda_items 
             SET protocol_notes = ?
             WHERE meeting_id = ? AND top_number = 0
         ");
@@ -1448,14 +1448,14 @@ if (isset($_POST['start_meeting']) && ($is_secretary || $is_chairman) && $meetin
         
         // TOP 999 erstellen für Sitzungsende
         $stmt = $pdo->prepare("
-            INSERT INTO agenda_items 
+            INSERT INTO svagenda_items 
             (meeting_id, top_number, title, description, priority, estimated_duration, is_confidential, created_by_member_id) 
             VALUES (?, 999, 'Sitzungsende', 'Automatisch erfasst', 1.00, 1, 0, ?)
         ");
         $stmt->execute([$current_meeting_id, $current_user['member_id']]);
         
         // Meeting-Status auf active setzen
-        $stmt = $pdo->prepare("UPDATE meetings SET status = 'active' WHERE meeting_id = ?");
+        $stmt = $pdo->prepare("UPDATE svmeetings SET status = 'active' WHERE meeting_id = ?");
         $stmt->execute([$current_meeting_id]);
         
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
@@ -1472,7 +1472,7 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
     try {
         // TOP 999 updated_at setzen (= Endzeitpunkt)
         $stmt = $pdo->prepare("
-            UPDATE agenda_items 
+            UPDATE svagenda_items 
             SET updated_at = NOW() 
             WHERE meeting_id = ? AND top_number = 999
         ");
@@ -1480,7 +1480,7 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
         
         // Meeting Status und ended_at setzen
         $stmt = $pdo->prepare("
-            UPDATE meetings 
+            UPDATE svmeetings 
             SET status = 'ended', ended_at = NOW(), active_item_id = NULL
             WHERE meeting_id = ?
         ");
@@ -1491,7 +1491,7 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
         
         // Start- und Endzeitpunkt
         $start_time = date('H:i', strtotime($meeting['meeting_date']));
-        $end_time_query = $pdo->prepare("SELECT updated_at FROM agenda_items WHERE meeting_id = ? AND top_number = 999");
+        $end_time_query = $pdo->prepare("SELECT updated_at FROM svagenda_items WHERE meeting_id = ? AND top_number = 999");
         $end_time_query->execute([$current_meeting_id]);
         $end_timestamp = $end_time_query->fetchColumn();
         $end_time = $end_timestamp ? date('H:i', strtotime($end_timestamp)) : '?';
@@ -1502,7 +1502,7 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
                            "Link: " . get_full_meeting_link($current_meeting_id);
         
         $stmt = $pdo->prepare("
-            INSERT INTO todos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id)
+            INSERT INTO svtodos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id)
             VALUES (?, ?, ?, ?, ?, 'open', ?)
         ");
         $stmt->execute([
@@ -1538,12 +1538,12 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
                 $item_id = intval($item_id);
                 $text = trim($text);
                 
-                $stmt = $pdo->prepare("UPDATE agenda_items SET protocol_notes = ? WHERE item_id = ?");
+                $stmt = $pdo->prepare("UPDATE svagenda_items SET protocol_notes = ? WHERE item_id = ?");
                 $stmt->execute([$text, $item_id]);
                 
                 if (isset($vote_result[$item_id]) && !empty($vote_result[$item_id])) {
                     $stmt = $pdo->prepare("
-                        UPDATE agenda_items 
+                        UPDATE svagenda_items 
                         SET vote_yes = ?, vote_no = ?, vote_abstain = ?, vote_result = ?
                         WHERE item_id = ?
                     ");
@@ -1618,7 +1618,7 @@ if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] ===
         // Alle Daten laden (ohne JOINs!)
         $stmt = $pdo->prepare("
             SELECT ai.*
-            FROM agenda_items ai
+            FROM svagenda_items ai
             WHERE ai.meeting_id = ?
             ORDER BY ai.top_number
         ");
@@ -1637,7 +1637,7 @@ if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] ===
 
         // Teilnehmer über Adapter laden
         $stmt = $pdo->prepare("
-            SELECT member_id FROM meeting_participants WHERE meeting_id = ?
+            SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?
         ");
         $stmt->execute([$current_meeting_id]);
         $participant_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -1654,7 +1654,7 @@ if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] ===
         
         // Protokolle in DB speichern
         $stmt = $pdo->prepare("
-            UPDATE meetings 
+            UPDATE svmeetings 
             SET protokoll = ?, prot_intern = ?, status = 'protocol_ready'
             WHERE meeting_id = ?
         ");
@@ -1666,7 +1666,7 @@ if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] ===
         
         // TODO für Sekretär erledigen
         $stmt = $pdo->prepare("
-            UPDATE todos 
+            UPDATE svtodos 
             SET status = 'done', completed_at = NOW()
             WHERE meeting_id = ? AND assigned_to_member_id = ? AND title LIKE '%fertigstellen%'
         ");
@@ -1674,7 +1674,7 @@ if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] ===
         
         // TODO für Sitzungsleiter erstellen mit vollständigen Sitzungsdaten
         $start_time = date('H:i', strtotime($meeting['meeting_date']));
-        $end_time_query = $pdo->prepare("SELECT updated_at FROM agenda_items WHERE meeting_id = ? AND top_number = 999");
+        $end_time_query = $pdo->prepare("SELECT updated_at FROM svagenda_items WHERE meeting_id = ? AND top_number = 999");
         $end_time_query->execute([$current_meeting_id]);
         $end_timestamp = $end_time_query->fetchColumn();
         $end_time = $end_timestamp ? date('H:i', strtotime($end_timestamp)) : '?';
@@ -1685,7 +1685,7 @@ if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] ===
                            "Link: " . get_full_meeting_link($current_meeting_id);
         
         $stmt = $pdo->prepare("
-            INSERT INTO todos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id)
+            INSERT INTO svtodos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id)
             VALUES (?, ?, ?, ?, NOW(), 'open', ?)
         ");
         $stmt->execute([
@@ -1718,12 +1718,12 @@ if (isset($_POST['save_protocol_ready_changes']) && $is_secretary && $meeting['s
             $item_id = intval($item_id);
             $text = trim($text);
             
-            $stmt = $pdo->prepare("UPDATE agenda_items SET protocol_notes = ? WHERE item_id = ?");
+            $stmt = $pdo->prepare("UPDATE svagenda_items SET protocol_notes = ? WHERE item_id = ?");
             $stmt->execute([$text, $item_id]);
             
             if (isset($vote_result[$item_id]) && !empty($vote_result[$item_id])) {
                 $stmt = $pdo->prepare("
-                    UPDATE agenda_items 
+                    UPDATE svagenda_items 
                     SET vote_yes = ?, vote_no = ?, vote_abstain = ?, vote_result = ?
                     WHERE item_id = ?
                 ");
@@ -1756,7 +1756,7 @@ if (isset($_POST['approve_protocol']) && $is_chairman && $meeting['status'] === 
         // Alle Daten laden (ohne JOINs!)
         $stmt = $pdo->prepare("
             SELECT ai.*
-            FROM agenda_items ai
+            FROM svagenda_items ai
             WHERE ai.meeting_id = ?
             ORDER BY ai.top_number
         ");
@@ -1775,7 +1775,7 @@ if (isset($_POST['approve_protocol']) && $is_chairman && $meeting['status'] === 
 
         // Teilnehmer über Adapter laden
         $stmt = $pdo->prepare("
-            SELECT member_id FROM meeting_participants WHERE meeting_id = ?
+            SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?
         ");
         $stmt->execute([$current_meeting_id]);
         $participant_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -1792,7 +1792,7 @@ if (isset($_POST['approve_protocol']) && $is_chairman && $meeting['status'] === 
         
         // Meeting archivieren
         $stmt = $pdo->prepare("
-            UPDATE meetings 
+            UPDATE svmeetings 
             SET protokoll = ?, prot_intern = ?, status = 'archived'
             WHERE meeting_id = ?
         ");
@@ -1804,7 +1804,7 @@ if (isset($_POST['approve_protocol']) && $is_chairman && $meeting['status'] === 
         
         // TODO für Sitzungsleiter erledigen
         $stmt = $pdo->prepare("
-            UPDATE todos 
+            UPDATE svtodos 
             SET status = 'done', completed_at = NOW()
             WHERE meeting_id = ? AND assigned_to_member_id = ? AND title LIKE '%genehmigen%'
         ");
@@ -1826,7 +1826,7 @@ if (isset($_POST['request_protocol_revision']) && $is_chairman && $meeting['stat
         $todo_description = "Der Sitzungsleiter hat Änderungen am Protokoll angefordert. Bitte prüfen Sie Ihre Anmerkungen und überarbeiten Sie das Protokoll entsprechend.\n\nLink: " . get_full_meeting_link($current_meeting_id);
 
         $stmt = $pdo->prepare("
-            INSERT INTO todos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id, entry_date)
+            INSERT INTO svtodos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id, entry_date)
             VALUES (?, ?, ?, ?, DATE_ADD(CURDATE(), INTERVAL 3 DAY), 'open', ?, CURDATE())
         ");
         $stmt->execute([

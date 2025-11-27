@@ -57,7 +57,7 @@ try {
 
     // Prüfe ob Tabelle documents existiert
     try {
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM documents");
+        $stmt = $pdo->query("SELECT COUNT(*) as count FROM svdocuments");
         $result = $stmt->fetch();
         echo "<p class='ok'>✓ Tabelle 'documents' existiert</p>";
         echo "<p>Anzahl Dokumente: <strong>" . $result['count'] . "</strong></p>";
@@ -68,7 +68,7 @@ try {
         } else {
             // Zeige alle Dokumente
             echo "<h2>Vorhandene Dokumente:</h2>";
-            $stmt = $pdo->query("SELECT * FROM documents ORDER BY created_at DESC LIMIT 10");
+            $stmt = $pdo->query("SELECT * FROM svdocuments ORDER BY created_at DESC LIMIT 10");
             $docs = $stmt->fetchAll();
 
             echo "<table border='1' cellpadding='5' style='width:100%; border-collapse: collapse;'>";
@@ -94,7 +94,7 @@ try {
 
     // Prüfe ob Tabelle document_downloads existiert
     try {
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM document_downloads");
+        $stmt = $pdo->query("SELECT COUNT(*) as count FROM svdocument_downloads");
         echo "<p class='ok'>✓ Tabelle 'document_downloads' existiert</p>";
     } catch (PDOException $e) {
         echo "<p class='error'>✗ Tabelle 'document_downloads' existiert NICHT!</p>";
