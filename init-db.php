@@ -601,11 +601,11 @@ try {
 
     echo "<p>Erstelle Trigger und füge Initialdaten ein...</p>";
 
-    // Trigger für automatische Datums-Berechnung bei opinion_polls
-    $pdo->exec("DROP TRIGGER IF EXISTS opinion_polls_before_insert");
+    // Trigger für automatische Datums-Berechnung bei svopinion_polls
+    $pdo->exec("DROP TRIGGER IF EXISTS svopinion_polls_before_insert");
     $pdo->exec("
-        CREATE TRIGGER opinion_polls_before_insert
-        BEFORE INSERT ON opinion_polls
+        CREATE TRIGGER svopinion_polls_before_insert
+        BEFORE INSERT ON svopinion_polls
         FOR EACH ROW
         BEGIN
             IF NEW.ends_at IS NULL THEN
