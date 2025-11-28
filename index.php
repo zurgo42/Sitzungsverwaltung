@@ -157,6 +157,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'meetings') {
     require_once 'process_meetings.php';
 }
 
+// PROCESS ABSENCES
+// Wird bei POST-Requests auf dem Meetings-Tab für Abwesenheiten ausgeführt
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'meetings') {
+    require_once 'process_absences.php';
+}
+
 // PROCESS AGENDA
 // Wird geladen wenn eine Meeting-ID vorhanden ist und der Agenda-Tab aktiv ist
 // WICHTIG: Wird auch bei GET-Requests geladen, da es Status-Updates verarbeitet

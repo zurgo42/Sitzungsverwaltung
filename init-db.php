@@ -507,6 +507,27 @@ try {
         INDEX idx_downloaded_at (downloaded_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
+    // =========================================================
+    // ABWESENHEITS-VERWALTUNG
+    // =========================================================
+
+    // Abwesenheiten-Tabelle
+    $tables[] = "CREATE TABLE IF NOT EXISTS svabsences (
+        absence_id INT PRIMARY KEY AUTO_INCREMENT,
+        member_id INT NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        substitute_member_id INT DEFAULT NULL COMMENT 'Vertretung durch dieses Mitglied',
+        reason VARCHAR(255) DEFAULT NULL COMMENT 'Grund der Abwesenheit (optional)',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (substitute_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL,
+        INDEX idx_member (member_id),
+        INDEX idx_dates (start_date, end_date),
+        INDEX idx_substitute (substitute_member_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
     // Tabellen erstellen
     echo "<p>Erstelle " . count($tables) . " Tabellen...</p>";
     foreach ($tables as $sql) {
