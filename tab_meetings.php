@@ -45,112 +45,39 @@ $all_members = get_all_members($pdo);
 
 <h2>📅 Meetings verwalten</h2>
 
-<!-- ABWESENHEITS-VERWALTUNG -->
+<!-- DEZENTE ABWESENHEITS-ANZEIGE -->
 <?php
-// Aktuelle und zukünftige Abwesenheiten laden (heute oder später)
-$stmt_absences = $pdo->prepare("
-    SELECT a.*,
-           m.first_name, m.last_name,
-           s.first_name AS sub_first_name, s.last_name AS sub_last_name
+// Nur aktuelle Abwesenheiten laden (heute)
+$stmt_current_absences = $pdo->prepare("
+    SELECT a.*, m.first_name, m.last_name, s.first_name AS sub_first_name, s.last_name AS sub_last_name
     FROM svabsences a
     JOIN svmembers m ON a.member_id = m.member_id
     LEFT JOIN svmembers s ON a.substitute_member_id = s.member_id
-    WHERE a.end_date >= CURDATE()
-    ORDER BY a.start_date ASC
+    WHERE CURDATE() BETWEEN a.start_date AND a.end_date
+    ORDER BY m.last_name ASC
 ");
-$stmt_absences->execute();
-$all_absences = $stmt_absences->fetchAll();
+$stmt_current_absences->execute();
+$current_absences = $stmt_current_absences->fetchAll();
 
-if (!empty($all_absences)):
+if (!empty($current_absences)):
+    $absence_text = [];
+    foreach ($current_absences as $abs) {
+        $name = htmlspecialchars($abs['first_name'] . ' ' . $abs['last_name']);
+        $text = $name;
+        if ($abs['substitute_member_id']) {
+            $text .= ' (' . date('d.m.', strtotime($abs['start_date'])) . ' - ' . date('d.m.', strtotime($abs['end_date'])) . ')';
+            $text .= ' <i>Vertr.: ' . htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']) . '</i>';
+        } else {
+            $text .= ' (' . date('d.m.', strtotime($abs['start_date'])) . ' - ' . date('d.m.', strtotime($abs['end_date'])) . ')';
+        }
+        $absence_text[] = $text;
+    }
 ?>
-<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-    <h3 style="margin-top: 0; color: #856404;">🏖️ Abwesenheiten & Vertretungen</h3>
-    <div style="display: grid; gap: 10px;">
-        <?php foreach ($all_absences as $abs):
-            $is_current = (date('Y-m-d') >= $abs['start_date'] && date('Y-m-d') <= $abs['end_date']);
-            $bg_color = $is_current ? '#ffe69c' : '#fff';
-        ?>
-            <div style="background: <?php echo $bg_color; ?>; padding: 10px; border-radius: 4px; border: 1px solid #ffc107;">
-                <strong><?php echo htmlspecialchars($abs['first_name'] . ' ' . $abs['last_name']); ?></strong>
-                <?php if ($is_current): ?>
-                    <span style="color: #d9534f; font-weight: 600;">● AKTUELL</span>
-                <?php endif; ?>
-                <br>
-                <small>
-                    📅 <?php echo date('d.m.Y', strtotime($abs['start_date'])); ?>
-                    bis <?php echo date('d.m.Y', strtotime($abs['end_date'])); ?>
-                </small>
-                <?php if ($abs['substitute_member_id']): ?>
-                    <br>
-                    <small>
-                        👤 Vertretung: <strong><?php echo htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']); ?></strong>
-                    </small>
-                <?php endif; ?>
-                <?php if ($abs['reason']): ?>
-                    <br>
-                    <small style="color: #666;">💬 <?php echo htmlspecialchars($abs['reason']); ?></small>
-                <?php endif; ?>
-
-                <?php if ($abs['member_id'] == $current_user['member_id']): ?>
-                    <form method="POST" style="display: inline; margin-left: 10px;" onsubmit="return confirm('Abwesenheit wirklich löschen?');">
-                        <input type="hidden" name="delete_absence" value="1">
-                        <input type="hidden" name="absence_id" value="<?php echo $abs['absence_id']; ?>">
-                        <button type="submit" style="background: #d9534f; color: white; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 11px;">
-                            🗑️ Löschen
-                        </button>
-                    </form>
-                <?php endif; ?>
-            </div>
-        <?php endforeach; ?>
-    </div>
+<div style="background: #f9f9f9; padding: 8px 12px; margin-bottom: 15px; border-radius: 4px; font-size: 13px; color: #666;">
+    <strong style="color: #333;">🎨 Abwesenheiten:</strong>
+    <?php echo implode(' • ', $absence_text); ?>
+    <a href="?tab=vertretung" style="margin-left: 10px; color: #2196f3; text-decoration: none; font-size: 12px;">→ Details</a>
 </div>
-<?php endif; ?>
-
-<!-- EIGENE ABWESENHEIT EINTRAGEN -->
-<details style="margin-bottom: 20px; border: 2px solid #ffc107; border-radius: 4px; padding: 10px;">
-    <summary style="cursor: pointer; font-weight: 600; color: #856404;">🏖️ Meine Abwesenheit eintragen</summary>
-    <form method="POST" action="" style="margin-top: 15px;">
-        <input type="hidden" name="add_absence" value="1">
-
-        <div class="meeting-form-grid-2">
-            <div class="form-group">
-                <label>Von:</label>
-                <input type="date" name="start_date" required>
-            </div>
-            <div class="form-group">
-                <label>Bis:</label>
-                <input type="date" name="end_date" required>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>Vertretung (optional):</label>
-            <select name="substitute_member_id">
-                <option value="">-- Keine Vertretung --</option>
-                <?php foreach ($all_members as $member):
-                    if ($member['member_id'] == $current_user['member_id']) continue;
-                ?>
-                    <option value="<?php echo $member['member_id']; ?>">
-                        <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Grund (optional):</label>
-            <input type="text" name="reason" placeholder="z.B. Urlaub, Dienstreise, Krankheit...">
-        </div>
-
-        <button type="submit">Abwesenheit eintragen</button>
-    </form>
-</details>
-
-<?php if (isset($_GET['msg']) && $_GET['msg'] === 'absence_added'): ?>
-    <div class="message">✅ Abwesenheit erfolgreich eingetragen!</div>
-<?php endif; ?>
-<?php if (isset($_GET['msg']) && $_GET['msg'] === 'absence_deleted'): ?>
-    <div class="message">✅ Abwesenheit erfolgreich gelöscht!</div>
 <?php endif; ?>
 
 <?php if (isset($_GET['success'])): ?>

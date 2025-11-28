@@ -24,11 +24,13 @@ if (isset($_POST['add_absence'])) {
             ");
             $stmt->execute([$member_id, $start_date, $end_date, $substitute_id, $reason]);
 
-            header('Location: index.php?tab=meetings&msg=absence_added');
+            $redirect_tab = ($active_tab === 'vertretung') ? 'vertretung' : 'meetings';
+            header('Location: index.php?tab=' . $redirect_tab . '&msg=absence_added');
             exit;
         } catch (PDOException $e) {
             error_log('Fehler beim Hinzufügen der Abwesenheit: ' . $e->getMessage());
-            header('Location: index.php?tab=meetings&error=absence_failed');
+            $redirect_tab = ($active_tab === 'vertretung') ? 'vertretung' : 'meetings';
+            header('Location: index.php?tab=' . $redirect_tab . '&error=absence_failed');
             exit;
         }
     }
@@ -49,12 +51,14 @@ if (isset($_POST['delete_absence'])) {
                 $stmt = $pdo->prepare("DELETE FROM svabsences WHERE absence_id = ?");
                 $stmt->execute([$absence_id]);
 
-                header('Location: index.php?tab=meetings&msg=absence_deleted');
+                $redirect_tab = ($active_tab === 'vertretung') ? 'vertretung' : 'meetings';
+                header('Location: index.php?tab=' . $redirect_tab . '&msg=absence_deleted');
                 exit;
             }
         } catch (PDOException $e) {
             error_log('Fehler beim Löschen der Abwesenheit: ' . $e->getMessage());
-            header('Location: index.php?tab=meetings&error=absence_delete_failed');
+            $redirect_tab = ($active_tab === 'vertretung') ? 'vertretung' : 'meetings';
+            header('Location: index.php?tab=' . $redirect_tab . '&error=absence_delete_failed');
             exit;
         }
     }

@@ -158,8 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'meetings') {
 }
 
 // PROCESS ABSENCES
-// Wird bei POST-Requests auf dem Meetings-Tab für Abwesenheiten ausgeführt
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'meetings') {
+// Wird bei POST-Requests auf dem Meetings-Tab oder Vertretung-Tab für Abwesenheiten ausgeführt
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($active_tab === 'meetings' || $active_tab === 'vertretung')) {
     require_once 'process_absences.php';
 }
 
@@ -263,6 +263,11 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             📁 Dokumente
         </a>
 
+        <!-- Vertretung-Tab (immer sichtbar) -->
+        <a href="?tab=vertretung" class="<?php echo $active_tab === 'vertretung' ? 'active' : ''; ?>">
+            🎨 Vertretung
+        </a>
+
         <!-- Admin-Tab (nur für Vorstand und GF sichtbar) -->
         <?php //if (in_array($current_user['role'], ['vorstand', 'gf'])): 
 		if ($current_user['is_admin']):
@@ -315,6 +320,11 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             case 'documents':
                 // Dokumentenverwaltung anzeigen
                 include 'tab_documents.php';
+                break;
+
+            case 'vertretung':
+                // Vertretungen & Abwesenheiten anzeigen
+                include 'tab_vertretung.php';
                 break;
 
             case 'admin':
