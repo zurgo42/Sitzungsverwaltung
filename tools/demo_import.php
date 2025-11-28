@@ -310,6 +310,13 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 echo '</div>';
             }
 
+            // Hinweis auf Schema-Probleme
+            echo '<div class="info" style="margin-top: 15px;">';
+            echo '<h4>💡 Häufiges Problem: Unterschiedliche Datenbank-Schemas</h4>';
+            echo '<p>Wenn beim Import Fehler wie "Unknown column" oder "Column not found" auftreten, haben Quell- und Zieldatenbank unterschiedliche Schemas.</p>';
+            echo '<p><strong>Lösung:</strong> <a href="migrate_schema.php" style="color: #0c5460; font-weight: bold;">🔧 Schema-Migration ausführen</a> (Fügt fehlende Spalten hinzu)</p>';
+            echo '</div>';
+
             echo '</div>';
 
             // 3. Daten einfügen
