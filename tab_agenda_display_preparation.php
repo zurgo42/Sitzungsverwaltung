@@ -16,6 +16,36 @@
 require_once 'module_agenda_overview.php';
 require_once 'module_comments.php';
 
+// Aktuelle Abwesenheiten laden (nur für heute laufende Abwesenheiten)
+$stmt_current_absences = $pdo->prepare("
+    SELECT a.*, m.first_name, m.last_name, s.first_name AS sub_first_name, s.last_name AS sub_last_name
+    FROM svabsences a
+    JOIN svmembers m ON a.member_id = m.member_id
+    LEFT JOIN svmembers s ON a.substitute_member_id = s.member_id
+    WHERE CURDATE() BETWEEN a.start_date AND a.end_date
+    ORDER BY m.last_name ASC
+");
+$stmt_current_absences->execute();
+$current_absences = $stmt_current_absences->fetchAll();
+
+// Dezente Abwesenheitsanzeige (nur wenn Abwesenheiten vorhanden)
+if (!empty($current_absences)) {
+    $absence_text = [];
+    foreach ($current_absences as $abs) {
+        $name = $abs['first_name'] . ' ' . $abs['last_name'];
+        $dates = date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date']));
+        $vertr = $abs['sub_first_name'] ? ' Vertr.: ' . $abs['sub_first_name'] . ' ' . $abs['sub_last_name'] : '';
+        $absence_text[] = $name . ' (' . $dates . ')' . $vertr;
+    }
+    ?>
+    <div style="background: #f9f9f9; padding: 8px 12px; margin-bottom: 15px; border-radius: 4px; font-size: 13px; color: #666;">
+        <strong style="color: #333;">🎨 Abwesenheiten:</strong>
+        <?php echo implode(' • ', $absence_text); ?>
+        <a href="?tab=vertretung" style="margin-left: 10px; color: #2196f3; text-decoration: none; font-size: 12px;">→ Details</a>
+    </div>
+    <?php
+}
+
 // Übersicht mit Bewertungs-Tabelle anzeigen (EINMALIG am Anfang)
 render_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
 
@@ -192,15 +222,10 @@ if (!$submission_deadline_passed) {
     </div>
 </details>
 <?php else: ?>
-    <!-- Hinweis: Antragsschluss überschritten -->
-    <div style="margin: 20px 0; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
-        <strong>⚠️ Antragsschluss überschritten</strong><br>
-        Der Antragsschluss war am <strong><?php echo date('d.m.Y', strtotime($submission_deadline_date)); ?> um <?php echo date('H:i', strtotime($submission_deadline_date)); ?> Uhr</strong>.<br>
-        Nur noch der Protokollant und Admins können neue Tagesordnungspunkte hinzufügen.
-        <?php if ($is_secretary || $is_admin): ?>
-            <br><em>Sie haben weiterhin die Berechtigung, TOPs hinzuzufügen.</em>
-        <?php endif; ?>
-    </div>
+    <!-- Hinweis: Antragsschluss überschritten (dezent) -->
+    <p style="margin: 20px 0; color: #666; font-size: 14px;">
+        Antragsschluss war am <?php echo date('d.m.Y', strtotime($submission_deadline_date)); ?> um <?php echo date('H:i', strtotime($submission_deadline_date)); ?> Uhr
+    </p>
 <?php endif; ?>
 
 <style>
