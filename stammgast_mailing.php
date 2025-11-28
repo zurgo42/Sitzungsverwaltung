@@ -18,45 +18,27 @@ if (file_exists(__DIR__ . '/config.php')) {
     require_once __DIR__ . '/config.php';
 }
 
-// PHPMailer laden - versuche verschiedene Pfade
+// PHPMailer laden (alte Version mit class.phpmailer.php)
 if (file_exists(__DIR__ . '/../PHPMailer/class.phpmailer.php')) {
-    // Alte PHPMailer-Version (class.*.php Dateien) - ein Verzeichnis höher
+    // Ein Verzeichnis höher
     require_once __DIR__ . '/../PHPMailer/class.phpmailer.php';
     require_once __DIR__ . '/../PHPMailer/class.smtp.php';
     if (file_exists(__DIR__ . '/../PHPMailer/language/phpmailer.lang-de.php')) {
         require_once __DIR__ . '/../PHPMailer/language/phpmailer.lang-de.php';
     }
 } elseif (file_exists(__DIR__ . '/PHPMailer/class.phpmailer.php')) {
-    // Alte PHPMailer-Version (class.*.php Dateien) - im gleichen Verzeichnis
+    // Im gleichen Verzeichnis
     require_once __DIR__ . '/PHPMailer/class.phpmailer.php';
     require_once __DIR__ . '/PHPMailer/class.smtp.php';
     if (file_exists(__DIR__ . '/PHPMailer/language/phpmailer.lang-de.php')) {
         require_once __DIR__ . '/PHPMailer/language/phpmailer.lang-de.php';
     }
-} elseif (file_exists(__DIR__ . '/vendor/autoload.php')) {
-    // Composer Installation (neue Version)
-    require_once __DIR__ . '/vendor/autoload.php';
-    use PHPMailer\PHPMailer\PHPMailer;
-    use PHPMailer\PHPMailer\Exception;
-} elseif (file_exists(__DIR__ . '/PHPMailer/PHPMailerAutoload.php')) {
-    // Manuelle Installation (ältere Version mit Autoload)
-    require_once __DIR__ . '/PHPMailer/PHPMailerAutoload.php';
-} elseif (file_exists(__DIR__ . '/PHPMailer/src/PHPMailer.php')) {
-    // Manuelle Installation (neue Version mit src/)
-    require_once __DIR__ . '/PHPMailer/src/Exception.php';
-    require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
-    require_once __DIR__ . '/PHPMailer/src/SMTP.php';
-    use PHPMailer\PHPMailer\PHPMailer;
-    use PHPMailer\PHPMailer\Exception;
-} elseif (class_exists('PHPMailer')) {
-    // PHPMailer bereits geladen (z.B. durch andere Includes)
-    // Nichts zu tun
 } else {
     die('FEHLER: PHPMailer nicht gefunden!<br><br>
-        Bitte PHPMailer installieren:<br>
-        1. Via Composer: composer require phpmailer/phpmailer<br>
-        2. Manuell herunterladen von: https://github.com/PHPMailer/PHPMailer<br>
-        3. Entpacken in einen "PHPMailer" Ordner im gleichen oder übergeordneten Verzeichnis');
+        Erwartet wird die alte PHPMailer-Version (class.phpmailer.php) in:<br>
+        - ' . __DIR__ . '/../PHPMailer/<br>
+        - ' . __DIR__ . '/PHPMailer/<br><br>
+        Bitte die vorhandene PHPMailer-Installation verwenden.');
 }
 
 // ============= MAIL-KONFIGURATION =============
@@ -200,17 +182,11 @@ if (isset($_POST['send_mails']) && !empty($_POST['markiert'])) {
 
 /**
  * Sendet E-Mail via PHPMailer mit korrektem UTF-8 Encoding
- * Unterstützt sowohl alte als auch neue PHPMailer-Versionen
+ * Für alte PHPMailer-Version (class.phpmailer.php)
  */
 function send_mail_phpmailer($to, $subject, $html_body, $text_body) {
-    // Alte oder neue PHPMailer-Version?
-    if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
-        // Neue Version mit Namespace
-        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-    } else {
-        // Alte Version ohne Namespace
-        $mail = new PHPMailer();
-    }
+    // Alte PHPMailer-Version ohne Namespace
+    $mail = new PHPMailer();
 
     try {
         // Server-Einstellungen
