@@ -191,13 +191,30 @@ try {
 
         // Nächste Schritte
         echo '<div class="info">';
-        echo '<h3>📋 Nächste Schritte</h3>';
+        echo '<h3>📋 Nächste Schritte - So übertragen Sie die Daten auf einen anderen Server</h3>';
         echo '<ol>';
-        echo '<li>Die Datei <code>demo_data.json</code> wurde im <code>tools/</code>-Verzeichnis erstellt</li>';
-        echo '<li>Sie können diese Datei nun mit Git versionieren</li>';
-        echo '<li>Um die Demo-Daten einzuspielen, verwenden Sie <code>demo_import.php</code></li>';
+        echo '<li><strong>Export erfolgreich!</strong> Die Datei <code>demo_data.json</code> wurde im <code>tools/</code>-Verzeichnis erstellt</li>';
+        echo '<li><strong>Datei auf neuen Server kopieren:</strong>';
+        echo '<ul>';
+        echo '<li>Laden Sie die Datei <code>tools/demo_data.json</code> herunter</li>';
+        echo '<li>Laden Sie sie auf dem Zielserver in das gleiche <code>tools/</code>-Verzeichnis hoch</li>';
+        echo '</ul></li>';
+        echo '<li><strong>Auf dem Zielserver:</strong>';
+        echo '<ul>';
+        echo '<li>Stellen Sie sicher, dass <code>config.php</code> die Einstellung <code>DEMO_MODE_ENABLED = true</code> hat</li>';
+        echo '<li>Führen Sie zuerst <code>init-db.php</code> aus, um die Tabellen anzulegen</li>';
+        echo '<li>Rufen Sie dann <code>tools/demo_import.php</code> im Browser auf</li>';
+        echo '</ul></li>';
+        echo '<li><strong>Lokaler Test:</strong> Sie können die Demo-Daten auch lokal testen mit <code>demo_import.php</code></li>';
         echo '</ol>';
-        echo '<a href="demo_import.php" class="btn">➡️ Zum Import-Tool</a>';
+        echo '<a href="demo_import.php" class="btn">➡️ Zum Import-Tool (lokaler Test)</a>';
+        echo '</div>';
+
+        // Download-Link für die JSON-Datei
+        echo '<div class="card">';
+        echo '<h3>💾 Datei herunterladen</h3>';
+        echo '<p>Klicken Sie hier, um die demo_data.json direkt herunterzuladen:</p>';
+        echo '<a href="demo_data.json" download class="btn">⬇️ demo_data.json herunterladen</a>';
         echo '</div>';
 
     } catch (Exception $e) {

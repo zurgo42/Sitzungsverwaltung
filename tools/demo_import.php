@@ -170,6 +170,21 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
         <p>
             Dieses Skript setzt die Datenbank auf einen sauberen Demo-Stand zurück.
         </p>
+
+        <div class="info" style="margin-top: 20px;">
+            <h3>✅ Checkliste vor dem Import</h3>
+            <ol>
+                <li>✓ <code>config.php</code> hat <code>DEMO_MODE_ENABLED = true</code> <?php echo DEMO_MODE_ENABLED ? '✅' : '❌'; ?></li>
+                <li>✓ <code>init-db.php</code> wurde ausgeführt (Tabellen existieren)</li>
+                <li>✓ <code>tools/demo_data.json</code> existiert <?php echo file_exists($demo_file) ? '✅' : '❌'; ?></li>
+            </ol>
+            <?php if (!DEMO_MODE_ENABLED): ?>
+                <p style="color: #dc3545; font-weight: bold;">⚠️ DEMO_MODE_ENABLED ist auf false! Setzen Sie es auf true in config.php</p>
+            <?php endif; ?>
+            <?php if (!file_exists($demo_file)): ?>
+                <p style="color: #dc3545; font-weight: bold;">⚠️ demo_data.json nicht gefunden! Erstellen Sie sie zuerst mit demo_export.php auf dem Quellserver</p>
+            <?php endif; ?>
+        </div>
         <p><strong>Was wird gelöscht:</strong></p>
         <p>
             <strong>Alle Tabellen mit "sv"-Prefix werden komplett geleert!</strong> Dies umfasst:

@@ -52,6 +52,24 @@ render_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
 // Prüfen ob User Admin ist
 $is_admin = $current_user['is_admin'] == 1;
 
+// Abwesenheiten für alle Mitglieder laden (für Teilnehmerverwaltung)
+$stmt_member_absences = $pdo->query("
+    SELECT a.*, s.first_name AS sub_first_name, s.last_name AS sub_last_name
+    FROM svabsences a
+    LEFT JOIN svmembers s ON a.substitute_member_id = s.member_id
+    WHERE a.end_date >= CURDATE()
+");
+$all_absences_raw = $stmt_member_absences->fetchAll();
+
+// Nach member_id gruppieren
+$member_absences = [];
+foreach ($all_absences_raw as $abs) {
+    if (!isset($member_absences[$abs['member_id']])) {
+        $member_absences[$abs['member_id']] = [];
+    }
+    $member_absences[$abs['member_id']][] = $abs;
+}
+
 // Prüfen ob Antragsschluss überschritten ist
 $submission_deadline_passed = false;
 $submission_deadline_date = null;
@@ -99,8 +117,24 @@ if (!$submission_deadline_passed) {
 
                 <?php if (count($current_participants) > 0): ?>
                     <ul style="margin: 0; padding-left: 20px;">
-                        <?php foreach ($current_participants as $cp): ?>
-                            <li><?php echo htmlspecialchars($cp['first_name'] . ' ' . $cp['last_name'] . ' (' . $cp['role'] . ')'); ?></li>
+                        <?php foreach ($current_participants as $cp):
+                            $has_absence = isset($member_absences[$cp['member_id']]);
+                            $style = $has_absence ? 'background: #fff3cd; padding: 5px; border-left: 3px solid #ffc107; margin-bottom: 5px;' : '';
+                        ?>
+                            <li style="<?php echo $style; ?>">
+                                <?php echo htmlspecialchars($cp['first_name'] . ' ' . $cp['last_name'] . ' (' . $cp['role'] . ')'); ?>
+                                <?php if ($has_absence): ?>
+                                    <br><small style="color: #856404;">
+                                        <?php foreach ($member_absences[$cp['member_id']] as $abs): ?>
+                                            🏖️ <?php echo date('d.m.', strtotime($abs['start_date'])); ?> - <?php echo date('d.m.', strtotime($abs['end_date'])); ?>
+                                            <?php if ($abs['substitute_member_id']): ?>
+                                                (Vertr.: <?php echo htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']); ?>)
+                                            <?php endif; ?>
+                                            <br>
+                                        <?php endforeach; ?>
+                                    </small>
+                                <?php endif; ?>
+                            </li>
                         <?php endforeach; ?>
                     </ul>
                 <?php else: ?>
@@ -133,9 +167,17 @@ if (!$submission_deadline_passed) {
                         <div style="flex: 1;">
                             <select name="new_participant_id" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                                 <option value="">-- Teilnehmer auswählen --</option>
-                                <?php foreach ($uninvited_members as $um): ?>
+                                <?php foreach ($uninvited_members as $um):
+                                    $has_absence_um = isset($member_absences[$um['member_id']]);
+                                    $absence_info = '';
+                                    if ($has_absence_um) {
+                                        foreach ($member_absences[$um['member_id']] as $abs) {
+                                            $absence_info .= ' [Abwesend: ' . date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date'])) . ']';
+                                        }
+                                    }
+                                ?>
                                     <option value="<?php echo $um['member_id']; ?>">
-                                        <?php echo htmlspecialchars($um['first_name'] . ' ' . $um['last_name'] . ' (' . $um['role'] . ')'); ?>
+                                        <?php echo htmlspecialchars($um['first_name'] . ' ' . $um['last_name'] . ' (' . $um['role'] . ')' . $absence_info); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -222,8 +264,8 @@ if (!$submission_deadline_passed) {
     </div>
 </details>
 <?php else: ?>
-    <!-- Hinweis: Antragsschluss überschritten (dezent) -->
-    <p style="margin: 20px 0; color: #666; font-size: 14px;">
+    <!-- Hinweis: Antragsschluss überschritten (dezent mit hellrosa Hintergrund) -->
+    <p style="margin: 20px 0; padding: 10px 15px; background: #ffe8ec; border-radius: 4px; color: #666; font-size: 14px;">
         Antragsschluss war am <?php echo date('d.m.Y', strtotime($submission_deadline_date)); ?> um <?php echo date('H:i', strtotime($submission_deadline_date)); ?> Uhr
     </p>
 <?php endif; ?>
