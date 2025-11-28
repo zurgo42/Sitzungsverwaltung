@@ -10,6 +10,24 @@
 // Nur sichtbare Meetings laden (basierend auf Sichtbarkeitstyp)
 $all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
 $all_members = get_all_members($pdo);
+
+// Abwesenheiten für alle Mitglieder laden (zukünftig und aktuell)
+$stmt_member_absences = $pdo->query("
+    SELECT a.*, s.first_name AS sub_first_name, s.last_name AS sub_last_name
+    FROM svabsences a
+    LEFT JOIN svmembers s ON a.substitute_member_id = s.member_id
+    WHERE a.end_date >= CURDATE()
+");
+$all_absences_raw = $stmt_member_absences->fetchAll();
+
+// Abwesenheiten nach member_id gruppieren
+$member_absences = [];
+foreach ($all_absences_raw as $abs) {
+    if (!isset($member_absences[$abs['member_id']])) {
+        $member_absences[$abs['member_id']] = [];
+    }
+    $member_absences[$abs['member_id']][] = $abs;
+}
 ?>
 
 <style>
@@ -206,14 +224,27 @@ if (!empty($current_absences)):
                     <button type="button" onclick="toggleTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
                 </div>
                 <div class="participants-selector">
-                    <?php foreach ($all_members as $member): ?>
-                        <label class="participant-label">
+                    <?php foreach ($all_members as $member):
+                        $has_absence = isset($member_absences[$member['member_id']]);
+                    ?>
+                        <label class="participant-label" style="<?php echo $has_absence ? 'background: #fff3cd; border-left: 3px solid #ffc107;' : ''; ?>">
                             <input type="checkbox"
                                    name="participant_ids[]"
                                    value="<?php echo $member['member_id']; ?>"
                                    class="participant-checkbox"
                                    data-role="<?php echo htmlspecialchars($member['role']); ?>">
                             <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')'); ?>
+                            <?php if ($has_absence): ?>
+                                <br><small style="color: #856404;">
+                                    <?php foreach ($member_absences[$member['member_id']] as $abs): ?>
+                                        🏖️ <?php echo date('d.m.', strtotime($abs['start_date'])); ?> - <?php echo date('d.m.', strtotime($abs['end_date'])); ?>
+                                        <?php if ($abs['substitute_member_id']): ?>
+                                            (Vertr.: <?php echo htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']); ?>)
+                                        <?php endif; ?>
+                                        <br>
+                                    <?php endforeach; ?>
+                                </small>
+                            <?php endif; ?>
                         </label>
                     <?php endforeach; ?>
                 </div>
@@ -420,8 +451,9 @@ if (!empty($current_absences)):
 
                                 foreach ($all_members as $member):
                                     $is_participant = in_array($member['member_id'], $current_participant_ids);
+                                    $has_absence = isset($member_absences[$member['member_id']]);
                                 ?>
-                                    <label class="participant-label">
+                                    <label class="participant-label" style="<?php echo $has_absence ? 'background: #fff3cd; border-left: 3px solid #ffc107;' : ''; ?>">
                                         <input type="checkbox"
                                                name="participant_ids[]"
                                                value="<?php echo $member['member_id']; ?>"
@@ -429,6 +461,17 @@ if (!empty($current_absences)):
                                                data-role="<?php echo htmlspecialchars($member['role']); ?>"
                                                <?php echo $is_participant ? 'checked' : ''; ?>>
                                         <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')'); ?>
+                                        <?php if ($has_absence): ?>
+                                            <br><small style="color: #856404;">
+                                                <?php foreach ($member_absences[$member['member_id']] as $abs): ?>
+                                                    🏖️ <?php echo date('d.m.', strtotime($abs['start_date'])); ?> - <?php echo date('d.m.', strtotime($abs['end_date'])); ?>
+                                                    <?php if ($abs['substitute_member_id']): ?>
+                                                        (Vertr.: <?php echo htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']); ?>)
+                                                    <?php endif; ?>
+                                                    <br>
+                                                <?php endforeach; ?>
+                                            </small>
+                                        <?php endif; ?>
                                     </label>
                                 <?php endforeach; ?>
                             </div>
