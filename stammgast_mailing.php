@@ -12,31 +12,70 @@
  */
 
 // ============= KONFIGURATION =============
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/vendor/autoload.php'; // PHPMailer via Composer
+// Wenn dieses Skript in einer anderen Anwendung verwendet wird,
+// config.php optional laden (falls vorhanden)
+if (file_exists(__DIR__ . '/config.php')) {
+    require_once __DIR__ . '/config.php';
+}
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
+// PHPMailer laden - versuche verschiedene Pfade
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    // Composer Installation
+    require_once __DIR__ . '/vendor/autoload.php';
+    use PHPMailer\PHPMailer\PHPMailer;
+    use PHPMailer\PHPMailer\Exception;
+} elseif (file_exists(__DIR__ . '/PHPMailer/PHPMailerAutoload.php')) {
+    // Manuelle Installation (alte Version)
+    require_once __DIR__ . '/PHPMailer/PHPMailerAutoload.php';
+} elseif (file_exists(__DIR__ . '/PHPMailer/src/PHPMailer.php')) {
+    // Manuelle Installation (neue Version)
+    require_once __DIR__ . '/PHPMailer/src/Exception.php';
+    require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
+    require_once __DIR__ . '/PHPMailer/src/SMTP.php';
+    use PHPMailer\PHPMailer\PHPMailer;
+    use PHPMailer\PHPMailer\Exception;
+} elseif (class_exists('PHPMailer')) {
+    // PHPMailer bereits geladen (z.B. durch andere Includes)
+    // Nichts zu tun
+} else {
+    die('FEHLER: PHPMailer nicht gefunden!<br><br>
+        Bitte PHPMailer installieren:<br>
+        1. Via Composer: composer require phpmailer/phpmailer<br>
+        2. Manuell herunterladen von: https://github.com/PHPMailer/PHPMailer<br>
+        3. Entpacken in einen "PHPMailer" Ordner im gleichen Verzeichnis wie dieses Skript');
+}
 
-// MAIL-KONFIGURATION
-define('MAIL_HOST', 'mx2e4b.netcup.net');               // SMTP-Server
-define('MAIL_PORT', 25);                                 // SMTP-Port
-define('MAIL_USERNAME', 'info@baltrumhus.de');           // SMTP-Benutzer
-define('MAIL_PASSWORD', '1Pkigg!b');                     // SMTP-Passwort
-define('MAIL_FROM_EMAIL', 'info@baltrumhus.de');         // Absender-Email
-define('MAIL_FROM_NAME', 'Die Meiers: Baltrum Hus in Lee'); // Absender-Name
-define('MAIL_REPLY_TO', 'info@baltrumhus.de');           // Reply-To
+// ============= MAIL-KONFIGURATION =============
+// Falls nicht bereits definiert (z.B. durch config.php)
+if (!defined('MAIL_HOST')) {
+    define('MAIL_HOST', 'mx2e4b.netcup.net');
+    define('MAIL_PORT', 25);
+    define('MAIL_USERNAME', 'info@baltrumhus.de');
+    define('MAIL_PASSWORD', '1Pkigg!b');
+    define('MAIL_FROM_EMAIL', 'info@baltrumhus.de');
+    define('MAIL_FROM_NAME', 'Die Meiers: Baltrum Hus in Lee');
+    define('MAIL_REPLY_TO', 'info@baltrumhus.de');
+}
 
 // Charset auf UTF-8 setzen
 header('Content-Type: text/html; charset=UTF-8');
 mb_internal_encoding('UTF-8');
 
 // ============= DATENBANKVERBINDUNG =============
-$link = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-if (!$link) {
-    die('Datenbankverbindung fehlgeschlagen: ' . mysqli_connect_error());
+// Datenbankverbindung erstellen, falls noch nicht vorhanden (z.B. durch Include)
+if (!isset($link) || !$link) {
+    // Fallback-Werte, falls config.php nicht geladen wurde
+    $db_host = defined('DB_HOST') ? DB_HOST : 'localhost';
+    $db_user = defined('DB_USER') ? DB_USER : 'root';
+    $db_pass = defined('DB_PASS') ? DB_PASS : '';
+    $db_name = defined('DB_NAME') ? DB_NAME : 'k126904_div';
+
+    $link = mysqli_connect($db_host, $db_user, $db_pass, $db_name);
+    if (!$link) {
+        die('Datenbankverbindung fehlgeschlagen: ' . mysqli_connect_error());
+    }
+    mysqli_set_charset($link, "utf8mb4");
 }
-mysqli_set_charset($link, "utf8mb4");
 
 // ============= FORMULAR-VERARBEITUNG =============
 $von_datum = $_POST['von_datum'] ?? date('d.m.Y', strtotime('-2 year'));
