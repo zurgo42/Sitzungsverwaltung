@@ -288,6 +288,27 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             echo '<h2>📥 Importiere Demo-Daten...</h2>';
             echo '<p><strong>Export-Datum:</strong> ' . $demo_data['export_date'] . '</p>';
             echo '<p><strong>Version:</strong> ' . $demo_data['export_version'] . '</p>';
+
+            // Warnung bei zu wenig Daten
+            $has_meetings = isset($demo_data['tables']['svmeetings']) && count($demo_data['tables']['svmeetings']) > 0;
+            $has_agenda = isset($demo_data['tables']['svagenda_items']) && count($demo_data['tables']['svagenda_items']) > 0;
+
+            if (!$has_meetings || !$has_agenda) {
+                echo '<div class="warning" style="margin-top: 15px;">';
+                echo '<h4>⚠️ WARNUNG: JSON-Datei enthält kaum Daten!</h4>';
+                echo '<ul>';
+                if (!$has_meetings) {
+                    echo '<li>❌ Keine Meetings in der JSON-Datei (svmeetings ist leer)</li>';
+                }
+                if (!$has_agenda) {
+                    echo '<li>❌ Keine Tagesordnungspunkte in der JSON-Datei (svagenda_items ist leer)</li>';
+                }
+                echo '</ul>';
+                echo '<p><strong>Mögliche Ursache:</strong> Die demo_data.json wurde von einem Server exportiert, der selbst keine Daten hatte!</p>';
+                echo '<p><strong>Lösung:</strong> Exportieren Sie die Daten vom RICHTIGEN Quellserver (der mit den tatsächlichen Meeting-Daten).</p>';
+                echo '</div>';
+            }
+
             echo '</div>';
 
             // 3. Daten einfügen

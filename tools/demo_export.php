@@ -168,6 +168,27 @@ try {
         $filename = __DIR__ . '/demo_data.json';
         file_put_contents($filename, $json);
 
+        // Warnung bei zu wenig Daten
+        $has_meetings = isset($export_data['tables']['svmeetings']) && count($export_data['tables']['svmeetings']) > 0;
+        $has_agenda = isset($export_data['tables']['svagenda_items']) && count($export_data['tables']['svagenda_items']) > 0;
+
+        if (!$has_meetings || !$has_agenda) {
+            echo '<div class="error">';
+            echo '<h3>⚠️ WARNUNG: Kaum Daten exportiert!</h3>';
+            echo '<p><strong>Problem:</strong> Die Datenbank enthält keine oder kaum Daten!</p>';
+            echo '<ul>';
+            if (!$has_meetings) {
+                echo '<li>❌ Keine Meetings gefunden (svmeetings ist leer)</li>';
+            }
+            if (!$has_agenda) {
+                echo '<li>❌ Keine Tagesordnungspunkte gefunden (svagenda_items ist leer)</li>';
+            }
+            echo '</ul>';
+            echo '<p><strong>Lösung:</strong> Erstellen Sie zuerst einige Demo-Meetings mit TOPs, Kommentaren etc. in der Anwendung, bevor Sie exportieren!</p>';
+            echo '<p>Diese leere JSON-Datei kann zwar importiert werden, enthält aber keine sinnvollen Demo-Daten.</p>';
+            echo '</div>';
+        }
+
         echo '<div class="success">';
         echo '<h3>✅ Export erfolgreich!</h3>';
         echo '<p>Datei erstellt: <code>' . $filename . '</code></p>';
