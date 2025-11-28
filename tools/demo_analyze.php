@@ -138,10 +138,20 @@ $demo_file = __DIR__ . '/demo_data.json';
 
         echo '<div class="card">';
         echo '<h2>📋 Tabellen-Inhalt (Detailliert)</h2>';
+        echo '<p style="color: #666; margin-bottom: 15px;"><strong>Wichtig:</strong> Dies zeigt, was WIRKLICH in der JSON-Datei steht!</p>';
         echo '<table>';
-        echo '<tr><th>Tabelle</th><th>Anzahl Datensätze</th><th>Status</th><th>Beispiel-Daten</th></tr>';
+        echo '<tr><th>Tabelle</th><th>Anzahl Datensätze</th><th>Status</th><th>Erste Zeile (Beispiel)</th></tr>';
 
         foreach ($demo_data['tables'] as $table => $rows) {
+            // WICHTIG: Prüfen ob $rows ein Array ist
+            if (!is_array($rows)) {
+                echo '<tr class="highlight">';
+                echo '<td><strong>' . htmlspecialchars($table) . '</strong></td>';
+                echo '<td colspan="3" style="color: red;">⚠️ FEHLER: Keine Array-Struktur! Typ: ' . gettype($rows) . '</td>';
+                echo '</tr>';
+                continue;
+            }
+
             $count = count($rows);
             $total_records += $count;
 
@@ -150,33 +160,42 @@ $demo_file = __DIR__ . '/demo_data.json';
             if ($count === 0) {
                 $empty_tables[] = $table;
                 $row_class = 'highlight';
-                $status = '❌ LEER';
+                $status = '❌ LEER (0)';
             } else {
                 $filled_tables[] = $table;
                 $row_class = 'good';
-                $status = '✅ OK';
+                $status = '✅ ' . $count . ' Zeilen';
             }
 
             // Beispieldaten anzeigen (erste Zeile)
             $example = '';
             if ($count > 0) {
                 $first_row = $rows[0];
-                $example_fields = array_slice($first_row, 0, 3); // Erste 3 Felder
-                $example = '<small>' . implode(', ', array_map(function($k, $v) {
-                    return htmlspecialchars($k . ': ' . (is_array($v) ? 'Array' : substr($v, 0, 30)));
-                }, array_keys($example_fields), $example_fields)) . '</small>';
+                if (is_array($first_row) && !empty($first_row)) {
+                    $example_fields = array_slice($first_row, 0, 3); // Erste 3 Felder
+                    $example_parts = [];
+                    foreach ($example_fields as $k => $v) {
+                        $val_display = is_array($v) ? 'Array' : (is_null($v) ? 'NULL' : substr((string)$v, 0, 30));
+                        $example_parts[] = htmlspecialchars($k . '=' . $val_display);
+                    }
+                    $example = '<small style="font-family: monospace;">' . implode(', ', $example_parts) . '</small>';
+                } else {
+                    $example = '<small style="color: red;">⚠️ Erste Zeile ist kein Array oder leer!</small>';
+                }
+            } else {
+                $example = '<small style="color: #999;">-</small>';
             }
 
             echo '<tr class="' . $row_class . '">';
             echo '<td><strong>' . htmlspecialchars($table) . '</strong></td>';
-            echo '<td>' . $count . '</td>';
+            echo '<td><strong>' . $count . '</strong></td>';
             echo '<td>' . $status . '</td>';
             echo '<td>' . $example . '</td>';
             echo '</tr>';
         }
 
         echo '</table>';
-        echo '<p style="margin-top: 15px;"><strong>Gesamt-Datensätze:</strong> ' . $total_records . '</p>';
+        echo '<p style="margin-top: 15px;"><strong>Gesamt-Datensätze (sollten importiert werden):</strong> ' . $total_records . '</p>';
         echo '</div>';
 
         // Warnung bei leeren wichtigen Tabellen
