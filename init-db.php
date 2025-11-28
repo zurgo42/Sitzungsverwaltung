@@ -160,11 +160,10 @@ try {
     // Protokolle-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS svprotocols (
         protocol_id INT PRIMARY KEY AUTO_INCREMENT,
-        meeting_id INT DEFAULT NULL,
+        meeting_id INT DEFAULT NULL COMMENT 'Optional: Verknüpfung zum Meeting (kann auch ohne Meeting existieren)',
         protocol_type ENUM('public', 'confidential') DEFAULT 'public',
         content TEXT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (meeting_id) REFERENCES svmeetings(meeting_id) ON DELETE CASCADE,
         INDEX idx_meeting (meeting_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 

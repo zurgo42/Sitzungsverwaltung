@@ -54,46 +54,25 @@ if (isset($demo_data['tables']['svagenda_items'])) {
     }
 }
 
-// 2. Prüfe svprotocols auf ungültige meeting_id
-echo "<h2>Problem 2: svprotocols mit ungültiger meeting_id</h2>";
-if (isset($demo_data['tables']['svprotocols']) && isset($demo_data['tables']['svmeetings'])) {
-    // Sammle alle gültigen meeting_ids
-    $valid_meeting_ids = [];
-    foreach ($demo_data['tables']['svmeetings'] as $meeting) {
-        $valid_meeting_ids[] = $meeting['meeting_id'];
-    }
+// 2. svprotocols - Keine Validierung mehr nötig
+echo "<h2>Info: svprotocols und meeting_id</h2>";
+if (isset($demo_data['tables']['svprotocols'])) {
+    echo "<p class='ok'>✓ svprotocols.meeting_id ist jetzt optional (kein Foreign Key mehr)</p>";
+    echo "<p>Protokolle können auch ohne zugehöriges Meeting existieren. Dies ermöglicht das Löschen von alten Meetings, während die Protokolle erhalten bleiben.</p>";
 
-    echo "<p>Gültige meeting_ids: " . implode(', ', $valid_meeting_ids) . "</p>";
+    $protocol_count = count($demo_data['tables']['svprotocols']);
+    $with_meeting = 0;
+    $without_meeting = 0;
 
-    $invalid_protocols = [];
-    foreach ($demo_data['tables']['svprotocols'] as $index => $protocol) {
-        $meeting_id = $protocol['meeting_id'];
-        if ($meeting_id !== null && !in_array($meeting_id, $valid_meeting_ids)) {
-            $invalid_protocols[] = [
-                'index' => $index,
-                'protocol_id' => $protocol['protocol_id'] ?? 'N/A',
-                'meeting_id' => $meeting_id,
-                'protocol_type' => $protocol['protocol_type'] ?? 'N/A'
-            ];
+    foreach ($demo_data['tables']['svprotocols'] as $protocol) {
+        if ($protocol['meeting_id'] !== null) {
+            $with_meeting++;
+        } else {
+            $without_meeting++;
         }
     }
 
-    if (empty($invalid_protocols)) {
-        echo "<p class='ok'>✓ Keine Probleme gefunden</p>";
-    } else {
-        echo "<p class='error'>✗ " . count($invalid_protocols) . " Protokolle mit ungültiger meeting_id gefunden:</p>";
-        echo "<table>";
-        echo "<tr><th>Index</th><th>protocol_id</th><th>meeting_id</th><th>Typ</th></tr>";
-        foreach ($invalid_protocols as $protocol) {
-            echo "<tr>";
-            echo "<td>" . $protocol['index'] . "</td>";
-            echo "<td>" . $protocol['protocol_id'] . "</td>";
-            echo "<td class='error'>" . $protocol['meeting_id'] . " (existiert nicht!)</td>";
-            echo "<td>" . $protocol['protocol_type'] . "</td>";
-            echo "</tr>";
-        }
-        echo "</table>";
-    }
+    echo "<p>Gesamt: $protocol_count Protokolle ($with_meeting mit Meeting-Verknüpfung, $without_meeting ohne)</p>";
 }
 
 // 3. Allgemeine Foreign Key Validierung
@@ -103,7 +82,7 @@ $fk_checks = [
     'svmeeting_participants' => ['meeting_id' => 'svmeetings', 'member_id' => 'svmembers'],
     'svagenda_items' => ['meeting_id' => 'svmeetings', 'created_by_member_id' => 'svmembers'],
     'svagenda_comments' => ['item_id' => 'svagenda_items', 'member_id' => 'svmembers'],
-    'svprotocols' => ['meeting_id' => 'svmeetings'],
+    // svprotocols: meeting_id ist jetzt optional (kein FK mehr)
     'svtodos' => ['meeting_id' => 'svmeetings', 'assigned_to_member_id' => 'svmembers'],
     'svpoll_responses' => ['poll_id' => 'svpolls', 'member_id' => 'svmembers'],
 ];

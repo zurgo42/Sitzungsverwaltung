@@ -111,42 +111,11 @@ if (isset($demo_data['tables']['svagenda_items'])) {
     }
 }
 
-// 3. Entferne svprotocols mit ungültiger meeting_id
+// 3. svprotocols - Keine Validierung mehr nötig
+// meeting_id ist jetzt optional (kein Foreign Key mehr)
+// Protokolle können auch ohne zugehöriges Meeting existieren
 if (isset($demo_data['tables']['svprotocols'])) {
-    $original_count = count($demo_data['tables']['svprotocols']);
-    $filtered = [];
-    $removed_protocols = [];
-
-    foreach ($demo_data['tables']['svprotocols'] as $protocol) {
-        $meeting_id = $protocol['meeting_id'];
-
-        // NULL ist OK
-        if ($meeting_id === null) {
-            $filtered[] = $protocol;
-            continue;
-        }
-
-        // Prüfe ob meeting_id existiert
-        if (!in_array($meeting_id, $valid_ids['meeting_id'])) {
-            $removed_protocols[] = "protocol_id=" . ($protocol['protocol_id'] ?? 'N/A') . " (meeting_id=$meeting_id existiert nicht)";
-            $total_removed++;
-        } else {
-            $filtered[] = $protocol;
-        }
-    }
-
-    $demo_data['tables']['svprotocols'] = $filtered;
-    $new_count = count($filtered);
-
-    if (!empty($removed_protocols)) {
-        echo "<p class='error'>🔧 svprotocols: " . ($original_count - $new_count) . " Protokolle mit ungültiger meeting_id entfernt:</p><ul>";
-        foreach ($removed_protocols as $info) {
-            echo "<li>" . htmlspecialchars($info) . "</li>";
-        }
-        echo "</ul>";
-    } else {
-        echo "<p class='ok'>✓ svprotocols: Keine Probleme</p>";
-    }
+    echo "<p class='ok'>✓ svprotocols: Keine Validierung nötig (meeting_id ist optional)</p>";
 }
 
 // 4. Weitere Foreign Key Checks

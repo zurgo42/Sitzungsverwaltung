@@ -337,11 +337,11 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 'svpolls',
                 'svopinion_polls',
                 'svdocuments',
+                'svprotocols',  // Keine FK-Abhängigkeit mehr (meeting_id ist optional)
 
                 // Level 3: Abhängig von Level 2
                 'svmeeting_participants',
                 'svagenda_items',
-                'svprotocols',
                 'svtodos',
                 'svpoll_dates',
                 'svpoll_participants',
