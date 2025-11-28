@@ -260,6 +260,7 @@ function send_mail_phpmailer($to, $subject, $html_body, $text_body) {
             color: #2c3e50;
             border-bottom: 3px solid #3498db;
             padding-bottom: 10px;
+            margin-top: 0;
         }
         .form-group {
             margin-bottom: 20px;
@@ -279,7 +280,7 @@ function send_mail_phpmailer($to, $subject, $html_body, $text_body) {
             font-family: Arial, sans-serif;
         }
         textarea {
-            min-height: 310px;
+            min-height: 470px;
             resize: vertical;
         }
         textarea#mail_subject {
