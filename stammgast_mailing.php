@@ -18,14 +18,14 @@ require_once __DIR__ . '/vendor/autoload.php'; // PHPMailer via Composer
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-// MAIL-KONFIGURATION (anpassen!)
-define('MAIL_HOST', 'smtp.example.com');          // SMTP-Server
-define('MAIL_PORT', 25);                          // SMTP-Port
-define('MAIL_USERNAME', 'user@example.com');      // SMTP-Benutzer
-define('MAIL_PASSWORD', 'password');              // SMTP-Passwort
-define('MAIL_FROM_EMAIL', 'info@baltrumhus.de'); // Absender-Email
-define('MAIL_FROM_NAME', 'Baltrum Hus in Lee');  // Absender-Name
-define('MAIL_REPLY_TO', 'info@baltrumhus.de');   // Reply-To
+// MAIL-KONFIGURATION
+define('MAIL_HOST', 'mx2e4b.netcup.net');               // SMTP-Server
+define('MAIL_PORT', 25);                                 // SMTP-Port
+define('MAIL_USERNAME', 'info@baltrumhus.de');           // SMTP-Benutzer
+define('MAIL_PASSWORD', '1Pkigg!b');                     // SMTP-Passwort
+define('MAIL_FROM_EMAIL', 'info@baltrumhus.de');         // Absender-Email
+define('MAIL_FROM_NAME', 'Die Meiers: Baltrum Hus in Lee'); // Absender-Name
+define('MAIL_REPLY_TO', 'info@baltrumhus.de');           // Reply-To
 
 // Charset auf UTF-8 setzen
 header('Content-Type: text/html; charset=UTF-8');
@@ -167,7 +167,7 @@ function send_mail_phpmailer($to, $subject, $html_body, $text_body) {
 
         // Absender
         $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
-        $mail->addReplyTo(MAIL_REPLY_TO);
+        $mail->addReplyTo(MAIL_REPLY_TO, MAIL_FROM_NAME);
 
         // Empfänger
         $mail->addAddress($to);
