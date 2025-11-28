@@ -181,9 +181,31 @@ try {
         }
     }
 
-    // Migration 6: svopinion_responses.updated_at
+    // Migration 6a: svopinion_responses.created_at (falls fehlt)
     try {
-        $pdo->exec("ALTER TABLE svopinion_responses ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at");
+        $pdo->exec("ALTER TABLE svopinion_responses ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER free_text");
+        $migrations[] = "✓ svopinion_responses.created_at hinzugefügt";
+        $success_count++;
+    } catch (PDOException $e) {
+        if (strpos($e->getMessage(), 'Duplicate column') !== false) {
+            $migrations[] = "○ svopinion_responses.created_at existiert bereits";
+            $skip_count++;
+        } else {
+            $errors[] = "svopinion_responses.created_at: " . $e->getMessage();
+        }
+    }
+
+    // Migration 6b: svopinion_responses.updated_at
+    try {
+        // Prüfe ob created_at existiert, sonst nach responded_at
+        $stmt = $pdo->query("SHOW COLUMNS FROM svopinion_responses LIKE 'created_at'");
+        $has_created_at = $stmt->fetch();
+
+        if ($has_created_at) {
+            $pdo->exec("ALTER TABLE svopinion_responses ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at");
+        } else {
+            $pdo->exec("ALTER TABLE svopinion_responses ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER responded_at");
+        }
         $migrations[] = "✓ svopinion_responses.updated_at hinzugefügt";
         $success_count++;
     } catch (PDOException $e) {
