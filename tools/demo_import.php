@@ -230,6 +230,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
     echo '<p><strong>Datei:</strong> <code>' . basename($demo_file) . '</code></p>';
     echo '<p><strong>Größe:</strong> ' . number_format($file_info['size'] / 1024, 2) . ' KB</p>';
     echo '<p><strong>Geändert:</strong> ' . date('d.m.Y H:i:s', $file_info['mtime']) . '</p>';
+    echo '<p><a href="demo_analyze.php" class="btn" style="background: #6c757d; color: white;">🔍 JSON-Datei analysieren (Zeigt was wirklich in der Datei steht)</a></p>';
     echo '</div>';
 
     if (!$confirmed) {

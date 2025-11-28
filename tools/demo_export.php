@@ -236,6 +236,8 @@ try {
         echo '<h3>💾 Datei herunterladen</h3>';
         echo '<p>Klicken Sie hier, um die demo_data.json direkt herunterzuladen:</p>';
         echo '<a href="demo_data.json" download class="btn">⬇️ demo_data.json herunterladen</a>';
+        echo ' ';
+        echo '<a href="demo_analyze.php" class="btn" style="background: #6c757d;">🔍 JSON-Datei analysieren</a>';
         echo '</div>';
 
     } catch (Exception $e) {
