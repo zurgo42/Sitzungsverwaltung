@@ -19,16 +19,30 @@ if (file_exists(__DIR__ . '/config.php')) {
 }
 
 // PHPMailer laden - versuche verschiedene Pfade
-if (file_exists(__DIR__ . '/vendor/autoload.php')) {
-    // Composer Installation
+if (file_exists(__DIR__ . '/../PHPMailer/class.phpmailer.php')) {
+    // Alte PHPMailer-Version (class.*.php Dateien) - ein Verzeichnis höher
+    require_once __DIR__ . '/../PHPMailer/class.phpmailer.php';
+    require_once __DIR__ . '/../PHPMailer/class.smtp.php';
+    if (file_exists(__DIR__ . '/../PHPMailer/language/phpmailer.lang-de.php')) {
+        require_once __DIR__ . '/../PHPMailer/language/phpmailer.lang-de.php';
+    }
+} elseif (file_exists(__DIR__ . '/PHPMailer/class.phpmailer.php')) {
+    // Alte PHPMailer-Version (class.*.php Dateien) - im gleichen Verzeichnis
+    require_once __DIR__ . '/PHPMailer/class.phpmailer.php';
+    require_once __DIR__ . '/PHPMailer/class.smtp.php';
+    if (file_exists(__DIR__ . '/PHPMailer/language/phpmailer.lang-de.php')) {
+        require_once __DIR__ . '/PHPMailer/language/phpmailer.lang-de.php';
+    }
+} elseif (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    // Composer Installation (neue Version)
     require_once __DIR__ . '/vendor/autoload.php';
     use PHPMailer\PHPMailer\PHPMailer;
     use PHPMailer\PHPMailer\Exception;
 } elseif (file_exists(__DIR__ . '/PHPMailer/PHPMailerAutoload.php')) {
-    // Manuelle Installation (alte Version)
+    // Manuelle Installation (ältere Version mit Autoload)
     require_once __DIR__ . '/PHPMailer/PHPMailerAutoload.php';
 } elseif (file_exists(__DIR__ . '/PHPMailer/src/PHPMailer.php')) {
-    // Manuelle Installation (neue Version)
+    // Manuelle Installation (neue Version mit src/)
     require_once __DIR__ . '/PHPMailer/src/Exception.php';
     require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
     require_once __DIR__ . '/PHPMailer/src/SMTP.php';
@@ -42,7 +56,7 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
         Bitte PHPMailer installieren:<br>
         1. Via Composer: composer require phpmailer/phpmailer<br>
         2. Manuell herunterladen von: https://github.com/PHPMailer/PHPMailer<br>
-        3. Entpacken in einen "PHPMailer" Ordner im gleichen Verzeichnis wie dieses Skript');
+        3. Entpacken in einen "PHPMailer" Ordner im gleichen oder übergeordneten Verzeichnis');
 }
 
 // ============= MAIL-KONFIGURATION =============
@@ -186,9 +200,17 @@ if (isset($_POST['send_mails']) && !empty($_POST['markiert'])) {
 
 /**
  * Sendet E-Mail via PHPMailer mit korrektem UTF-8 Encoding
+ * Unterstützt sowohl alte als auch neue PHPMailer-Versionen
  */
 function send_mail_phpmailer($to, $subject, $html_body, $text_body) {
-    $mail = new PHPMailer(true);
+    // Alte oder neue PHPMailer-Version?
+    if (class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+        // Neue Version mit Namespace
+        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+    } else {
+        // Alte Version ohne Namespace
+        $mail = new PHPMailer();
+    }
 
     try {
         // Server-Einstellungen
@@ -200,9 +222,13 @@ function send_mail_phpmailer($to, $subject, $html_body, $text_body) {
         $mail->Port = MAIL_PORT;
 
         // Encoding (WICHTIG für Umlaute!)
-        $mail->CharSet = PHPMailer::CHARSET_UTF8;
+        $mail->CharSet = 'UTF-8';
         $mail->Encoding = 'base64';
-        $mail->setLanguage('de');
+
+        // Sprache setzen (falls verfügbar)
+        if (method_exists($mail, 'setLanguage')) {
+            $mail->setLanguage('de');
+        }
 
         // Absender
         $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
@@ -218,11 +244,17 @@ function send_mail_phpmailer($to, $subject, $html_body, $text_body) {
         $mail->AltBody = $text_body;
 
         // Senden
-        return $mail->send();
+        $result = $mail->send();
+
+        if (!$result) {
+            error_log("PHPMailer Error: {$mail->ErrorInfo}");
+        }
+
+        return $result;
 
     } catch (Exception $e) {
-        error_log("PHPMailer Error: {$mail->ErrorInfo}");
-        throw $e;
+        error_log("PHPMailer Exception: " . $e->getMessage() . " | ErrorInfo: " . $mail->ErrorInfo);
+        return false; // Statt Exception werfen, false zurückgeben
     }
 }
 ?>
