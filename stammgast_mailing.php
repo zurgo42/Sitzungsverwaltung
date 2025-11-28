@@ -76,15 +76,15 @@ if (!isset($link) || !$link) {
 }
 
 // ============= FORMULAR-VERARBEITUNG =============
-$von_datum = $_POST['von_datum'] ?? date('d.m.Y', strtotime('-2 year'));
+$von_datum = $_POST['von_datum'] ?? '01.01.2022';
 $mail_subject = $_POST['mail_subject'] ?? 'In Erinnerung an Ihren Baltrumaufenthalt und Stammgast-Bonus';
 $mail_body = $_POST['mail_body'] ?? "Liebe Gäste,<br>
 wir hoffen, Sie erinnern sich gern an Ihren wunderschönen Aufenthalt vom {anreise} bis {abreise} im Hus in Lee auf Baltrum.<br><br>
 Jetzt, wo die Tage rapide kürzer werden, ist der Gedanke an unbeschwerte Ferientage besonders reizvoll.<br><br>
 Wir haben unsere Webseite neu gestaltet und auch unseren neuen Buchungskalender für 2026 freigeschaltet. Erfahrungsgemäß - man sieht das auch schon - wird in Baltrum relativ früh gebucht. Deshalb möchten wir Ihnen als einem unserer Stammgäste anbieten, Ihren Wunschzeitraum für 2026 schon jetzt zu reservieren.<br><br>
-**Ihre Vorteile bei einer Frühbuchung:**<br><br>
-* **Wunschtermin-Garantie:** Sichern Sie sich genau die Tage, die perfekt in Ihre Planung passen.<br>
-* **Stammgast-Bonus:** Als Dankeschön für Ihre Treue kommen wir Ihnen preislich entgegen:<br>
+Ihre Vorteile bei einer Frühbuchung:<br><br>
+- Wunschtermin-Garantie: Sichern Sie sich genau die Tage, die perfekt in Ihre Planung passen.<br>
+- Stammgast-Bonus: Als Dankeschön für Ihre Treue kommen wir Ihnen preislich entgegen:<br>
 - Sie zahlen keinen Endreinigungs-Aufschlag für den ersten Tag - das wären sonst 110 Euro<br>
 - und wir reduzieren - nur für Sie - den Gesamtpreis um 10%.<br>
 Damit das funktioniert geben Sie bitte bei Ihrer Buchungsanfrage unter dem Feld für die Personenzahl das Wort 'Stammgast' ein. Dann wird Ihnen automatisch der reduzierte Preis angezeigt.<br><br>
@@ -142,7 +142,7 @@ if (isset($_POST['send_mails']) && !empty($_POST['markiert'])) {
     <meta charset="UTF-8">
 </head>
 <body>
-    <img src="http://baltrumhus.de/images/Ansicht.jpg" alt="Baltrum Ferienwohnungen Hus in Lee" height="120">
+    <img src="http://baltrumhus.de/ext/Ansicht.jpg" alt="Baltrum Ferienwohnungen Hus in Lee" height="120">
     <div>' . $body_personalized . '</div>
 </body>
 </html>';
@@ -246,8 +246,8 @@ function send_mail_phpmailer($to, $subject, $html_body, $text_body) {
         body {
             font-family: Arial, sans-serif;
             max-width: 1200px;
-            margin: 20px auto;
-            padding: 20px;
+            margin: 0 auto;
+            padding: 0;
             background: #f5f5f5;
         }
         .container {
@@ -275,12 +275,15 @@ function send_mail_phpmailer($to, $subject, $html_body, $text_body) {
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 16px;
             font-family: Arial, sans-serif;
         }
         textarea {
-            min-height: 200px;
+            min-height: 310px;
             resize: vertical;
+        }
+        textarea#mail_subject {
+            min-height: 40px;
         }
         .small-hint {
             font-size: 12px;
@@ -292,16 +295,18 @@ function send_mail_phpmailer($to, $subject, $html_body, $text_body) {
             border-collapse: collapse;
             margin: 20px 0;
             background: white;
+            font-size: 12px;
         }
         th {
             background: #3498db;
             color: white;
-            padding: 12px;
+            padding: 8px;
             text-align: left;
             font-weight: bold;
+            font-size: 12px;
         }
         td {
-            padding: 10px;
+            padding: 6px;
             border-bottom: 1px solid #ecf0f1;
         }
         tr:hover {
@@ -374,7 +379,7 @@ function send_mail_phpmailer($to, $subject, $html_body, $text_body) {
 
             <div class="form-group">
                 <label for="mail_subject">Betreff:</label>
-                <textarea id="mail_subject" name="mail_subject" rows="2"><?= htmlspecialchars($mail_subject) ?></textarea>
+                <textarea id="mail_subject" name="mail_subject" rows="1"><?= htmlspecialchars($mail_subject) ?></textarea>
             </div>
 
             <div class="form-group">
