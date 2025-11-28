@@ -323,7 +323,10 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 }
 
                 $count = 0;
-                foreach ($rows as $row) {
+                $error_count = 0;
+                $first_error = null;
+
+                foreach ($rows as $row_index => $row) {
                     try {
                         $columns = array_keys($row);
                         $placeholders = array_fill(0, count($columns), '?');
@@ -333,13 +336,31 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                         $stmt->execute(array_values($row));
                         $count++;
                     } catch (PDOException $e) {
-                        $import_errors[] = "Fehler bei Tabelle '$table': " . $e->getMessage();
-                        // Weiter mit nächstem Datensatz
+                        $error_count++;
+                        $error_msg = "Tabelle '$table', Zeile $row_index: " . $e->getMessage();
+                        $import_errors[] = $error_msg;
+
+                        // Ersten Fehler für Schnellübersicht merken
+                        if ($first_error === null) {
+                            $first_error = $e->getMessage();
+                        }
                     }
                 }
 
                 $import_stats[$table] = $count;
-                echo "<p>✓ $table: $count Datensätze importiert</p>";
+
+                // Detaillierte Ausgabe
+                if ($count > 0 && $error_count === 0) {
+                    echo "<p style='color: green;'>✓ $table: <strong>$count</strong> Datensätze erfolgreich importiert</p>";
+                } elseif ($count > 0 && $error_count > 0) {
+                    echo "<p style='color: orange;'>⚠ $table: <strong>$count</strong> importiert, <strong style='color:red;'>$error_count Fehler</strong> - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...</p>";
+                } else {
+                    echo "<p style='color: red;'>✗ $table: <strong>0</strong> Datensätze importiert";
+                    if ($error_count > 0) {
+                        echo " (<strong>$error_count Fehler</strong>) - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...";
+                    }
+                    echo "</p>";
+                }
             }
 
             $pdo->commit();
@@ -347,12 +368,38 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             // Fehler anzeigen (falls vorhanden)
             if (!empty($import_errors)) {
                 echo '<div class="error">';
-                echo '<h3>⚠️ Import-Fehler</h3>';
-                echo '<ul>';
+                echo '<h3>⚠️ Import-Fehler (' . count($import_errors) . ' Fehler)</h3>';
+                echo '<p><strong>Die folgenden Fehler sind beim Import aufgetreten:</strong></p>';
+
+                // Gruppiere Fehler nach Tabelle für bessere Übersicht
+                $errors_by_table = [];
                 foreach ($import_errors as $error) {
-                    echo '<li>' . htmlspecialchars($error) . '</li>';
+                    if (preg_match('/Tabelle \'([^\']+)\'/', $error, $matches)) {
+                        $table_name = $matches[1];
+                        if (!isset($errors_by_table[$table_name])) {
+                            $errors_by_table[$table_name] = [];
+                        }
+                        $errors_by_table[$table_name][] = $error;
+                    } else {
+                        $errors_by_table['Andere'][] = $error;
+                    }
                 }
-                echo '</ul>';
+
+                foreach ($errors_by_table as $table => $errors) {
+                    echo '<details style="margin: 10px 0; border: 1px solid #dc3545; border-radius: 4px; padding: 10px;">';
+                    echo '<summary style="cursor: pointer; font-weight: bold; color: #dc3545;">📋 ' . htmlspecialchars($table) . ' (' . count($errors) . ' Fehler)</summary>';
+                    echo '<ul style="margin-top: 10px;">';
+                    // Zeige maximal erste 10 Fehler pro Tabelle
+                    $shown_errors = array_slice($errors, 0, 10);
+                    foreach ($shown_errors as $error) {
+                        echo '<li style="font-size: 12px; font-family: monospace;">' . htmlspecialchars($error) . '</li>';
+                    }
+                    if (count($errors) > 10) {
+                        echo '<li style="color: #666; font-style: italic;">... und ' . (count($errors) - 10) . ' weitere Fehler</li>';
+                    }
+                    echo '</ul>';
+                    echo '</details>';
+                }
                 echo '</div>';
             }
 
