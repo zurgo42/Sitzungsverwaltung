@@ -53,8 +53,10 @@ if (!defined('MAIL_HOST')) {
     define('MAIL_REPLY_TO', 'info@baltrumhus.de');
 }
 
-// Charset auf UTF-8 setzen
-header('Content-Type: text/html; charset=UTF-8');
+// Charset auf UTF-8 setzen (nur wenn Headers noch nicht gesendet)
+if (!headers_sent()) {
+    header('Content-Type: text/html; charset=UTF-8');
+}
 mb_internal_encoding('UTF-8');
 
 // ============= DATENBANKVERBINDUNG =============
