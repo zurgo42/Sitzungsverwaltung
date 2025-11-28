@@ -87,9 +87,15 @@ function send_via_mail($to, $subject, $message_text, $message_html, $from_email,
     // Boundary für Multipart
     $boundary = md5(uniqid(time()));
 
+    // Betreff MIME-encoden (für Umlaute)
+    $subject_encoded = mb_encode_mimeheader($subject, 'UTF-8');
+
+    // From-Name MIME-encoden (für Umlaute im Namen)
+    $from_name_encoded = mb_encode_mimeheader($from_name, 'UTF-8');
+
     // Headers
     $headers = [];
-    $headers[] = "From: $from_name <$from_email>";
+    $headers[] = "From: $from_name_encoded <$from_email>";
     $headers[] = "Reply-To: $from_email";
     $headers[] = "MIME-Version: 1.0";
     $headers[] = "Content-Type: multipart/alternative; boundary=\"$boundary\"";
@@ -108,8 +114,8 @@ function send_via_mail($to, $subject, $message_text, $message_html, $from_email,
 
     $body .= "--$boundary--";
 
-    // E-Mail senden
-    $result = mail($to, $subject, $body, implode("\r\n", $headers));
+    // E-Mail senden (mit encodiertem Subject)
+    $result = mail($to, $subject_encoded, $body, implode("\r\n", $headers));
 
     if (!$result) {
         error_log("Mail-Versand (mail) fehlgeschlagen: An $to - $subject");
