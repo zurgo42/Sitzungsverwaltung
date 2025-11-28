@@ -323,7 +323,50 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             $import_stats = [];
             $import_errors = [];
 
-            foreach ($demo_data['tables'] as $table => $rows) {
+            // Definierte Import-Reihenfolge nach Foreign Key Hierarchie
+            // Parent-Tabellen müssen vor Child-Tabellen importiert werden
+            $table_order = [
+                // Level 1: Keine Abhängigkeiten
+                'svmembers',
+                'svopinion_answer_templates',
+
+                // Level 2: Abhängig von Level 1
+                'svmeetings',
+                'svabsences',
+                'svadmin_log',
+                'svpolls',
+                'svopinion_polls',
+                'svdocuments',
+
+                // Level 3: Abhängig von Level 2
+                'svmeeting_participants',
+                'svagenda_items',
+                'svprotocols',
+                'svtodos',
+                'svpoll_dates',
+                'svpoll_participants',
+                'svopinion_poll_options',
+                'svopinion_poll_participants',
+                'svopinion_responses',
+                'svdocument_downloads',
+                'svmail_queue',
+
+                // Level 4: Abhängig von Level 3
+                'svagenda_comments',
+                'svprotocol_change_requests',
+                'svtodo_log',
+                'svpoll_responses',
+                'svopinion_response_options',
+            ];
+
+            // Importiere Tabellen in der definierten Reihenfolge
+            foreach ($table_order as $table) {
+                // Überspringe Tabellen, die nicht in der JSON-Datei sind
+                if (!isset($demo_data['tables'][$table])) {
+                    continue;
+                }
+
+                $rows = $demo_data['tables'][$table];
                 if (empty($rows)) {
                     echo "<p style='color: orange;'>⚠ Tabelle '$table': keine Daten zum Importieren</p>";
                     continue;
@@ -357,6 +400,60 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 $import_stats[$table] = $count;
 
                 // Detaillierte Ausgabe
+                if ($count > 0 && $error_count === 0) {
+                    echo "<p style='color: green;'>✓ $table: <strong>$count</strong> Datensätze erfolgreich importiert</p>";
+                } elseif ($count > 0 && $error_count > 0) {
+                    echo "<p style='color: orange;'>⚠ $table: <strong>$count</strong> importiert, <strong style='color:red;'>$error_count Fehler</strong> - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...</p>";
+                } else {
+                    echo "<p style='color: red;'>✗ $table: <strong>0</strong> Datensätze importiert";
+                    if ($error_count > 0) {
+                        echo " (<strong>$error_count Fehler</strong>) - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...";
+                    }
+                    echo "</p>";
+                }
+            }
+
+            // Importiere übrige Tabellen, die nicht in der definierten Reihenfolge sind
+            // (Fallback für neue Tabellen)
+            foreach ($demo_data['tables'] as $table => $rows) {
+                // Überspringe Tabellen, die bereits importiert wurden
+                if (in_array($table, $table_order)) {
+                    continue;
+                }
+
+                if (empty($rows)) {
+                    echo "<p style='color: orange;'>⚠ Tabelle '$table' (nicht in Reihenfolge): keine Daten zum Importieren</p>";
+                    continue;
+                }
+
+                echo "<p style='color: blue;'>ℹ️ Tabelle '$table' (nicht in definierter Reihenfolge) wird importiert...</p>";
+
+                $count = 0;
+                $error_count = 0;
+                $first_error = null;
+
+                foreach ($rows as $row_index => $row) {
+                    try {
+                        $columns = array_keys($row);
+                        $placeholders = array_fill(0, count($columns), '?');
+
+                        $sql = "INSERT INTO $table (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+                        $stmt = $pdo->prepare($sql);
+                        $stmt->execute(array_values($row));
+                        $count++;
+                    } catch (PDOException $e) {
+                        $error_count++;
+                        $error_msg = "Tabelle '$table', Zeile $row_index: " . $e->getMessage();
+                        $import_errors[] = $error_msg;
+
+                        if ($first_error === null) {
+                            $first_error = $e->getMessage();
+                        }
+                    }
+                }
+
+                $import_stats[$table] = $count;
+
                 if ($count > 0 && $error_count === 0) {
                     echo "<p style='color: green;'>✓ $table: <strong>$count</strong> Datensätze erfolgreich importiert</p>";
                 } elseif ($count > 0 && $error_count > 0) {

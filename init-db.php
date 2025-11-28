@@ -319,6 +319,7 @@ try {
         date_id INT NOT NULL,
         member_id INT NOT NULL,
         participant_name VARCHAR(255) DEFAULT NULL,
+        participant_email VARCHAR(255) DEFAULT NULL,
         vote TINYINT NOT NULL COMMENT '-1=Nein, 0=Vielleicht, 1=Ja',
         comment TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
