@@ -323,8 +323,8 @@ function addMorePollDates() {
     const newRow = document.createElement('div');
     newRow.style.cssText = 'display: grid; grid-template-columns: 150px 100px 100px 60px; gap: 10px; align-items: center; margin-bottom: 8px;';
     newRow.innerHTML = `
-        <input type="date" name="date_${pollDateCount}" id="poll_date_${pollDateCount}" onchange="autoFillNextDate(${pollDateCount})" style="width: 100%;">
-        <input type="time" name="time_start_${pollDateCount}" id="poll_time_start_${pollDateCount}" onchange="autoFillNextTime(${pollDateCount})" style="width: 100%;">
+        <input type="date" name="date_${pollDateCount}" id="poll_date_${pollDateCount}" onfocus="autoFillOnFocus(${pollDateCount})" style="width: 100%;">
+        <input type="time" name="time_start_${pollDateCount}" id="poll_time_start_${pollDateCount}" onchange="autoFillEndTime(${pollDateCount})" style="width: 100%;">
         <input type="time" name="time_end_${pollDateCount}" id="poll_time_end_${pollDateCount}" style="width: 100%;">
         <button type="button" onclick="this.parentElement.remove(); pollDateCount--;" style="background: #f44336; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px;">×</button>
     `;
@@ -332,36 +332,45 @@ function addMorePollDates() {
 }
 
 // Auto-Vorschlag: Folgetag mit gleicher Uhrzeit
-function autoFillNextDate(currentIndex) {
+// Wird NUR ausgeführt wenn User ins nächste Feld klickt (onfocus)
+function autoFillOnFocus(currentIndex) {
+    const prevIndex = currentIndex - 1;
+    const prevDateInput = document.getElementById('poll_date_' + prevIndex);
+    const prevTimeStartInput = document.getElementById('poll_time_start_' + prevIndex);
+    const prevTimeEndInput = document.getElementById('poll_time_end_' + prevIndex);
     const currentDateInput = document.getElementById('poll_date_' + currentIndex);
     const currentTimeStartInput = document.getElementById('poll_time_start_' + currentIndex);
-    const nextDateInput = document.getElementById('poll_date_' + (currentIndex + 1));
-    const nextTimeStartInput = document.getElementById('poll_time_start_' + (currentIndex + 1));
+    const currentTimeEndInput = document.getElementById('poll_time_end_' + currentIndex);
 
-    if (currentDateInput && currentDateInput.value && nextDateInput && !nextDateInput.value) {
+    // Nur auto-füllen wenn:
+    // - Vorheriges Datum ausgefüllt ist
+    // - Aktuelles Feld noch leer ist
+    if (prevDateInput && prevDateInput.value && currentDateInput && !currentDateInput.value) {
         // Folgetag berechnen
-        const currentDate = new Date(currentDateInput.value);
-        currentDate.setDate(currentDate.getDate() + 1);
-        const year = currentDate.getFullYear();
-        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-        const day = String(currentDate.getDate()).padStart(2, '0');
-        nextDateInput.value = `${year}-${month}-${day}`;
+        const prevDate = new Date(prevDateInput.value);
+        prevDate.setDate(prevDate.getDate() + 1);
+        const year = prevDate.getFullYear();
+        const month = String(prevDate.getMonth() + 1).padStart(2, '0');
+        const day = String(prevDate.getDate()).padStart(2, '0');
+        currentDateInput.value = `${year}-${month}-${day}`;
+    }
 
-        // Uhrzeit übernehmen wenn vorhanden
-        if (currentTimeStartInput && currentTimeStartInput.value && nextTimeStartInput && !nextTimeStartInput.value) {
-            nextTimeStartInput.value = currentTimeStartInput.value;
-        }
+    // Uhrzeit übernehmen wenn vorhanden
+    if (prevTimeStartInput && prevTimeStartInput.value && currentTimeStartInput && !currentTimeStartInput.value) {
+        currentTimeStartInput.value = prevTimeStartInput.value;
+    }
+    if (prevTimeEndInput && prevTimeEndInput.value && currentTimeEndInput && !currentTimeEndInput.value) {
+        currentTimeEndInput.value = prevTimeEndInput.value;
     }
 }
 
-function autoFillNextTime(currentIndex) {
+// Auto-Berechnung der End-Zeit basierend auf Dauer
+function autoFillEndTime(currentIndex) {
     const currentTimeStartInput = document.getElementById('poll_time_start_' + currentIndex);
     const currentTimeEndInput = document.getElementById('poll_time_end_' + currentIndex);
-    const nextTimeStartInput = document.getElementById('poll_time_start_' + (currentIndex + 1));
-    const nextTimeEndInput = document.getElementById('poll_time_end_' + (currentIndex + 1));
+    const durationInput = document.querySelector('input[name="poll_duration"]');
 
     // Ende-Zeit basierend auf globaler Dauer berechnen (falls vorhanden)
-    const durationInput = document.querySelector('input[name="poll_duration"]');
     if (currentTimeStartInput && currentTimeStartInput.value && currentTimeEndInput && !currentTimeEndInput.value && durationInput && durationInput.value) {
         const [hours, minutes] = currentTimeStartInput.value.split(':');
         const startTime = new Date();
@@ -370,14 +379,6 @@ function autoFillNextTime(currentIndex) {
         const endHours = String(startTime.getHours()).padStart(2, '0');
         const endMinutes = String(startTime.getMinutes()).padStart(2, '0');
         currentTimeEndInput.value = `${endHours}:${endMinutes}`;
-    }
-
-    // Uhrzeit zum nächsten Feld übernehmen
-    if (currentTimeStartInput && currentTimeStartInput.value && nextTimeStartInput && !nextTimeStartInput.value) {
-        nextTimeStartInput.value = currentTimeStartInput.value;
-    }
-    if (currentTimeEndInput && currentTimeEndInput.value && nextTimeEndInput && !nextTimeEndInput.value) {
-        nextTimeEndInput.value = currentTimeEndInput.value;
     }
 }
 </script>
@@ -487,8 +488,8 @@ if (isset($_SESSION['error'])) {
                     <div id="date-suggestions-container">
                         <?php for ($i = 1; $i <= 5; $i++): ?>
                         <div style="display: grid; grid-template-columns: 150px 100px 100px 60px; gap: 10px; align-items: center; margin-bottom: 8px;">
-                            <input type="date" name="date_<?php echo $i; ?>" id="poll_date_<?php echo $i; ?>" onchange="autoFillNextDate(<?php echo $i; ?>)" style="width: 100%;">
-                            <input type="time" name="time_start_<?php echo $i; ?>" id="poll_time_start_<?php echo $i; ?>" onchange="autoFillNextTime(<?php echo $i; ?>)" style="width: 100%;">
+                            <input type="date" name="date_<?php echo $i; ?>" id="poll_date_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
+                            <input type="time" name="time_start_<?php echo $i; ?>" id="poll_time_start_<?php echo $i; ?>" onchange="autoFillEndTime(<?php echo $i; ?>)" style="width: 100%;">
                             <input type="time" name="time_end_<?php echo $i; ?>" id="poll_time_end_<?php echo $i; ?>" style="width: 100%;">
                             <span></span>
                         </div>
@@ -497,7 +498,7 @@ if (isset($_SESSION['error'])) {
 
                     <button type="button" onclick="addMorePollDates()" class="btn-secondary" style="margin-top: 10px;">+ Weiteren Termin hinzufügen</button>
                     <small style="display: block; margin-top: 10px; color: #666;">
-                        Sie können bis zu 20 Terminvorschläge hinzufügen. Nach Eingabe von Datum/Uhrzeit wird automatisch der Folgetag vorgeschlagen.
+                        Sie können bis zu 20 Terminvorschläge hinzufügen. Wenn Sie ins nächste Datumsfeld klicken, wird automatisch der Folgetag mit gleicher Uhrzeit vorgeschlagen.
                     </small>
                 </div>
 
