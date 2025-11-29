@@ -155,6 +155,14 @@ $active_tab = $_GET['tab'] ?? 'meetings';
 $current_meeting_id = isset($_GET['meeting_id']) ? intval($_GET['meeting_id']) : null;
 
 // ============================================
+// DEMO-MODUS: DYNAMISCHE DATUMSANPASSUNG
+// ============================================
+if (defined('DEMO_MODE_ENABLED') && DEMO_MODE_ENABLED) {
+    require_once 'tools/update_demo_dates.php';
+    update_demo_meeting_dates($pdo);
+}
+
+// ============================================
 // PROCESS-DATEIEN EINBINDEN
 // Diese Dateien verarbeiten POST-Requests und führen Datenbankoperationen aus
 // Sie werden VOR der HTML-Ausgabe eingebunden
