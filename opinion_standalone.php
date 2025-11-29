@@ -282,6 +282,11 @@ if ($view === 'list') {
 
 // HTML schließen im Standalone-Modus
 if (!$is_sitzungsverwaltung) {
+    echo '<footer class="page-footer">';
+    echo FOOTER_COPYRIGHT . ' | ';
+    echo '<a href="' . FOOTER_IMPRESSUM_URL . '" target="_blank">Impressum</a> | ';
+    echo '<a href="' . FOOTER_DATENSCHUTZ_URL . '" target="_blank">Datenschutz</a>';
+    echo '</footer>';
     echo '</body></html>';
 }
 ?>

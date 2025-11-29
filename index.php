@@ -380,5 +380,12 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
         }
     }
     </script>
+
+    <!-- FOOTER -->
+    <footer class="page-footer">
+        <?php echo FOOTER_COPYRIGHT; ?> |
+        <a href="<?php echo FOOTER_IMPRESSUM_URL; ?>" target="_blank">Impressum</a> |
+        <a href="<?php echo FOOTER_DATENSCHUTZ_URL; ?>" target="_blank">Datenschutz</a>
+    </footer>
 </body>
 </html>
