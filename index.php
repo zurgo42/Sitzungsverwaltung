@@ -92,6 +92,12 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
 // ============================================
 // Nur wenn normaler Login-Modus aktiv ist
 if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
+    // Im Demo-Modus: Zur Welcome-Seite umleiten (außer bei Login-Versuchen)
+    if (defined('DEMO_MODE_ENABLED') && DEMO_MODE_ENABLED && !isset($login_error)) {
+        header('Location: welcome.php');
+        exit;
+    }
+
     ?>
     <!DOCTYPE html>
     <html lang="de">
@@ -108,6 +114,9 @@ if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
 
                 <?php if (isset($login_error)): ?>
                     <div class="error-message"><?php echo $login_error; ?></div>
+                    <p style="text-align: center; margin-top: 15px;">
+                        <a href="welcome.php" style="color: #667eea; text-decoration: none;">← Zurück zur Startseite</a>
+                    </p>
                 <?php endif; ?>
 
                 <form method="POST" action="">
@@ -155,6 +164,12 @@ $current_meeting_id = isset($_GET['meeting_id']) ? intval($_GET['meeting_id']) :
 // Wird nur bei POST-Requests auf dem Meetings-Tab ausgeführt
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'meetings') {
     require_once 'process_meetings.php';
+}
+
+// PROCESS ABSENCES
+// Wird bei POST-Requests auf dem Meetings-Tab oder Vertretung-Tab für Abwesenheiten ausgeführt
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($active_tab === 'meetings' || $active_tab === 'vertretung')) {
+    require_once 'process_absences.php';
 }
 
 // PROCESS AGENDA
@@ -257,6 +272,11 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             📁 Dokumente
         </a>
 
+        <!-- Vertretung-Tab (immer sichtbar) -->
+        <a href="?tab=vertretung" class="<?php echo $active_tab === 'vertretung' ? 'active' : ''; ?>">
+            🎨 Vertretung
+        </a>
+
         <!-- Admin-Tab (nur für Vorstand und GF sichtbar) -->
         <?php //if (in_array($current_user['role'], ['vorstand', 'gf'])): 
 		if ($current_user['is_admin']):
@@ -309,6 +329,11 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             case 'documents':
                 // Dokumentenverwaltung anzeigen
                 include 'tab_documents.php';
+                break;
+
+            case 'vertretung':
+                // Vertretungen & Abwesenheiten anzeigen
+                include 'tab_vertretung.php';
                 break;
 
             case 'admin':

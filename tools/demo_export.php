@@ -168,6 +168,27 @@ try {
         $filename = __DIR__ . '/demo_data.json';
         file_put_contents($filename, $json);
 
+        // Warnung bei zu wenig Daten
+        $has_meetings = isset($export_data['tables']['svmeetings']) && count($export_data['tables']['svmeetings']) > 0;
+        $has_agenda = isset($export_data['tables']['svagenda_items']) && count($export_data['tables']['svagenda_items']) > 0;
+
+        if (!$has_meetings || !$has_agenda) {
+            echo '<div class="error">';
+            echo '<h3>⚠️ WARNUNG: Kaum Daten exportiert!</h3>';
+            echo '<p><strong>Problem:</strong> Die Datenbank enthält keine oder kaum Daten!</p>';
+            echo '<ul>';
+            if (!$has_meetings) {
+                echo '<li>❌ Keine Meetings gefunden (svmeetings ist leer)</li>';
+            }
+            if (!$has_agenda) {
+                echo '<li>❌ Keine Tagesordnungspunkte gefunden (svagenda_items ist leer)</li>';
+            }
+            echo '</ul>';
+            echo '<p><strong>Lösung:</strong> Erstellen Sie zuerst einige Demo-Meetings mit TOPs, Kommentaren etc. in der Anwendung, bevor Sie exportieren!</p>';
+            echo '<p>Diese leere JSON-Datei kann zwar importiert werden, enthält aber keine sinnvollen Demo-Daten.</p>';
+            echo '</div>';
+        }
+
         echo '<div class="success">';
         echo '<h3>✅ Export erfolgreich!</h3>';
         echo '<p>Datei erstellt: <code>' . $filename . '</code></p>';
@@ -191,13 +212,32 @@ try {
 
         // Nächste Schritte
         echo '<div class="info">';
-        echo '<h3>📋 Nächste Schritte</h3>';
+        echo '<h3>📋 Nächste Schritte - So übertragen Sie die Daten auf einen anderen Server</h3>';
         echo '<ol>';
-        echo '<li>Die Datei <code>demo_data.json</code> wurde im <code>tools/</code>-Verzeichnis erstellt</li>';
-        echo '<li>Sie können diese Datei nun mit Git versionieren</li>';
-        echo '<li>Um die Demo-Daten einzuspielen, verwenden Sie <code>demo_import.php</code></li>';
+        echo '<li><strong>Export erfolgreich!</strong> Die Datei <code>demo_data.json</code> wurde im <code>tools/</code>-Verzeichnis erstellt</li>';
+        echo '<li><strong>Datei auf neuen Server kopieren:</strong>';
+        echo '<ul>';
+        echo '<li>Laden Sie die Datei <code>tools/demo_data.json</code> herunter</li>';
+        echo '<li>Laden Sie sie auf dem Zielserver in das gleiche <code>tools/</code>-Verzeichnis hoch</li>';
+        echo '</ul></li>';
+        echo '<li><strong>Auf dem Zielserver:</strong>';
+        echo '<ul>';
+        echo '<li>Stellen Sie sicher, dass <code>config.php</code> die Einstellung <code>DEMO_MODE_ENABLED = true</code> hat</li>';
+        echo '<li>Führen Sie zuerst <code>init-db.php</code> aus, um die Tabellen anzulegen</li>';
+        echo '<li>Rufen Sie dann <code>tools/demo_import.php</code> im Browser auf</li>';
+        echo '</ul></li>';
+        echo '<li><strong>Lokaler Test:</strong> Sie können die Demo-Daten auch lokal testen mit <code>demo_import.php</code></li>';
         echo '</ol>';
-        echo '<a href="demo_import.php" class="btn">➡️ Zum Import-Tool</a>';
+        echo '<a href="demo_import.php" class="btn">➡️ Zum Import-Tool (lokaler Test)</a>';
+        echo '</div>';
+
+        // Download-Link für die JSON-Datei
+        echo '<div class="card">';
+        echo '<h3>💾 Datei herunterladen</h3>';
+        echo '<p>Klicken Sie hier, um die demo_data.json direkt herunterzuladen:</p>';
+        echo '<a href="demo_data.json" download class="btn">⬇️ demo_data.json herunterladen</a>';
+        echo ' ';
+        echo '<a href="demo_analyze.php" class="btn" style="background: #6c757d;">🔍 JSON-Datei analysieren</a>';
         echo '</div>';
 
     } catch (Exception $e) {

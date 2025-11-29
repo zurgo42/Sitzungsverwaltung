@@ -172,13 +172,14 @@ header p,
 
 .tabs a,
 .navigation a {
-    padding: 10px 20px;
+    padding: 8px 14px;
     background: #f5f5f5;
     color: #333;
     text-decoration: none;
     border-radius: 5px;
     transition: all 0.3s;
     font-weight: 500;
+    font-size: 14px;
 }
 
 .tabs a.active,
@@ -189,8 +190,8 @@ header p,
 
 .tabs a:hover,
 .navigation a:hover {
-    background: #5568d3;
-    color: white;
+    background: #e0e5f5;
+    color: #333;
 }
 
 /* ==============================================

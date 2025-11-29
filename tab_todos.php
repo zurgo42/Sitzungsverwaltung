@@ -134,13 +134,13 @@ function status_anzeige($status) {
 // ============================================
 
 $sql = "
-SELECT 
+SELECT
     t.*,
     m1.first_name AS assigned_to_first_name,
     m1.last_name AS assigned_to_last_name,
     m2.first_name AS created_by_first_name,
     m2.last_name AS created_by_last_name,
-    meetings.meeting_name,
+    mtg.meeting_name,
     CASE
         WHEN t.assigned_to_member_id = :member_id THEN 'own'
         WHEN t.status <> 'done' THEN 'active'
@@ -149,7 +149,7 @@ SELECT
 FROM svtodos t
 LEFT JOIN svmembers m1 ON t.assigned_to_member_id = m1.member_id
 LEFT JOIN svmembers m2 ON t.created_by_member_id = m2.member_id
-LEFT JOIN svmeetings ON t.meeting_id = meetings.meeting_id
+LEFT JOIN svmeetings mtg ON t.meeting_id = mtg.meeting_id
 WHERE
     (
         t.is_private = 0
