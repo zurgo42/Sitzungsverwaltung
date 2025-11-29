@@ -61,39 +61,43 @@ foreach ($all_absences_raw as $abs) {
 }
 </style>
 
-<h2>📅 Meetings verwalten</h2>
+<h2>🤝 Meetings verwalten</h2>
 
 <!-- DEZENTE ABWESENHEITS-ANZEIGE -->
 <?php
-// Nur aktuelle Abwesenheiten laden (heute)
-$stmt_current_absences = $pdo->prepare("
-    SELECT a.*, m.first_name, m.last_name, s.first_name AS sub_first_name, s.last_name AS sub_last_name
+// Alle aktuellen und zukünftigen Abwesenheiten laden
+$stmt_absences = $pdo->prepare("
+    SELECT a.*, m.first_name, m.last_name, s.first_name AS sub_first_name, s.last_name AS sub_last_name,
+           CURDATE() BETWEEN a.start_date AND a.end_date AS is_current
     FROM svabsences a
     JOIN svmembers m ON a.member_id = m.member_id
     LEFT JOIN svmembers s ON a.substitute_member_id = s.member_id
-    WHERE CURDATE() BETWEEN a.start_date AND a.end_date
-    ORDER BY m.last_name ASC
+    WHERE a.end_date >= CURDATE()
+    ORDER BY a.start_date ASC, m.last_name ASC
 ");
-$stmt_current_absences->execute();
-$current_absences = $stmt_current_absences->fetchAll();
+$stmt_absences->execute();
+$all_absences = $stmt_absences->fetchAll();
 
-if (!empty($current_absences)):
-    $absence_text = [];
-    foreach ($current_absences as $abs) {
+if (!empty($all_absences)):
+    $absence_items = [];
+    foreach ($all_absences as $abs) {
         $name = htmlspecialchars($abs['first_name'] . ' ' . $abs['last_name']);
-        $text = $name;
-        if ($abs['substitute_member_id']) {
-            $text .= ' (' . date('d.m.', strtotime($abs['start_date'])) . ' - ' . date('d.m.', strtotime($abs['end_date'])) . ')';
-            $text .= ' <i>Vertr.: ' . htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']) . '</i>';
+        $dates = date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date']));
+        $vertr = $abs['substitute_member_id'] ? ' Vertr.: ' . htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']) : '';
+
+        $text = $name . ' (' . $dates . ')' . $vertr;
+
+        // Aktuelle Abwesenheiten in rot
+        if ($abs['is_current']) {
+            $absence_items[] = '<span style="color: #d32f2f; font-weight: 600;">' . $text . '</span>';
         } else {
-            $text .= ' (' . date('d.m.', strtotime($abs['start_date'])) . ' - ' . date('d.m.', strtotime($abs['end_date'])) . ')';
+            $absence_items[] = $text;
         }
-        $absence_text[] = $text;
     }
 ?>
 <div style="background: #f9f9f9; padding: 8px 12px; margin-bottom: 15px; border-radius: 4px; font-size: 13px; color: #666;">
-    <strong style="color: #333;">🎨 Abwesenheiten:</strong>
-    <?php echo implode(' • ', $absence_text); ?>
+    <strong style="color: #333;">🏖️ Abwesenheiten:</strong>
+    <?php echo implode(' • ', $absence_items); ?>
     <a href="?tab=vertretung" style="margin-left: 10px; color: #2196f3; text-decoration: none; font-size: 12px;">→ Details</a>
 </div>
 <?php endif; ?>

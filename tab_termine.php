@@ -485,7 +485,7 @@ function copyToClipboard(text) {
 }
 </script>
 
-<h2>📅 Terminplanung & Umfragen</h2>
+<h2>📆 Terminplanung & Umfragen</h2>
 
 <?php
 // Success/Error Messages

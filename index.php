@@ -242,42 +242,27 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
     
     <!-- NAVIGATION / TABS -->
     <div class="navigation">
+        <!-- Termine-Tab (immer sichtbar) -->
+        <a href="?tab=termine" class="<?php echo $active_tab === 'termine' ? 'active' : ''; ?>">
+            📆 Termine
+        </a>
+
         <!-- Meetings-Tab (immer sichtbar) -->
         <a href="?tab=meetings" class="<?php echo $active_tab === 'meetings' ? 'active' : ''; ?>">
-            📅 Meetings
+            🤝 Meetings
         </a>
-        
+
         <!-- Agenda-Tab (nur sichtbar wenn ein Meeting ausgewählt ist) -->
         <?php if ($current_meeting_id): ?>
-            <a href="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" 
+            <a href="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>"
                class="<?php echo $active_tab === 'agenda' ? 'active' : ''; ?>">
                 📋 Tagesordnung
             </a>
         <?php endif; ?>
-        
-        <!-- Termine-Tab (immer sichtbar) -->
-        <a href="?tab=termine" class="<?php echo $active_tab === 'termine' ? 'active' : ''; ?>">
-            📅 Termine
-        </a>
-
-        <!-- Meinungsbild-Tab (immer sichtbar) -->
-        <a href="?tab=opinion" class="<?php echo $active_tab === 'opinion' ? 'active' : ''; ?>">
-            📊 Meinungsbild
-        </a>
-
-        <!-- ToDos-Tab (immer sichtbar) -->
-        <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
-            ✅ Meine ToDos
-        </a>
 
         <!-- Protokolle-Tab (immer sichtbar) -->
         <a href="?tab=protokolle" class="<?php echo $active_tab === 'protokolle' ? 'active' : ''; ?>">
             📋 Protokolle
-        </a>
-
-        <!-- Dokumente-Tab (immer sichtbar) -->
-        <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
-            📁 Dokumente
         </a>
 
         <!-- Vertretung-Tab (immer sichtbar) -->
@@ -285,8 +270,23 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             🎨 Vertretung
         </a>
 
+        <!-- ToDos-Tab (immer sichtbar) -->
+        <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
+            ✅ Meine ToDos
+        </a>
+
+        <!-- Meinungsbild-Tab (immer sichtbar) -->
+        <a href="?tab=opinion" class="<?php echo $active_tab === 'opinion' ? 'active' : ''; ?>">
+            📊 Meinungsbild
+        </a>
+
+        <!-- Dokumente-Tab (immer sichtbar) -->
+        <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
+            📁 Dokumente
+        </a>
+
         <!-- Admin-Tab (nur für Vorstand und GF sichtbar) -->
-        <?php //if (in_array($current_user['role'], ['vorstand', 'gf'])): 
+        <?php //if (in_array($current_user['role'], ['vorstand', 'gf'])):
 		if ($current_user['is_admin']):
 		?>
             <a href="?tab=admin" class="<?php echo $active_tab === 'admin' ? 'active' : ''; ?>">

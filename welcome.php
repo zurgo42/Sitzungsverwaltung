@@ -78,7 +78,7 @@ if (isset($_GET['demo_email'])) {
     <link rel="stylesheet" href="style.css">
     <style>
         .welcome-content {
-            max-width: 900px;
+            max-width: 1100px;
             margin: 20px auto;
             padding: 0 15px;
         }
@@ -100,7 +100,7 @@ if (isset($_GET['demo_email'])) {
         .features-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 8px 20px;
+            gap: 8px 40px;
         }
 
         .feature-item {
@@ -214,7 +214,7 @@ if (isset($_GET['demo_email'])) {
             <h2>Was diese Anwendung leistet:</h2>
             <div class="features-grid">
                 <div class="feature-item">
-                    <span class="icon">🗓️</span>
+                    <span class="icon">🤝</span>
                     <span class="text"><strong>Meetings:</strong> Planung, Teilnehmer, Status</span>
                 </div>
                 <div class="feature-item">
@@ -222,7 +222,7 @@ if (isset($_GET['demo_email'])) {
                     <span class="text"><strong>Tagesordnung:</strong> TOPs, Kommentare, Abstimmungen</span>
                 </div>
                 <div class="feature-item">
-                    <span class="icon">📅</span>
+                    <span class="icon">📆</span>
                     <span class="text"><strong>Termine:</strong> Terminabstimmung, Umfragen</span>
                 </div>
                 <div class="feature-item">
