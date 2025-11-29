@@ -2366,17 +2366,18 @@ button:hover {
    ============================================== */
 
 .page-footer {
-    background: #f8f9fa;
-    border-top: 1px solid #dee2e6;
+    background: linear-gradient(135deg, #5568d3 0%, #0047c2 100%);
+    color: white;
     padding: 12px 20px;
     text-align: center;
     font-size: 12px;
-    color: #666;
     margin-top: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .page-footer a {
-    color: #5568d3;
+    color: white;
     text-decoration: none;
     margin: 0 10px;
 }
