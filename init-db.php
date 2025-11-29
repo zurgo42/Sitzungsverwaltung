@@ -70,6 +70,7 @@ try {
         chairman_name VARCHAR(255) DEFAULT NULL,
         secretary_member_id INT DEFAULT NULL,
         secretary_name VARCHAR(255) DEFAULT NULL,
+        active_item_id INT DEFAULT NULL COMMENT 'Aktuell aktiver TOP während der Sitzung',
         started_at DATETIME DEFAULT NULL,
         ended_at DATETIME DEFAULT NULL,
         status ENUM('preparation', 'active', 'ended', 'protocol_ready', 'archived') DEFAULT 'preparation',
@@ -159,11 +160,10 @@ try {
     // Protokolle-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS svprotocols (
         protocol_id INT PRIMARY KEY AUTO_INCREMENT,
-        meeting_id INT DEFAULT NULL,
+        meeting_id INT DEFAULT NULL COMMENT 'Optional: Verknüpfung zum Meeting (kann auch ohne Meeting existieren)',
         protocol_type ENUM('public', 'confidential') DEFAULT 'public',
         content TEXT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (meeting_id) REFERENCES svmeetings(meeting_id) ON DELETE CASCADE,
         INDEX idx_meeting (meeting_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
@@ -302,6 +302,7 @@ try {
         participant_id INT PRIMARY KEY AUTO_INCREMENT,
         poll_id INT NOT NULL,
         member_id INT NOT NULL,
+        invited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (poll_id) REFERENCES svpolls(poll_id) ON DELETE CASCADE,
         FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
@@ -316,6 +317,8 @@ try {
         poll_id INT NOT NULL,
         date_id INT NOT NULL,
         member_id INT NOT NULL,
+        participant_name VARCHAR(255) DEFAULT NULL,
+        participant_email VARCHAR(255) DEFAULT NULL,
         vote TINYINT NOT NULL COMMENT '-1=Nein, 0=Vielleicht, 1=Ja',
         comment TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -337,6 +340,7 @@ try {
     $tables[] = "CREATE TABLE IF NOT EXISTS svopinion_answer_templates (
         template_id INT PRIMARY KEY AUTO_INCREMENT,
         template_name VARCHAR(100) NOT NULL,
+        description TEXT DEFAULT NULL,
         option_1 VARCHAR(100) DEFAULT NULL,
         option_2 VARCHAR(100) DEFAULT NULL,
         option_3 VARCHAR(100) DEFAULT NULL,
@@ -387,6 +391,7 @@ try {
         poll_id INT NOT NULL,
         option_text VARCHAR(255) NOT NULL,
         sort_order INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (poll_id) REFERENCES svopinion_polls(poll_id) ON DELETE CASCADE,
         INDEX idx_poll (poll_id),
         INDEX idx_sort_order (sort_order)
@@ -397,6 +402,7 @@ try {
         participant_id INT PRIMARY KEY AUTO_INCREMENT,
         poll_id INT NOT NULL,
         member_id INT NOT NULL,
+        invited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (poll_id) REFERENCES svopinion_polls(poll_id) ON DELETE CASCADE,
         FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
@@ -414,6 +420,8 @@ try {
         free_text TEXT DEFAULT NULL COMMENT 'Optionaler Kommentar',
         force_anonymous TINYINT(1) DEFAULT 0 COMMENT 'User will anonym bleiben',
         responded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (poll_id) REFERENCES svopinion_polls(poll_id) ON DELETE CASCADE,
         FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
         INDEX idx_poll (poll_id),
@@ -505,6 +513,27 @@ try {
         INDEX idx_document (document_id),
         INDEX idx_member (member_id),
         INDEX idx_downloaded_at (downloaded_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // =========================================================
+    // ABWESENHEITS-VERWALTUNG
+    // =========================================================
+
+    // Abwesenheiten-Tabelle
+    $tables[] = "CREATE TABLE IF NOT EXISTS svabsences (
+        absence_id INT PRIMARY KEY AUTO_INCREMENT,
+        member_id INT NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        substitute_member_id INT DEFAULT NULL COMMENT 'Vertretung durch dieses Mitglied',
+        reason VARCHAR(255) DEFAULT NULL COMMENT 'Grund der Abwesenheit (optional)',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (substitute_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL,
+        INDEX idx_member (member_id),
+        INDEX idx_dates (start_date, end_date),
+        INDEX idx_substitute (substitute_member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Tabellen erstellen
@@ -601,11 +630,11 @@ try {
 
     echo "<p>Erstelle Trigger und füge Initialdaten ein...</p>";
 
-    // Trigger für automatische Datums-Berechnung bei opinion_polls
-    $pdo->exec("DROP TRIGGER IF EXISTS opinion_polls_before_insert");
+    // Trigger für automatische Datums-Berechnung bei svopinion_polls
+    $pdo->exec("DROP TRIGGER IF EXISTS svopinion_polls_before_insert");
     $pdo->exec("
-        CREATE TRIGGER opinion_polls_before_insert
-        BEFORE INSERT ON opinion_polls
+        CREATE TRIGGER svopinion_polls_before_insert
+        BEFORE INSERT ON svopinion_polls
         FOR EACH ROW
         BEGIN
             IF NEW.ends_at IS NULL THEN

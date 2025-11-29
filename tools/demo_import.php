@@ -170,6 +170,21 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
         <p>
             Dieses Skript setzt die Datenbank auf einen sauberen Demo-Stand zurück.
         </p>
+
+        <div class="info" style="margin-top: 20px;">
+            <h3>✅ Checkliste vor dem Import</h3>
+            <ol>
+                <li>✓ <code>config.php</code> hat <code>DEMO_MODE_ENABLED = true</code> <?php echo DEMO_MODE_ENABLED ? '✅' : '❌'; ?></li>
+                <li>✓ <code>init-db.php</code> wurde ausgeführt (Tabellen existieren)</li>
+                <li>✓ <code>tools/demo_data.json</code> existiert <?php echo file_exists($demo_file) ? '✅' : '❌'; ?></li>
+            </ol>
+            <?php if (!DEMO_MODE_ENABLED): ?>
+                <p style="color: #dc3545; font-weight: bold;">⚠️ DEMO_MODE_ENABLED ist auf false! Setzen Sie es auf true in config.php</p>
+            <?php endif; ?>
+            <?php if (!file_exists($demo_file)): ?>
+                <p style="color: #dc3545; font-weight: bold;">⚠️ demo_data.json nicht gefunden! Erstellen Sie sie zuerst mit demo_export.php auf dem Quellserver</p>
+            <?php endif; ?>
+        </div>
         <p><strong>Was wird gelöscht:</strong></p>
         <p>
             <strong>Alle Tabellen mit "sv"-Prefix werden komplett geleert!</strong> Dies umfasst:
@@ -215,6 +230,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
     echo '<p><strong>Datei:</strong> <code>' . basename($demo_file) . '</code></p>';
     echo '<p><strong>Größe:</strong> ' . number_format($file_info['size'] / 1024, 2) . ' KB</p>';
     echo '<p><strong>Geändert:</strong> ' . date('d.m.Y H:i:s', $file_info['mtime']) . '</p>';
+    echo '<p><a href="demo_analyze.php" class="btn" style="background: #6c757d; color: white;">🔍 JSON-Datei analysieren (Zeigt was wirklich in der Datei steht)</a></p>';
     echo '</div>';
 
     if (!$confirmed) {
@@ -273,20 +289,94 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             echo '<h2>📥 Importiere Demo-Daten...</h2>';
             echo '<p><strong>Export-Datum:</strong> ' . $demo_data['export_date'] . '</p>';
             echo '<p><strong>Version:</strong> ' . $demo_data['export_version'] . '</p>';
+
+            // Warnung bei zu wenig Daten
+            $has_meetings = isset($demo_data['tables']['svmeetings']) && count($demo_data['tables']['svmeetings']) > 0;
+            $has_agenda = isset($demo_data['tables']['svagenda_items']) && count($demo_data['tables']['svagenda_items']) > 0;
+
+            if (!$has_meetings || !$has_agenda) {
+                echo '<div class="warning" style="margin-top: 15px;">';
+                echo '<h4>⚠️ WARNUNG: JSON-Datei enthält kaum Daten!</h4>';
+                echo '<ul>';
+                if (!$has_meetings) {
+                    echo '<li>❌ Keine Meetings in der JSON-Datei (svmeetings ist leer)</li>';
+                }
+                if (!$has_agenda) {
+                    echo '<li>❌ Keine Tagesordnungspunkte in der JSON-Datei (svagenda_items ist leer)</li>';
+                }
+                echo '</ul>';
+                echo '<p><strong>Mögliche Ursache:</strong> Die demo_data.json wurde von einem Server exportiert, der selbst keine Daten hatte!</p>';
+                echo '<p><strong>Lösung:</strong> Exportieren Sie die Daten vom RICHTIGEN Quellserver (der mit den tatsächlichen Meeting-Daten).</p>';
+                echo '</div>';
+            }
+
+            // Hinweis auf Schema-Probleme
+            echo '<div class="info" style="margin-top: 15px;">';
+            echo '<h4>💡 Häufiges Problem: Unterschiedliche Datenbank-Schemas</h4>';
+            echo '<p>Wenn beim Import Fehler wie "Unknown column" oder "Column not found" auftreten, haben Quell- und Zieldatenbank unterschiedliche Schemas.</p>';
+            echo '<p><strong>Lösung:</strong> <a href="migrate_schema.php" style="color: #0c5460; font-weight: bold;">🔧 Schema-Migration ausführen</a> (Fügt fehlende Spalten hinzu)</p>';
+            echo '</div>';
+
             echo '</div>';
 
             // 3. Daten einfügen
             $import_stats = [];
             $import_errors = [];
 
-            foreach ($demo_data['tables'] as $table => $rows) {
+            // Definierte Import-Reihenfolge nach Foreign Key Hierarchie
+            // Parent-Tabellen müssen vor Child-Tabellen importiert werden
+            $table_order = [
+                // Level 1: Keine Abhängigkeiten
+                'svmembers',
+                'svopinion_answer_templates',
+
+                // Level 2: Abhängig von Level 1
+                'svmeetings',
+                'svabsences',
+                'svadmin_log',
+                'svpolls',
+                'svopinion_polls',
+                'svdocuments',
+                'svprotocols',  // Keine FK-Abhängigkeit mehr (meeting_id ist optional)
+
+                // Level 3: Abhängig von Level 2
+                'svmeeting_participants',
+                'svagenda_items',
+                'svtodos',
+                'svpoll_dates',
+                'svpoll_participants',
+                'svopinion_poll_options',
+                'svopinion_poll_participants',
+                'svopinion_responses',
+                'svdocument_downloads',
+                'svmail_queue',
+
+                // Level 4: Abhängig von Level 3
+                'svagenda_comments',
+                'svprotocol_change_requests',
+                'svtodo_log',
+                'svpoll_responses',
+                'svopinion_response_options',
+            ];
+
+            // Importiere Tabellen in der definierten Reihenfolge
+            foreach ($table_order as $table) {
+                // Überspringe Tabellen, die nicht in der JSON-Datei sind
+                if (!isset($demo_data['tables'][$table])) {
+                    continue;
+                }
+
+                $rows = $demo_data['tables'][$table];
                 if (empty($rows)) {
                     echo "<p style='color: orange;'>⚠ Tabelle '$table': keine Daten zum Importieren</p>";
                     continue;
                 }
 
                 $count = 0;
-                foreach ($rows as $row) {
+                $error_count = 0;
+                $first_error = null;
+
+                foreach ($rows as $row_index => $row) {
                     try {
                         $columns = array_keys($row);
                         $placeholders = array_fill(0, count($columns), '?');
@@ -296,13 +386,85 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                         $stmt->execute(array_values($row));
                         $count++;
                     } catch (PDOException $e) {
-                        $import_errors[] = "Fehler bei Tabelle '$table': " . $e->getMessage();
-                        // Weiter mit nächstem Datensatz
+                        $error_count++;
+                        $error_msg = "Tabelle '$table', Zeile $row_index: " . $e->getMessage();
+                        $import_errors[] = $error_msg;
+
+                        // Ersten Fehler für Schnellübersicht merken
+                        if ($first_error === null) {
+                            $first_error = $e->getMessage();
+                        }
                     }
                 }
 
                 $import_stats[$table] = $count;
-                echo "<p>✓ $table: $count Datensätze importiert</p>";
+
+                // Detaillierte Ausgabe
+                if ($count > 0 && $error_count === 0) {
+                    echo "<p style='color: green;'>✓ $table: <strong>$count</strong> Datensätze erfolgreich importiert</p>";
+                } elseif ($count > 0 && $error_count > 0) {
+                    echo "<p style='color: orange;'>⚠ $table: <strong>$count</strong> importiert, <strong style='color:red;'>$error_count Fehler</strong> - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...</p>";
+                } else {
+                    echo "<p style='color: red;'>✗ $table: <strong>0</strong> Datensätze importiert";
+                    if ($error_count > 0) {
+                        echo " (<strong>$error_count Fehler</strong>) - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...";
+                    }
+                    echo "</p>";
+                }
+            }
+
+            // Importiere übrige Tabellen, die nicht in der definierten Reihenfolge sind
+            // (Fallback für neue Tabellen)
+            foreach ($demo_data['tables'] as $table => $rows) {
+                // Überspringe Tabellen, die bereits importiert wurden
+                if (in_array($table, $table_order)) {
+                    continue;
+                }
+
+                if (empty($rows)) {
+                    echo "<p style='color: orange;'>⚠ Tabelle '$table' (nicht in Reihenfolge): keine Daten zum Importieren</p>";
+                    continue;
+                }
+
+                echo "<p style='color: blue;'>ℹ️ Tabelle '$table' (nicht in definierter Reihenfolge) wird importiert...</p>";
+
+                $count = 0;
+                $error_count = 0;
+                $first_error = null;
+
+                foreach ($rows as $row_index => $row) {
+                    try {
+                        $columns = array_keys($row);
+                        $placeholders = array_fill(0, count($columns), '?');
+
+                        $sql = "INSERT INTO $table (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+                        $stmt = $pdo->prepare($sql);
+                        $stmt->execute(array_values($row));
+                        $count++;
+                    } catch (PDOException $e) {
+                        $error_count++;
+                        $error_msg = "Tabelle '$table', Zeile $row_index: " . $e->getMessage();
+                        $import_errors[] = $error_msg;
+
+                        if ($first_error === null) {
+                            $first_error = $e->getMessage();
+                        }
+                    }
+                }
+
+                $import_stats[$table] = $count;
+
+                if ($count > 0 && $error_count === 0) {
+                    echo "<p style='color: green;'>✓ $table: <strong>$count</strong> Datensätze erfolgreich importiert</p>";
+                } elseif ($count > 0 && $error_count > 0) {
+                    echo "<p style='color: orange;'>⚠ $table: <strong>$count</strong> importiert, <strong style='color:red;'>$error_count Fehler</strong> - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...</p>";
+                } else {
+                    echo "<p style='color: red;'>✗ $table: <strong>0</strong> Datensätze importiert";
+                    if ($error_count > 0) {
+                        echo " (<strong>$error_count Fehler</strong>) - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...";
+                    }
+                    echo "</p>";
+                }
             }
 
             $pdo->commit();
@@ -310,12 +472,38 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             // Fehler anzeigen (falls vorhanden)
             if (!empty($import_errors)) {
                 echo '<div class="error">';
-                echo '<h3>⚠️ Import-Fehler</h3>';
-                echo '<ul>';
+                echo '<h3>⚠️ Import-Fehler (' . count($import_errors) . ' Fehler)</h3>';
+                echo '<p><strong>Die folgenden Fehler sind beim Import aufgetreten:</strong></p>';
+
+                // Gruppiere Fehler nach Tabelle für bessere Übersicht
+                $errors_by_table = [];
                 foreach ($import_errors as $error) {
-                    echo '<li>' . htmlspecialchars($error) . '</li>';
+                    if (preg_match('/Tabelle \'([^\']+)\'/', $error, $matches)) {
+                        $table_name = $matches[1];
+                        if (!isset($errors_by_table[$table_name])) {
+                            $errors_by_table[$table_name] = [];
+                        }
+                        $errors_by_table[$table_name][] = $error;
+                    } else {
+                        $errors_by_table['Andere'][] = $error;
+                    }
                 }
-                echo '</ul>';
+
+                foreach ($errors_by_table as $table => $errors) {
+                    echo '<details style="margin: 10px 0; border: 1px solid #dc3545; border-radius: 4px; padding: 10px;">';
+                    echo '<summary style="cursor: pointer; font-weight: bold; color: #dc3545;">📋 ' . htmlspecialchars($table) . ' (' . count($errors) . ' Fehler)</summary>';
+                    echo '<ul style="margin-top: 10px;">';
+                    // Zeige maximal erste 10 Fehler pro Tabelle
+                    $shown_errors = array_slice($errors, 0, 10);
+                    foreach ($shown_errors as $error) {
+                        echo '<li style="font-size: 12px; font-family: monospace;">' . htmlspecialchars($error) . '</li>';
+                    }
+                    if (count($errors) > 10) {
+                        echo '<li style="color: #666; font-style: italic;">... und ' . (count($errors) - 10) . ' weitere Fehler</li>';
+                    }
+                    echo '</ul>';
+                    echo '</details>';
+                }
                 echo '</div>';
             }
 
