@@ -92,6 +92,12 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
 // ============================================
 // Nur wenn normaler Login-Modus aktiv ist
 if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
+    // Im Demo-Modus: Zur Welcome-Seite umleiten (außer bei Login-Versuchen)
+    if (defined('DEMO_MODE_ENABLED') && DEMO_MODE_ENABLED && !isset($login_error)) {
+        header('Location: welcome.php');
+        exit;
+    }
+
     ?>
     <!DOCTYPE html>
     <html lang="de">
@@ -108,6 +114,9 @@ if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
 
                 <?php if (isset($login_error)): ?>
                     <div class="error-message"><?php echo $login_error; ?></div>
+                    <p style="text-align: center; margin-top: 15px;">
+                        <a href="welcome.php" style="color: #667eea; text-decoration: none;">← Zurück zur Startseite</a>
+                    </p>
                 <?php endif; ?>
 
                 <form method="POST" action="">
