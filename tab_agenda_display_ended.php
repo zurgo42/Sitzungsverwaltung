@@ -12,8 +12,81 @@ if (empty($agenda_items)) {
 
 <h3 style="margin: 20px 0 15px 0;">📋 Sitzungsverlauf - Protokoll in Bearbeitung</h3>
 
-<!-- Teilnehmerliste -->
-<?php render_readonly_participant_list($pdo, $current_meeting_id, $participants); ?>
+<!-- TEILNEHMERLISTE -->
+<?php if ($is_secretary): ?>
+    <details open style="margin: 20px 0; padding: 15px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 8px;">
+        <summary style="cursor: pointer; font-weight: 600; color: #1976d2; font-size: 16px; margin-bottom: 10px;">
+            👥 Teilnehmerverwaltung (klicken zum Auf-/Zuklappen)
+        </summary>
+
+        <form method="POST" action="">
+            <input type="hidden" name="update_attendance" value="1">
+
+            <div style="margin-bottom: 15px;">
+                <button type="button" onclick="setAllPresent()" style="background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                    ✅ Alle auf "Anwesend" setzen
+                </button>
+            </div>
+
+            <div style="display: grid; gap: 10px;">
+                <?php foreach ($participants as $p):
+                    $stmt = $pdo->prepare("SELECT attendance_status FROM svmeeting_participants WHERE meeting_id = ? AND member_id = ?");
+                    $stmt->execute([$current_meeting_id, $p['member_id']]);
+                    $attendance = $stmt->fetch();
+                    $status = $attendance['attendance_status'] ?? 'absent';
+                ?>
+                    <div style="display: flex; align-items: center; gap: 15px; padding: 8px; background: white; border-radius: 4px;">
+                        <span style="flex: 1; font-weight: 600;">
+                            <?php echo htmlspecialchars($p['first_name'] . ' ' . $p['last_name']); ?>
+                        </span>
+
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                            <input type="radio"
+                                   name="attendance[<?php echo $p['member_id']; ?>]"
+                                   value="present"
+                                   class="attendance-radio"
+                                   data-member="<?php echo $p['member_id']; ?>"
+                                   <?php echo $status === 'present' ? 'checked' : ''; ?>>
+                            <span>✅ Anwesend</span>
+                        </label>
+
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                            <input type="radio"
+                                   name="attendance[<?php echo $p['member_id']; ?>]"
+                                   value="partial"
+                                   <?php echo $status === 'partial' ? 'checked' : ''; ?>>
+                            <span>⏱️ Zeitweise</span>
+                        </label>
+
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                            <input type="radio"
+                                   name="attendance[<?php echo $p['member_id']; ?>]"
+                                   value="absent"
+                                   <?php echo $status === 'absent' ? 'checked' : ''; ?>>
+                            <span>❌ Abwesend</span>
+                        </label>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <button type="submit" style="margin-top: 15px; background: #2196f3; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                💾 Teilnehmerliste speichern
+            </button>
+        </form>
+
+        <script>
+        function setAllPresent() {
+            document.querySelectorAll('.attendance-radio').forEach(radio => {
+                if (radio.value === 'present') {
+                    radio.checked = true;
+                }
+            });
+        }
+        </script>
+    </details>
+<?php else: ?>
+    <?php render_readonly_participant_list($pdo, $current_meeting_id, $participants); ?>
+<?php endif; ?>
 
 <!-- Info-Box -->
 <div style="margin: 15px 0; padding: 12px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
