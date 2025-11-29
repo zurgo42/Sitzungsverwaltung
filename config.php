@@ -119,4 +119,9 @@ if (DEBUG_MODE) {
 //ini_set('session.use_only_cookies', 1);
 // ini_set('session.cookie_secure', 1); // Nur bei HTTPS aktivieren!
 
+// ============= FOOTER-KONFIGURATION =============
+define('FOOTER_COPYRIGHT', '&copy; Dr. Hermann Meier, Horstmannsmühle 1a, 42781 Haan Tel. 02129 379 2870 eMail meier@zurgo.de');
+define('FOOTER_IMPRESSUM_URL', 'https://geschäftsordnung.com/?page_id=53');
+define('FOOTER_DATENSCHUTZ_URL', 'https://geschäftsordnung.com/?page_id=54');
+
 ?>
