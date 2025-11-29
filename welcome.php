@@ -1,6 +1,6 @@
 <?php
 /**
- * welcome.php - Demo-Startseite mit Projekterklärung und Test-Logins
+ * welcome.php - Demo-Startseite
  */
 
 session_start();
@@ -31,7 +31,7 @@ try {
 $demo_members = [];
 try {
     $stmt = $pdo->query("
-        SELECT member_id, first_name, last_name, role, email, is_admin
+        SELECT member_id, first_name, last_name, role, email
         FROM svmembers
         WHERE is_active = 1
         ORDER BY
@@ -56,29 +56,13 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Willkommen - Sitzungsverwaltung</title>
+    <title>Sitzungsverwaltung - Demo</title>
     <link rel="stylesheet" href="style.css">
     <style>
         .welcome-content {
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
-        }
-        .intro {
-            background: white;
-            padding: 20px 30px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .intro h2 {
-            margin: 0 0 15px 0;
-            color: #333;
-            font-size: 1.5em;
-        }
-        .intro p {
-            margin: 0 0 10px 0;
-            line-height: 1.6;
         }
         .features-grid {
             display: grid;
@@ -103,26 +87,66 @@ try {
             color: #666;
             line-height: 1.4;
         }
-        .demo-login {
+        .demo-section {
             background: white;
-            padding: 20px 30px;
+            padding: 25px 30px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .demo-login h2 {
+        .demo-section h2 {
             margin: 0 0 20px 0;
             color: #333;
             font-size: 1.5em;
         }
+        .login-inline {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .login-inline .form-group {
+            margin: 0;
+            flex: 1;
+            min-width: 200px;
+        }
+        .login-inline .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        .login-inline .form-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .login-inline button {
+            padding: 8px 25px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            align-self: flex-end;
+        }
+        .login-inline button:hover {
+            background: #45a049;
+        }
         .demo-users-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
         }
         .demo-user-card {
             background: #f8f9fa;
-            padding: 15px;
+            padding: 12px 15px;
             border-radius: 6px;
             cursor: pointer;
             border: 2px solid transparent;
@@ -133,48 +157,27 @@ try {
             background: #e8f5e9;
         }
         .demo-user-card h4 {
-            margin: 0 0 8px 0;
-            font-size: 1.1em;
+            margin: 0 0 6px 0;
+            font-size: 1em;
         }
-        .demo-user-card .email {
-            font-size: 0.85em;
-            color: #666;
-            margin: 5px 0;
-        }
-        .demo-user-card .password {
-            background: #fff;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 0.85em;
-            color: #28a745;
-            margin-top: 8px;
-            display: inline-block;
-        }
-        .login-form-container {
-            max-width: 400px;
-            margin: 0 auto;
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 8px;
-            border: 2px solid #ddd;
-        }
-        .login-form-container h3 {
-            margin: 0 0 20px 0;
+        .footer-links {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
             text-align: center;
-            color: #333;
         }
-        .hint {
-            text-align: center;
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 15px;
-            font-style: italic;
+        .footer-links a {
+            color: #2196F3;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+        .footer-links a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <!-- HEADER wie im Hauptskript -->
+    <!-- HEADER -->
     <div class="header">
         <h1>🏛️ Sitzungsverwaltung</h1>
         <div class="user-info">
@@ -183,16 +186,7 @@ try {
     </div>
 
     <div class="welcome-content">
-        <!-- Intro -->
-        <div class="intro">
-            <h2>Willkommen zur Sitzungsverwaltung</h2>
-            <p>
-                Professionelles Meeting-Management-System für Organisationen, Vereine und Gremien.
-                Verwalten Sie Meetings, Tagesordnungen, Protokolle, Abstimmungen und mehr – alles an einem Ort.
-            </p>
-        </div>
-
-        <!-- Features (exakt wie die Tabs im Skript) -->
+        <!-- Features -->
         <div class="features-grid">
             <div class="feature-card">
                 <h3>📅 Meetings</h3>
@@ -236,27 +230,33 @@ try {
         </div>
 
         <!-- Demo Login -->
-        <div class="demo-login">
+        <div class="demo-section">
             <h2>🎭 Demo-Zugang</h2>
-            <p style="margin-bottom: 20px; color: #666;">
-                Klicken Sie auf einen Testbenutzer, um sich als diese Person einzuloggen:
-            </p>
+
+            <!-- Login-Formular in einer Zeile -->
+            <form method="POST" action="index.php" id="loginForm" class="login-inline">
+                <div class="form-group">
+                    <label>E-Mail:</label>
+                    <input type="email" name="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Passwort:</label>
+                    <input type="password" name="password" id="password" required value="test123">
+                </div>
+                <button type="submit" name="login">Anmelden</button>
+            </form>
 
             <?php if (!empty($demo_members)): ?>
+                <p style="margin-bottom: 15px; color: #666; font-size: 0.95em;">
+                    Klicken Sie auf einen Testbenutzer, um sich als diese Person einzuloggen:
+                </p>
                 <div class="demo-users-grid">
                     <?php foreach ($demo_members as $member): ?>
                         <div class="demo-user-card" onclick="fillLogin('<?php echo htmlspecialchars($member['email']); ?>')">
-                            <h4>
-                                <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>
-                                <?php if ($member['is_admin']): ?>
-                                    <span class="role-badge" style="background: #ff6b6b; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; margin-left: 5px;">ADMIN</span>
-                                <?php endif; ?>
-                            </h4>
+                            <h4><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></h4>
                             <span class="role-badge role-<?php echo strtolower($member['role']); ?>">
                                 <?php echo htmlspecialchars($member['role']); ?>
                             </span>
-                            <div class="email"><?php echo htmlspecialchars($member['email']); ?></div>
-                            <div class="password">🔑 test123</div>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -266,21 +266,13 @@ try {
                 </p>
             <?php endif; ?>
 
-            <!-- Login Form -->
-            <div class="login-form-container">
-                <h3>Anmelden</h3>
-                <form method="POST" action="index.php" id="loginForm">
-                    <div class="form-group">
-                        <label>E-Mail:</label>
-                        <input type="email" name="email" id="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Passwort:</label>
-                        <input type="password" name="password" id="password" required value="test123">
-                    </div>
-                    <button type="submit" name="login">Anmelden</button>
-                </form>
-                <p class="hint">💡 Klicken Sie auf einen Benutzer, um die E-Mail automatisch einzutragen</p>
+            <!-- Footer Links -->
+            <div class="footer-links">
+                <a href="README.md" target="_blank">📖 Dokumentation</a>
+                <span style="color: #ccc;">|</span>
+                <a href="INSTALL.md" target="_blank">⚙️ Installation</a>
+                <span style="color: #ccc;">|</span>
+                <a href="https://github.com/zurgo42/Sitzungsverwaltung" target="_blank">GitHub</a>
             </div>
         </div>
     </div>
@@ -290,7 +282,6 @@ try {
             document.getElementById('email').value = email;
             document.getElementById('password').value = 'test123';
             document.getElementById('email').focus();
-            document.getElementById('loginForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     </script>
 </body>
