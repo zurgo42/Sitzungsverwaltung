@@ -26,10 +26,20 @@ function update_demo_meeting_dates($pdo) {
     try {
         $now = new DateTime();
 
-        // Meeting 50: Heute -30 min bis heute +2h, kein Deadline
+        // Meeting 50: Mindestens 30 min vor voller Stunde bis +2h, kein Deadline
         $meeting50_start = clone $now;
-        $meeting50_start->modify('-30 minutes');
-        $meeting50_end = clone $now;
+        $current_minute = (int)$meeting50_start->format('i');
+
+        // Zurück auf volle Stunde, dann mindestens 30 Minuten zurück
+        if ($current_minute >= 30) {
+            // Wenn aktuelle Minute >= 30, gehe zur aktuellen vollen Stunde zurück
+            $meeting50_start->setTime((int)$meeting50_start->format('H'), 0, 0);
+        } else {
+            // Wenn aktuelle Minute < 30, gehe zur vorherigen vollen Stunde zurück
+            $meeting50_start->modify('-1 hour')->setTime((int)$meeting50_start->format('H'), 0, 0);
+        }
+
+        $meeting50_end = clone $meeting50_start;
         $meeting50_end->modify('+2 hours');
 
         $stmt = $pdo->prepare("

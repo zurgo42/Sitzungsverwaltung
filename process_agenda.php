@@ -1109,7 +1109,7 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
 /**
  * Teilnehmerstatus aktualisieren (nur Sekretär während aktiver Sitzung)
  */
-if (isset($_POST['update_attendance']) && $is_secretary && $meeting['status'] === 'active') {
+if (isset($_POST['update_attendance']) && $is_secretary && in_array($meeting['status'], ['active', 'ended', 'protocol_ready'])) {
     $attendance_data = $_POST['attendance'] ?? [];
     
     try {
