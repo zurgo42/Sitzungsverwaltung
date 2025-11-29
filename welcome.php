@@ -50,6 +50,24 @@ try {
     // Fehler ignorieren
 }
 
+// Direkt-Login verarbeiten
+if (isset($_GET['demo_email'])) {
+    $email = $_GET['demo_email'];
+    $password = 'test123';
+
+    // Authentifizierung
+    $stmt = $pdo->prepare("SELECT * FROM svmembers WHERE email = ? AND is_active = 1");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
+
+    if ($user && password_verify($password, $user['password_hash'])) {
+        $_SESSION['member_id'] = $user['member_id'];
+        $_SESSION['role'] = $user['role'];
+        header('Location: index.php');
+        exit;
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -60,119 +78,139 @@ try {
     <link rel="stylesheet" href="style.css">
     <style>
         .welcome-content {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .feature-card {
+
+        .features-section {
             background: white;
-            padding: 15px 20px;
+            padding: 30px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
         }
-        .feature-card h3 {
-            margin: 0 0 8px 0;
-            font-size: 1.1em;
+
+        .features-section h2 {
+            margin: 0 0 25px 0;
+            color: #333;
+            font-size: 1.5em;
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px 30px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .feature-item .icon {
+            font-size: 1.5em;
+            flex-shrink: 0;
+        }
+
+        .feature-item .content {
+            flex: 1;
+        }
+
+        .feature-item .content h3 {
+            margin: 0 0 5px 0;
+            font-size: 1em;
             color: #333;
         }
-        .feature-card p {
+
+        .feature-item .content p {
             margin: 0;
             font-size: 0.9em;
             color: #666;
             line-height: 1.4;
         }
+
         .demo-section {
             background: white;
-            padding: 25px 30px;
+            padding: 30px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
         .demo-section h2 {
-            margin: 0 0 20px 0;
+            margin: 0 0 15px 0;
             color: #333;
             font-size: 1.5em;
         }
-        .login-inline {
-            background: #f8f9fa;
-            padding: 15px 20px;
-            border-radius: 6px;
+
+        .demo-section p {
             margin-bottom: 20px;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
+            color: #666;
         }
-        .login-inline .form-group {
-            margin: 0;
-            flex: 1;
-            min-width: 200px;
-        }
-        .login-inline .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.9em;
-            font-weight: 600;
-        }
-        .login-inline .form-group input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        .login-inline button {
-            padding: 8px 25px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-            align-self: flex-end;
-        }
-        .login-inline button:hover {
-            background: #45a049;
-        }
+
         .demo-users-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 12px;
         }
-        .demo-user-card {
+
+        .demo-user-btn {
             background: #f8f9fa;
-            padding: 12px 15px;
+            padding: 15px 20px;
             border-radius: 6px;
-            cursor: pointer;
             border: 2px solid transparent;
+            text-decoration: none;
+            color: inherit;
+            display: block;
             transition: all 0.2s;
         }
-        .demo-user-card:hover {
+
+        .demo-user-btn:hover {
             border-color: #4CAF50;
             background: #e8f5e9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-        .demo-user-card h4 {
+
+        .demo-user-btn h4 {
             margin: 0 0 6px 0;
             font-size: 1em;
+            color: #333;
         }
+
+        .demo-user-btn .role-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            display: inline-block;
+        }
+
         .footer-links {
             margin-top: 30px;
             padding-top: 20px;
             border-top: 1px solid #ddd;
             text-align: center;
         }
+
         .footer-links a {
             color: #2196F3;
             text-decoration: none;
             margin: 0 15px;
         }
+
         .footer-links a:hover {
             text-decoration: underline;
+        }
+
+        /* Mobile Anpassung */
+        @media (max-width: 768px) {
+            .features-list {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
         }
     </style>
 </head>
@@ -187,77 +225,89 @@ try {
 
     <div class="welcome-content">
         <!-- Features -->
-        <div class="features-grid">
-            <div class="feature-card">
-                <h3>📅 Meetings</h3>
-                <p>Meetings planen, Teilnehmer verwalten, Status-Tracking</p>
-            </div>
+        <div class="features-section">
+            <h2>Was diese Anwendung leistet:</h2>
+            <div class="features-list">
+                <div class="feature-item">
+                    <div class="icon">📅</div>
+                    <div class="content">
+                        <h3>Meetings</h3>
+                        <p>Meetings planen, Teilnehmer verwalten, Status-Tracking</p>
+                    </div>
+                </div>
 
-            <div class="feature-card">
-                <h3>📋 Tagesordnung</h3>
-                <p>TOP-Verwaltung, Kommentare, Live-Abstimmungen</p>
-            </div>
+                <div class="feature-item">
+                    <div class="icon">📋</div>
+                    <div class="content">
+                        <h3>Tagesordnung</h3>
+                        <p>TOP-Verwaltung, Kommentare, Live-Abstimmungen</p>
+                    </div>
+                </div>
 
-            <div class="feature-card">
-                <h3>📅 Termine</h3>
-                <p>Terminabstimmungen und Umfragen</p>
-            </div>
+                <div class="feature-item">
+                    <div class="icon">📅</div>
+                    <div class="content">
+                        <h3>Termine</h3>
+                        <p>Terminabstimmungen und Umfragen</p>
+                    </div>
+                </div>
 
-            <div class="feature-card">
-                <h3>📊 Meinungsbild</h3>
-                <p>Anonyme Umfragen und Stimmungsbilder</p>
-            </div>
+                <div class="feature-item">
+                    <div class="icon">📊</div>
+                    <div class="content">
+                        <h3>Meinungsbild</h3>
+                        <p>Anonyme Umfragen und Stimmungsbilder</p>
+                    </div>
+                </div>
 
-            <div class="feature-card">
-                <h3>✅ ToDos</h3>
-                <p>Aufgabenverwaltung mit Fälligkeiten</p>
-            </div>
+                <div class="feature-item">
+                    <div class="icon">✅</div>
+                    <div class="content">
+                        <h3>ToDos</h3>
+                        <p>Aufgabenverwaltung mit Fälligkeiten</p>
+                    </div>
+                </div>
 
-            <div class="feature-card">
-                <h3>📋 Protokolle</h3>
-                <p>Protokollerstellung und Freigabe</p>
-            </div>
+                <div class="feature-item">
+                    <div class="icon">📋</div>
+                    <div class="content">
+                        <h3>Protokolle</h3>
+                        <p>Protokollerstellung und Freigabe</p>
+                    </div>
+                </div>
 
-            <div class="feature-card">
-                <h3>📁 Dokumente</h3>
-                <p>Dokumentenverwaltung und -archiv</p>
-            </div>
+                <div class="feature-item">
+                    <div class="icon">📁</div>
+                    <div class="content">
+                        <h3>Dokumente</h3>
+                        <p>Dokumentenverwaltung und -archiv</p>
+                    </div>
+                </div>
 
-            <div class="feature-card">
-                <h3>👥 Vertretung</h3>
-                <p>Abwesenheiten und Vertretungen verwalten</p>
+                <div class="feature-item">
+                    <div class="icon">👥</div>
+                    <div class="content">
+                        <h3>Vertretung</h3>
+                        <p>Abwesenheiten und Vertretungen verwalten</p>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Demo Login -->
         <div class="demo-section">
             <h2>🎭 Demo-Zugang</h2>
-
-            <!-- Login-Formular in einer Zeile -->
-            <form method="POST" action="index.php" id="loginForm" class="login-inline">
-                <div class="form-group">
-                    <label>E-Mail:</label>
-                    <input type="email" name="email" id="email" required>
-                </div>
-                <div class="form-group">
-                    <label>Passwort:</label>
-                    <input type="password" name="password" id="password" required value="test123">
-                </div>
-                <button type="submit" name="login">Anmelden</button>
-            </form>
+            <p>Klicken Sie auf einen Testbenutzer, um sich als diese Person einzuloggen:</p>
 
             <?php if (!empty($demo_members)): ?>
-                <p style="margin-bottom: 15px; color: #666; font-size: 0.95em;">
-                    Klicken Sie auf einen Testbenutzer, um sich als diese Person einzuloggen:
-                </p>
                 <div class="demo-users-grid">
                     <?php foreach ($demo_members as $member): ?>
-                        <div class="demo-user-card" onclick="fillLogin('<?php echo htmlspecialchars($member['email']); ?>')">
+                        <a href="?demo_email=<?php echo urlencode($member['email']); ?>" class="demo-user-btn">
                             <h4><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></h4>
-                            <span class="role-badge role-<?php echo strtolower($member['role']); ?>">
+                            <span class="role-badge">
                                 <?php echo htmlspecialchars($member['role']); ?>
                             </span>
-                        </div>
+                        </a>
                     <?php endforeach; ?>
                 </div>
             <?php else: ?>
@@ -276,14 +326,6 @@ try {
             </div>
         </div>
     </div>
-
-    <script>
-        function fillLogin(email) {
-            document.getElementById('email').value = email;
-            document.getElementById('password').value = 'test123';
-            document.getElementById('email').focus();
-        }
-    </script>
 
     <!-- FOOTER -->
     <footer class="page-footer">

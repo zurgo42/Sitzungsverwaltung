@@ -51,7 +51,8 @@ $my_absences = $stmt_my_absences->fetchAll();
     <?php if (empty($absences)): ?>
         <p style="color: #666;">Keine Abwesenheiten eingetragen.</p>
     <?php else: ?>
-        <table style="width: 100%; border-collapse: collapse;">
+        <!-- Desktop: Tabelle -->
+        <table class="absence-table" style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="border-bottom: 2px solid #ddd;">
                     <th style="padding: 10px; text-align: left;">Name</th>
@@ -99,6 +100,57 @@ $my_absences = $stmt_my_absences->fetchAll();
                 <?php endforeach; ?>
             </tbody>
         </table>
+
+        <!-- Mobile: Cards -->
+        <div class="absence-cards" style="display: none;">
+            <?php foreach ($absences as $abs):
+                $is_current = (date('Y-m-d') >= $abs['start_date'] && date('Y-m-d') <= $abs['end_date']);
+                $card_bg = $is_current ? '#fffbf0' : '#f8f9fa';
+            ?>
+                <div style="background: <?php echo $card_bg; ?>; padding: 15px; border-radius: 6px; margin-bottom: 12px; border-left: 4px solid <?php echo $is_current ? '#ff9800' : '#ddd'; ?>;">
+                    <div style="margin-bottom: 10px;">
+                        <strong style="font-size: 1.1em;"><?php echo htmlspecialchars($abs['first_name'] . ' ' . $abs['last_name']); ?></strong>
+                        <?php if ($is_current): ?>
+                            <span style="color: #ff9800; font-size: 11px; font-weight: 600; margin-left: 8px;">● AKTUELL</span>
+                        <?php endif; ?>
+                        <br>
+                        <small style="color: #666;"><?php echo htmlspecialchars($abs['role']); ?></small>
+                    </div>
+
+                    <div style="margin-bottom: 8px;">
+                        <strong style="color: #555;">📅 Zeitraum:</strong>
+                        <?php echo date('d.m.Y', strtotime($abs['start_date'])); ?> - <?php echo date('d.m.Y', strtotime($abs['end_date'])); ?>
+                    </div>
+
+                    <?php if ($abs['substitute_member_id']): ?>
+                        <div style="margin-bottom: 8px;">
+                            <strong style="color: #555;">👤 Vertretung:</strong>
+                            <?php echo htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']); ?>
+                            <small style="color: #666;">(<?php echo htmlspecialchars($abs['sub_role']); ?>)</small>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($abs['reason']): ?>
+                        <div>
+                            <strong style="color: #555;">📝 Grund:</strong>
+                            <?php echo htmlspecialchars($abs['reason']); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <style>
+            /* Mobile: Cards statt Tabelle */
+            @media (max-width: 768px) {
+                .absence-table {
+                    display: none !important;
+                }
+                .absence-cards {
+                    display: block !important;
+                }
+            }
+        </style>
     <?php endif; ?>
 </div>
 
