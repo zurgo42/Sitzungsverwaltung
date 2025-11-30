@@ -591,18 +591,26 @@ function updateProtocol(itemId) {
     fetch(`ajax_get_protocol.php?item_id=${itemId}`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                // Protokoll-Anzeige aktualisieren (nur für Nicht-Sekretäre)
-                if (!isSecretary) {
-                    const protocolDiv = document.getElementById(`protocol-display-${itemId}`);
-                    if (protocolDiv && data.protocol_notes) {
+            if (!data.success) {
+                return;
+            }
+
+            // Protokoll-Anzeige aktualisieren (nur für Nicht-Sekretäre)
+            if (!isSecretary) {
+                const protocolDiv = document.getElementById(`protocol-display-${itemId}`);
+                if (protocolDiv && data.protocol_notes) {
+                    try {
                         protocolDiv.innerHTML = data.protocol_notes.replace(/\n/g, '<br>');
+                    } catch (e) {
+                        console.debug(`Konnte Protokoll für TOP ${itemId} nicht aktualisieren:`, e);
                     }
                 }
-                
-                // Aktiv-Status aktualisieren (roter Rand)
-                const itemDiv = document.getElementById(`top-${itemId}`);
-                if (itemDiv) {
+            }
+
+            // Aktiv-Status aktualisieren (roter Rand)
+            const itemDiv = document.getElementById(`top-${itemId}`);
+            if (itemDiv) {
+                try {
                     if (data.is_active) {
                         itemDiv.style.border = '4px solid #f44336';
                         itemDiv.style.boxShadow = '0 0 15px rgba(244,67,54,0.4)';
@@ -610,25 +618,35 @@ function updateProtocol(itemId) {
                         itemDiv.style.border = '3px solid #667eea';
                         itemDiv.style.boxShadow = '';
                     }
+                } catch (e) {
+                    console.debug(`Konnte Border für TOP ${itemId} nicht aktualisieren:`, e);
                 }
-                
-                // Live-Kommentare aktualisieren
+            }
+
+            // Live-Kommentare aktualisieren (nur wenn Element existiert UND TOP aktiv ist)
+            if (data.is_active) {
                 const commentsDiv = document.getElementById(`live-comments-${itemId}`);
-                if (commentsDiv && data.is_active && data.live_comments) {
-                    let html = '';
-                    data.live_comments.forEach(comment => {
-                        const time = new Date(comment.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
-                        html += `<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
-                            <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${comment.comment_text}</span>
-                        </div>`;
-                    });
-                    commentsDiv.innerHTML = html || '<div style="color: #999; font-size: 12px; padding: 4px;">Noch keine Kommentare</div>';
+                if (commentsDiv && data.live_comments) {
+                    try {
+                        let html = '';
+                        data.live_comments.forEach(comment => {
+                            const time = new Date(comment.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+                            html += `<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
+                                <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${comment.comment_text}</span>
+                            </div>`;
+                        });
+                        commentsDiv.innerHTML = html || '<div style="color: #999; font-size: 12px; padding: 4px;">Noch keine Kommentare</div>';
+                    } catch (e) {
+                        console.debug(`Konnte Live-Kommentare für TOP ${itemId} nicht aktualisieren:`, e);
+                    }
                 }
-                
-                // Abstimmungsergebnis aktualisieren
-                if (data.vote_result) {
-                    const voteDiv = document.getElementById(`vote-display-${itemId}`);
-                    if (voteDiv) {
+            }
+
+            // Abstimmungsergebnis aktualisieren
+            if (data.vote_result) {
+                const voteDiv = document.getElementById(`vote-display-${itemId}`);
+                if (voteDiv) {
+                    try {
                         let voteHtml = `<strong>Abstimmung:</strong> `;
                         if (data.vote_result === 'einvernehmlich' || data.vote_result === 'einstimmig') {
                             voteHtml += data.vote_result;
@@ -636,6 +654,8 @@ function updateProtocol(itemId) {
                             voteHtml += `${data.vote_yes || 0} Ja, ${data.vote_no || 0} Nein, ${data.vote_abstain || 0} Enthaltung - ${data.vote_result}`;
                         }
                         voteDiv.innerHTML = voteHtml;
+                    } catch (e) {
+                        console.debug(`Konnte Abstimmung für TOP ${itemId} nicht aktualisieren:`, e);
                     }
                 }
             }
