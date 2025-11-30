@@ -78,7 +78,7 @@ if (isset($_GET['demo_email'])) {
     <link rel="stylesheet" href="style.css">
     <style>
         .welcome-content {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 20px auto;
             padding: 0 15px;
         }
@@ -214,36 +214,36 @@ if (isset($_GET['demo_email'])) {
             <h2>Was diese Anwendung leistet:</h2>
             <div class="features-grid">
                 <div class="feature-item">
+                    <span class="icon">📆</span>
+                    <span class="text"><strong>Termine:</strong> Terminabstimmung, Umfragen, Kalenderverwaltung</span>
+                </div>
+                <div class="feature-item">
                     <span class="icon">🤝</span>
-                    <span class="text"><strong>Meetings:</strong> Planung, Teilnehmer, Status</span>
+                    <span class="text"><strong>Meetings:</strong> Planung, Teilnehmerverwaltung, Status-Tracking</span>
                 </div>
                 <div class="feature-item">
                     <span class="icon">📋</span>
-                    <span class="text"><strong>Tagesordnung:</strong> TOPs, Kommentare, Abstimmungen</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">📆</span>
-                    <span class="text"><strong>Termine:</strong> Terminabstimmung, Umfragen</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">📊</span>
-                    <span class="text"><strong>Meinungsbild:</strong> Anonyme Umfragen</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">✅</span>
-                    <span class="text"><strong>ToDos:</strong> Aufgaben mit Fälligkeiten</span>
+                    <span class="text"><strong>Tagesordnung:</strong> TOPs, Kommentare, Abstimmungen, Diskussionen</span>
                 </div>
                 <div class="feature-item">
                     <span class="icon">📄</span>
-                    <span class="text"><strong>Protokolle:</strong> Erstellung und Freigabe</span>
+                    <span class="text"><strong>Protokolle:</strong> Erstellung, Freigabe, Archivierung</span>
+                </div>
+                <div class="feature-item">
+                    <span class="icon">🏖️</span>
+                    <span class="text"><strong>Vertretung:</strong> Abwesenheiten, Vertretungsregelungen</span>
+                </div>
+                <div class="feature-item">
+                    <span class="icon">✅</span>
+                    <span class="text"><strong>Meine ToDos:</strong> Aufgaben, Fälligkeiten, Benachrichtigungen</span>
+                </div>
+                <div class="feature-item">
+                    <span class="icon">📊</span>
+                    <span class="text"><strong>Meinungsbild:</strong> Anonyme Umfragen, Stimmungsbilder</span>
                 </div>
                 <div class="feature-item">
                     <span class="icon">📁</span>
-                    <span class="text"><strong>Dokumente:</strong> Verwaltung und Archiv</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">👥</span>
-                    <span class="text"><strong>Vertretung:</strong> Abwesenheiten verwalten</span>
+                    <span class="text"><strong>Dokumente:</strong> Verwaltung, Freigabe, Archiv</span>
                 </div>
             </div>
         </div>

@@ -267,7 +267,7 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
 
         <!-- Vertretung-Tab (immer sichtbar) -->
         <a href="?tab=vertretung" class="<?php echo $active_tab === 'vertretung' ? 'active' : ''; ?>">
-            🎨 Vertretung
+            🏖️ Vertretung
         </a>
 
         <!-- ToDos-Tab (immer sichtbar) -->

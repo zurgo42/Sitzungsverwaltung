@@ -35,7 +35,7 @@ $stmt_my_absences->execute([$current_user['member_id']]);
 $my_absences = $stmt_my_absences->fetchAll();
 ?>
 
-<h2>🎨 Vertretungen & Abwesenheiten</h2>
+<h2>🏖️ Vertretungen & Abwesenheiten</h2>
 
 <?php if (isset($_GET['msg']) && $_GET['msg'] === 'absence_added'): ?>
     <div class="message">✅ Abwesenheit erfolgreich eingetragen!</div>
