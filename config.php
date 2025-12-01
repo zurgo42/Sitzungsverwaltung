@@ -99,6 +99,11 @@ define('DEBUG_MODE', IS_LOCAL);  // Automatisch aktiviert in lokaler Umgebung
 // false = Produktivbetrieb, keine Demo-Funktionen
 define('DEMO_MODE_ENABLED', true);  // ÄNDERN SIE DIES AUF false FÜR PRODUKTIVBETRIEB!
 
+// ============= SYSTEM-ADMIN-PASSWORT =============
+// Passwort für sensible Systemfunktionen (Import/Export/Backup/Restore)
+// WICHTIG: Ändern Sie dieses Passwort für Produktivbetrieb!
+define('SYSTEM_ADMIN_PASSWORD', 'admin2024');  // ÄNDERN SIE DIESES PASSWORT!
+
 // Rollen-Definitionen
 define('ROLES_CONFIDENTIAL_ACCESS', ['vorstand', 'gf', 'assistenz']); // Rollen mit Zugriff auf vertrauliche TOPs
 

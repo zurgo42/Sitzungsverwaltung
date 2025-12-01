@@ -32,6 +32,67 @@ try {
     die("Datenbankverbindung fehlgeschlagen: " . $e->getMessage());
 }
 
+// ============================================
+// PASSWORT-SCHUTZ
+// ============================================
+session_start();
+$password_required = true;
+$password_correct = false;
+
+// Passwort prüfen
+if (isset($_POST['admin_password'])) {
+    if ($_POST['admin_password'] === SYSTEM_ADMIN_PASSWORD) {
+        $_SESSION['system_admin_authenticated'] = true;
+        $password_correct = true;
+    } else {
+        $password_error = "Falsches Passwort!";
+    }
+}
+
+// Prüfen ob bereits authentifiziert
+if (isset($_SESSION['system_admin_authenticated']) && $_SESSION['system_admin_authenticated'] === true) {
+    $password_correct = true;
+}
+
+// Wenn nicht authentifiziert, Passwort-Formular anzeigen
+if (!$password_correct) {
+    ?>
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <title>System-Admin Authentifizierung</title>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 400px; margin: 100px auto; padding: 20px; }
+            .login-box { background: #f9f9f9; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            h2 { margin-top: 0; color: #333; }
+            input[type="password"] { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+            button { width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+            button:hover { background: #45a049; }
+            .error { color: #d32f2f; margin-bottom: 10px; padding: 10px; background: #ffebee; border-radius: 4px; }
+        </style>
+    </head>
+    <body>
+        <div class="login-box">
+            <h2>🔒 System-Admin Zugang</h2>
+            <p>Für den Zugriff auf Import/Export-Funktionen wird das System-Admin-Passwort benötigt.</p>
+            <?php if (isset($password_error)): ?>
+                <div class="error"><?php echo htmlspecialchars($password_error); ?></div>
+            <?php endif; ?>
+            <form method="POST">
+                <input type="password" name="admin_password" placeholder="System-Admin-Passwort" required autofocus>
+                <button type="submit">Anmelden</button>
+            </form>
+            <p style="font-size: 12px; color: #666; margin-top: 20px;">
+                Das Passwort kann in der config.php unter SYSTEM_ADMIN_PASSWORD geändert werden.
+            </p>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="de">

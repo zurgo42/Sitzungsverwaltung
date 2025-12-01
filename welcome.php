@@ -213,33 +213,40 @@ if (isset($_GET['demo_email'])) {
         <div class="features-box">
             <h2>Was diese Anwendung leistet:</h2>
             <div class="features-grid">
+                <!-- Zeile 1: Termine (links) | Vertretung (rechts) -->
                 <div class="feature-item">
                     <span class="icon">📆</span>
                     <span class="text"><strong>Termine:</strong> Terminabstimmung, Umfragen, Kalenderverwaltung</span>
                 </div>
                 <div class="feature-item">
-                    <span class="icon">🤝</span>
-                    <span class="text"><strong>Meetings:</strong> Planung, Teilnehmerverwaltung, Status-Tracking</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">📋</span>
-                    <span class="text"><strong>Tagesordnung:</strong> TOPs, Kommentare, Abstimmungen, Diskussionen</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">📄</span>
-                    <span class="text"><strong>Protokolle:</strong> Erstellung, Freigabe, Archivierung</span>
-                </div>
-                <div class="feature-item">
                     <span class="icon">🏖️</span>
                     <span class="text"><strong>Vertretung:</strong> Abwesenheiten, Vertretungsregelungen</span>
+                </div>
+
+                <!-- Zeile 2: Meetings (links) | Meine ToDos (rechts) -->
+                <div class="feature-item">
+                    <span class="icon">🤝</span>
+                    <span class="text"><strong>Meetings:</strong> Planung, Teilnehmerverwaltung, Status-Tracking</span>
                 </div>
                 <div class="feature-item">
                     <span class="icon">✅</span>
                     <span class="text"><strong>Meine ToDos:</strong> Aufgaben, Fälligkeiten, Benachrichtigungen</span>
                 </div>
+
+                <!-- Zeile 3: Tagesordnung (links) | Meinungsbild (rechts) -->
+                <div class="feature-item">
+                    <span class="icon">📋</span>
+                    <span class="text"><strong>Tagesordnung:</strong> TOPs, Kommentare, Abstimmungen, Diskussionen</span>
+                </div>
                 <div class="feature-item">
                     <span class="icon">📊</span>
                     <span class="text"><strong>Meinungsbild:</strong> Anonyme Umfragen, Stimmungsbilder</span>
+                </div>
+
+                <!-- Zeile 4: Protokolle (links) | Dokumente (rechts) -->
+                <div class="feature-item">
+                    <span class="icon">📄</span>
+                    <span class="text"><strong>Protokolle:</strong> Erstellung, Freigabe, Archivierung</span>
                 </div>
                 <div class="feature-item">
                     <span class="icon">📁</span>
