@@ -15,10 +15,21 @@ if (!isset($_SESSION['member_id'])) {
     exit;
 }
 
-$data = json_decode(file_get_contents('php://input'), true);
+$raw_input = file_get_contents('php://input');
+error_log("collab_text_create.php - Raw input: " . $raw_input);
+
+$data = json_decode($raw_input, true);
 
 // Debug-Logging
-error_log("collab_text_create.php - Received data: " . print_r($data, true));
+error_log("collab_text_create.php - Decoded data: " . print_r($data, true));
+
+// Prüfen ob JSON-Dekodierung erfolgreich war
+if (json_last_error() !== JSON_ERROR_NONE) {
+    http_response_code(400);
+    error_log("collab_text_create.php - JSON decode error: " . json_last_error_msg());
+    echo json_encode(['error' => 'Invalid JSON: ' . json_last_error_msg()]);
+    exit;
+}
 
 // meeting_id kann NULL sein (Allgemein-Modus) oder eine Zahl (Meeting-Modus)
 $meeting_id = isset($data['meeting_id']) && $data['meeting_id'] !== null ? (int)$data['meeting_id'] : null;

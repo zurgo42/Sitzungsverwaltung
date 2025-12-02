@@ -351,17 +351,26 @@ if ($view === 'overview') {
             return;
         }
 
+        const payload = {
+            meeting_id: <?php echo $meeting_id ?: 'null'; ?>,
+            title: title,
+            initial_content: content
+        };
+
+        console.log('Creating text with payload:', payload);
+        console.log('Payload JSON:', JSON.stringify(payload));
+
         fetch('api/collab_text_create.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                meeting_id: <?php echo $meeting_id ?: 'null'; ?>,
-                title: title,
-                initial_content: content
-            })
+            body: JSON.stringify(payload)
         })
-        .then(r => r.json())
+        .then(r => {
+            console.log('Response status:', r.status);
+            return r.json();
+        })
         .then(data => {
+            console.log('Response data:', data);
             if (data.success) {
                 window.location.href = '?tab=texte&view=editor&text_id=' + data.text_id;
             } else {
@@ -369,8 +378,8 @@ if ($view === 'overview') {
             }
         })
         .catch(err => {
-            console.error(err);
-            alert('Netzwerkfehler');
+            console.error('Network error:', err);
+            alert('Netzwerkfehler: ' + err.message);
         });
     }
     </script>
