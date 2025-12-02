@@ -364,7 +364,7 @@ foreach ($agenda_items as $item):
                 <?php
                 $stmt = $pdo->prepare("
                     SELECT alc.*, m.first_name, m.last_name
-                    FROM agenda_live_comments alc
+                    FROM svagenda_live_comments alc
                     JOIN svmembers m ON alc.member_id = m.member_id
                     WHERE alc.item_id = ?
                     ORDER BY alc.created_at ASC
@@ -402,6 +402,10 @@ foreach ($agenda_items as $item):
                         💬 Senden
                     </button>
                 </form>
+
+                <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; font-size: 12px; color: #666; font-style: italic;">
+                    ℹ️ Kommentare in diesem Feld bleiben bis zur Protokollgenehmigung sichtbar und werden dann verworfen
+                </div>
             </div>
         <?php endif; ?>
         
@@ -509,7 +513,7 @@ foreach ($agenda_items as $item):
             <div style="margin-top: 15px; padding: 10px; background: #f0f7ff; border-left: 4px solid #2196f3; border-radius: 4px;">
                 <strong style="color: #1976d2;">📝 Protokoll:</strong><br>
                 <div id="protocol-display-<?php echo $item['item_id']; ?>" style="margin-top: 6px; color: #333; font-size: 14px;">
-                    <?php echo nl2br(htmlspecialchars($item['protocol_notes'] ?? 'Noch kein Protokolleintrag...')); ?>
+                    <?php echo nl2br(linkify_text($item['protocol_notes'] ?? 'Noch kein Protokolleintrag...')); ?>
                 </div>
                 <div id="vote-display-<?php echo $item['item_id']; ?>" style="margin-top: 8px;">
                     <?php render_voting_result($item); ?>
@@ -591,18 +595,46 @@ function updateProtocol(itemId) {
     fetch(`ajax_get_protocol.php?item_id=${itemId}`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                // Protokoll-Anzeige aktualisieren (nur für Nicht-Sekretäre)
-                if (!isSecretary) {
-                    const protocolDiv = document.getElementById(`protocol-display-${itemId}`);
-                    if (protocolDiv && data.protocol_notes) {
-                        protocolDiv.innerHTML = data.protocol_notes.replace(/\n/g, '<br>');
+            if (!data.success) {
+                return;
+            }
+
+            // Protokoll-Anzeige aktualisieren (nur für Nicht-Sekretäre)
+            if (!isSecretary) {
+                const protocolDiv = document.getElementById(`protocol-display-${itemId}`);
+                if (protocolDiv && data.protocol_notes) {
+                    try {
+                        // Linkify direkt im JavaScript (einfache URL-Erkennung)
+                        let text = data.protocol_notes
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/\n/g, '<br>');
+
+                        // URLs zu Links konvertieren
+                        text = text.replace(/\b((https?:\/\/|www\.)[^\s<]+)/gi, function(url) {
+                            let href = url.startsWith('http') ? url : 'http://' + url;
+                            let ext = url.split('.').pop().toLowerCase();
+                            let isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+                            let isPdf = (ext === 'pdf');
+                            let onclick = '';
+                            if (isImage || isPdf) {
+                                let type = isImage ? 'Bild' : 'PDF';
+                                onclick = ` onclick="if(window.innerWidth <= 768) { alert('⚠️ ${type}-Datei wird in neuem Tab geöffnet'); }"`;
+                            }
+                            return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
+                        });
+
+                        protocolDiv.innerHTML = text;
+                    } catch (e) {
+                        console.debug(`Konnte Protokoll für TOP ${itemId} nicht aktualisieren:`, e);
                     }
                 }
-                
-                // Aktiv-Status aktualisieren (roter Rand)
-                const itemDiv = document.getElementById(`top-${itemId}`);
-                if (itemDiv) {
+            }
+
+            // Aktiv-Status aktualisieren (roter Rand)
+            const itemDiv = document.getElementById(`top-${itemId}`);
+            if (itemDiv) {
+                try {
                     if (data.is_active) {
                         itemDiv.style.border = '4px solid #f44336';
                         itemDiv.style.boxShadow = '0 0 15px rgba(244,67,54,0.4)';
@@ -610,25 +642,57 @@ function updateProtocol(itemId) {
                         itemDiv.style.border = '3px solid #667eea';
                         itemDiv.style.boxShadow = '';
                     }
+                } catch (e) {
+                    console.debug(`Konnte Border für TOP ${itemId} nicht aktualisieren:`, e);
                 }
-                
-                // Live-Kommentare aktualisieren
+            }
+
+            // Live-Kommentare aktualisieren (nur wenn Element existiert UND TOP aktiv ist)
+            if (data.is_active) {
                 const commentsDiv = document.getElementById(`live-comments-${itemId}`);
-                if (commentsDiv && data.is_active && data.live_comments) {
-                    let html = '';
-                    data.live_comments.forEach(comment => {
-                        const time = new Date(comment.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
-                        html += `<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
-                            <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${comment.comment_text}</span>
-                        </div>`;
-                    });
-                    commentsDiv.innerHTML = html || '<div style="color: #999; font-size: 12px; padding: 4px;">Noch keine Kommentare</div>';
+                if (commentsDiv && data.live_comments) {
+                    try {
+                        let html = '';
+                        data.live_comments.forEach(comment => {
+                            const time = new Date(comment.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+
+                            // Linkify comment text
+                            let commentText = comment.comment_text
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;');
+
+                            commentText = commentText.replace(/\b((https?:\/\/|www\.)[^\s<]+)/gi, function(url) {
+                                let href = url.startsWith('http') ? url : 'http://' + url;
+                                let ext = url.split('.').pop().toLowerCase();
+                                let isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+                                let isPdf = (ext === 'pdf');
+                                let onclick = '';
+                                if (isImage || isPdf) {
+                                    let type = isImage ? 'Bild' : 'PDF';
+                                    onclick = ` onclick="if(window.innerWidth <= 768) { alert('⚠️ ${type}-Datei wird in neuem Tab geöffnet'); }"`;
+                                }
+                                return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
+                            });
+
+                            html += `<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
+                                <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${commentText}</span>
+                            </div>`;
+                        });
+                        commentsDiv.innerHTML = html || '<div style="color: #999; font-size: 12px; padding: 4px;">Noch keine Kommentare</div>';
+
+                        // Auto-Scroll zum Ende der Kommentare
+                        commentsDiv.scrollTop = commentsDiv.scrollHeight;
+                    } catch (e) {
+                        console.debug(`Konnte Live-Kommentare für TOP ${itemId} nicht aktualisieren:`, e);
+                    }
                 }
-                
-                // Abstimmungsergebnis aktualisieren
-                if (data.vote_result) {
-                    const voteDiv = document.getElementById(`vote-display-${itemId}`);
-                    if (voteDiv) {
+            }
+
+            // Abstimmungsergebnis aktualisieren
+            if (data.vote_result) {
+                const voteDiv = document.getElementById(`vote-display-${itemId}`);
+                if (voteDiv) {
+                    try {
                         let voteHtml = `<strong>Abstimmung:</strong> `;
                         if (data.vote_result === 'einvernehmlich' || data.vote_result === 'einstimmig') {
                             voteHtml += data.vote_result;
@@ -636,6 +700,8 @@ function updateProtocol(itemId) {
                             voteHtml += `${data.vote_yes || 0} Ja, ${data.vote_no || 0} Nein, ${data.vote_abstain || 0} Enthaltung - ${data.vote_result}`;
                         }
                         voteDiv.innerHTML = voteHtml;
+                    } catch (e) {
+                        console.debug(`Konnte Abstimmung für TOP ${itemId} nicht aktualisieren:`, e);
                     }
                 }
             }

@@ -166,6 +166,78 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 - Vertraulichkeits-Kennzeichnung
 - E-Mail-Benachrichtigungen
 
+### 🏖️ Abwesenheits-Verwaltung
+
+**Transparente Vertretungsregelungen:**
+
+- **Abwesenheiten eintragen:**
+  - Zeitraum angeben (von - bis)
+  - Vertretung auswählen
+  - Optional: Grund angeben
+
+- **Übersichtliche Darstellung:**
+  - Desktop: Tabellenansicht mit allen Details
+  - Smartphone: Card-Layout für bessere Lesbarkeit
+  - Farbliche Kennzeichnung (aktuell, zukünftig, vergangen)
+
+- **Funktionen:**
+  - Eigene Abwesenheiten verwalten
+  - Aktuelle Vertretungen einsehen
+  - Löschen von zukünftigen Abwesenheiten
+  - Automatische Filterung nach Zeitraum
+
+**Ideal für:** Urlaubsplanung, Vertretungsregelungen, Abwesenheitskalender
+
+### 💬 Intelligentes Kommentar-System
+
+**Drei-Phasen-Kommentierung:**
+
+1. **Vorbereitung:**
+   - Diskussionsbeiträge zu TOPs
+   - Prioritäts-Bewertungen
+   - Zeitschätzungen
+
+2. **Live während der Sitzung:**
+   - Echtzeit-Kommentare
+   - Auto-Scroll zu neuesten Einträgen
+   - Dynamisch wachsende Textfelder
+
+3. **Nachträglich (nach Sitzungsende):**
+   - Anmerkungen zum Protokollentwurf
+   - Für alle Beteiligten (inkl. Protokollant und Sitzungsleitung)
+   - Transparente Hinweise: "Kommentare werden nach Genehmigung verworfen"
+   - Separate Eingabefelder für verschiedene Rollen
+
+**Features:**
+- **URL-Erkennung:** Links in Kommentaren und Protokollen werden automatisch klickbar
+- **Intelligente Alerts:** Warnungen für Bild-/PDF-Links auf Mobilgeräten
+- **Auto-Resize:** Textfelder passen sich dynamisch an den Inhalt an
+- **Auto-Scroll:** Neue Live-Kommentare werden automatisch sichtbar
+
+### 🔧 Admin-Funktionen
+
+**Backup & Restore:**
+- Regelmäßige Datenbank-Sicherungen erstellen
+- Passwortgeschützt (System-Admin-Passwort)
+- Backup-Dateien herunterladen
+- Datenbank aus Backup wiederherstellen
+- Migration-Tools für Schema-Updates
+
+**Demo-Daten:**
+- Demo-Daten exportieren und importieren
+- Demo-Daten analysieren
+- Tabellen-Migration durchführen
+
+### 📱 Mobile-Optimierung
+
+**Responsive Design für alle Geräte:**
+
+- **Terminplanung:** Flexible Grid-Layouts auf Smartphones
+- **Abwesenheiten:** Card-Layout statt breiter Tabellen
+- **Navigation:** Touch-optimierte Bedienung
+- **Formulare:** Angepasste Eingabefelder für mobile Keyboards
+- **Alerts:** Spezielle Warnungen für Bild-/PDF-Links
+
 ### 🔒 Sicherheit und Datenschutz
 
 - **Zugriffskontrolle:** Rollenbasierte Berechtigungen
@@ -186,16 +258,15 @@ Nach dem Login sehen Sie:
 
 ### Haupt-Tabs
 
-1. **🏠 Dashboard:** Startseite mit Übersichten
-2. **📅 Meetings:** Alle Sitzungen verwalten
-3. **📋 TOPs:** Tagesordnungspunkte bearbeiten
+1. **📅 Termine:** Terminplanung mit Umfragen (Doodle-Style)
+2. **🤝 Meetings:** Alle Sitzungen verwalten
+3. **📋 Tagesordnung:** Tagesordnungspunkte bearbeiten
 4. **📝 Protokolle:** Protokolle einsehen und verwalten
-5. **✅ TODOs:** Aufgaben-Übersicht
-6. **📁 Dokumente:** Zentrale Dokumentenverwaltung
-7. **👥 Mitglieder:** Mitglieder-Verwaltung (Admins)
-8. **📊 Termine:** Terminplanung mit Umfragen
-9. **📊 Meinungsbild:** Umfragen und Abstimmungen
-10. **⚙️ Einstellungen:** Konfiguration (Admins)
+5. **✅ Meine TODOs:** Aufgaben-Übersicht
+6. **🏖️ Vertretungen:** Abwesenheits- und Vertretungsverwaltung
+7. **🗳️ Meinungsbild:** Umfragen und Abstimmungen
+8. **📁 Dokumente:** Zentrale Dokumentenverwaltung
+9. **⚙️ Admin:** Verwaltung und Systemeinstellungen (nur für Admins)
 
 ## Typische Anwendungsszenarien
 
@@ -277,6 +348,12 @@ Nach dem Login sehen Sie:
 ✅ **Flexibilität:** Anpassbar an verschiedene Organisationsformen
 
 ✅ **Zugänglichkeit:** Webbasiert, von überall erreichbar
+
+✅ **Mobile-First:** Optimiert für Desktop und Smartphone
+
+✅ **Benutzerfreundlichkeit:** Intuitive Bedienung mit intelligenten Features (Auto-Resize, URL-Erkennung)
+
+✅ **Datensicherheit:** Backup & Restore-Funktionen inklusive
 
 ## Systemanforderungen (für Anwender)
 

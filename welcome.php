@@ -79,137 +79,120 @@ if (isset($_GET['demo_email'])) {
     <style>
         .welcome-content {
             max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+            margin: 20px auto;
+            padding: 0 15px;
         }
 
-        .features-section {
+        .features-box {
             background: white;
-            padding: 30px;
+            padding: 20px 25px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
-        .features-section h2 {
-            margin: 0 0 25px 0;
+        .features-box h2 {
+            margin: 0 0 15px 0;
+            font-size: 1.3em;
             color: #333;
-            font-size: 1.5em;
         }
 
-        .features-list {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px 30px;
+        .features-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .feature-item {
             display: flex;
-            align-items: flex-start;
-            gap: 12px;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95em;
+            line-height: 1.5;
         }
 
         .feature-item .icon {
-            font-size: 1.5em;
+            font-size: 1.2em;
             flex-shrink: 0;
         }
 
-        .feature-item .content {
-            flex: 1;
+        .feature-item .text {
+            line-height: 1.3;
         }
 
-        .feature-item .content h3 {
-            margin: 0 0 5px 0;
-            font-size: 1em;
+        .feature-item strong {
             color: #333;
         }
 
-        .feature-item .content p {
-            margin: 0;
-            font-size: 0.9em;
-            color: #666;
-            line-height: 1.4;
-        }
-
-        .demo-section {
+        .demo-box {
             background: white;
-            padding: 30px;
+            padding: 20px 25px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .demo-section h2 {
-            margin: 0 0 15px 0;
+        .demo-box h2 {
+            margin: 0 0 12px 0;
+            font-size: 1.3em;
             color: #333;
-            font-size: 1.5em;
         }
 
-        .demo-section p {
-            margin-bottom: 20px;
-            color: #666;
-        }
-
-        .demo-users-grid {
+        .demo-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
         }
 
-        .demo-user-btn {
-            background: #f8f9fa;
-            padding: 15px 20px;
-            border-radius: 6px;
-            border: 2px solid transparent;
+        .demo-btn {
+            background: #f5f5f5;
+            padding: 10px 12px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
             text-decoration: none;
-            color: inherit;
+            color: #333;
             display: block;
             transition: all 0.2s;
-        }
-
-        .demo-user-btn:hover {
-            border-color: #4CAF50;
-            background: #e8f5e9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .demo-user-btn h4 {
-            margin: 0 0 6px 0;
-            font-size: 1em;
-            color: #333;
-        }
-
-        .demo-user-btn .role-badge {
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            display: inline-block;
-        }
-
-        .footer-links {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
             text-align: center;
         }
 
-        .footer-links a {
-            color: #2196F3;
-            text-decoration: none;
-            margin: 0 15px;
+        .demo-btn:hover {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+            transform: translateY(-1px);
         }
 
-        .footer-links a:hover {
+        .demo-btn strong {
+            display: block;
+            font-size: 0.95em;
+            margin-bottom: 3px;
+        }
+
+        .demo-btn small {
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .doc-links {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .doc-links a {
+            color: #2196F3;
+            text-decoration: none;
+            margin: 0 12px;
+        }
+
+        .doc-links a:hover {
             text-decoration: underline;
         }
 
-        /* Mobile Anpassung */
         @media (max-width: 768px) {
-            .features-list {
+            .demo-grid {
                 grid-template-columns: 1fr;
-                gap: 15px;
             }
         }
     </style>
@@ -225,103 +208,66 @@ if (isset($_GET['demo_email'])) {
 
     <div class="welcome-content">
         <!-- Features -->
-        <div class="features-section">
+        <div class="features-box">
             <h2>Was diese Anwendung leistet:</h2>
-            <div class="features-list">
+            <div class="features-grid">
                 <div class="feature-item">
-                    <div class="icon">📅</div>
-                    <div class="content">
-                        <h3>Meetings</h3>
-                        <p>Meetings planen, Teilnehmer verwalten, Status-Tracking</p>
-                    </div>
+                    <span class="icon">📆</span>
+                    <span class="text"><strong>Termine:</strong> Terminabstimmung per Umfrage, automatische Kalendereinträge (.ics), Übersicht geplanter Termine</span>
                 </div>
-
                 <div class="feature-item">
-                    <div class="icon">📋</div>
-                    <div class="content">
-                        <h3>Tagesordnung</h3>
-                        <p>TOP-Verwaltung, Kommentare, Live-Abstimmungen</p>
-                    </div>
+                    <span class="icon">🤝</span>
+                    <span class="text"><strong>Meetings:</strong> Meeting-Planung mit Video-Links, Teilnehmerverwaltung, Status-Workflow (Vorbereitung → Aktiv → Beendet → Protokoll)</span>
                 </div>
-
                 <div class="feature-item">
-                    <div class="icon">📅</div>
-                    <div class="content">
-                        <h3>Termine</h3>
-                        <p>Terminabstimmungen und Umfragen</p>
-                    </div>
+                    <span class="icon">📋</span>
+                    <span class="text"><strong>Tagesordnung:</strong> TOPs mit Kategorien, Kommentare zur Vorbereitung, Live-Diskussion während Sitzung, Abstimmungsverwaltung</span>
                 </div>
-
                 <div class="feature-item">
-                    <div class="icon">📊</div>
-                    <div class="content">
-                        <h3>Meinungsbild</h3>
-                        <p>Anonyme Umfragen und Stimmungsbilder</p>
-                    </div>
+                    <span class="icon">📄</span>
+                    <span class="text"><strong>Protokolle:</strong> Automatische Protokollerstellung aus TOPs, Freigabe-Workflow, Änderungswünsche, PDF-Export, Archivierung</span>
                 </div>
-
                 <div class="feature-item">
-                    <div class="icon">✅</div>
-                    <div class="content">
-                        <h3>ToDos</h3>
-                        <p>Aufgabenverwaltung mit Fälligkeiten</p>
-                    </div>
+                    <span class="icon">✅</span>
+                    <span class="text"><strong>Meine ToDos:</strong> Persönliche Aufgabenliste mit Fälligkeiten, Prioritäten, Benachrichtigungen, Kalender-Export (.ics)</span>
                 </div>
-
                 <div class="feature-item">
-                    <div class="icon">📋</div>
-                    <div class="content">
-                        <h3>Protokolle</h3>
-                        <p>Protokollerstellung und Freigabe</p>
-                    </div>
+                    <span class="icon">🏖️</span>
+                    <span class="text"><strong>Vertretungen:</strong> Abwesenheitsverwaltung mit Zeiträumen, Vertretungsregelungen, automatische Anzeige in Meeting-Planung</span>
                 </div>
-
                 <div class="feature-item">
-                    <div class="icon">📁</div>
-                    <div class="content">
-                        <h3>Dokumente</h3>
-                        <p>Dokumentenverwaltung und -archiv</p>
-                    </div>
+                    <span class="icon">📊</span>
+                    <span class="text"><strong>Meinungsbild:</strong> Anonyme Umfragen zur Stimmungsabfrage, schnelles Feedback-Tool, Ergebnisauswertung in Echtzeit</span>
                 </div>
-
                 <div class="feature-item">
-                    <div class="icon">👥</div>
-                    <div class="content">
-                        <h3>Vertretung</h3>
-                        <p>Abwesenheiten und Vertretungen verwalten</p>
-                    </div>
+                    <span class="icon">📁</span>
+                    <span class="text"><strong>Dokumente:</strong> Zentrale Dokumentenverwaltung, Kategorisierung, Freigabe-Verwaltung, Versionierung, Archiv-Funktion</span>
                 </div>
             </div>
         </div>
 
         <!-- Demo Login -->
-        <div class="demo-section">
-            <h2>🎭 Demo-Zugang</h2>
-            <p>Klicken Sie auf einen Testbenutzer, um sich als diese Person einzuloggen:</p>
+        <div class="demo-box">
+            <h2>🎭 Demo-Zugang - Testbenutzer auswählen:</h2>
 
             <?php if (!empty($demo_members)): ?>
-                <div class="demo-users-grid">
+                <div class="demo-grid">
                     <?php foreach ($demo_members as $member): ?>
-                        <a href="?demo_email=<?php echo urlencode($member['email']); ?>" class="demo-user-btn">
-                            <h4><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></h4>
-                            <span class="role-badge">
-                                <?php echo htmlspecialchars($member['role']); ?>
-                            </span>
+                        <a href="?demo_email=<?php echo urlencode($member['email']); ?>" class="demo-btn">
+                            <strong><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></strong>
+                            <small><?php echo htmlspecialchars($member['role']); ?></small>
                         </a>
                     <?php endforeach; ?>
                 </div>
             <?php else: ?>
-                <p style="text-align: center; color: #999; padding: 40px;">
-                    Keine Demo-Benutzer gefunden. Bitte führen Sie zuerst <code>demo.php</code> oder <code>tools/demo_import.php</code> aus.
+                <p style="text-align: center; color: #999; padding: 20px 0;">
+                    Keine Demo-Benutzer. Bitte <code>tools/demo_import.php</code> ausführen.
                 </p>
             <?php endif; ?>
 
-            <!-- Footer Links -->
-            <div class="footer-links">
+            <div class="doc-links">
                 <a href="README.md" target="_blank">📖 Dokumentation</a>
-                <span style="color: #ccc;">|</span>
                 <a href="INSTALL.md" target="_blank">⚙️ Installation</a>
-                <span style="color: #ccc;">|</span>
                 <a href="https://github.com/zurgo42/Sitzungsverwaltung" target="_blank">GitHub</a>
             </div>
         </div>

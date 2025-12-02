@@ -70,7 +70,7 @@ try {
     if ($is_active) {
         $stmt = $pdo->prepare("
             SELECT alc.*, m.first_name, m.last_name
-            FROM agenda_live_comments alc
+            FROM svagenda_live_comments alc
             JOIN svmembers m ON alc.member_id = m.member_id
             WHERE alc.item_id = ?
             ORDER BY alc.created_at ASC

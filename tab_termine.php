@@ -348,6 +348,20 @@ function get_german_weekday_long($date_string) {
     .vote-buttons {
         gap: 3px;
     }
+
+    /* Terminplanung: Flexible Spalten auf Smartphones */
+    .date-suggestion-row,
+    .date-suggestion-header {
+        grid-template-columns: 1fr 80px 80px !important;
+        gap: 5px !important;
+    }
+
+    /* Date/Time Inputs auf Smartphones kleinere Schrift */
+    .date-suggestion-row input[type="date"],
+    .date-suggestion-row input[type="time"] {
+        font-size: 13px;
+        padding: 6px 4px;
+    }
 }
 </style>
 
@@ -418,6 +432,7 @@ function addMorePollDates() {
 
     pollDateCount++;
     const newRow = document.createElement('div');
+    newRow.className = 'date-suggestion-row';
     newRow.style.cssText = 'display: grid; grid-template-columns: 150px 100px 100px; gap: 10px; align-items: center; margin-bottom: 8px;';
     newRow.innerHTML = `
         <input type="date" name="date_${pollDateCount}" id="poll_date_${pollDateCount}" onfocus="autoFillOnFocus(${pollDateCount})" style="width: 100%;">
@@ -485,7 +500,7 @@ function copyToClipboard(text) {
 }
 </script>
 
-<h2>📅 Terminplanung & Umfragen</h2>
+<h2>📆 Terminplanung & Umfragen</h2>
 
 <?php
 // Success/Error Messages
@@ -563,7 +578,7 @@ if (isset($_SESSION['error'])) {
                 </div>
 
                 <div class="form-group">
-                    <div style="display: grid; grid-template-columns: 150px 100px 100px; gap: 10px; align-items: center; margin-bottom: 10px; font-weight: bold; border-bottom: 2px solid #ddd; padding-bottom: 5px;">
+                    <div class="date-suggestion-header" style="display: grid; grid-template-columns: 150px 100px 100px; gap: 10px; align-items: center; margin-bottom: 10px; font-weight: bold; border-bottom: 2px solid #ddd; padding-bottom: 5px;">
                         <div>Datum</div>
                         <div>Beginn</div>
                         <div>Ende</div>
@@ -571,7 +586,7 @@ if (isset($_SESSION['error'])) {
 
                     <div id="date-suggestions-container">
                         <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <div style="display: grid; grid-template-columns: 150px 100px 100px; gap: 10px; align-items: center; margin-bottom: 8px;">
+                        <div class="date-suggestion-row" style="display: grid; grid-template-columns: 150px 100px 100px; gap: 10px; align-items: center; margin-bottom: 8px;">
                             <input type="date" name="date_<?php echo $i; ?>" id="poll_date_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
                             <input type="time" name="time_start_<?php echo $i; ?>" id="poll_time_start_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" onchange="calculateEndTime(<?php echo $i; ?>)" style="width: 100%;">
                             <input type="time" name="time_end_<?php echo $i; ?>" id="poll_time_end_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">

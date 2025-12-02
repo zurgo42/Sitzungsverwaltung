@@ -62,7 +62,7 @@ function render_comment_line($comment, $date_format = 'full') {
     $timestamp = $date_format === 'time'
         ? date('H:i', strtotime($comment['created_at']))
         : date('d.m.Y H:i', strtotime($comment['created_at']));
-    $text = htmlspecialchars($comment['comment_text']);
+    $text = linkify_text($comment['comment_text']);
 
     // Bewertungen anzeigen (falls vorhanden)
     $rating_text = '';
@@ -167,7 +167,7 @@ function render_comment_module($pdo, $item_id, $current_member_id, $meeting_stat
 function get_live_comments($pdo, $item_id) {
     $stmt = $pdo->prepare("
         SELECT alc.*
-        FROM agenda_live_comments alc
+        FROM svagenda_live_comments alc
         WHERE alc.item_id = ?
         ORDER BY alc.created_at ASC
     ");
@@ -194,7 +194,7 @@ function get_post_comments($pdo, $item_id, $member_id = null) {
         // Nur eigene Post-Kommentare
         $stmt = $pdo->prepare("
             SELECT apc.*
-            FROM agenda_post_comments apc
+            FROM svagenda_post_comments apc
             WHERE apc.item_id = ? AND apc.member_id = ?
             ORDER BY apc.created_at DESC
         ");
@@ -203,7 +203,7 @@ function get_post_comments($pdo, $item_id, $member_id = null) {
         // Alle Post-Kommentare
         $stmt = $pdo->prepare("
             SELECT apc.*
-            FROM agenda_post_comments apc
+            FROM svagenda_post_comments apc
             WHERE apc.item_id = ?
             ORDER BY apc.created_at ASC
         ");

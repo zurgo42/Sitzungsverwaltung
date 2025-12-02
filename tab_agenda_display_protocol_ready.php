@@ -157,7 +157,7 @@ foreach ($agenda_items as $item):
 
         $stmt = $pdo->prepare("
             SELECT alc.*, m.first_name, m.last_name
-            FROM agenda_live_comments alc
+            FROM svagenda_live_comments alc
             JOIN svmembers m ON alc.member_id = m.member_id
             WHERE alc.item_id = ?
             ORDER BY alc.created_at ASC
@@ -167,7 +167,7 @@ foreach ($agenda_items as $item):
 
         $stmt = $pdo->prepare("
             SELECT apc.*, m.first_name, m.last_name
-            FROM agenda_post_comments apc
+            FROM svagenda_post_comments apc
             JOIN svmembers m ON apc.member_id = m.member_id
             WHERE apc.item_id = ?
             ORDER BY apc.created_at ASC
@@ -244,7 +244,7 @@ foreach ($agenda_items as $item):
             <div style="margin-top: 15px; padding: 10px; background: #f0f7ff; border-left: 4px solid #2196f3; border-radius: 4px;">
                 <strong style="color: #1976d2;">📝 Protokoll:</strong><br>
                 <div style="margin-top: 6px; color: #333; font-size: 14px; line-height: 1.6;">
-                    <?php echo nl2br(htmlspecialchars($item['protocol_notes'])); ?>
+                    <?php echo nl2br(linkify_text($item['protocol_notes'])); ?>
                 </div>
                 <?php render_voting_result($item); ?>
             </div>
@@ -256,7 +256,7 @@ foreach ($agenda_items as $item):
             // Nachträgliche Kommentare laden
             $stmt = $pdo->prepare("
                 SELECT apc.*, m.first_name, m.last_name
-                FROM agenda_post_comments apc
+                FROM svagenda_post_comments apc
                 JOIN svmembers m ON apc.member_id = m.member_id
                 WHERE apc.item_id = ?
                 ORDER BY apc.created_at ASC
@@ -279,6 +279,36 @@ foreach ($agenda_items as $item):
                     </div>
                 </div>
             <?php endif; ?>
+
+            <!-- Eigene nachträgliche Anmerkung des Protokollanten -->
+            <div style="margin-top: 15px; padding: 12px; background: #e8f5e9; border: 2px solid #4caf50; border-radius: 6px;">
+                <h4 style="color: #2e7d32; margin-bottom: 8px;">💭 Ihre nachträgliche Anmerkung zum Protokoll</h4>
+
+                <?php
+                // Eigene nachträgliche Anmerkung des Protokollanten laden
+                $stmt = $pdo->prepare("
+                    SELECT comment_text, comment_id
+                    FROM svagenda_post_comments
+                    WHERE item_id = ? AND member_id = ?
+                ");
+                $stmt->execute([$item['item_id'], $current_user['member_id']]);
+                $my_post_comment = $stmt->fetch(PDO::FETCH_ASSOC);
+                ?>
+
+                <div class="form-group">
+                    <label style="font-size: 13px; font-weight: 600; color: #2e7d32;">
+                        Ihre Anmerkung zu diesem TOP:
+                    </label>
+                    <textarea name="post_comment[<?php echo $item['item_id']; ?>]"
+                              rows="3"
+                              placeholder="Ihre nachträgliche Anmerkung..."
+                              style="width: 100%; padding: 6px; border: 1px solid #4caf50; border-radius: 4px; font-size: 13px;"><?php echo htmlspecialchars($my_post_comment['comment_text'] ?? ''); ?></textarea>
+                </div>
+
+                <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; font-size: 12px; color: #666; font-style: italic;">
+                    ℹ️ Kommentare in diesem Feld bleiben bis zur Protokollgenehmigung sichtbar und werden dann verworfen
+                </div>
+            </div>
         <?php endif; ?>
 
         <!-- KOMMENTARFELD FÜR SITZUNGSLEITER -->
@@ -290,7 +320,7 @@ foreach ($agenda_items as $item):
                 // Bestehende Kommentare des Sitzungsleiters laden
                 $stmt = $pdo->prepare("
                     SELECT apc.*, m.first_name, m.last_name
-                    FROM agenda_post_comments apc
+                    FROM svagenda_post_comments apc
                     JOIN svmembers m ON apc.member_id = m.member_id
                     WHERE apc.item_id = ? AND apc.member_id = ?
                     ORDER BY apc.created_at DESC
@@ -310,6 +340,10 @@ foreach ($agenda_items as $item):
                         💾 Speichern
                     </button>
                 </form>
+
+                <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; font-size: 12px; color: #666; font-style: italic;">
+                    ℹ️ Kommentare in diesem Feld bleiben bis zur Protokollgenehmigung sichtbar und werden dann verworfen
+                </div>
             </div>
         <?php endif; ?>
         

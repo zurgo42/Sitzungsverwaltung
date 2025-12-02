@@ -47,7 +47,7 @@ if (!empty($all_absences)) {
     }
     ?>
     <div style="background: #f9f9f9; padding: 8px 12px; margin-bottom: 15px; border-radius: 4px; font-size: 13px; color: #666;">
-        <strong style="color: #333;">🎨 Abwesenheiten:</strong>
+        <strong style="color: #333;">🏖️ Abwesenheiten:</strong>
         <?php echo implode(' • ', $absence_items); ?>
         <a href="?tab=vertretung" style="margin-left: 10px; color: #2196f3; text-decoration: none; font-size: 12px;">→ Details</a>
     </div>

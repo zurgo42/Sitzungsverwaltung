@@ -35,7 +35,7 @@ $stmt_my_absences->execute([$current_user['member_id']]);
 $my_absences = $stmt_my_absences->fetchAll();
 ?>
 
-<h2>🎨 Vertretungen & Abwesenheiten</h2>
+<h2>🏖️ Vertretungen & Abwesenheiten</h2>
 
 <?php if (isset($_GET['msg']) && $_GET['msg'] === 'absence_added'): ?>
     <div class="message">✅ Abwesenheit erfolgreich eingetragen!</div>
@@ -57,7 +57,7 @@ $my_absences = $stmt_my_absences->fetchAll();
                 <tr style="border-bottom: 2px solid #ddd;">
                     <th style="padding: 10px; text-align: left;">Name</th>
                     <th style="padding: 10px; text-align: left;">Zeitraum</th>
-                    <th style="padding: 10px; text-align: left;">Vertretung</th>
+                    <th style="padding: 10px; text-align: left;">Vertretungen</th>
                     <th style="padding: 10px; text-align: left;">Grund</th>
                 </tr>
             </thead>
@@ -204,11 +204,12 @@ $my_absences = $stmt_my_absences->fetchAll();
     <?php if (empty($my_absences)): ?>
         <p style="color: #666;">Sie haben noch keine Abwesenheiten eingetragen.</p>
     <?php else: ?>
-        <table style="width: 100%; border-collapse: collapse;">
+        <!-- Desktop: Tabelle -->
+        <table class="my-absence-table" style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="border-bottom: 2px solid #ddd;">
                     <th style="padding: 10px; text-align: left;">Zeitraum</th>
-                    <th style="padding: 10px; text-align: left;">Vertretung</th>
+                    <th style="padding: 10px; text-align: left;">Vertretungen</th>
                     <th style="padding: 10px; text-align: left;">Grund</th>
                     <th style="padding: 10px; text-align: left;">Aktionen</th>
                 </tr>
@@ -266,5 +267,77 @@ $my_absences = $stmt_my_absences->fetchAll();
                 <?php endforeach; ?>
             </tbody>
         </table>
+
+        <!-- Mobile: Cards -->
+        <div class="my-absence-cards" style="display: none;">
+            <?php foreach ($my_absences as $abs):
+                $is_future = (strtotime($abs['start_date']) > time());
+                $is_current = (date('Y-m-d') >= $abs['start_date'] && date('Y-m-d') <= $abs['end_date']);
+                $is_past = (strtotime($abs['end_date']) < time());
+
+                if ($is_past) {
+                    $card_bg = '#f5f5f5';
+                    $text_color = '#999';
+                    $border_color = '#ddd';
+                } elseif ($is_current) {
+                    $card_bg = '#fffbf0';
+                    $text_color = '#333';
+                    $border_color = '#ff9800';
+                } else {
+                    $card_bg = 'white';
+                    $text_color = '#333';
+                    $border_color = '#ddd';
+                }
+            ?>
+                <div style="background: <?php echo $card_bg; ?>; padding: 15px; border-radius: 6px; margin-bottom: 12px; border-left: 4px solid <?php echo $border_color; ?>; color: <?php echo $text_color; ?>;">
+                    <div style="margin-bottom: 10px; font-weight: bold;">
+                        📅 <?php echo date('d.m.Y', strtotime($abs['start_date'])); ?> - <?php echo date('d.m.Y', strtotime($abs['end_date'])); ?>
+                        <?php if ($is_current): ?>
+                            <span style="color: #ff9800; font-size: 11px; font-weight: 600; margin-left: 8px;">● AKTUELL</span>
+                        <?php elseif ($is_past): ?>
+                            <span style="color: #999; font-size: 11px;">(Vergangenheit)</span>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php if ($abs['substitute_member_id']): ?>
+                        <div style="margin-bottom: 8px;">
+                            <strong style="color: #555;">👤 Vertretung:</strong>
+                            <?php echo htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($abs['reason']): ?>
+                        <div style="margin-bottom: 8px;">
+                            <strong style="color: #555;">📝 Grund:</strong>
+                            <?php echo htmlspecialchars($abs['reason']); ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!$is_past): ?>
+                        <div style="margin-top: 12px;">
+                            <form method="POST" onsubmit="return confirm('Abwesenheit wirklich löschen?');">
+                                <input type="hidden" name="delete_absence" value="1">
+                                <input type="hidden" name="absence_id" value="<?php echo $abs['absence_id']; ?>">
+                                <button type="submit" style="background: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; width: 100%;">
+                                    🗑️ Abwesenheit löschen
+                                </button>
+                            </form>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <style>
+            /* Mobile: Cards statt Tabelle */
+            @media (max-width: 768px) {
+                .my-absence-table {
+                    display: none !important;
+                }
+                .my-absence-cards {
+                    display: block !important;
+                }
+            }
+        </style>
     <?php endif; ?>
 </div>

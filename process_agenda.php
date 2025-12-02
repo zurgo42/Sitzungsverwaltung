@@ -1109,7 +1109,7 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
 /**
  * Teilnehmerstatus aktualisieren (nur Sekretär während aktiver Sitzung)
  */
-if (isset($_POST['update_attendance']) && $is_secretary && $meeting['status'] === 'active') {
+if (isset($_POST['update_attendance']) && $is_secretary && in_array($meeting['status'], ['active', 'ended', 'protocol_ready'])) {
     $attendance_data = $_POST['attendance'] ?? [];
     
     try {
@@ -1269,7 +1269,7 @@ if (isset($_POST['add_live_comment']) && $meeting['status'] === 'active') {
     if ($comment_text) {
         try {
             $stmt = $pdo->prepare("
-                INSERT INTO agenda_live_comments (item_id, member_id, comment_text, created_at)
+                INSERT INTO svagenda_live_comments (item_id, member_id, comment_text, created_at)
                 VALUES (?, ?, ?, NOW())
             ");
             $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
@@ -1567,7 +1567,7 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
             if (!empty($comment_text)) {
                 // Prüfen ob schon Kommentar existiert
                 $stmt = $pdo->prepare("
-                    SELECT comment_id FROM agenda_post_comments 
+                    SELECT comment_id FROM svagenda_post_comments 
                     WHERE item_id = ? AND member_id = ?
                 ");
                 $stmt->execute([$item_id, $current_user['member_id']]);
@@ -1576,7 +1576,7 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
                 if ($existing) {
                     // Update
                     $stmt = $pdo->prepare("
-                        UPDATE agenda_post_comments 
+                        UPDATE svagenda_post_comments 
                         SET comment_text = ?, updated_at = NOW()
                         WHERE comment_id = ?
                     ");
@@ -1584,7 +1584,7 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
                 } else {
                     // Insert
                     $stmt = $pdo->prepare("
-                        INSERT INTO agenda_post_comments (item_id, member_id, comment_text, created_at)
+                        INSERT INTO svagenda_post_comments (item_id, member_id, comment_text, created_at)
                         VALUES (?, ?, ?, NOW())
                     ");
                     $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
@@ -1592,7 +1592,7 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
             } else {
                 // Leerer Text = Kommentar löschen
                 $stmt = $pdo->prepare("
-                    DELETE FROM agenda_post_comments 
+                    DELETE FROM svagenda_post_comments 
                     WHERE item_id = ? AND member_id = ?
                 ");
                 $stmt->execute([$item_id, $current_user['member_id']]);
@@ -1856,7 +1856,7 @@ if (isset($_POST['save_chairman_comment']) && $is_chairman && $meeting['status']
             // Prüfen ob bereits ein Kommentar existiert
             $stmt = $pdo->prepare("
                 SELECT comment_id
-                FROM agenda_post_comments
+                FROM svagenda_post_comments
                 WHERE item_id = ? AND member_id = ?
             ");
             $stmt->execute([$item_id, $current_user['member_id']]);
@@ -1866,20 +1866,20 @@ if (isset($_POST['save_chairman_comment']) && $is_chairman && $meeting['status']
                 // Update
                 if (!empty($comment_text)) {
                     $stmt = $pdo->prepare("
-                        UPDATE agenda_post_comments
+                        UPDATE svagenda_post_comments
                         SET comment_text = ?, created_at = NOW()
                         WHERE comment_id = ?
                     ");
                     $stmt->execute([$comment_text, $existing['comment_id']]);
                 } else {
                     // Löschen wenn leer
-                    $stmt = $pdo->prepare("DELETE FROM agenda_post_comments WHERE comment_id = ?");
+                    $stmt = $pdo->prepare("DELETE FROM svagenda_post_comments WHERE comment_id = ?");
                     $stmt->execute([$existing['comment_id']]);
                 }
             } elseif (!empty($comment_text)) {
                 // Insert
                 $stmt = $pdo->prepare("
-                    INSERT INTO agenda_post_comments (item_id, member_id, comment_text, created_at)
+                    INSERT INTO svagenda_post_comments (item_id, member_id, comment_text, created_at)
                     VALUES (?, ?, ?, NOW())
                 ");
                 $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);

@@ -153,6 +153,32 @@ try {
         INDEX idx_member (member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
+    // Live-Kommentare während aktiver Sitzung
+    $tables[] = "CREATE TABLE IF NOT EXISTS svagenda_live_comments (
+        comment_id INT PRIMARY KEY AUTO_INCREMENT,
+        item_id INT NOT NULL,
+        member_id INT NOT NULL,
+        comment_text TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        INDEX idx_item (item_id),
+        INDEX idx_member (member_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Post-Meeting Kommentare (nach Sitzungsende)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svagenda_post_comments (
+        comment_id INT PRIMARY KEY AUTO_INCREMENT,
+        item_id INT NOT NULL,
+        member_id INT NOT NULL,
+        comment_text TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        INDEX idx_item (item_id),
+        INDEX idx_member (member_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
     // =========================================================
     // PROTOKOLL-TABELLEN
     // =========================================================
