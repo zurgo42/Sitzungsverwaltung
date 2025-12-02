@@ -402,6 +402,10 @@ foreach ($agenda_items as $item):
                         💬 Senden
                     </button>
                 </form>
+
+                <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; font-size: 12px; color: #666; font-style: italic;">
+                    ℹ️ Kommentare in diesem Feld bleiben bis zur Protokollgenehmigung sichtbar und werden dann verworfen
+                </div>
             </div>
         <?php endif; ?>
         
