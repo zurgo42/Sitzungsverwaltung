@@ -367,7 +367,21 @@ if ($view === 'overview') {
         })
         .then(r => {
             console.log('Response status:', r.status);
-            return r.json();
+            console.log('Response headers:', r.headers.get('content-type'));
+            // Clone the response to read it twice
+            return r.clone().text().then(text => {
+                console.log('Response body (raw text):', text);
+                console.log('Response body length:', text.length);
+                try {
+                    const json = JSON.parse(text);
+                    console.log('Parsed JSON:', json);
+                    return json;
+                } catch (e) {
+                    console.error('JSON parse error:', e);
+                    console.error('First 500 chars:', text.substring(0, 500));
+                    throw new Error('Invalid JSON response: ' + e.message);
+                }
+            });
         })
         .then(data => {
             console.log('Response data:', data);
