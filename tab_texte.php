@@ -1029,7 +1029,6 @@ if ($view === 'final') {
 // Fallback
 echo '<div class="alert alert-warning">Unbekannte Ansicht.</div>';
 
-<?php
 /**
  * Hilfsfunktion: Rendert einen einzelnen Absatz
  */
