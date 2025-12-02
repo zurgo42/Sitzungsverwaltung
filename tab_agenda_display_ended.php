@@ -273,7 +273,7 @@ foreach ($agenda_items as $item):
             <div style="margin-top: 15px; padding: 10px; background: #f0f7ff; border-left: 4px solid #2196f3; border-radius: 4px;">
                 <strong style="color: #1976d2;">📝 Protokoll:</strong><br>
                 <div style="margin-top: 6px; color: #333; font-size: 14px; line-height: 1.6;">
-                    <?php echo nl2br(htmlspecialchars($item['protocol_notes'])); ?>
+                    <?php echo nl2br(linkify_text($item['protocol_notes'])); ?>
                 </div>
                 <?php render_voting_result($item); ?>
             </div>

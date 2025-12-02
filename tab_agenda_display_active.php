@@ -509,7 +509,7 @@ foreach ($agenda_items as $item):
             <div style="margin-top: 15px; padding: 10px; background: #f0f7ff; border-left: 4px solid #2196f3; border-radius: 4px;">
                 <strong style="color: #1976d2;">📝 Protokoll:</strong><br>
                 <div id="protocol-display-<?php echo $item['item_id']; ?>" style="margin-top: 6px; color: #333; font-size: 14px;">
-                    <?php echo nl2br(htmlspecialchars($item['protocol_notes'] ?? 'Noch kein Protokolleintrag...')); ?>
+                    <?php echo nl2br(linkify_text($item['protocol_notes'] ?? 'Noch kein Protokolleintrag...')); ?>
                 </div>
                 <div id="vote-display-<?php echo $item['item_id']; ?>" style="margin-top: 8px;">
                     <?php render_voting_result($item); ?>
@@ -600,7 +600,27 @@ function updateProtocol(itemId) {
                 const protocolDiv = document.getElementById(`protocol-display-${itemId}`);
                 if (protocolDiv && data.protocol_notes) {
                     try {
-                        protocolDiv.innerHTML = data.protocol_notes.replace(/\n/g, '<br>');
+                        // Linkify direkt im JavaScript (einfache URL-Erkennung)
+                        let text = data.protocol_notes
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/\n/g, '<br>');
+
+                        // URLs zu Links konvertieren
+                        text = text.replace(/\b((https?:\/\/|www\.)[^\s<]+)/gi, function(url) {
+                            let href = url.startsWith('http') ? url : 'http://' + url;
+                            let ext = url.split('.').pop().toLowerCase();
+                            let isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+                            let isPdf = (ext === 'pdf');
+                            let onclick = '';
+                            if (isImage || isPdf) {
+                                let type = isImage ? 'Bild' : 'PDF';
+                                onclick = ` onclick="if(window.innerWidth <= 768) { alert('⚠️ ${type}-Datei wird in neuem Tab geöffnet'); }"`;
+                            }
+                            return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
+                        });
+
+                        protocolDiv.innerHTML = text;
                     } catch (e) {
                         console.debug(`Konnte Protokoll für TOP ${itemId} nicht aktualisieren:`, e);
                     }
@@ -631,11 +651,33 @@ function updateProtocol(itemId) {
                         let html = '';
                         data.live_comments.forEach(comment => {
                             const time = new Date(comment.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+
+                            // Linkify comment text
+                            let commentText = comment.comment_text
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;');
+
+                            commentText = commentText.replace(/\b((https?:\/\/|www\.)[^\s<]+)/gi, function(url) {
+                                let href = url.startsWith('http') ? url : 'http://' + url;
+                                let ext = url.split('.').pop().toLowerCase();
+                                let isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+                                let isPdf = (ext === 'pdf');
+                                let onclick = '';
+                                if (isImage || isPdf) {
+                                    let type = isImage ? 'Bild' : 'PDF';
+                                    onclick = ` onclick="if(window.innerWidth <= 768) { alert('⚠️ ${type}-Datei wird in neuem Tab geöffnet'); }"`;
+                                }
+                                return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
+                            });
+
                             html += `<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
-                                <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${comment.comment_text}</span>
+                                <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${commentText}</span>
                             </div>`;
                         });
                         commentsDiv.innerHTML = html || '<div style="color: #999; font-size: 12px; padding: 4px;">Noch keine Kommentare</div>';
+
+                        // Auto-Scroll zum Ende der Kommentare
+                        commentsDiv.scrollTop = commentsDiv.scrollHeight;
                     } catch (e) {
                         console.debug(`Konnte Live-Kommentare für TOP ${itemId} nicht aktualisieren:`, e);
                     }

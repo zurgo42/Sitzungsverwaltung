@@ -572,49 +572,62 @@ require_once 'process_admin.php';
     <h3 class="admin-section-header" onclick="toggleSection(this)">🔧 Datenbank-Wartung</h3>
 
     <div class="admin-section-content">
-        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <h4>🔗 Foreign Key Constraints</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
 
-            <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
-                <p style="margin: 0;">
-                    <strong>Hinweis:</strong> Foreign Key Constraints können bei der Verwendung der berechtigte-Tabelle
-                    zu Problemen führen. Diese Tools entfernen die Constraints, damit die Anwendung reibungslos funktioniert.
+            <!-- Backup & Restore -->
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #4CAF50;">
+                <h4 style="margin-top: 0; color: #4CAF50;">💾 Backup & Restore</h4>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+                    Erstellen Sie regelmäßig Sicherungen der Datenbank.
+                    Backups können jederzeit wiederhergestellt werden.
                 </p>
+                <p style="font-size: 13px; color: #999; margin-bottom: 15px;">
+                    🔒 Geschützt durch System-Admin-Passwort
+                </p>
+                <a href="tools/db_backup.php" class="btn" style="background-color: #4CAF50; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; font-weight: 600;" target="_blank">
+                    💾 Backup/Restore verwalten
+                </a>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
-                <!-- FK auf members entfernen -->
-                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
-                    <h5 style="margin-top: 0; color: #007bff;">🔗 Foreign Keys auf members entfernen</h5>
-                    <p style="font-size: 14px; color: #666;">
-                        Entfernt nur die Foreign Key Constraints, die auf die <code>members</code>-Tabelle zeigen.
-                        Nützlich bei der Verwendung der berechtigte-Tabelle.
-                    </p>
-                    <a href="tools/fix_foreign_keys.php" class="btn" style="background-color: #007bff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank">
-                        🔧 FK auf members entfernen
-                    </a>
-                </div>
-
-                <!-- Alle FK entfernen -->
-                <div style="border: 1px solid #dc3545; padding: 15px; border-radius: 5px; background-color: #fff5f5;">
-                    <h5 style="margin-top: 0; color: #dc3545;">🔗 ALLE Foreign Keys entfernen</h5>
-                    <p style="font-size: 14px; color: #666;">
-                        <strong>Empfohlen:</strong> Entfernt ALLE Foreign Key Constraints aus der gesamten Datenbank.
-                        Löst Probleme beim Löschen von Meetings und bei der berechtigte-Integration.
-                    </p>
-                    <a href="tools/fix_all_foreign_keys.php" class="btn btn-danger" style="background-color: #dc3545; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank">
-                        🔧 Alle FK entfernen
-                    </a>
-                </div>
+            <!-- Demo-Daten Analyse -->
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #2196F3;">
+                <h4 style="margin-top: 0; color: #2196F3;">🔍 Demo-Daten Analyse</h4>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+                    Analysiert die demo_data.json Datei und zeigt Statistiken
+                    über die enthaltenen Datensätze.
+                </p>
+                <p style="font-size: 13px; color: #999; margin-bottom: 15px;">
+                    Nur für Entwicklung und Testing
+                </p>
+                <a href="tools/demo_analyze.php" class="btn" style="background-color: #2196F3; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; font-weight: 600;" target="_blank">
+                    🔍 Demo-Daten analysieren
+                </a>
             </div>
 
-            <div style="margin-top: 20px; padding: 15px; background-color: #e7f3ff; border-left: 4px solid #0c5460; border-radius: 5px;">
-                <h5 style="margin-top: 0;">💡 Wann welches Tool?</h5>
-                <ul style="font-size: 14px; margin: 0;">
-                    <li><strong>FK auf members:</strong> Wenn nur Probleme mit chairman/secretary auftreten</li>
-                    <li><strong>Alle FK:</strong> Wenn auch Fehler beim Löschen von Meetings auftreten (empfohlen)</li>
-                </ul>
+            <!-- Tabellen-Migration -->
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #FF9800;">
+                <h4 style="margin-top: 0; color: #FF9800;">🔄 Tabellen-Migration</h4>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+                    Migriert Kommentar-Tabellen auf das sv-Präfix Schema.
+                    Nur einmalig nach Update ausführen.
+                </p>
+                <p style="font-size: 13px; color: #999; margin-bottom: 15px;">
+                    Wird automatisch geprüft
+                </p>
+                <a href="tools/migrate_comment_tables.php" class="btn" style="background-color: #FF9800; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; font-weight: 600;" target="_blank">
+                    🔄 Migration prüfen
+                </a>
             </div>
+
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background-color: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 5px;">
+            <h5 style="margin-top: 0;">💡 Wichtige Hinweise</h5>
+            <ul style="font-size: 14px; margin: 0;">
+                <li><strong>Backup:</strong> Erstellen Sie regelmäßig Backups vor wichtigen Änderungen</li>
+                <li><strong>Restore:</strong> Beim Wiederherstellen werden ALLE aktuellen Daten überschrieben</li>
+                <li><strong>Passwort:</strong> System-Admin-Passwort in config.php konfigurieren</li>
+            </ul>
         </div>
     </div>
 </div>

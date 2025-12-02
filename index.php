@@ -265,14 +265,14 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             📋 Protokolle
         </a>
 
-        <!-- Vertretung-Tab (immer sichtbar) -->
-        <a href="?tab=vertretung" class="<?php echo $active_tab === 'vertretung' ? 'active' : ''; ?>">
-            🏖️ Vertretung
-        </a>
-
         <!-- ToDos-Tab (immer sichtbar) -->
         <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
             ✅ Meine ToDos
+        </a>
+
+        <!-- Vertretungen-Tab (immer sichtbar) -->
+        <a href="?tab=vertretung" class="<?php echo $active_tab === 'vertretung' ? 'active' : ''; ?>">
+            🏖️ Vertretungen
         </a>
 
         <!-- Meinungsbild-Tab (immer sichtbar) -->
@@ -369,23 +369,67 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
     /**
      * Accordion-Funktion
      * Öffnet/Schließt Accordion-Bereiche (z.B. für TOP-Details)
-     * 
+     *
      * @param {HTMLElement} button - Der geklickte Accordion-Button
      */
     function toggleAccordion(button) {
         // Nächstes Element nach dem Button ist der Content
         const content = button.nextElementSibling;
         const isOpen = content.style.display === 'block';
-        
+
         // Alle Accordions schließen (nur eines kann gleichzeitig offen sein)
         document.querySelectorAll('.accordion-content').forEach(item => {
             item.style.display = 'none';
         });
-        
+
         // Aktuelles Accordion öffnen/schließen (Toggle)
         if (!isOpen) {
             content.style.display = 'block';
         }
+    }
+
+    /**
+     * Auto-Resize für Textareas
+     * Passt die Höhe einer Textarea automatisch an den Inhalt an
+     *
+     * @param {HTMLTextAreaElement} textarea - Das Textarea-Element
+     */
+    function autoResize(textarea) {
+        // Höhe zurücksetzen um Schrumpfen zu ermöglichen
+        textarea.style.height = 'auto';
+        // Neue Höhe basierend auf scrollHeight setzen
+        textarea.style.height = textarea.scrollHeight + 'px';
+    }
+
+    /**
+     * Initialisiert Auto-Resize für alle Textareas auf der Seite
+     */
+    function initAutoResize() {
+        // Alle Textareas finden
+        const textareas = document.querySelectorAll('textarea');
+
+        textareas.forEach(textarea => {
+            // Initial-Resize beim Laden
+            autoResize(textarea);
+
+            // Event-Listener für Eingaben
+            textarea.addEventListener('input', function() {
+                autoResize(this);
+            });
+
+            // Event-Listener für Paste-Events
+            textarea.addEventListener('paste', function() {
+                setTimeout(() => autoResize(this), 10);
+            });
+        });
+    }
+
+    // Auto-Resize initialisieren wenn DOM geladen ist
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAutoResize);
+    } else {
+        // DOM bereits geladen
+        initAutoResize();
     }
     </script>
 
