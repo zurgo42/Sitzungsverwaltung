@@ -17,14 +17,20 @@ if (!isset($_SESSION['member_id'])) {
 
 $data = json_decode(file_get_contents('php://input'), true);
 
+// Debug-Logging
+error_log("collab_text_create.php - Received data: " . print_r($data, true));
+
 // meeting_id kann NULL sein (Allgemein-Modus) oder eine Zahl (Meeting-Modus)
 $meeting_id = isset($data['meeting_id']) && $data['meeting_id'] !== null ? (int)$data['meeting_id'] : null;
 $title = isset($data['title']) ? trim($data['title']) : '';
 $initial_content = isset($data['initial_content']) ? trim($data['initial_content']) : '';
 
+error_log("collab_text_create.php - meeting_id: " . var_export($meeting_id, true) . ", title: '$title', initial_content length: " . strlen($initial_content));
+
 if (empty($title)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Missing required fields (title)']);
+    error_log("collab_text_create.php - ERROR: Title is empty!");
+    echo json_encode(['error' => 'Missing required fields (title)', 'debug' => 'Title is empty or missing']);
     exit;
 }
 
