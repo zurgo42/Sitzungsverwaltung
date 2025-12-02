@@ -569,9 +569,9 @@ try {
     // Kollaborative Texte (Haupttabelle)
     $tables[] = "CREATE TABLE IF NOT EXISTS svcollab_texts (
         text_id INT PRIMARY KEY AUTO_INCREMENT,
-        meeting_id INT NOT NULL COMMENT 'Verknüpfung zur Sitzung',
+        meeting_id INT NULL COMMENT 'NULL = Allgemeiner Text (Vorstand+GF+Ass), sonst Meeting-spezifisch',
         title VARCHAR(255) NOT NULL,
-        initiator_member_id INT NOT NULL COMMENT 'Protokollant der Sitzung',
+        initiator_member_id INT NOT NULL COMMENT 'Ersteller des Textes',
         status ENUM('active', 'finalized') DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         finalized_at DATETIME NULL,
