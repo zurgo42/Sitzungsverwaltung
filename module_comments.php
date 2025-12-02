@@ -62,7 +62,7 @@ function render_comment_line($comment, $date_format = 'full') {
     $timestamp = $date_format === 'time'
         ? date('H:i', strtotime($comment['created_at']))
         : date('d.m.Y H:i', strtotime($comment['created_at']));
-    $text = htmlspecialchars($comment['comment_text']);
+    $text = linkify_text($comment['comment_text']);
 
     // Bewertungen anzeigen (falls vorhanden)
     $rating_text = '';

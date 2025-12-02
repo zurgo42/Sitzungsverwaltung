@@ -46,6 +46,47 @@ function get_current_member() {
 }
 
 /**
+ * Konvertiert URLs in Text zu klickbaren Links
+ * - Öffnet Links in neuem Tab
+ * - Zeigt Alerts für Bilder/PDFs auf Mobilgeräten
+ *
+ * @param string $text Der Text der URLs enthalten kann
+ * @return string Der Text mit klickbaren Links
+ */
+function linkify_text($text) {
+    // Text escapen für Sicherheit
+    $text = htmlspecialchars($text);
+
+    // URL-Pattern (http, https, www)
+    $pattern = '#\b((https?://|www\.)[^\s<]+)#i';
+
+    $text = preg_replace_callback($pattern, function($matches) {
+        $url = $matches[1];
+
+        // www. URLs mit http:// ergänzen
+        if (substr($url, 0, 4) !== 'http') {
+            $url = 'http://' . $url;
+        }
+
+        // Dateiendung prüfen
+        $extension = strtolower(pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
+        $is_image = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']);
+        $is_pdf = ($extension === 'pdf');
+
+        // Alert für Bilder/PDFs auf Mobile
+        $onclick = '';
+        if ($is_image || $is_pdf) {
+            $type = $is_image ? 'Bild' : 'PDF';
+            $onclick = " onclick=\"if(window.innerWidth <= 768) { alert('⚠️ {$type}-Datei wird in neuem Tab geöffnet'); }\"";
+        }
+
+        return '<a href="' . htmlspecialchars($url) . '" target="_blank" rel="noopener noreferrer"' . $onclick . '>' . htmlspecialchars($matches[1]) . '</a>';
+    }, $text);
+
+    return $text;
+}
+
+/**
  * Lädt alle Meetings
  * Kompatibel mit members UND berechtigte Tabelle
  */
