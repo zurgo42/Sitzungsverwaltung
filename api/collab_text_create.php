@@ -4,21 +4,23 @@
  * POST: meeting_id, title, initial_content (optional)
  */
 
-// Output buffering starten um unerwartete Ausgaben zu verhindern
+// Fehleranzeige komplett deaktivieren (Fehler nur ins Log)
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
+// Output buffering für saubere JSON-Ausgabe
 ob_start();
 
 session_start();
 require_once('../config.php');
 require_once('../functions_collab_text.php');
 
-// Alle bisherigen Ausgaben verwerfen (z.B. PHP Warnings/Notices)
-ob_end_clean();
-
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['member_id'])) {
     http_response_code(401);
     echo json_encode(['error' => 'Not authenticated']);
+    ob_end_flush();
     exit;
 }
 
@@ -35,6 +37,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
     http_response_code(400);
     error_log("collab_text_create.php - JSON decode error: " . json_last_error_msg());
     echo json_encode(['error' => 'Invalid JSON: ' . json_last_error_msg()]);
+    ob_end_flush();
     exit;
 }
 
@@ -49,6 +52,7 @@ if (empty($title)) {
     http_response_code(400);
     error_log("collab_text_create.php - ERROR: Title is empty!");
     echo json_encode(['error' => 'Missing required fields (title)', 'debug' => 'Title is empty or missing']);
+    ob_end_flush();
     exit;
 }
 
@@ -66,6 +70,7 @@ if ($meeting_id !== null) {
     if ($result['is_participant'] == 0) {
         http_response_code(403);
         echo json_encode(['error' => 'Not a participant of this meeting']);
+        ob_end_flush();
         exit;
     }
 } else {
@@ -77,6 +82,7 @@ if ($meeting_id !== null) {
     if (!$user || !in_array($user['role'], ['vorstand', 'gf', 'assistenz'])) {
         http_response_code(403);
         echo json_encode(['error' => 'Access denied - Nur Vorstand, GF und Assistenz dürfen allgemeine Texte erstellen']);
+        ob_end_flush();
         exit;
     }
 }
@@ -93,3 +99,6 @@ if ($text_id) {
     http_response_code(500);
     echo json_encode(['error' => 'Failed to create text']);
 }
+
+// Output buffer sauber beenden
+ob_end_flush();
