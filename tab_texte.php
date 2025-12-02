@@ -379,5 +379,700 @@ if ($view === 'overview') {
     return;
 }
 
-// TODO: Editor und Final-Views werden in der nächsten Version hinzugefügt
-echo '<div class="alert alert-warning">Editor-Ansicht folgt in Kürze...</div>';
+//============================================================================
+// EDITOR: Absatz-basiertes Editieren
+//============================================================================
+
+if ($view === 'editor') {
+    // Text laden
+    $text = getCollabText($pdo, $text_id);
+
+    if (!$text) {
+        echo '<div class="alert alert-danger">Text nicht gefunden.</div>';
+        return;
+    }
+
+    // Zugriffsprüfung
+    if (!hasCollabTextAccess($pdo, $text_id, $current_user['member_id'])) {
+        echo '<div class="alert alert-danger">Sie haben keinen Zugriff auf diesen Text.</div>';
+        return;
+    }
+
+    // Prüfen ob finalisiert
+    if ($text['status'] === 'finalized') {
+        echo '<div class="alert alert-info">Dieser Text wurde finalisiert und kann nicht mehr bearbeitet werden.
+              <a href="?tab=texte&view=final&text_id=' . $text_id . '">Zur Ansicht</a></div>';
+        return;
+    }
+
+    $is_initiator = ($text['initiator_member_id'] == $current_user['member_id']);
+    ?>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+                <h2>✏️ <?php echo htmlspecialchars($text['title']); ?></h2>
+                <p style="color: #666; font-size: 0.9em; margin: 5px 0 0 0;">
+                    Erstellt von <?php echo htmlspecialchars($text['initiator_first_name'] . ' ' . $text['initiator_last_name']); ?>
+                </p>
+            </div>
+            <a href="?tab=texte&view=overview" class="btn-secondary">← Zurück zur Übersicht</a>
+        </div>
+
+        <!-- Online-Benutzer -->
+        <div id="onlineUsersBox" class="online-users">
+            <strong>🟢 Online:</strong>
+            <div id="onlineUsersList" class="online-users-list">
+                <span style="color: #999;">Lade...</span>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <button onclick="addParagraph()" class="btn-primary">+ Absatz hinzufügen</button>
+            <button onclick="showPreview()" class="btn-secondary">👁️ Vorschau</button>
+            <button onclick="createVersionSnapshot()" class="btn-secondary">💾 Version speichern</button>
+            <?php if ($is_initiator): ?>
+                <button onclick="finalizeText()" class="btn-danger" style="margin-left: auto;">
+                    ✅ Text finalisieren
+                </button>
+            <?php endif; ?>
+        </div>
+
+        <!-- Absätze -->
+        <div id="paragraphsContainer">
+            <?php foreach ($text['paragraphs'] as $para): ?>
+                <?php renderParagraph($para, $current_user['member_id']); ?>
+            <?php endforeach; ?>
+        </div>
+
+        <?php if (empty($text['paragraphs'])): ?>
+            <p style="color: #999; font-style: italic;">
+                Noch keine Absätze vorhanden. Klicken Sie auf "+ Absatz hinzufügen" um zu starten.
+            </p>
+        <?php endif; ?>
+    </div>
+
+    <!-- Vorschau-Dialog -->
+    <div id="previewDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 800px; width: 90%; margin: 20px; max-height: 80vh; overflow-y: auto;">
+            <h3>Vorschau: <?php echo htmlspecialchars($text['title']); ?></h3>
+            <div id="previewContent" class="text-preview">Lade...</div>
+            <button onclick="hidePreview()" class="btn-secondary" style="margin-top: 20px;">Schließen</button>
+        </div>
+    </div>
+
+    <!-- Finalisieren-Dialog -->
+    <div id="finalizeDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%;">
+            <h3>⚠️ Text finalisieren</h3>
+            <p>Der Text wird nach Finalisierung schreibgeschützt. Alle Benutzer verlieren die Bearbeitungsrechte.</p>
+
+            <label>Name für finale Version:</label>
+            <input type="text" id="finalNameInput" placeholder="z.B. Pressemeldung Final v1.0"
+                   value="<?php echo htmlspecialchars($text['title']); ?> (Final)"
+                   style="width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;">
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="confirmFinalize()" class="btn-danger">Ja, finalisieren</button>
+                <button onclick="hideFinalizeDialog()" class="btn-secondary">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const TEXT_ID = <?php echo $text_id; ?>;
+    const CURRENT_USER_ID = <?php echo $current_user['member_id']; ?>;
+    let lastUpdate = new Date().toISOString();
+    let pollingInterval = null;
+    let heartbeatInterval = null;
+    let editingParagraphId = null;
+
+    // Initialisierung
+    document.addEventListener('DOMContentLoaded', function() {
+        startPolling();
+        startHeartbeat();
+    });
+
+    // Polling alle 1,5 Sekunden
+    function startPolling() {
+        pollingInterval = setInterval(fetchUpdates, 1500);
+    }
+
+    function fetchUpdates() {
+        fetch('/api/collab_text_get_updates.php?text_id=' + TEXT_ID + '&since=' + encodeURIComponent(lastUpdate))
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Online-Benutzer aktualisieren
+                    updateOnlineUsers(data.online_users);
+
+                    // Absätze aktualisieren (wenn nicht gerade editiert)
+                    if (data.paragraphs && data.paragraphs.length > 0) {
+                        updateParagraphs(data.paragraphs);
+                    }
+
+                    // Status prüfen
+                    if (data.text_status === 'finalized') {
+                        alert('Der Text wurde finalisiert und kann nicht mehr bearbeitet werden.');
+                        window.location.href = '?tab=texte&view=final&text_id=' + TEXT_ID;
+                    }
+
+                    lastUpdate = data.server_time;
+                }
+            })
+            .catch(err => console.error('Polling error:', err));
+    }
+
+    // Heartbeat alle 15 Sekunden
+    function startHeartbeat() {
+        heartbeatInterval = setInterval(sendHeartbeat, 15000);
+        sendHeartbeat(); // Sofort einmal senden
+    }
+
+    function sendHeartbeat() {
+        fetch('/api/collab_text_heartbeat.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({text_id: TEXT_ID})
+        });
+    }
+
+    // Online-Benutzer aktualisieren
+    function updateOnlineUsers(users) {
+        const container = document.getElementById('onlineUsersList');
+        if (!users || users.length === 0) {
+            container.innerHTML = '<span style="color: #999;">Keine anderen Benutzer online</span>';
+            return;
+        }
+
+        container.innerHTML = users.map(u =>
+            '<span class="online-user-badge">' +
+            u.first_name + ' ' + u.last_name +
+            '</span>'
+        ).join('');
+    }
+
+    // Absätze aktualisieren
+    function updateParagraphs(paragraphs) {
+        paragraphs.forEach(para => {
+            // Nicht aktualisieren wenn gerade von diesem User editiert wird
+            if (editingParagraphId == para.paragraph_id) {
+                return;
+            }
+
+            const paraDiv = document.querySelector('[data-paragraph-id="' + para.paragraph_id + '"]');
+            if (!paraDiv) {
+                // Neuer Absatz → Seite neu laden
+                location.reload();
+                return;
+            }
+
+            // Content aktualisieren
+            const contentDiv = paraDiv.querySelector('.paragraph-content');
+            if (contentDiv && contentDiv.textContent !== para.content) {
+                contentDiv.textContent = para.content;
+            }
+
+            // Lock-Status aktualisieren
+            const lockInfo = paraDiv.querySelector('.paragraph-lock-info');
+            if (para.locked_by_member_id && para.locked_by_member_id != CURRENT_USER_ID) {
+                paraDiv.classList.add('locked');
+                if (lockInfo) {
+                    lockInfo.innerHTML = '🔒 Wird bearbeitet von: ' +
+                        para.locked_by_first_name + ' ' + para.locked_by_last_name;
+                }
+            } else {
+                paraDiv.classList.remove('locked');
+                if (lockInfo) {
+                    lockInfo.innerHTML = '';
+                }
+            }
+        });
+    }
+
+    // Absatz bearbeiten
+    function editParagraph(paragraphId) {
+        // Lock erwerben
+        fetch('/api/collab_text_lock_paragraph.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({paragraph_id: paragraphId})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showEditMode(paragraphId);
+                editingParagraphId = paragraphId;
+            } else {
+                alert('Dieser Absatz wird gerade von ' + data.locked_by + ' bearbeitet.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Fehler beim Sperren des Absatzes');
+        });
+    }
+
+    function showEditMode(paragraphId) {
+        const paraDiv = document.querySelector('[data-paragraph-id="' + paragraphId + '"]');
+        const contentDiv = paraDiv.querySelector('.paragraph-content');
+        const currentContent = contentDiv.textContent;
+
+        contentDiv.innerHTML = '<textarea class="paragraph-edit-area" id="editArea_' + paragraphId + '">' +
+            currentContent + '</textarea>';
+
+        paraDiv.classList.add('editing');
+
+        // Buttons ändern
+        const actions = paraDiv.querySelector('.paragraph-actions');
+        actions.innerHTML = `
+            <button onclick="saveParagraph(${paragraphId})" class="btn-primary">💾 Speichern</button>
+            <button onclick="cancelEdit(${paragraphId})" class="btn-secondary">❌ Abbrechen</button>
+        `;
+    }
+
+    function saveParagraph(paragraphId) {
+        const textarea = document.getElementById('editArea_' + paragraphId);
+        const content = textarea.value;
+
+        fetch('/api/collab_text_save_paragraph.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                paragraph_id: paragraphId,
+                content: content
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                exitEditMode(paragraphId, content);
+                editingParagraphId = null;
+            } else {
+                alert('Fehler beim Speichern: ' + (data.error || 'Unbekannt'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Netzwerkfehler');
+        });
+    }
+
+    function cancelEdit(paragraphId) {
+        // Lock freigeben
+        fetch('/api/collab_text_lock_paragraph.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                paragraph_id: paragraphId,
+                action: 'unlock'
+            })
+        });
+
+        location.reload(); // Einfach neu laden um alten Zustand wiederherzustellen
+    }
+
+    function exitEditMode(paragraphId, newContent) {
+        const paraDiv = document.querySelector('[data-paragraph-id="' + paragraphId + '"]');
+        const contentDiv = paraDiv.querySelector('.paragraph-content');
+        contentDiv.textContent = newContent;
+
+        paraDiv.classList.remove('editing');
+
+        // Buttons zurücksetzen
+        const actions = paraDiv.querySelector('.paragraph-actions');
+        actions.innerHTML = `
+            <button onclick="editParagraph(${paragraphId})" class="btn-primary">✏️ Bearbeiten</button>
+            <button onclick="deleteParagraph(${paragraphId})" class="btn-danger">🗑️ Löschen</button>
+        `;
+    }
+
+    // Neuen Absatz hinzufügen
+    function addParagraph() {
+        fetch('/api/collab_text_add_paragraph.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({text_id: TEXT_ID})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Neu laden um neuen Absatz anzuzeigen
+            } else {
+                alert('Fehler: ' + (data.error || 'Unbekannt'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Netzwerkfehler');
+        });
+    }
+
+    // Absatz löschen
+    function deleteParagraph(paragraphId) {
+        if (!confirm('Diesen Absatz wirklich löschen?')) {
+            return;
+        }
+
+        fetch('/api/collab_text_delete_paragraph.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({paragraph_id: paragraphId})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Fehler: ' + (data.error || 'Unbekannt'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Netzwerkfehler');
+        });
+    }
+
+    // Vorschau anzeigen
+    function showPreview() {
+        // Alle Absätze sammeln
+        const paragraphs = Array.from(document.querySelectorAll('.paragraph-content'))
+            .map(p => p.textContent.trim())
+            .filter(t => t.length > 0);
+
+        const previewContent = document.getElementById('previewContent');
+        previewContent.textContent = paragraphs.join('\n\n');
+
+        document.getElementById('previewDialog').style.display = 'flex';
+    }
+
+    function hidePreview() {
+        document.getElementById('previewDialog').style.display = 'none';
+    }
+
+    // Version-Snapshot erstellen
+    function createVersionSnapshot() {
+        const note = prompt('Optionale Notiz zu dieser Version:', '');
+        if (note === null) return; // Abgebrochen
+
+        fetch('/api/collab_text_create_version.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                text_id: TEXT_ID,
+                note: note
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Version ' + data.version_number + ' erfolgreich gespeichert!');
+            } else {
+                alert('Fehler: ' + (data.error || 'Unbekannt'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Netzwerkfehler');
+        });
+    }
+
+    // Finalisieren
+    function finalizeText() {
+        document.getElementById('finalizeDialog').style.display = 'flex';
+    }
+
+    function hideFinalizeDialog() {
+        document.getElementById('finalizeDialog').style.display = 'none';
+    }
+
+    function confirmFinalize() {
+        const finalName = document.getElementById('finalNameInput').value.trim();
+
+        if (!finalName) {
+            alert('Bitte geben Sie einen Namen für die finale Version ein.');
+            return;
+        }
+
+        fetch('/api/collab_text_finalize.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                text_id: TEXT_ID,
+                final_name: finalName
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Text erfolgreich finalisiert!');
+                window.location.href = '?tab=texte&view=final&text_id=' + TEXT_ID;
+            } else {
+                alert('Fehler: ' + (data.error || 'Unbekannt'));
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Netzwerkfehler');
+        });
+    }
+
+    // Cleanup bei Seitenverlassen
+    window.addEventListener('beforeunload', function() {
+        if (pollingInterval) clearInterval(pollingInterval);
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+    });
+    </script>
+
+    <?php
+    return;
+}
+
+//============================================================================
+// FINAL: Anzeige finalisierter Texte
+//============================================================================
+
+if ($view === 'final') {
+    // Text laden
+    $stmt = $pdo->prepare("
+        SELECT t.*,
+               m.first_name as initiator_first_name,
+               m.last_name as initiator_last_name,
+               mt.meeting_name
+        FROM svcollab_texts t
+        JOIN svmembers m ON t.initiator_member_id = m.member_id
+        LEFT JOIN svmeetings mt ON t.meeting_id = mt.meeting_id
+        WHERE t.text_id = ?
+    ");
+    $stmt->execute([$text_id]);
+    $text = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$text) {
+        echo '<div class="alert alert-danger">Text nicht gefunden.</div>';
+        return;
+    }
+
+    // Zugriffsprüfung
+    if ($text['meeting_id']) {
+        if (!hasCollabTextAccess($pdo, $text_id, $current_user['member_id'])) {
+            echo '<div class="alert alert-danger">Sie haben keinen Zugriff auf diesen Text.</div>';
+            return;
+        }
+    } else {
+        // Allgemeiner Text: Nur Vorstand, GF, Assistenz
+        if (!in_array($current_user['role'], ['vorstand', 'gf', 'assistenz'])) {
+            echo '<div class="alert alert-danger">Sie haben keinen Zugriff auf diesen Text.</div>';
+            return;
+        }
+    }
+
+    if ($text['status'] !== 'finalized') {
+        echo '<div class="alert alert-warning">Dieser Text ist noch nicht finalisiert.
+              <a href="?tab=texte&view=editor&text_id=' . $text_id . '">Zum Editor</a></div>';
+        return;
+    }
+
+    // Alle Absätze laden
+    $stmt = $pdo->prepare("
+        SELECT content
+        FROM svcollab_text_paragraphs
+        WHERE text_id = ?
+        ORDER BY paragraph_order ASC
+    ");
+    $stmt->execute([$text_id]);
+    $paragraphs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $full_text = implode("\n\n", array_column($paragraphs, 'content'));
+
+    // Versionen laden
+    $versions = getTextVersions($pdo, $text_id);
+    ?>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+                <h2>📄 <?php echo htmlspecialchars($text['final_name'] ?: $text['title']); ?></h2>
+                <p style="color: #666; font-size: 0.9em; margin: 5px 0 0 0;">
+                    <span class="collab-text-status status-finalized">✅ Finalisiert</span>
+                </p>
+            </div>
+            <a href="?tab=texte&view=overview" class="btn-secondary">← Zurück zur Übersicht</a>
+        </div>
+
+        <div style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+            <p style="margin: 0;">
+                <strong>Erstellt von:</strong> <?php echo htmlspecialchars($text['initiator_first_name'] . ' ' . $text['initiator_last_name']); ?><br>
+                <?php if ($text['meeting_name']): ?>
+                <strong>Sitzung:</strong> <?php echo htmlspecialchars($text['meeting_name']); ?><br>
+                <?php endif; ?>
+                <strong>Finalisiert am:</strong> <?php echo date('d.m.Y H:i', strtotime($text['finalized_at'])); ?>
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <button onclick="copyToClipboard()" class="btn-primary">📋 In Zwischenablage kopieren</button>
+            <button onclick="printText()" class="btn-secondary">🖨️ Drucken</button>
+            <button onclick="toggleVersions()" class="btn-secondary" id="toggleVersionsBtn">
+                📚 Versionshistorie anzeigen (<?php echo count($versions); ?>)
+            </button>
+        </div>
+
+        <!-- Finaler Text -->
+        <div id="finalTextContent" class="text-preview" style="background: white; border: 2px solid #28a745;">
+            <?php echo nl2br(htmlspecialchars($full_text)); ?>
+        </div>
+
+        <!-- Versionshistorie (versteckt) -->
+        <div id="versionsContainer" style="display: none; margin-top: 30px;">
+            <h3>📚 Versionshistorie</h3>
+
+            <?php if (empty($versions)): ?>
+                <p style="color: #999; font-style: italic;">Keine Versionen vorhanden.</p>
+            <?php else: ?>
+                <div style="display: grid; gap: 15px;">
+                    <?php foreach ($versions as $version): ?>
+                        <div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div>
+                                    <strong>Version <?php echo $version['version_number']; ?></strong>
+                                    <?php if ($version['version_note']): ?>
+                                        <span style="color: #666;"> - <?php echo htmlspecialchars($version['version_note']); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <button onclick="showVersion(<?php echo $version['version_number']; ?>)" class="btn-secondary" style="font-size: 0.85em;">
+                                    👁️ Anzeigen
+                                </button>
+                            </div>
+                            <p style="font-size: 0.85em; color: #999; margin: 0;">
+                                Erstellt von <?php echo htmlspecialchars($version['first_name'] . ' ' . $version['last_name']); ?>
+                                am <?php echo date('d.m.Y H:i', strtotime($version['created_at'])); ?>
+                            </p>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Version-Anzeige-Dialog -->
+    <div id="versionDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 800px; width: 90%; margin: 20px; max-height: 80vh; overflow-y: auto;">
+            <h3 id="versionDialogTitle">Version X</h3>
+            <div id="versionDialogContent" class="text-preview">Lade...</div>
+            <button onclick="hideVersionDialog()" class="btn-secondary" style="margin-top: 20px;">Schließen</button>
+        </div>
+    </div>
+
+    <script>
+    function copyToClipboard() {
+        const text = document.getElementById('finalTextContent').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Text wurde in die Zwischenablage kopiert!');
+        }).catch(err => {
+            console.error(err);
+            alert('Fehler beim Kopieren');
+        });
+    }
+
+    function printText() {
+        window.print();
+    }
+
+    function toggleVersions() {
+        const container = document.getElementById('versionsContainer');
+        const btn = document.getElementById('toggleVersionsBtn');
+
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            btn.textContent = '📚 Versionshistorie verbergen';
+        } else {
+            container.style.display = 'none';
+            btn.textContent = '📚 Versionshistorie anzeigen (<?php echo count($versions); ?>)';
+        }
+    }
+
+    function showVersion(versionNumber) {
+        const textId = <?php echo $text_id; ?>;
+
+        fetch('/api/collab_text_get_version.php?text_id=' + textId + '&version=' + versionNumber)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('versionDialogTitle').textContent =
+                        'Version ' + versionNumber +
+                        (data.version.version_note ? ' - ' + data.version.version_note : '');
+
+                    document.getElementById('versionDialogContent').innerHTML =
+                        data.version.content.replace(/\n/g, '<br>');
+
+                    document.getElementById('versionDialog').style.display = 'flex';
+                } else {
+                    alert('Fehler beim Laden der Version');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Netzwerkfehler');
+            });
+    }
+
+    function hideVersionDialog() {
+        document.getElementById('versionDialog').style.display = 'none';
+    }
+    </script>
+
+    <?php
+    return;
+}
+
+// Fallback
+echo '<div class="alert alert-warning">Unbekannte Ansicht.</div>';
+
+<?php
+/**
+ * Hilfsfunktion: Rendert einen einzelnen Absatz
+ */
+function renderParagraph($para, $current_member_id) {
+    $is_locked = ($para['locked_by_member_id'] && $para['locked_by_member_id'] != $current_member_id);
+    $is_own_lock = ($para['locked_by_member_id'] == $current_member_id);
+    ?>
+    <div class="paragraph-container <?php echo $is_locked ? 'locked' : ''; ?>"
+         data-paragraph-id="<?php echo $para['paragraph_id']; ?>">
+
+        <div class="paragraph-header">
+            <span style="color: #999; font-size: 0.85em;">
+                Absatz #<?php echo $para['paragraph_order']; ?>
+                <?php if ($para['last_edited_by']): ?>
+                    | Zuletzt bearbeitet von <?php echo htmlspecialchars($para['editor_first_name'] . ' ' . $para['editor_last_name']); ?>
+                <?php endif; ?>
+            </span>
+            <span class="paragraph-lock-info" style="color: #856404; font-size: 0.85em;">
+                <?php if ($is_locked): ?>
+                    🔒 Wird bearbeitet von: <?php echo htmlspecialchars($para['locked_by_first_name'] . ' ' . $para['locked_by_last_name']); ?>
+                <?php elseif ($is_own_lock): ?>
+                    ✏️ Sie bearbeiten gerade
+                <?php endif; ?>
+            </span>
+        </div>
+
+        <div class="paragraph-content"><?php echo htmlspecialchars($para['content']); ?></div>
+
+        <div class="paragraph-actions">
+            <?php if (!$is_locked): ?>
+                <button onclick="editParagraph(<?php echo $para['paragraph_id']; ?>)" class="btn-primary">
+                    ✏️ Bearbeiten
+                </button>
+                <button onclick="deleteParagraph(<?php echo $para['paragraph_id']; ?>)" class="btn-danger">
+                    🗑️ Löschen
+                </button>
+            <?php else: ?>
+                <button disabled class="btn-secondary" style="opacity: 0.5;">
+                    🔒 Gesperrt
+                </button>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php
+}
+?>
