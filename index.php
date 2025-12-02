@@ -260,13 +260,11 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             </a>
         <?php endif; ?>
 
-        <!-- Gemeinsame Texte-Tab (nur sichtbar wenn ein Meeting ausgewählt ist) -->
-        <?php if ($current_meeting_id): ?>
-            <a href="?tab=texte"
-               class="<?php echo $active_tab === 'texte' ? 'active' : ''; ?>">
-                📝 Gemeinsame Texte
-            </a>
-        <?php endif; ?>
+        <!-- Gemeinsame Texte-Tab (immer sichtbar) -->
+        <a href="?tab=texte"
+           class="<?php echo $active_tab === 'texte' ? 'active' : ''; ?>">
+            📝 Gemeinsame Texte
+        </a>
 
         <!-- Protokolle-Tab (immer sichtbar) -->
         <a href="?tab=protokolle" class="<?php echo $active_tab === 'protokolle' ? 'active' : ''; ?>">
