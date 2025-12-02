@@ -260,6 +260,14 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             </a>
         <?php endif; ?>
 
+        <!-- Gemeinsame Texte-Tab (nur sichtbar wenn ein Meeting ausgewählt ist) -->
+        <?php if ($current_meeting_id): ?>
+            <a href="?tab=texte"
+               class="<?php echo $active_tab === 'texte' ? 'active' : ''; ?>">
+                📝 Gemeinsame Texte
+            </a>
+        <?php endif; ?>
+
         <!-- Protokolle-Tab (immer sichtbar) -->
         <a href="?tab=protokolle" class="<?php echo $active_tab === 'protokolle' ? 'active' : ''; ?>">
             📋 Protokolle
@@ -342,6 +350,11 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             case 'vertretung':
                 // Vertretungen & Abwesenheiten anzeigen
                 include 'tab_vertretung.php';
+                break;
+
+            case 'texte':
+                // Kollaborative Texte für Sitzungen anzeigen
+                include 'tab_texte.php';
                 break;
 
             case 'admin':
