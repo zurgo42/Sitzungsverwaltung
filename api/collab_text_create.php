@@ -3,9 +3,16 @@
  * API: Erstellt neuen kollaborativen Text
  * POST: meeting_id, title, initial_content (optional)
  */
+
+// Output buffering starten um unerwartete Ausgaben zu verhindern
+ob_start();
+
 session_start();
 require_once('../config.php');
 require_once('../functions_collab_text.php');
+
+// Alle bisherigen Ausgaben verwerfen (z.B. PHP Warnings/Notices)
+ob_end_clean();
 
 header('Content-Type: application/json');
 
@@ -21,7 +28,7 @@ error_log("collab_text_create.php - Raw input: " . $raw_input);
 $data = json_decode($raw_input, true);
 
 // Debug-Logging
-error_log("collab_text_create.php - Decoded data: " . print_r($data, true));
+error_log("collab_text_create.php - Decoded data: " . json_encode($data));
 
 // Prüfen ob JSON-Dekodierung erfolgreich war
 if (json_last_error() !== JSON_ERROR_NONE) {
