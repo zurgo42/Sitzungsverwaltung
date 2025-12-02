@@ -351,7 +351,7 @@ if ($view === 'overview') {
             return;
         }
 
-        fetch('/api/collab_text_create.php', {
+        fetch('api/collab_text_create.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -500,7 +500,7 @@ if ($view === 'editor') {
     }
 
     function fetchUpdates() {
-        fetch('/api/collab_text_get_updates.php?text_id=' + TEXT_ID + '&since=' + encodeURIComponent(lastUpdate))
+        fetch('api/collab_text_get_updates.php?text_id=' + TEXT_ID + '&since=' + encodeURIComponent(lastUpdate))
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
@@ -531,7 +531,7 @@ if ($view === 'editor') {
     }
 
     function sendHeartbeat() {
-        fetch('/api/collab_text_heartbeat.php', {
+        fetch('api/collab_text_heartbeat.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({text_id: TEXT_ID})
@@ -594,7 +594,7 @@ if ($view === 'editor') {
     // Absatz bearbeiten
     function editParagraph(paragraphId) {
         // Lock erwerben
-        fetch('/api/collab_text_lock_paragraph.php', {
+        fetch('api/collab_text_lock_paragraph.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({paragraph_id: paragraphId})
@@ -636,7 +636,7 @@ if ($view === 'editor') {
         const textarea = document.getElementById('editArea_' + paragraphId);
         const content = textarea.value;
 
-        fetch('/api/collab_text_save_paragraph.php', {
+        fetch('api/collab_text_save_paragraph.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -661,7 +661,7 @@ if ($view === 'editor') {
 
     function cancelEdit(paragraphId) {
         // Lock freigeben
-        fetch('/api/collab_text_lock_paragraph.php', {
+        fetch('api/collab_text_lock_paragraph.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -690,7 +690,7 @@ if ($view === 'editor') {
 
     // Neuen Absatz hinzufügen
     function addParagraph() {
-        fetch('/api/collab_text_add_paragraph.php', {
+        fetch('api/collab_text_add_paragraph.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({text_id: TEXT_ID})
@@ -715,7 +715,7 @@ if ($view === 'editor') {
             return;
         }
 
-        fetch('/api/collab_text_delete_paragraph.php', {
+        fetch('api/collab_text_delete_paragraph.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({paragraph_id: paragraphId})
@@ -756,7 +756,7 @@ if ($view === 'editor') {
         const note = prompt('Optionale Notiz zu dieser Version:', '');
         if (note === null) return; // Abgebrochen
 
-        fetch('/api/collab_text_create_version.php', {
+        fetch('api/collab_text_create_version.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -795,7 +795,7 @@ if ($view === 'editor') {
             return;
         }
 
-        fetch('/api/collab_text_finalize.php', {
+        fetch('api/collab_text_finalize.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -995,7 +995,7 @@ if ($view === 'final') {
     function showVersion(versionNumber) {
         const textId = <?php echo $text_id; ?>;
 
-        fetch('/api/collab_text_get_version.php?text_id=' + textId + '&version=' + versionNumber)
+        fetch('api/collab_text_get_version.php?text_id=' + textId + '&version=' + versionNumber)
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
