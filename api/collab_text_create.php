@@ -90,6 +90,8 @@ if ($meeting_id !== null) {
 
 $text_id = createCollabText($pdo, $meeting_id, $_SESSION['member_id'], $title, $initial_content);
 
+error_log("collab_text_create.php - createCollabText returned: " . var_export($text_id, true));
+
 if ($text_id) {
     echo json_encode([
         'success' => true,
@@ -98,7 +100,8 @@ if ($text_id) {
     ]);
 } else {
     http_response_code(500);
-    echo json_encode(['error' => 'Failed to create text']);
+    error_log("collab_text_create.php - ERROR: createCollabText failed! Check error log above for PDO error.");
+    echo json_encode(['error' => 'Failed to create text - check server logs']);
 }
 
 // Output buffer sauber beenden
