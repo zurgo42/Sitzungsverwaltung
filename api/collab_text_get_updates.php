@@ -38,7 +38,13 @@ if (!hasCollabTextAccess($pdo, $text_id, $member_id)) {
 }
 
 try {
-    // Absätze mit Änderungen seit $since
+    // Alte Locks aufräumen (älter als 2 Minuten)
+    $pdo->exec("
+        DELETE FROM svcollab_text_locks
+        WHERE last_activity < DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+    ");
+
+    // Absätze mit Änderungen seit $since (nur aktive Locks berücksichtigen)
     $stmt = $pdo->prepare("
         SELECT p.paragraph_id, p.paragraph_order, p.content,
                p.last_edited_by, p.last_edited_at,
@@ -50,6 +56,7 @@ try {
         FROM svcollab_text_paragraphs p
         LEFT JOIN svmembers m ON p.last_edited_by = m.member_id
         LEFT JOIN svcollab_text_locks l ON p.paragraph_id = l.paragraph_id
+            AND l.last_activity > DATE_SUB(NOW(), INTERVAL 2 MINUTE)
         LEFT JOIN svmembers lm ON l.member_id = lm.member_id
         WHERE p.text_id = ? AND p.last_edited_at > ?
         ORDER BY p.paragraph_order ASC

@@ -449,6 +449,77 @@ require_once 'process_admin.php';
     </div> <!-- End admin-section-content -->
 </div>
 
+<!-- Textbearbeitung-Verwaltung -->
+<div id="admin-texts" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">✍️ Textbearbeitung-Verwaltung</h3>
+
+    <div class="admin-section-content">
+
+    <?php if (empty($all_collab_texts)): ?>
+        <div class="info-box">Keine kollaborativen Texte vorhanden.</div>
+    <?php else: ?>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Titel</th>
+                    <th>Ersteller</th>
+                    <th>Kontext</th>
+                    <th>Status</th>
+                    <th>Erstellt am</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($all_collab_texts as $text): ?>
+                    <tr>
+                        <td><?php echo $text['text_id']; ?></td>
+                        <td>
+                            <strong><?php echo htmlspecialchars($text['title']); ?></strong>
+                            <?php if ($text['final_name']): ?>
+                                <br><small style="color: #666;">Final: <?php echo htmlspecialchars($text['final_name']); ?></small>
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo htmlspecialchars($text['initiator_first_name'] . ' ' . $text['initiator_last_name']); ?></td>
+                        <td>
+                            <?php if ($text['meeting_id']): ?>
+                                <span style="color: #007bff;">📅 <?php echo htmlspecialchars($text['meeting_name'] ?? 'Meeting #' . $text['meeting_id']); ?></span>
+                            <?php else: ?>
+                                <span style="color: #28a745;">📝 Allgemein</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($text['status'] === 'finalized'): ?>
+                                <span style="color: #28a745; font-weight: bold;">✅ Finalisiert</span>
+                            <?php else: ?>
+                                <span style="color: #ffc107; font-weight: bold;">⏳ Aktiv</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo date('d.m.Y H:i', strtotime($text['created_at'])); ?></td>
+                        <td>
+                            <?php if ($text['status'] === 'finalized'): ?>
+                                <a href="?tab=texte&view=final&text_id=<?php echo $text['text_id']; ?>" class="btn-view" target="_blank">👁️ Ansehen</a>
+                            <?php else: ?>
+                                <a href="?tab=texte&view=editor&text_id=<?php echo $text['text_id']; ?>" class="btn-view" target="_blank">✏️ Editor</a>
+                            <?php endif; ?>
+                            <form method="POST" style="display: inline;" onsubmit="return confirm('Text &quot;<?php echo htmlspecialchars($text['title'], ENT_QUOTES); ?>&quot; wirklich löschen? Dieser Vorgang kann nicht rückgängig gemacht werden!');">
+                                <input type="hidden" name="delete_collab_text_id" value="<?php echo $text['text_id']; ?>">
+                                <button type="submit" name="delete_collab_text" class="btn-delete">🗑️ Löschen</button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <div class="info-box" style="margin-top: 15px;">
+            <strong>ℹ️ Hinweis:</strong> Insgesamt <?php echo count($all_collab_texts); ?> Texte
+            (<?php echo count(array_filter($all_collab_texts, fn($t) => $t['status'] === 'active')); ?> aktiv,
+            <?php echo count(array_filter($all_collab_texts, fn($t) => $t['status'] === 'finalized')); ?> finalisiert)
+        </div>
+    <?php endif; ?>
+    </div> <!-- End admin-section-content -->
+</div>
+
 <!-- Admin-Protokoll -->
 <div id="admin-log" class="admin-section">
     <h3 class="admin-section-header" onclick="toggleSection(this)">📋 Admin-Protokoll (letzte 50 Aktionen)</h3>

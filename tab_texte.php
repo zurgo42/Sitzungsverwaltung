@@ -146,6 +146,7 @@ if (!$has_access) {
 }
 
 .paragraph-content {
+    width: 100%;
     min-height: 60px;
     line-height: 1.6;
     white-space: pre-wrap;
@@ -738,7 +739,7 @@ if ($view === 'editor') {
         const contentDiv = paraDiv.querySelector('.paragraph-content');
         const currentContent = contentDiv.textContent;
 
-        contentDiv.innerHTML = '<textarea class="paragraph-edit-area" id="editArea_' + paragraphId + '">' +
+        contentDiv.innerHTML = '<textarea class="paragraph-edit-area" id="editArea_' + paragraphId + '" style="width: 100%; box-sizing: border-box;">' +
             currentContent + '</textarea>';
 
         paraDiv.classList.add('editing');
