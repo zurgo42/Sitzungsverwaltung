@@ -351,7 +351,7 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
                 break;
 
             case 'texte':
-                // Kollaborative Texte für Sitzungen anzeigen
+                // Textbearbeitung für Sitzungen anzeigen
                 include 'tab_texte.php';
                 break;
 

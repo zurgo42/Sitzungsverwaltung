@@ -1,6 +1,6 @@
 <?php
 /**
- * tab_texte.php - Kollaborative Texte
+ * tab_texte.php - Textbearbeitung
  * Erstellt: 02.12.2025
  *
  * Zwei Modi:
@@ -154,7 +154,7 @@ if (!$has_access) {
 
 .paragraph-edit-area {
     width: 100%;
-    min-height: 150px;
+    min-height: 300px;
     padding: 10px;
     border: 1px solid #ced4da;
     border-radius: 4px;
@@ -215,6 +215,29 @@ if (!$has_access) {
 
     .paragraph-actions button {
         width: 100%;
+    }
+}
+
+/* Print-Styles: Nur den finalen Text-Inhalt drucken */
+@media print {
+    /* Alles verstecken */
+    body * {
+        visibility: hidden;
+    }
+
+    /* Nur den Text-Inhalt anzeigen */
+    #finalTextContent, #finalTextContent * {
+        visibility: visible;
+    }
+
+    #finalTextContent {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white;
+        border: none;
+        padding: 20px;
     }
 }
 </style>
@@ -296,14 +319,25 @@ if ($view === 'overview') {
 
                         <?php if ($text['status'] === 'finalized'): ?>
                             <a href="?tab=texte&view=final&text_id=<?php echo $text['text_id']; ?>"
-                               class="btn-secondary" style="width: 100%; text-align: center;">
+                               class="btn-secondary" style="width: 100%; text-align: center; margin-bottom: 8px;">
                                 📄 Ansehen
                             </a>
                         <?php else: ?>
                             <a href="?tab=texte&view=editor&text_id=<?php echo $text['text_id']; ?>"
-                               class="btn-primary" style="width: 100%; text-align: center;">
+                               class="btn-primary" style="width: 100%; text-align: center; margin-bottom: 8px;">
                                 ✏️ Bearbeiten
                             </a>
+                        <?php endif; ?>
+
+                        <?php
+                        // Lösch-Button: Nur für Ersteller oder Admin
+                        $can_delete = ($text['initiator_member_id'] == $current_user['member_id']) || $current_user['is_admin'];
+                        if ($can_delete):
+                        ?>
+                            <button onclick="deleteText(<?php echo $text['text_id']; ?>, '<?php echo htmlspecialchars($text['title'], ENT_QUOTES); ?>')"
+                                    class="btn-danger" style="width: 100%; font-size: 0.9em;">
+                                🗑️ Löschen
+                            </button>
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
@@ -312,8 +346,8 @@ if ($view === 'overview') {
     </div>
 
     <!-- Dialog: Neuen Text erstellen -->
-    <div id="createTextDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%;">
+    <div id="createTextDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; padding: 20px 0;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 900px; width: 90%; margin: 0 auto; min-height: fit-content;">
             <h3>Neuen Text erstellen</h3>
 
             <label>Titel:</label>
@@ -321,8 +355,10 @@ if ($view === 'overview') {
                    style="width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px;">
 
             <label>Initial-Text (optional):</label>
-            <textarea id="newTextContent" placeholder="Optional: Ersten Absatz bereits eingeben..."
-                      style="width: 100%; min-height: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+            <textarea id="newTextContent" placeholder="Optional: Ersten Absatz bereits eingeben...
+
+Tipp: Texte mit 2+ aufeinanderfolgenden Leerzeilen werden automatisch in mehrere Absätze aufgeteilt."
+                      style="width: 100%; min-height: 400px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 14px; line-height: 1.6;"></textarea>
 
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button onclick="createText()" class="btn-primary">Erstellen</button>
@@ -371,6 +407,31 @@ if ($view === 'overview') {
         .catch(err => {
             console.error('Error:', err);
             alert('Fehler beim Erstellen des Textes');
+        });
+    }
+
+    function deleteText(textId, textTitle) {
+        if (!confirm('Möchten Sie den Text "' + textTitle + '" wirklich löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden!')) {
+            return;
+        }
+
+        fetch('api/collab_text_delete.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({text_id: textId})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Fehler beim Löschen');
         });
     }
     </script>
@@ -891,7 +952,9 @@ if ($view === 'final') {
     $stmt->execute([$text_id]);
     $paragraphs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $full_text = implode("\n\n", array_column($paragraphs, 'content'));
+    // Jeden Absatz trimmen (Whitespace/Einrückung entfernen) und dann verbinden
+    $contents = array_map('trim', array_column($paragraphs, 'content'));
+    $full_text = implode("\n\n", $contents);
 
     // Versionen laden
     $versions = getTextVersions($pdo, $text_id);
@@ -924,6 +987,13 @@ if ($view === 'final') {
             <button onclick="toggleVersions()" class="btn-secondary" id="toggleVersionsBtn">
                 📚 Versionshistorie anzeigen (<?php echo count($versions); ?>)
             </button>
+            <?php
+            // Lösch-Button: Nur für Ersteller oder Admin
+            $can_delete = ($text['initiator_member_id'] == $current_user['member_id']) || $current_user['is_admin'];
+            if ($can_delete):
+            ?>
+                <button onclick="deleteTextFinal()" class="btn-danger">🗑️ Text löschen</button>
+            <?php endif; ?>
         </div>
 
         <!-- Finaler Text -->
@@ -1027,6 +1097,34 @@ if ($view === 'final') {
 
     function hideVersionDialog() {
         document.getElementById('versionDialog').style.display = 'none';
+    }
+
+    function deleteTextFinal() {
+        const textId = <?php echo $text_id; ?>;
+        const textTitle = '<?php echo htmlspecialchars($text['title'], ENT_QUOTES); ?>';
+
+        if (!confirm('Möchten Sie den Text "' + textTitle + '" wirklich löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden!')) {
+            return;
+        }
+
+        fetch('api/collab_text_delete.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({text_id: textId})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                window.location.href = '?tab=texte&view=overview';
+            } else {
+                alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Fehler beim Löschen');
+        });
     }
     </script>
 

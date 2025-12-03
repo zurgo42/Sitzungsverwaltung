@@ -243,6 +243,10 @@ if (isset($_GET['demo_email'])) {
                     <span class="icon">📁</span>
                     <span class="text"><strong>Dokumente:</strong> Zentrale Dokumentenverwaltung, Kategorisierung, Freigabe-Verwaltung, Versionierung, Archiv-Funktion</span>
                 </div>
+                <div class="feature-item">
+                    <span class="icon">✍️</span>
+                    <span class="text"><strong>Textbearbeitung:</strong> Gemeinsames Erstellen von Texten (Pressemitteilungen, Stellungnahmen), absatzweise Bearbeitung mit Lock-System, Online-User-Anzeige, Versionierung</span>
+                </div>
             </div>
         </div>
 

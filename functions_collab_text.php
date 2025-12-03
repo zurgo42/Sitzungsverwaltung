@@ -28,13 +28,27 @@ function createCollabText($pdo, $meeting_id, $initiator_member_id, $title, $init
         $stmt->execute([$meeting_id, $initiator_member_id, $title]);
         $text_id = $pdo->lastInsertId();
 
-        // Ersten Absatz erstellen (falls initial content vorhanden)
+        // Initial content in Absätze aufteilen (bei 2+ aufeinanderfolgenden Leerzeilen)
         if (!empty(trim($initial_content))) {
+            // Split bei 2+ aufeinanderfolgenden Zeilenumbrüchen
+            $paragraphs = preg_split('/\n\s*\n\s*\n+/', $initial_content);
+            $paragraphs = array_map('trim', $paragraphs);
+            $paragraphs = array_filter($paragraphs); // Leere entfernen
+
+            if (empty($paragraphs)) {
+                $paragraphs = [$initial_content];
+            }
+
             $stmt = $pdo->prepare("
                 INSERT INTO svcollab_text_paragraphs (text_id, paragraph_order, content, last_edited_by, last_edited_at)
-                VALUES (?, 1, ?, ?, NOW())
+                VALUES (?, ?, ?, ?, NOW())
             ");
-            $stmt->execute([$text_id, $initial_content, $initiator_member_id]);
+
+            $order = 1;
+            foreach ($paragraphs as $para_content) {
+                $stmt->execute([$text_id, $order, $para_content, $initiator_member_id]);
+                $order++;
+            }
         } else {
             // Leeren ersten Absatz erstellen
             $stmt = $pdo->prepare("
@@ -429,7 +443,9 @@ function createTextVersion($pdo, $text_id, $member_id, $note = '') {
         $stmt->execute([$text_id]);
         $paragraphs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $full_content = implode("\n\n", array_column($paragraphs, 'content'));
+        // Jeden Absatz trimmen (Whitespace entfernen) und dann verbinden
+        $contents = array_map('trim', array_column($paragraphs, 'content'));
+        $full_content = implode("\n\n", $contents);
 
         // Höchste Versionsnummer ermitteln
         $stmt = $pdo->prepare("
