@@ -224,6 +224,10 @@ if (isset($_GET['demo_email'])) {
                     <span class="text"><strong>Tagesordnung:</strong> TOPs mit Kategorien, Kommentare zur Vorbereitung, Live-Diskussion während Sitzung, Abstimmungsverwaltung</span>
                 </div>
                 <div class="feature-item">
+                    <span class="icon">✍️</span>
+                    <span class="text"><strong>Textbearbeitung:</strong> Gemeinsames Erstellen von Texten (Pressemitteilungen, Stellungnahmen), absatzweise Bearbeitung mit Lock-System, Online-User-Anzeige, Versionierung</span>
+                </div>
+                <div class="feature-item">
                     <span class="icon">📄</span>
                     <span class="text"><strong>Protokolle:</strong> Automatische Protokollerstellung aus TOPs, Freigabe-Workflow, Änderungswünsche, PDF-Export, Archivierung</span>
                 </div>
@@ -242,10 +246,6 @@ if (isset($_GET['demo_email'])) {
                 <div class="feature-item">
                     <span class="icon">📁</span>
                     <span class="text"><strong>Dokumente:</strong> Zentrale Dokumentenverwaltung, Kategorisierung, Freigabe-Verwaltung, Versionierung, Archiv-Funktion</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">✍️</span>
-                    <span class="text"><strong>Textbearbeitung:</strong> Gemeinsames Erstellen von Texten (Pressemitteilungen, Stellungnahmen), absatzweise Bearbeitung mit Lock-System, Online-User-Anzeige, Versionierung</span>
                 </div>
             </div>
         </div>

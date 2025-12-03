@@ -260,11 +260,31 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             </a>
         <?php endif; ?>
 
-        <!-- Gemeinsame Texte-Tab (immer sichtbar) -->
+        <!-- Textbearbeitung-Tab (nur für Vorstand/GF/Assistenz oder aktive Sitzungsteilnehmer) -->
+        <?php
+        // Prüfen ob User Zugriff hat
+        $has_texte_access = in_array($current_user['role'], ['vorstand', 'gf', 'assistenz']);
+
+        // Oder ist User Teilnehmer einer aktiven Sitzung?
+        if (!$has_texte_access) {
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) as count
+                FROM svmeeting_participants mp
+                JOIN svmeetings m ON mp.meeting_id = m.meeting_id
+                WHERE mp.member_id = ? AND m.status = 'active'
+            ");
+            $stmt->execute([$current_user['member_id']]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $has_texte_access = ($result['count'] > 0);
+        }
+
+        if ($has_texte_access):
+        ?>
         <a href="?tab=texte"
            class="<?php echo $active_tab === 'texte' ? 'active' : ''; ?>">
-            📝 Gemeinsame Texte
+            ✍️ Textbearbeitung
         </a>
+        <?php endif; ?>
 
         <!-- Protokolle-Tab (immer sichtbar) -->
         <a href="?tab=protokolle" class="<?php echo $active_tab === 'protokolle' ? 'active' : ''; ?>">

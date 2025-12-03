@@ -357,7 +357,7 @@ if ($view === 'overview') {
             <label>Initial-Text (optional):</label>
             <textarea id="newTextContent" placeholder="Optional: Ersten Absatz bereits eingeben...
 
-Tipp: Texte mit 2+ aufeinanderfolgenden Leerzeilen werden automatisch in mehrere Absätze aufgeteilt."
+Tipp: Texte mit einer oder mehreren Leerzeilen werden automatisch in mehrere Absätze aufgeteilt."
                       style="width: 100%; min-height: 400px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 14px; line-height: 1.6;"></textarea>
 
             <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -864,6 +864,16 @@ if ($view === 'editor') {
             return;
         }
 
+        // Polling und Heartbeat stoppen (verhindert Endlosschleife)
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+        }
+        if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+        }
+
         fetch('api/collab_text_finalize.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -879,11 +889,17 @@ if ($view === 'editor') {
                 window.location.href = '?tab=texte&view=final&text_id=' + TEXT_ID;
             } else {
                 alert('Fehler: ' + (data.error || 'Unbekannt'));
+                // Bei Fehler: Polling und Heartbeat wieder starten
+                startPolling();
+                startHeartbeat();
             }
         })
         .catch(err => {
             console.error(err);
             alert('Netzwerkfehler');
+            // Bei Fehler: Polling und Heartbeat wieder starten
+            startPolling();
+            startHeartbeat();
         });
     }
 
@@ -997,8 +1013,8 @@ if ($view === 'final') {
         </div>
 
         <!-- Finaler Text -->
-        <div id="finalTextContent" class="text-preview" style="background: white; border: 2px solid #28a745;">
-            <?php echo nl2br(htmlspecialchars($full_text)); ?>
+        <div id="finalTextContent" class="text-preview" style="background: white; border: 2px solid #28a745; white-space: pre-wrap;">
+            <?php echo htmlspecialchars($full_text); ?>
         </div>
 
         <!-- Versionshistorie (versteckt) -->

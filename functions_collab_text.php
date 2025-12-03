@@ -28,10 +28,10 @@ function createCollabText($pdo, $meeting_id, $initiator_member_id, $title, $init
         $stmt->execute([$meeting_id, $initiator_member_id, $title]);
         $text_id = $pdo->lastInsertId();
 
-        // Initial content in Absätze aufteilen (bei 2+ aufeinanderfolgenden Leerzeilen)
+        // Initial content in Absätze aufteilen (bei 1+ Leerzeilen)
         if (!empty(trim($initial_content))) {
-            // Split bei 2+ aufeinanderfolgenden Zeilenumbrüchen
-            $paragraphs = preg_split('/\n\s*\n\s*\n+/', $initial_content);
+            // Split bei 1+ Leerzeilen (leere Zeilen ohne Text)
+            $paragraphs = preg_split('/\n\s*\n+/', $initial_content);
             $paragraphs = array_map('trim', $paragraphs);
             $paragraphs = array_filter($paragraphs); // Leere entfernen
 
@@ -250,6 +250,9 @@ function saveParagraph($pdo, $paragraph_id, $member_id, $content) {
         if (!$lock || $lock['member_id'] != $member_id) {
             return false; // Kein Lock oder nicht der Besitzer
         }
+
+        // Content trimmen (führende/nachfolgende Whitespace entfernen)
+        $content = trim($content);
 
         // Absatz aktualisieren
         $stmt = $pdo->prepare("
