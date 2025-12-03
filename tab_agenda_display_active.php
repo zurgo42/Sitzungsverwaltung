@@ -414,16 +414,33 @@ foreach ($agenda_items as $item):
                 <!-- PROTOKOLL-FORMULAR (nur für Sekretär) -->
                 <div style="margin-top: 15px; padding: 12px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 6px;">
                     <h4 style="color: #1976d2; margin-bottom: 10px;">📝 Protokoll</h4>
-                    
+
+                    <!-- Live-Anzeige des aktuellen Protokolls (für Sekretär) -->
+                    <?php if (!empty($item['protocol_notes'])): ?>
+                        <div style="margin-bottom: 12px; padding: 10px; background: white; border: 1px solid #2196f3; border-radius: 4px;">
+                            <strong style="font-size: 12px; color: #666;">Aktueller Stand (Live):</strong>
+                            <div id="protocol-display-<?php echo $item['item_id']; ?>" style="margin-top: 6px; color: #333; font-size: 14px;">
+                                <?php echo nl2br(linkify_text($item['protocol_notes'])); ?>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div style="margin-bottom: 12px; padding: 10px; background: white; border: 1px solid #e0e0e0; border-radius: 4px; display: none;" id="protocol-display-container-<?php echo $item['item_id']; ?>">
+                            <strong style="font-size: 12px; color: #666;">Aktueller Stand (Live):</strong>
+                            <div id="protocol-display-<?php echo $item['item_id']; ?>" style="margin-top: 6px; color: #333; font-size: 14px;">
+                                Noch kein Protokolleintrag...
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <form method="POST" action="">
                         <input type="hidden" name="save_protocol" value="1">
                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
-                        
+
                         <div class="form-group">
-                            <label style="font-weight: 600;">Protokollnotizen:</label>
-                            <textarea name="protocol_text" 
-                                      rows="5" 
-                                      placeholder="Notizen zu diesem TOP..." 
+                            <label style="font-weight: 600;">Protokollnotizen bearbeiten:</label>
+                            <textarea name="protocol_text"
+                                      rows="5"
+                                      placeholder="Notizen zu diesem TOP..."
                                       style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
                     </div>
                     
@@ -544,7 +561,7 @@ foreach ($agenda_items as $item):
 <script>
 // AJAX: TOP aktivieren
 function setActiveTop(itemId, meetingId) {
-    fetch('ajax_meeting_actions.php', {
+    fetch('api/meeting_actions.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `action=set_active_top&item_id=${itemId}&meeting_id=${meetingId}`
@@ -564,7 +581,7 @@ function setActiveTop(itemId, meetingId) {
 
 // AJAX: TOP deaktivieren
 function unsetActiveTop(meetingId) {
-    fetch('ajax_meeting_actions.php', {
+    fetch('api/meeting_actions.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `action=unset_active_top&meeting_id=${meetingId}`
@@ -624,6 +641,12 @@ function updateProtocol(itemId) {
                     });
 
                     protocolDiv.innerHTML = text;
+
+                    // Container sichtbar machen falls versteckt (für Sekretär bei erstem Eintrag)
+                    const container = document.getElementById(`protocol-display-container-${itemId}`);
+                    if (container && container.style.display === 'none') {
+                        container.style.display = 'block';
+                    }
                 } catch (e) {
                     console.debug(`Konnte Protokoll für TOP ${itemId} nicht aktualisieren:`, e);
                 }
