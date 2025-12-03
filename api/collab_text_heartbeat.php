@@ -5,7 +5,7 @@
  */
 session_start();
 require_once('../config.php');
-require_once('../functions.php');
+require_once('db_connection.php');
 require_once('../functions_collab_text.php');
 
 header('Content-Type: application/json');
