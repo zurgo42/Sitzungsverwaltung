@@ -21,17 +21,14 @@ function createCollabText($pdo, $meeting_id, $initiator_member_id, $title, $init
         $pdo->beginTransaction();
 
         // Text erstellen
-        error_log("createCollabText: Step 1 - Creating text record");
         $stmt = $pdo->prepare("
             INSERT INTO svcollab_texts (meeting_id, initiator_member_id, title, status)
             VALUES (?, ?, ?, 'active')
         ");
         $stmt->execute([$meeting_id, $initiator_member_id, $title]);
         $text_id = $pdo->lastInsertId();
-        error_log("createCollabText: Text created with ID: $text_id");
 
         // Ersten Absatz erstellen (falls initial content vorhanden)
-        error_log("createCollabText: Step 2 - Creating first paragraph");
         if (!empty(trim($initial_content))) {
             $stmt = $pdo->prepare("
                 INSERT INTO svcollab_text_paragraphs (text_id, paragraph_order, content, last_edited_by, last_edited_at)
@@ -46,10 +43,8 @@ function createCollabText($pdo, $meeting_id, $initiator_member_id, $title, $init
             ");
             $stmt->execute([$text_id]);
         }
-        error_log("createCollabText: First paragraph created");
 
         // Teilnehmer hinzufügen
-        error_log("createCollabText: Step 3 - Adding participants");
         if ($meeting_id !== null) {
             // MEETING-MODUS: Alle Sitzungs-Teilnehmer als Participants hinzufügen
             $stmt = $pdo->prepare("
@@ -69,19 +64,15 @@ function createCollabText($pdo, $meeting_id, $initiator_member_id, $title, $init
             ");
             $stmt->execute([$text_id]);
         }
-        error_log("createCollabText: Participants added, affected rows: " . $stmt->rowCount());
 
         // Erste Version speichern
-        error_log("createCollabText: Step 4 - Creating version snapshot");
         $stmt = $pdo->prepare("
             INSERT INTO svcollab_text_versions (text_id, version_number, content, created_by, version_note)
             VALUES (?, 1, ?, ?, 'Initiale Version')
         ");
         $stmt->execute([$text_id, $initial_content, $initiator_member_id]);
-        error_log("createCollabText: Version created");
 
         $pdo->commit();
-        error_log("createCollabText: Transaction committed successfully");
         return $text_id;
 
     } catch (PDOException $e) {
@@ -89,8 +80,6 @@ function createCollabText($pdo, $meeting_id, $initiator_member_id, $title, $init
             $pdo->rollBack();
         }
         error_log("createCollabText Error: " . $e->getMessage());
-        error_log("createCollabText Error Code: " . $e->getCode());
-        error_log("createCollabText Stack trace: " . $e->getTraceAsString());
         return false;
     }
 }

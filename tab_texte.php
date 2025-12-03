@@ -351,40 +351,17 @@ if ($view === 'overview') {
             return;
         }
 
-        const payload = {
-            meeting_id: <?php echo $meeting_id ?: 'null'; ?>,
-            title: title,
-            initial_content: content
-        };
-
-        console.log('Creating text with payload:', payload);
-        console.log('Payload JSON:', JSON.stringify(payload));
-
         fetch('api/collab_text_create.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                meeting_id: <?php echo $meeting_id ?: 'null'; ?>,
+                title: title,
+                initial_content: content
+            })
         })
-        .then(r => {
-            console.log('Response status:', r.status);
-            console.log('Response headers:', r.headers.get('content-type'));
-            // Clone the response to read it twice
-            return r.clone().text().then(text => {
-                console.log('Response body (raw text):', text);
-                console.log('Response body length:', text.length);
-                try {
-                    const json = JSON.parse(text);
-                    console.log('Parsed JSON:', json);
-                    return json;
-                } catch (e) {
-                    console.error('JSON parse error:', e);
-                    console.error('First 500 chars:', text.substring(0, 500));
-                    throw new Error('Invalid JSON response: ' + e.message);
-                }
-            });
-        })
+        .then(r => r.json())
         .then(data => {
-            console.log('Response data:', data);
             if (data.success) {
                 window.location.href = '?tab=texte&view=editor&text_id=' + data.text_id;
             } else {
@@ -392,8 +369,8 @@ if ($view === 'overview') {
             }
         })
         .catch(err => {
-            console.error('Network error:', err);
-            alert('Netzwerkfehler: ' + err.message);
+            console.error('Error:', err);
+            alert('Fehler beim Erstellen des Textes');
         });
     }
     </script>
