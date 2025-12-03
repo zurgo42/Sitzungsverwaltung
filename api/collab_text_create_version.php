@@ -10,10 +10,14 @@ require_once('../functions_collab_text.php');
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['member_id'])) {
+if (!isset($member_id)) {
     http_response_code(401);
     echo json_encode(['error' => 'Not authenticated']);
     exit;
+
+// Session-Daten gelesen → Session sofort schließen für parallele Requests
+$member_id = $_SESSION["member_id"];
+session_write_close();
 }
 
 $data = json_decode(file_get_contents('php://input'), true);
@@ -26,13 +30,13 @@ if ($text_id <= 0) {
     exit;
 }
 
-if (!hasCollabTextAccess($pdo, $text_id, $_SESSION['member_id'])) {
+if (!hasCollabTextAccess($pdo, $text_id, $member_id)) {
     http_response_code(403);
     echo json_encode(['error' => 'Access denied']);
     exit;
 }
 
-$version_number = createTextVersion($pdo, $text_id, $_SESSION['member_id'], $note);
+$version_number = createTextVersion($pdo, $text_id, $member_id, $note);
 
 if ($version_number) {
     echo json_encode([

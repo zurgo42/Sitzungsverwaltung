@@ -11,10 +11,14 @@ require_once('../functions_collab_text.php');
 header('Content-Type: application/json');
 
 // Prüfen ob eingeloggt
-if (!isset($_SESSION['member_id'])) {
+if (!isset($member_id)) {
     http_response_code(401);
     echo json_encode(['error' => 'Not authenticated']);
     exit;
+
+// Session-Daten gelesen → Session sofort schließen für parallele Requests
+$member_id = $_SESSION["member_id"];
+session_write_close();
 }
 
 $text_id = isset($_GET['text_id']) ? (int)$_GET['text_id'] : 0;
@@ -40,7 +44,7 @@ if (!$text) {
 // Zugriff prüfen
 if ($text['meeting_id']) {
     // Meeting-basierter Text
-    if (!hasCollabTextAccess($pdo, $text_id, $_SESSION['member_id'])) {
+    if (!hasCollabTextAccess($pdo, $text_id, $member_id)) {
         http_response_code(403);
         echo json_encode(['error' => 'Access denied']);
         exit;
@@ -48,7 +52,7 @@ if ($text['meeting_id']) {
 } else {
     // Allgemeiner Text: Nur Vorstand, GF, Assistenz
     $stmt = $pdo->prepare("SELECT role FROM svmembers WHERE member_id = ?");
-    $stmt->execute([$_SESSION['member_id']]);
+    $stmt->execute([$member_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user || !in_array($user['role'], ['vorstand', 'gf', 'assistenz'])) {

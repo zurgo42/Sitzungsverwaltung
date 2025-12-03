@@ -25,6 +25,10 @@ if (!isset($_SESSION['member_id'])) {
     exit;
 }
 
+// Session-Daten gelesen → Session sofort schließen für parallele Requests
+$member_id = $_SESSION['member_id'];
+session_write_close(); // Gibt das Session-Lock frei!
+
 $raw_input = file_get_contents('php://input');
 $data = json_decode($raw_input, true);
 
@@ -56,7 +60,7 @@ if ($meeting_id !== null) {
         FROM svmeeting_participants
         WHERE meeting_id = ? AND member_id = ?
     ");
-    $stmt->execute([$meeting_id, $_SESSION['member_id']]);
+    $stmt->execute([$meeting_id, $member_id]);
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($result['is_participant'] == 0) {
@@ -68,7 +72,7 @@ if ($meeting_id !== null) {
 } else {
     // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz
     $stmt = $pdo->prepare("SELECT role FROM svmembers WHERE member_id = ?");
-    $stmt->execute([$_SESSION['member_id']]);
+    $stmt->execute([$member_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user || !in_array($user['role'], ['vorstand', 'gf', 'assistenz'])) {
@@ -79,7 +83,7 @@ if ($meeting_id !== null) {
     }
 }
 
-$text_id = createCollabText($pdo, $meeting_id, $_SESSION['member_id'], $title, $initial_content);
+$text_id = createCollabText($pdo, $meeting_id, $member_id, $title, $initial_content);
 
 if ($text_id) {
     echo json_encode([
