@@ -162,6 +162,7 @@ if (!$has_access) {
     font-size: inherit;
     line-height: 1.6;
     resize: vertical;
+    box-sizing: border-box;
 }
 
 .paragraph-actions {
@@ -318,15 +319,15 @@ if ($view === 'overview') {
                         </p>
 
                         <?php if ($text['status'] === 'finalized'): ?>
-                            <a href="?tab=texte&view=final&text_id=<?php echo $text['text_id']; ?>"
-                               class="btn-secondary" style="width: 100%; text-align: center; margin-bottom: 8px;">
+                            <button onclick="window.location.href='?tab=texte&view=final&text_id=<?php echo $text['text_id']; ?>'"
+                                    class="btn-secondary" style="width: 100%; margin-bottom: 8px;">
                                 📄 Ansehen
-                            </a>
+                            </button>
                         <?php else: ?>
-                            <a href="?tab=texte&view=editor&text_id=<?php echo $text['text_id']; ?>"
-                               class="btn-primary" style="width: 100%; text-align: center; margin-bottom: 8px;">
+                            <button onclick="window.location.href='?tab=texte&view=editor&text_id=<?php echo $text['text_id']; ?>'"
+                                    class="btn-primary" style="width: 100%; margin-bottom: 8px;">
                                 ✏️ Bearbeiten
-                            </a>
+                            </button>
                         <?php endif; ?>
 
                         <?php
@@ -467,6 +468,9 @@ if ($view === 'editor') {
     }
 
     $is_initiator = ($text['initiator_member_id'] == $current_user['member_id']);
+
+    // Versionen laden für Anzeige
+    $versions = getTextVersions($pdo, $text_id);
     ?>
 
     <div class="card">
@@ -477,7 +481,9 @@ if ($view === 'editor') {
                     Erstellt von <?php echo htmlspecialchars($text['initiator_first_name'] . ' ' . $text['initiator_last_name']); ?>
                 </p>
             </div>
-            <a href="?tab=texte&view=overview" class="btn-secondary">← Zurück zur Übersicht</a>
+            <button onclick="window.location.href='?tab=texte&view=overview'" class="btn-secondary">
+                ← Zurück zur Übersicht
+            </button>
         </div>
 
         <!-- Online-Benutzer -->
@@ -493,6 +499,9 @@ if ($view === 'editor') {
             <button onclick="addParagraph()" class="btn-primary">+ Absatz hinzufügen</button>
             <button onclick="showPreview()" class="btn-secondary">👁️ Vorschau</button>
             <button onclick="createVersionSnapshot()" class="btn-secondary">💾 Version speichern</button>
+            <button onclick="toggleVersionsEditor()" class="btn-secondary" id="toggleVersionsEditorBtn">
+                📚 Versionen (<?php echo count($versions); ?>)
+            </button>
             <?php if ($is_initiator): ?>
                 <button onclick="finalizeText()" class="btn-danger" style="margin-left: auto;">
                     ✅ Text finalisieren
@@ -512,6 +521,37 @@ if ($view === 'editor') {
                 Noch keine Absätze vorhanden. Klicken Sie auf "+ Absatz hinzufügen" um zu starten.
             </p>
         <?php endif; ?>
+
+        <!-- Versionshistorie (versteckt) -->
+        <div id="versionsEditorContainer" style="display: none; margin-top: 30px; border-top: 2px solid #ddd; padding-top: 20px;">
+            <h3>📚 Versionshistorie</h3>
+
+            <?php if (empty($versions)): ?>
+                <p style="color: #999; font-style: italic;">Noch keine Versionen gespeichert. Klicken Sie auf "💾 Version speichern" um eine Version zu erstellen.</p>
+            <?php else: ?>
+                <div style="display: grid; gap: 15px;">
+                    <?php foreach ($versions as $version): ?>
+                        <div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div>
+                                    <strong>Version <?php echo $version['version_number']; ?></strong>
+                                    <?php if ($version['version_note']): ?>
+                                        <span style="color: #666;"> - <?php echo htmlspecialchars($version['version_note']); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <button onclick="showVersionEditor(<?php echo $version['version_number']; ?>)" class="btn-secondary" style="font-size: 0.85em;">
+                                    👁️ Anzeigen
+                                </button>
+                            </div>
+                            <p style="font-size: 0.85em; color: #999; margin: 0;">
+                                Erstellt von <?php echo htmlspecialchars($version['first_name'] . ' ' . $version['last_name']); ?>
+                                am <?php echo date('d.m.Y H:i', strtotime($version['created_at'])); ?>
+                            </p>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 
     <!-- Vorschau-Dialog -->
@@ -541,6 +581,15 @@ if ($view === 'editor') {
         </div>
     </div>
 
+    <!-- Version-Anzeige-Dialog (Editor) -->
+    <div id="versionDialogEditor" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 800px; width: 90%; margin: 20px; max-height: 80vh; overflow-y: auto;">
+            <h3 id="versionDialogEditorTitle">Version X</h3>
+            <div id="versionDialogEditorContent" class="text-preview">Lade...</div>
+            <button onclick="hideVersionDialogEditor()" class="btn-secondary" style="margin-top: 20px;">Schließen</button>
+        </div>
+    </div>
+
     <script>
     const TEXT_ID = <?php echo $text_id; ?>;
     const CURRENT_USER_ID = <?php echo $current_user['member_id']; ?>;
@@ -548,6 +597,7 @@ if ($view === 'editor') {
     let pollingInterval = null;
     let heartbeatInterval = null;
     let editingParagraphId = null;
+    let lockWarningTimeout = null;
 
     // Initialisierung
     document.addEventListener('DOMContentLoaded', function() {
@@ -699,11 +749,39 @@ if ($view === 'editor') {
             <button onclick="saveParagraph(${paragraphId})" class="btn-primary">💾 Speichern</button>
             <button onclick="cancelEdit(${paragraphId})" class="btn-secondary">❌ Abbrechen</button>
         `;
+
+        // Lock-Warnung nach 1:45 Min (105 Sekunden) starten
+        startLockWarning(paragraphId);
+    }
+
+    function startLockWarning(paragraphId) {
+        // Alte Warnung löschen falls vorhanden
+        if (lockWarningTimeout) {
+            clearTimeout(lockWarningTimeout);
+        }
+
+        // Nach 105 Sekunden (1:45 Min) Warnung anzeigen (Lock läuft nach 2 Min ab)
+        lockWarningTimeout = setTimeout(function() {
+            const paraDiv = document.querySelector('[data-paragraph-id="' + paragraphId + '"]');
+            if (paraDiv && paraDiv.classList.contains('editing')) {
+                alert('⚠️ Warnung: Ihr Bearbeitungs-Lock läuft in 15 Sekunden ab!\n\nBitte speichern Sie jetzt oder Ihre Änderungen gehen verloren.');
+            }
+        }, 105000); // 105 Sekunden = 1:45 Min
+    }
+
+    function clearLockWarning() {
+        if (lockWarningTimeout) {
+            clearTimeout(lockWarningTimeout);
+            lockWarningTimeout = null;
+        }
     }
 
     function saveParagraph(paragraphId) {
         const textarea = document.getElementById('editArea_' + paragraphId);
         const content = textarea.value;
+
+        // Lock-Warnung stoppen
+        clearLockWarning();
 
         fetch('api/collab_text_save_paragraph.php', {
             method: 'POST',
@@ -716,7 +794,7 @@ if ($view === 'editor') {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                exitEditMode(paragraphId, content);
+                exitEditMode(paragraphId, content, data.editor_name);
                 editingParagraphId = null;
             } else {
                 alert('Fehler beim Speichern: ' + (data.error || 'Unbekannt'));
@@ -729,6 +807,9 @@ if ($view === 'editor') {
     }
 
     function cancelEdit(paragraphId) {
+        // Lock-Warnung stoppen
+        clearLockWarning();
+
         // Lock freigeben
         fetch('api/collab_text_lock_paragraph.php', {
             method: 'POST',
@@ -742,12 +823,21 @@ if ($view === 'editor') {
         location.reload(); // Einfach neu laden um alten Zustand wiederherzustellen
     }
 
-    function exitEditMode(paragraphId, newContent) {
+    function exitEditMode(paragraphId, newContent, editorName) {
         const paraDiv = document.querySelector('[data-paragraph-id="' + paragraphId + '"]');
         const contentDiv = paraDiv.querySelector('.paragraph-content');
         contentDiv.textContent = newContent;
 
         paraDiv.classList.remove('editing');
+
+        // Editor-Namen im Header aktualisieren
+        if (editorName) {
+            const headerText = paraDiv.querySelector('.paragraph-header span');
+            if (headerText) {
+                headerText.innerHTML = 'Absatz #' + paraDiv.dataset.paragraphOrder +
+                    ' | Zuletzt bearbeitet von ' + editorName;
+            }
+        }
 
         // Buttons zurücksetzen
         const actions = paraDiv.querySelector('.paragraph-actions');
@@ -903,6 +993,47 @@ if ($view === 'editor') {
         });
     }
 
+    // Versionshistorie im Editor anzeigen/verbergen
+    function toggleVersionsEditor() {
+        const container = document.getElementById('versionsEditorContainer');
+        const btn = document.getElementById('toggleVersionsEditorBtn');
+
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            btn.textContent = '📚 Versionen verbergen';
+        } else {
+            container.style.display = 'none';
+            btn.textContent = '📚 Versionen (<?php echo count($versions); ?>)';
+        }
+    }
+
+    function showVersionEditor(versionNumber) {
+        fetch('api/collab_text_get_version.php?text_id=' + TEXT_ID + '&version=' + versionNumber)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('versionDialogEditorTitle').textContent =
+                        'Version ' + versionNumber +
+                        (data.version.version_note ? ' - ' + data.version.version_note : '');
+
+                    document.getElementById('versionDialogEditorContent').innerHTML =
+                        data.version.content.replace(/\n/g, '<br>');
+
+                    document.getElementById('versionDialogEditor').style.display = 'flex';
+                } else {
+                    alert('Fehler beim Laden der Version');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Netzwerkfehler');
+            });
+    }
+
+    function hideVersionDialogEditor() {
+        document.getElementById('versionDialogEditor').style.display = 'none';
+    }
+
     // Cleanup bei Seitenverlassen
     window.addEventListener('beforeunload', function() {
         if (pollingInterval) clearInterval(pollingInterval);
@@ -984,7 +1115,9 @@ if ($view === 'final') {
                     <span class="collab-text-status status-finalized">✅ Finalisiert</span>
                 </p>
             </div>
-            <a href="?tab=texte&view=overview" class="btn-secondary">← Zurück zur Übersicht</a>
+            <button onclick="window.location.href='?tab=texte&view=overview'" class="btn-secondary">
+                ← Zurück zur Übersicht
+            </button>
         </div>
 
         <div style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
@@ -1159,7 +1292,8 @@ function renderParagraph($para, $current_member_id) {
     $is_own_lock = ($para['locked_by_member_id'] == $current_member_id);
     ?>
     <div class="paragraph-container <?php echo $is_locked ? 'locked' : ''; ?>"
-         data-paragraph-id="<?php echo $para['paragraph_id']; ?>">
+         data-paragraph-id="<?php echo $para['paragraph_id']; ?>"
+         data-paragraph-order="<?php echo $para['paragraph_order']; ?>">
 
         <div class="paragraph-header">
             <span style="color: #999; font-size: 0.85em;">

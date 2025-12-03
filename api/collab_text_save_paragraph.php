@@ -33,10 +33,16 @@ if ($paragraph_id <= 0) {
 $success = saveParagraph($pdo, $paragraph_id, $member_id, $content);
 
 if ($success) {
+    // Editor-Namen holen für sofortige Anzeige
+    $stmt = $pdo->prepare("SELECT first_name, last_name FROM svmembers WHERE member_id = ?");
+    $stmt->execute([$member_id]);
+    $editor = $stmt->fetch(PDO::FETCH_ASSOC);
+
     echo json_encode([
         'success' => true,
         'message' => 'Paragraph saved',
-        'timestamp' => date('Y-m-d H:i:s')
+        'timestamp' => date('Y-m-d H:i:s'),
+        'editor_name' => $editor['first_name'] . ' ' . $editor['last_name']
     ]);
 } else {
     http_response_code(403);
