@@ -599,35 +599,33 @@ function updateProtocol(itemId) {
                 return;
             }
 
-            // Protokoll-Anzeige aktualisieren (nur für Nicht-Sekretäre)
-            if (!isSecretary) {
-                const protocolDiv = document.getElementById(`protocol-display-${itemId}`);
-                if (protocolDiv && data.protocol_notes) {
-                    try {
-                        // Linkify direkt im JavaScript (einfache URL-Erkennung)
-                        let text = data.protocol_notes
-                            .replace(/</g, '&lt;')
-                            .replace(/>/g, '&gt;')
-                            .replace(/\n/g, '<br>');
+            // Protokoll-Anzeige aktualisieren
+            const protocolDiv = document.getElementById(`protocol-display-${itemId}`);
+            if (protocolDiv && data.protocol_notes) {
+                try {
+                    // Linkify direkt im JavaScript (einfache URL-Erkennung)
+                    let text = data.protocol_notes
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/\n/g, '<br>');
 
-                        // URLs zu Links konvertieren
-                        text = text.replace(/\b((https?:\/\/|www\.)[^\s<]+)/gi, function(url) {
-                            let href = url.startsWith('http') ? url : 'http://' + url;
-                            let ext = url.split('.').pop().toLowerCase();
-                            let isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
-                            let isPdf = (ext === 'pdf');
-                            let onclick = '';
-                            if (isImage || isPdf) {
-                                let type = isImage ? 'Bild' : 'PDF';
-                                onclick = ` onclick="if(window.innerWidth <= 768) { alert('⚠️ ${type}-Datei wird in neuem Tab geöffnet'); }"`;
-                            }
-                            return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
-                        });
+                    // URLs zu Links konvertieren
+                    text = text.replace(/\b((https?:\/\/|www\.)[^\s<]+)/gi, function(url) {
+                        let href = url.startsWith('http') ? url : 'http://' + url;
+                        let ext = url.split('.').pop().toLowerCase();
+                        let isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+                        let isPdf = (ext === 'pdf');
+                        let onclick = '';
+                        if (isImage || isPdf) {
+                            let type = isImage ? 'Bild' : 'PDF';
+                            onclick = ` onclick="if(window.innerWidth <= 768) { alert('⚠️ ${type}-Datei wird in neuem Tab geöffnet'); }"`;
+                        }
+                        return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
+                    });
 
-                        protocolDiv.innerHTML = text;
-                    } catch (e) {
-                        console.debug(`Konnte Protokoll für TOP ${itemId} nicht aktualisieren:`, e);
-                    }
+                    protocolDiv.innerHTML = text;
+                } catch (e) {
+                    console.debug(`Konnte Protokoll für TOP ${itemId} nicht aktualisieren:`, e);
                 }
             }
 
