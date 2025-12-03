@@ -60,8 +60,6 @@ try {
             ai.vote_no,
             ai.vote_abstain,
             ai.vote_result,
-            ai.status as item_status,
-            ai.decision_text,
             m.status as meeting_status,
             m.active_item_id,
             sec.first_name as secretary_first_name,
@@ -106,9 +104,7 @@ try {
         'vote_no' => $data['vote_no'],
         'vote_abstain' => $data['vote_abstain'],
         'vote_result' => $data['vote_result'],
-        'item_status' => $data['item_status'],
         'meeting_status' => $data['meeting_status'],
-        'decision_text' => $data['decision_text'],
         'is_active' => $is_active,
         'live_comments' => $live_comments,
         'secretary_name' => $data['secretary_first_name'] && $data['secretary_last_name']
