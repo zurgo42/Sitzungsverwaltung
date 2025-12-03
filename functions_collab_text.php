@@ -396,7 +396,7 @@ function getOnlineParticipants($pdo, $text_id) {
             FROM svcollab_text_participants p
             JOIN svmembers m ON p.member_id = m.member_id
             WHERE p.text_id = ?
-              AND p.last_seen > DATE_SUB(NOW(), INTERVAL 30 SECOND)
+              AND p.last_seen > DATE_SUB(NOW(), INTERVAL 60 SECOND)
             ORDER BY m.first_name, m.last_name
         ");
         $stmt->execute([$text_id]);

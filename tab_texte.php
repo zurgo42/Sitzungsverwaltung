@@ -535,7 +535,13 @@ if ($view === 'editor') {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({text_id: TEXT_ID})
-        });
+        })
+        .then(r => {
+            if (!r.ok) {
+                console.error('Heartbeat failed:', r.status);
+            }
+        })
+        .catch(err => console.error('Heartbeat error:', err));
     }
 
     // Online-Benutzer aktualisieren
