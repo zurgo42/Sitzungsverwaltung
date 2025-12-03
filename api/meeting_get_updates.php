@@ -63,6 +63,7 @@ try {
             ai.status as item_status,
             ai.decision_text,
             m.status as meeting_status,
+            m.active_item_id,
             sec.first_name as secretary_first_name,
             sec.last_name as secretary_last_name
         FROM svagenda_items ai
@@ -79,10 +80,27 @@ try {
         exit;
     }
 
+    // Prüfen ob dieser TOP gerade aktiv ist
+    $is_active = ($data['active_item_id'] == $item_id);
+
+    // Live-Kommentare holen (nur wenn dieser TOP aktiv ist)
+    $live_comments = [];
+    if ($is_active) {
+        $stmt = $pdo->prepare("
+            SELECT alc.*, m.first_name, m.last_name
+            FROM svagenda_live_comments alc
+            JOIN svmembers m ON alc.member_id = m.member_id
+            WHERE alc.item_id = ?
+            ORDER BY alc.created_at ASC
+        ");
+        $stmt->execute([$item_id]);
+        $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     // Erfolgreich: Daten zurückgeben
     echo json_encode([
         'success' => true,
-        'protocol_notes' => $data['protocol_notes'],
+        'protocol_notes' => $data['protocol_notes'] ?? '',
         'top_number' => $data['top_number'],
         'vote_yes' => $data['vote_yes'],
         'vote_no' => $data['vote_no'],
@@ -91,6 +109,8 @@ try {
         'item_status' => $data['item_status'],
         'meeting_status' => $data['meeting_status'],
         'decision_text' => $data['decision_text'],
+        'is_active' => $is_active,
+        'live_comments' => $live_comments,
         'secretary_name' => $data['secretary_first_name'] && $data['secretary_last_name']
             ? $data['secretary_first_name'] . ' ' . $data['secretary_last_name']
             : null,
