@@ -11,15 +11,15 @@ require_once('../functions_collab_text.php');
 header('Content-Type: application/json');
 
 // Prüfen ob eingeloggt
-if (!isset($member_id)) {
+if (!isset($_SESSION['member_id'])) {
     http_response_code(401);
     echo json_encode(['error' => 'Not authenticated']);
     exit;
+}
 
 // Session-Daten gelesen → Session sofort schließen für parallele Requests
-$member_id = $_SESSION["member_id"];
+$member_id = $_SESSION['member_id'];
 session_write_close();
-}
 
 $text_id = isset($_GET['text_id']) ? (int)$_GET['text_id'] : 0;
 $since = isset($_GET['since']) ? $_GET['since'] : date('Y-m-d H:i:s', strtotime('-1 hour'));

@@ -579,8 +579,10 @@ if ($view === 'editor') {
             if (para.locked_by_member_id && para.locked_by_member_id != CURRENT_USER_ID) {
                 paraDiv.classList.add('locked');
                 if (lockInfo) {
-                    lockInfo.innerHTML = '🔒 Wird bearbeitet von: ' +
-                        para.locked_by_first_name + ' ' + para.locked_by_last_name;
+                    const lockerName = (para.locked_by_first_name && para.locked_by_last_name)
+                        ? para.locked_by_first_name + ' ' + para.locked_by_last_name
+                        : 'einem anderen Benutzer';
+                    lockInfo.innerHTML = '🔒 Wird bearbeitet von: ' + lockerName;
                 }
             } else {
                 paraDiv.classList.remove('locked');
@@ -1048,7 +1050,12 @@ function renderParagraph($para, $current_member_id) {
             </span>
             <span class="paragraph-lock-info" style="color: #856404; font-size: 0.85em;">
                 <?php if ($is_locked): ?>
-                    🔒 Wird bearbeitet von: <?php echo htmlspecialchars($para['locked_by_first_name'] . ' ' . $para['locked_by_last_name']); ?>
+                    <?php
+                    $locker_name = ($para['locked_by_first_name'] && $para['locked_by_last_name'])
+                        ? htmlspecialchars($para['locked_by_first_name'] . ' ' . $para['locked_by_last_name'])
+                        : 'einem anderen Benutzer';
+                    ?>
+                    🔒 Wird bearbeitet von: <?php echo $locker_name; ?>
                 <?php elseif ($is_own_lock): ?>
                     ✏️ Sie bearbeiten gerade
                 <?php endif; ?>
