@@ -592,7 +592,7 @@ const isSecretary = <?php echo $is_secretary ? 'true' : 'false'; ?>;
 
 // Funktion: Protokoll-Updates für einen TOP holen
 function updateProtocol(itemId) {
-    fetch(`ajax_get_protocol.php?item_id=${itemId}`)
+    fetch(`api/meeting_get_updates.php?item_id=${itemId}`)
         .then(response => response.json())
         .then(data => {
             if (!data.success) {
