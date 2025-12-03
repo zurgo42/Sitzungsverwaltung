@@ -415,29 +415,12 @@ foreach ($agenda_items as $item):
                 <div style="margin-top: 15px; padding: 12px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 6px;">
                     <h4 style="color: #1976d2; margin-bottom: 10px;">📝 Protokoll</h4>
 
-                    <!-- Live-Anzeige des aktuellen Protokolls (für Sekretär) -->
-                    <?php if (!empty($item['protocol_notes'])): ?>
-                        <div style="margin-bottom: 12px; padding: 10px; background: white; border: 1px solid #2196f3; border-radius: 4px;">
-                            <strong style="font-size: 12px; color: #666;">Aktueller Stand (Live):</strong>
-                            <div id="protocol-display-<?php echo $item['item_id']; ?>" style="margin-top: 6px; color: #333; font-size: 14px;">
-                                <?php echo nl2br(linkify_text($item['protocol_notes'])); ?>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <div style="margin-bottom: 12px; padding: 10px; background: white; border: 1px solid #e0e0e0; border-radius: 4px; display: none;" id="protocol-display-container-<?php echo $item['item_id']; ?>">
-                            <strong style="font-size: 12px; color: #666;">Aktueller Stand (Live):</strong>
-                            <div id="protocol-display-<?php echo $item['item_id']; ?>" style="margin-top: 6px; color: #333; font-size: 14px;">
-                                Noch kein Protokolleintrag...
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
                     <form method="POST" action="">
                         <input type="hidden" name="save_protocol" value="1">
                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
 
                         <div class="form-group">
-                            <label style="font-weight: 600;">Protokollnotizen bearbeiten:</label>
+                            <label style="font-weight: 600;">Protokollnotizen:</label>
                             <textarea name="protocol_text"
                                       rows="5"
                                       placeholder="Notizen zu diesem TOP..."
@@ -612,12 +595,16 @@ function updateProtocol(itemId) {
     fetch(`api/meeting_get_updates.php?item_id=${itemId}`)
         .then(response => response.json())
         .then(data => {
+            console.log(`[Live-Update] TOP ${itemId}:`, data);
+
             if (!data.success) {
+                console.warn(`[Live-Update] Fehler für TOP ${itemId}:`, data.error);
                 return;
             }
 
             // Protokoll-Anzeige aktualisieren
             const protocolDiv = document.getElementById(`protocol-display-${itemId}`);
+            console.log(`[Live-Update] Protocol Div exists:`, !!protocolDiv, `Has content:`, !!data.protocol_notes);
             if (protocolDiv && data.protocol_notes) {
                 try {
                     // Linkify direkt im JavaScript (einfache URL-Erkennung)
@@ -641,14 +628,9 @@ function updateProtocol(itemId) {
                     });
 
                     protocolDiv.innerHTML = text;
-
-                    // Container sichtbar machen falls versteckt (für Sekretär bei erstem Eintrag)
-                    const container = document.getElementById(`protocol-display-container-${itemId}`);
-                    if (container && container.style.display === 'none') {
-                        container.style.display = 'block';
-                    }
+                    console.log(`[Live-Update] ✓ Protokoll für TOP ${itemId} aktualisiert`);
                 } catch (e) {
-                    console.debug(`Konnte Protokoll für TOP ${itemId} nicht aktualisieren:`, e);
+                    console.error(`[Live-Update] ✗ Fehler beim Aktualisieren von TOP ${itemId}:`, e);
                 }
             }
 
@@ -671,6 +653,7 @@ function updateProtocol(itemId) {
             // Live-Kommentare aktualisieren (nur wenn Element existiert UND TOP aktiv ist)
             if (data.is_active) {
                 const commentsDiv = document.getElementById(`live-comments-${itemId}`);
+                console.log(`[Live-Update] Comments Div exists:`, !!commentsDiv, `Comments count:`, data.live_comments?.length || 0);
                 if (commentsDiv && data.live_comments) {
                     try {
                         let html = '';
@@ -703,8 +686,9 @@ function updateProtocol(itemId) {
 
                         // Auto-Scroll zum Ende der Kommentare
                         commentsDiv.scrollTop = commentsDiv.scrollHeight;
+                        console.log(`[Live-Update] ✓ Live-Kommentare für TOP ${itemId} aktualisiert (${data.live_comments.length} Kommentare)`);
                     } catch (e) {
-                        console.debug(`Konnte Live-Kommentare für TOP ${itemId} nicht aktualisieren:`, e);
+                        console.error(`[Live-Update] ✗ Fehler beim Aktualisieren von Live-Kommentaren für TOP ${itemId}:`, e);
                     }
                 }
             }
@@ -728,7 +712,7 @@ function updateProtocol(itemId) {
             }
         })
         .catch(error => {
-            console.error('Update-Fehler:', error);
+            console.error(`[Live-Update] ✗ Netzwerk-Fehler für TOP ${itemId}:`, error);
         });
 }
 
@@ -736,6 +720,7 @@ function updateProtocol(itemId) {
 function updateAllProtocols() {
     // Alle TOP-IDs sammeln
     const items = document.querySelectorAll('[id^="top-"]');
+    console.log(`[Live-Update] Polling läuft - ${items.length} TOPs gefunden`);
     items.forEach(item => {
         const match = item.id.match(/top-(\d+)/);
         if (match) {
