@@ -598,7 +598,11 @@ function updateProtocol(itemId) {
             console.log(`[Live-Update] TOP ${itemId}:`, data);
 
             if (!data.success) {
-                console.warn(`[Live-Update] Fehler für TOP ${itemId}:`, data.error);
+                console.error(`[Live-Update] ✗ Fehler für TOP ${itemId}:`, data.error);
+                if (data.debug_message) {
+                    console.error(`  → DB-Fehler: ${data.debug_message}`);
+                    console.error(`  → Datei: ${data.debug_file}:${data.debug_line}`);
+                }
                 return;
             }
 
