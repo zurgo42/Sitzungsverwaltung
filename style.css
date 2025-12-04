@@ -93,20 +93,23 @@ h3 {
    4. HEADER & NAVIGATION
    ============================================== */
 
-/* Kompakter Header - EINE Zeile (PC) */
+/* Kompakter Header - EINE Zeile (PC) - volle Breite */
 .header {
     background: linear-gradient(135deg, var(--primary) 0%, var(--dunkelblau) 100%);
     color: white;
+    padding: 0;
+    border-radius: 0;
+    margin-bottom: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
     padding: 15px 30px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .header h1 {
@@ -155,14 +158,13 @@ h3 {
 /* Navigation / Tabs */
 .tabs,
 .navigation {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
     background: white;
     padding: 15px;
-    border-radius: 8px;
+    margin-bottom: 20px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
     max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
@@ -201,6 +203,11 @@ h3 {
     padding: 8px;
     background: rgba(255,255,255,0.15);
     border-radius: 5px;
+    transition: all 0.3s;
+}
+
+.hamburger-menu:hover {
+    background: rgba(255,255,255,0.25);
 }
 
 .hamburger-menu span {
@@ -210,6 +217,19 @@ h3 {
     background: white;
     border-radius: 2px;
     transition: all 0.3s;
+}
+
+/* Hamburger Animation wenn aktiv */
+.hamburger-menu.active span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger-menu.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger-menu.active span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
 }
 
 /* ==============================================
@@ -1902,7 +1922,7 @@ button:hover {
     padding: 12px 20px;
     text-align: center;
     font-size: 12px;
-    border-radius: 0;
+    border-radius: 0 0 8px 8px;
     box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
     margin-top: auto;
 }
@@ -1949,42 +1969,59 @@ button:hover {
    ============================================== */
 
 @media (max-width: 768px) {
-    /* Header - Mobile: Kompakt mit Hamburger */
+    /* Header - Mobile: Sehr kompakt */
     .header {
-        flex-direction: row;
-        padding: 12px 15px;
-        gap: 0;
+        border-radius: 0;
+    }
+
+    .header-inner {
+        padding: 10px 15px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
     }
 
     .header h1 {
         font-size: 18px;
-        flex: 1;
+        margin: 0;
     }
 
     .header .user-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         gap: 8px;
+        font-size: 11px;
+    }
+
+    .header .user-info > span:first-child {
         font-size: 12px;
     }
 
+    .role-badge {
+        display: none !important;
+    }
+
     .hamburger-menu {
-        display: flex;
-        margin-left: 10px;
+        display: flex !important;
     }
 
     .logout-btn {
         padding: 4px 10px;
         font-size: 11px;
+        margin-right: 10px;
     }
 
-    /* Navigation - Mobile: Versteckbar */
+    /* Navigation - Mobile: Versteckbar mit LocalStorage */
     .navigation {
         flex-direction: column;
         gap: 8px;
-        padding: 10px;
+        padding: 10px 15px;
+        margin-top: 0;
     }
 
     .navigation.mobile-hidden {
-        display: none;
+        display: none !important;
     }
 
     .navigation a {

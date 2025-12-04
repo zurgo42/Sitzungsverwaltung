@@ -223,18 +223,27 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
 <body>
     <!-- HEADER mit Benutzerinfo -->
     <div class="header">
-        <h1>🏛️ Sitzungsverwaltung</h1>
-        <div class="user-info">
-            <!-- Benutzername anzeigen -->
-            <span><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?></span>
-            
-            <!-- Rollen-Badge anzeigen -->
-            <span class="role-badge role-<?php echo $current_user['role']; ?>">
-                <?php echo ucfirst($current_user['role']); ?>
-            </span>
-            
-            <!-- Logout-Button -->
-            <a href="?logout=1" class="logout-btn">Abmelden</a>
+        <div class="header-inner">
+            <h1>🏛️ Sitzungsverwaltung</h1>
+            <div class="user-info">
+                <!-- Benutzername anzeigen -->
+                <span><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?></span>
+
+                <!-- Rollen-Badge anzeigen (nur auf PC) -->
+                <span class="role-badge desktop-only role-<?php echo $current_user['role']; ?>">
+                    <?php echo ucfirst($current_user['role']); ?>
+                </span>
+
+                <!-- Logout-Button -->
+                <a href="?logout=1" class="logout-btn">Abmelden</a>
+
+                <!-- Hamburger-Menü (nur auf Mobile) -->
+                <div class="hamburger-menu mobile-only" id="hamburger-menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -463,6 +472,9 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
         initAutoResize();
     }
     </script>
+
+    <!-- Externes JavaScript für Hamburger-Menü -->
+    <script src="script.js"></script>
 
     <!-- FOOTER -->
     <footer class="page-footer">
