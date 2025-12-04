@@ -12,6 +12,12 @@ require_once 'module_notifications.php';
 
 // Logik einbinden
 require_once 'process_admin.php';
+
+// Dokumente-Funktionen einbinden
+require_once __DIR__ . '/documents_functions.php';
+
+// Alle Dokumente laden
+$all_documents = get_all_documents($pdo);
 ?>
 
 <style>
@@ -19,14 +25,16 @@ require_once 'process_admin.php';
 .admin-section-header {
     color: #fff !important;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-    padding: 12px 20px !important;
-    border-radius: 8px !important;
-    margin-bottom: 15px !important;
+    padding: 8px 15px !important;
+    border-radius: 6px !important;
+    margin-bottom: 10px !important;
     cursor: pointer !important;
     user-select: none !important;
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
 }
 
 .admin-section-header:hover {
@@ -36,6 +44,7 @@ require_once 'process_admin.php';
 .admin-section-header::after {
     content: '▼';
     transition: transform 0.3s;
+    font-size: 12px;
 }
 
 .admin-section-header.collapsed::after {
@@ -46,10 +55,20 @@ require_once 'process_admin.php';
     max-height: 2000px;
     overflow: hidden;
     transition: max-height 0.3s ease-out;
+    font-size: 13px;
 }
 
 .admin-section-content.collapsed {
     max-height: 0;
+}
+
+.admin-section-content table {
+    font-size: 13px;
+}
+
+.admin-section-content h3,
+.admin-section-content h4 {
+    font-size: 16px;
 }
 
 /* Kompaktere Logfile-Darstellung */
@@ -79,10 +98,6 @@ require_once 'process_admin.php';
     <div class="error-message"><?php echo htmlspecialchars($error_message); ?></div>
 <?php endif; ?>
 
-
-<div class="admin-warning">
-    <strong>⚠️ Achtung:</strong> Diese Seite ist nur für Administratoren (Vorstand/GF) zugänglich.
-</div>
 
 <!-- Statistik-Übersicht -->
 <div class="info-box" style="margin-bottom: 30px;">
@@ -651,6 +666,139 @@ require_once 'process_admin.php';
 <?php endif; ?>
 
 
+<!-- Dokumentenverwaltung -->
+<div id="admin-documents" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">📁 Dokumente in der Dokumentensammlung verwalten</h3>
+
+    <div class="admin-section-content">
+        <!-- Dokument hochladen -->
+        <details style="margin-bottom: 20px;">
+            <summary style="padding: 10px 15px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                ➕ Neues Dokument hochladen
+            </summary>
+            <div style="border: 1px solid #ddd; border-top: none; padding: 15px; border-radius: 0 0 5px 5px; background: white;">
+                <form method="POST" action="process_documents.php" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="upload">
+                    <input type="hidden" name="redirect_to" value="admin">
+
+                    <div class="form-group">
+                        <label>Datei auswählen *</label>
+                        <input type="file" name="document_file" required accept=".pdf,.doc,.docx,.xls,.xlsx,.rtf,.txt,.jpg,.jpeg,.png" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <small style="display: block; margin-top: 5px; color: #666;">
+                            Erlaubte Dateitypen: PDF, DOC, DOCX, XLS, XLSX, RTF, TXT, JPG, PNG
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Titel *</label>
+                        <input type="text" name="title" required placeholder="Aussagekräftiger Titel" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Kategorie *</label>
+                        <select name="category" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <?php foreach (get_document_categories() as $key => $label): ?>
+                                <option value="<?= $key ?>"><?= htmlspecialchars($label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Beschreibung</label>
+                        <textarea name="description" rows="3" placeholder="Ausführliche Beschreibung des Dokuments" style="width: 100%;"></textarea>
+                    </div>
+
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label>Version</label>
+                            <input type="text" name="version" placeholder="z.B. 2025, v1.2" style="width: 100%;">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Zugriffslevel</label>
+                            <select name="access_level" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="0">Alle Mitglieder</option>
+                                <option value="12">Ab Projektleitung</option>
+                                <option value="15">Ab Ressortleitung</option>
+                                <option value="18">Ab Assistenz</option>
+                                <option value="19">Nur Vorstand</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Stichworte</label>
+                        <input type="text" name="keywords" placeholder="Komma-getrennte Stichworte für die Suche" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Kurz-URL</label>
+                        <input type="text" name="short_url" placeholder="https://link.mensa.de/xyz" style="width: 100%;">
+                        <small style="display: block; margin-top: 5px; color: #666;">
+                            Optional: Eine kurze, einprägsame URL für dieses Dokument
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn-primary">📤 Hochladen</button>
+                </form>
+            </div>
+        </details>
+
+        <!-- Dokumentenliste -->
+        <h4 style="margin-top: 25px; margin-bottom: 15px; font-size: 16px;">Vorhandene Dokumente</h4>
+
+        <?php if (empty($all_documents)): ?>
+            <div class="info-box">Keine Dokumente vorhanden.</div>
+        <?php else: ?>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Titel</th>
+                        <th>Kategorie</th>
+                        <th>Version</th>
+                        <th>Dateityp</th>
+                        <th>Größe</th>
+                        <th>Hochgeladen</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($all_documents as $doc):
+                        $categories = get_document_categories();
+                        $cat_label = $categories[$doc['category']] ?? $doc['category'];
+                    ?>
+                        <tr>
+                            <td>
+                                <strong><?= htmlspecialchars($doc['title']) ?></strong>
+                                <?php if ($doc['description']): ?>
+                                    <br><small style="color: #666;"><?= htmlspecialchars(substr($doc['description'], 0, 100)) ?><?= strlen($doc['description']) > 100 ? '...' : '' ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= htmlspecialchars($cat_label) ?></td>
+                            <td><?= $doc['version'] ? htmlspecialchars($doc['version']) : '-' ?></td>
+                            <td><?= strtoupper($doc['filetype']) ?></td>
+                            <td><?= format_filesize($doc['filesize']) ?></td>
+                            <td><?= date('d.m.Y', strtotime($doc['created_at'])) ?></td>
+                            <td class="action-buttons">
+                                <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn-view">✏️</a>
+                                <form method="POST" action="process_documents.php" style="display: inline;" onsubmit="return confirm('Dokument wirklich löschen?');">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="document_id" value="<?= $doc['document_id'] ?>">
+                                    <input type="hidden" name="redirect_to" value="admin">
+                                    <button type="submit" class="btn-delete">🗑️</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <div class="info-box" style="margin-top: 15px;">
+                <strong>ℹ️ Hinweis:</strong> Insgesamt <?= count($all_documents) ?> Dokumente in der Sammlung
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
 <!-- Datenbank-Wartung -->
 <div id="admin-database" class="admin-section">
     <h3 class="admin-section-header" onclick="toggleSection(this)">🔧 Datenbank-Wartung</h3>
@@ -907,18 +1055,12 @@ function closeEditTodoModal() {
     document.getElementById('edit-todo-modal').classList.remove('show');
 }
 
-// Initialize: Start with all sections expanded
+// Initialize: Start with all sections collapsed
 document.addEventListener('DOMContentLoaded', function() {
-    // Logfile-Sektion initial eingeklappt
-    const logSection = document.querySelector('#admin-log .admin-section-header');
-    if (logSection) {
-        toggleSection(logSection);
-    }
-
-    // Demo-Sektion initial eingeklappt
-    const demoSection = document.querySelector('#admin-demo .admin-section-header');
-    if (demoSection) {
-        toggleSection(demoSection);
-    }
+    // Alle Sektionen initial eingeklappt
+    const allHeaders = document.querySelectorAll('.admin-section-header');
+    allHeaders.forEach(header => {
+        toggleSection(header);
+    });
 });
 </script>
