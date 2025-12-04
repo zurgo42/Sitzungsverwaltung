@@ -67,28 +67,18 @@ require_once 'process_admin.php';
 <!-- BENACHRICHTIGUNGEN -->
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
 
-// Benachrichtigungsmodul laden
-require_once 'module_notifications.php';
 
 <?php if ($success_message): ?>
 
-// Benachrichtigungsmodul laden
-require_once 'module_notifications.php';
     <div class="message"><?php echo htmlspecialchars($success_message); ?></div>
 <?php endif; ?>
 
-// Benachrichtigungsmodul laden
-require_once 'module_notifications.php';
 
 <?php if ($error_message): ?>
 
-// Benachrichtigungsmodul laden
-require_once 'module_notifications.php';
     <div class="error-message"><?php echo htmlspecialchars($error_message); ?></div>
 <?php endif; ?>
 
-// Benachrichtigungsmodul laden
-require_once 'module_notifications.php';
 
 <div class="admin-warning">
     <strong>⚠️ Achtung:</strong> Diese Seite ist nur für Administratoren (Vorstand/GF) zugänglich.
@@ -602,8 +592,6 @@ require_once 'module_notifications.php';
 <!-- System & Demo-Funktionen -->
 <?php if (DEMO_MODE_ENABLED): ?>
 
-// Benachrichtigungsmodul laden
-require_once 'module_notifications.php';
 <div id="admin-demo" class="admin-section">
     <h3 class="admin-section-header" onclick="toggleSection(this)">🎭 System &amp; Demo-Funktionen</h3>
 
@@ -662,8 +650,6 @@ require_once 'module_notifications.php';
 </div>
 <?php endif; ?>
 
-// Benachrichtigungsmodul laden
-require_once 'module_notifications.php';
 
 <!-- Datenbank-Wartung -->
 <div id="admin-database" class="admin-section">
