@@ -1084,7 +1084,11 @@ if (isset($_SESSION['error'])) {
 
         <!-- Finalisierungs-Optionen für Ersteller/Admin -->
         <?php if ($can_edit && $poll['status'] !== 'finalized'): ?>
-            <h3 style="margin-top: 40px;">🔒 Finalisierung</h3>
+            <div style="margin-top: 40px;">
+                <button class="accordion-button" onclick="toggleAccordion(this)">
+                    🔒 Finalisierung
+                </button>
+                <div class="accordion-content <?php echo $is_creator ? 'active' : ''; ?>">
             <form method="POST" action="process_termine.php">
                 <input type="hidden" name="action" value="finalize_poll">
                 <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
@@ -1156,6 +1160,8 @@ if (isset($_SESSION['error'])) {
                     ✓ Finalen Termin festlegen
                 </button>
             </form>
+                </div>
+            </div>
         <?php endif; ?>
 
     <?php } // end if poll exists ?>
