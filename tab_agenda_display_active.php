@@ -355,49 +355,52 @@ foreach ($agenda_items as $item):
             <?php endif; ?>
         </div>
         
-        <!-- LIVE-KOMMENTARE (nur bei aktivem TOP) -->
-        <?php if ($is_active && $item['top_number'] != 999): ?>
-            <div style="margin-top: 12px; padding: 12px; background: #ffebee; border: 2px solid #f44336; border-radius: 6px;">
+        <!-- LIVE-KOMMENTARE (dynamisch ein-/ausgeblendet je nach Aktiv-Status) -->
+        <?php if ($item['top_number'] != 999): ?>
+            <div id="live-comments-container-<?php echo $item['item_id']; ?>"
+                 style="margin-top: 12px; padding: 12px; background: #ffebee; border: 2px solid #f44336; border-radius: 6px; <?php echo !$is_active ? 'display: none;' : ''; ?>">
                 <h4 style="color: #c62828; margin-bottom: 8px;">💬 Live-Kommentare (während Sitzung)</h4>
-                
-                <!-- Bestehende Live-Kommentare anzeigen -->
-                <?php
-                $stmt = $pdo->prepare("
-                    SELECT alc.*, m.first_name, m.last_name
-                    FROM svagenda_live_comments alc
-                    JOIN svmembers m ON alc.member_id = m.member_id
-                    WHERE alc.item_id = ?
-                    ORDER BY alc.created_at ASC
-                ");
-                $stmt->execute([$item['item_id']]);
-                $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                if (!empty($live_comments)):
-                ?>
-                    <div id="live-comments-<?php echo $item['item_id']; ?>" style="background: white; border: 1px solid #f44336; border-radius: 4px; padding: 8px; margin-bottom: 10px; max-height: 120px; overflow-y: auto;">
-                        <?php foreach ($live_comments as $lc): ?>
-                            <?php render_comment_line($lc, 'time'); ?>
-                        <?php endforeach; ?>
-                    </div>
-                <?php else: ?>
-                    <div id="live-comments-<?php echo $item['item_id']; ?>" style="background: white; border: 1px solid #f44336; border-radius: 4px; padding: 8px; margin-bottom: 10px;">
-                        <div style="color: #999; font-size: 12px;">Noch keine Kommentare</div>
-                    </div>
-                <?php endif; ?>
-                
-                <!-- Neuen Live-Kommentar hinzufügen -->
+
+                <!-- Live-Kommentare-Anzeige -->
+                <div id="live-comments-<?php echo $item['item_id']; ?>" style="background: white; border: 1px solid #f44336; border-radius: 4px; padding: 8px; margin-bottom: 10px; max-height: 120px; overflow-y: auto;">
+                    <?php
+                    if ($is_active) {
+                        $stmt = $pdo->prepare("
+                            SELECT alc.*, m.first_name, m.last_name
+                            FROM svagenda_live_comments alc
+                            JOIN svmembers m ON alc.member_id = m.member_id
+                            WHERE alc.item_id = ?
+                            ORDER BY alc.created_at ASC
+                        ");
+                        $stmt->execute([$item['item_id']]);
+                        $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                        if (!empty($live_comments)) {
+                            foreach ($live_comments as $lc) {
+                                render_comment_line($lc, 'time');
+                            }
+                        } else {
+                            echo '<div style="color: #999; font-size: 12px;">Noch keine Kommentare</div>';
+                        }
+                    } else {
+                        echo '<div style="color: #999; font-size: 12px;">Noch keine Kommentare</div>';
+                    }
+                    ?>
+                </div>
+
+                <!-- Formular für neuen Live-Kommentar -->
                 <form method="POST" action="" class="live-comment-form">
                     <input type="hidden" name="add_live_comment" value="1">
                     <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
-                    
+
                     <div style="flex: 1;">
-                        <textarea name="comment_text" 
-                                  rows="2" 
-                                  placeholder="Ihr Beitrag zur laufenden Diskussion..." 
+                        <textarea name="comment_text"
+                                  rows="2"
+                                  placeholder="Ihr Beitrag zur laufenden Diskussion..."
                                   style="width: 100%; padding: 6px; border: 1px solid #f44336; border-radius: 4px; font-size: 13px;"
                                   required></textarea>
                     </div>
-                    
+
                     <button type="submit" style="background: #f44336; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
                         💬 Senden
                     </button>
@@ -595,105 +598,89 @@ function updateProtocol(itemId) {
     fetch(`api/meeting_get_updates.php?item_id=${itemId}`)
         .then(response => response.json())
         .then(data => {
-            console.log(`[Live-Update] TOP ${itemId}:`, data);
-
             if (!data.success) {
-                console.error(`[Live-Update] ✗ Fehler für TOP ${itemId}:`, data.error);
-                if (data.debug_message) {
-                    console.error(`  → DB-Fehler: ${data.debug_message}`);
-                    console.error(`  → Datei: ${data.debug_file}:${data.debug_line}`);
-                }
+                console.error(`Live-Update Fehler TOP ${itemId}:`, data.error);
                 return;
             }
 
             // Protokoll-Anzeige aktualisieren
             const protocolDiv = document.getElementById(`protocol-display-${itemId}`);
-            console.log(`[Live-Update] Protocol Div exists:`, !!protocolDiv, `Has content:`, !!data.protocol_notes);
             if (protocolDiv && data.protocol_notes) {
-                try {
-                    // Linkify direkt im JavaScript (einfache URL-Erkennung)
-                    let text = data.protocol_notes
-                        .replace(/</g, '&lt;')
-                        .replace(/>/g, '&gt;')
-                        .replace(/\n/g, '<br>');
+                // Linkify direkt im JavaScript (einfache URL-Erkennung)
+                let text = data.protocol_notes
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\n/g, '<br>');
 
-                    // URLs zu Links konvertieren
-                    text = text.replace(/\b((https?:\/\/|www\.)[^\s<]+)/gi, function(url) {
-                        let href = url.startsWith('http') ? url : 'http://' + url;
-                        let ext = url.split('.').pop().toLowerCase();
-                        let isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
-                        let isPdf = (ext === 'pdf');
-                        let onclick = '';
-                        if (isImage || isPdf) {
-                            let type = isImage ? 'Bild' : 'PDF';
-                            onclick = ` onclick="if(window.innerWidth <= 768) { alert('⚠️ ${type}-Datei wird in neuem Tab geöffnet'); }"`;
-                        }
-                        return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
-                    });
+                // URLs zu Links konvertieren
+                text = text.replace(/\b((https?:\/\/|www\.)[^\s<]+)/gi, function(url) {
+                    let href = url.startsWith('http') ? url : 'http://' + url;
+                    let ext = url.split('.').pop().toLowerCase();
+                    let isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+                    let isPdf = (ext === 'pdf');
+                    let onclick = '';
+                    if (isImage || isPdf) {
+                        let type = isImage ? 'Bild' : 'PDF';
+                        onclick = ` onclick="if(window.innerWidth <= 768) { alert('⚠️ ${type}-Datei wird in neuem Tab geöffnet'); }"`;
+                    }
+                    return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
+                });
 
-                    protocolDiv.innerHTML = text;
-                    console.log(`[Live-Update] ✓ Protokoll für TOP ${itemId} aktualisiert`);
-                } catch (e) {
-                    console.error(`[Live-Update] ✗ Fehler beim Aktualisieren von TOP ${itemId}:`, e);
-                }
+                protocolDiv.innerHTML = text;
             }
 
             // Aktiv-Status aktualisieren (roter Rand)
             const itemDiv = document.getElementById(`top-${itemId}`);
             if (itemDiv) {
-                try {
-                    if (data.is_active) {
-                        itemDiv.style.border = '4px solid #f44336';
-                        itemDiv.style.boxShadow = '0 0 15px rgba(244,67,54,0.4)';
-                    } else {
-                        itemDiv.style.border = '3px solid #667eea';
-                        itemDiv.style.boxShadow = '';
-                    }
-                } catch (e) {
-                    console.debug(`Konnte Border für TOP ${itemId} nicht aktualisieren:`, e);
+                if (data.is_active) {
+                    itemDiv.style.border = '4px solid #f44336';
+                    itemDiv.style.boxShadow = '0 0 15px rgba(244,67,54,0.4)';
+                } else {
+                    itemDiv.style.border = '3px solid #667eea';
+                    itemDiv.style.boxShadow = '';
                 }
             }
 
-            // Live-Kommentare aktualisieren (nur wenn Element existiert UND TOP aktiv ist)
+            // Live-Kommentare-Container ein-/ausblenden je nach Aktiv-Status
+            const commentsContainer = document.getElementById(`live-comments-container-${itemId}`);
+            if (commentsContainer) {
+                commentsContainer.style.display = data.is_active ? 'block' : 'none';
+            }
+
+            // Live-Kommentare aktualisieren (nur wenn TOP aktiv ist)
             if (data.is_active) {
                 const commentsDiv = document.getElementById(`live-comments-${itemId}`);
-                console.log(`[Live-Update] Comments Div exists:`, !!commentsDiv, `Comments count:`, data.live_comments?.length || 0);
                 if (commentsDiv && data.live_comments) {
-                    try {
-                        let html = '';
-                        data.live_comments.forEach(comment => {
-                            const time = new Date(comment.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+                    let html = '';
+                    data.live_comments.forEach(comment => {
+                        const time = new Date(comment.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
 
-                            // Linkify comment text
-                            let commentText = comment.comment_text
-                                .replace(/</g, '&lt;')
-                                .replace(/>/g, '&gt;');
+                        // Linkify comment text
+                        let commentText = comment.comment_text
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;');
 
-                            commentText = commentText.replace(/\b((https?:\/\/|www\.)[^\s<]+)/gi, function(url) {
-                                let href = url.startsWith('http') ? url : 'http://' + url;
-                                let ext = url.split('.').pop().toLowerCase();
-                                let isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
-                                let isPdf = (ext === 'pdf');
-                                let onclick = '';
-                                if (isImage || isPdf) {
-                                    let type = isImage ? 'Bild' : 'PDF';
-                                    onclick = ` onclick="if(window.innerWidth <= 768) { alert('⚠️ ${type}-Datei wird in neuem Tab geöffnet'); }"`;
-                                }
-                                return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
-                            });
-
-                            html += `<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
-                                <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${commentText}</span>
-                            </div>`;
+                        commentText = commentText.replace(/\b((https?:\/\/|www\.)[^\s<]+)/gi, function(url) {
+                            let href = url.startsWith('http') ? url : 'http://' + url;
+                            let ext = url.split('.').pop().toLowerCase();
+                            let isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+                            let isPdf = (ext === 'pdf');
+                            let onclick = '';
+                            if (isImage || isPdf) {
+                                let type = isImage ? 'Bild' : 'PDF';
+                                onclick = ` onclick="if(window.innerWidth <= 768) { alert('⚠️ ${type}-Datei wird in neuem Tab geöffnet'); }"`;
+                            }
+                            return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
                         });
-                        commentsDiv.innerHTML = html || '<div style="color: #999; font-size: 12px; padding: 4px;">Noch keine Kommentare</div>';
 
-                        // Auto-Scroll zum Ende der Kommentare
-                        commentsDiv.scrollTop = commentsDiv.scrollHeight;
-                        console.log(`[Live-Update] ✓ Live-Kommentare für TOP ${itemId} aktualisiert (${data.live_comments.length} Kommentare)`);
-                    } catch (e) {
-                        console.error(`[Live-Update] ✗ Fehler beim Aktualisieren von Live-Kommentaren für TOP ${itemId}:`, e);
-                    }
+                        html += `<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
+                            <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${commentText}</span>
+                        </div>`;
+                    });
+                    commentsDiv.innerHTML = html || '<div style="color: #999; font-size: 12px; padding: 4px;">Noch keine Kommentare</div>';
+
+                    // Auto-Scroll zum Ende der Kommentare
+                    commentsDiv.scrollTop = commentsDiv.scrollHeight;
                 }
             }
 
@@ -716,15 +703,13 @@ function updateProtocol(itemId) {
             }
         })
         .catch(error => {
-            console.error(`[Live-Update] ✗ Netzwerk-Fehler für TOP ${itemId}:`, error);
+            console.error(`Live-Update Netzwerk-Fehler TOP ${itemId}:`, error);
         });
 }
 
 // Funktion: Alle TOPs updaten
 function updateAllProtocols() {
-    // Alle TOP-IDs sammeln
     const items = document.querySelectorAll('[id^="top-"]');
-    console.log(`[Live-Update] Polling läuft - ${items.length} TOPs gefunden`);
     items.forEach(item => {
         const match = item.id.match(/top-(\d+)/);
         if (match) {

@@ -118,9 +118,6 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => 'Database error',
-        'debug_message' => $e->getMessage(),
-        'debug_file' => basename($e->getFile()),
-        'debug_line' => $e->getLine()
+        'error' => 'Database error'
     ]);
 }
