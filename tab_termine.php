@@ -502,6 +502,9 @@ function copyToClipboard(text) {
 
 <h2>📆 Terminplanung & Umfragen</h2>
 
+<!-- BENACHRICHTIGUNGEN -->
+<?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
 <?php
 // Success/Error Messages
 if (isset($_SESSION['success'])) {

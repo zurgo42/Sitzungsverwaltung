@@ -61,6 +61,9 @@ require_once 'process_admin.php';
 
 <h2>⚙️ Admin-Verwaltung</h2>
 
+<!-- BENACHRICHTIGUNGEN -->
+<?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
 <?php if ($success_message): ?>
     <div class="message"><?php echo htmlspecialchars($success_message); ?></div>
 <?php endif; ?>

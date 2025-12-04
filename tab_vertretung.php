@@ -37,6 +37,9 @@ $my_absences = $stmt_my_absences->fetchAll();
 
 <h2>🏖️ Vertretungen & Abwesenheiten</h2>
 
+<!-- BENACHRICHTIGUNGEN -->
+<?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
 <?php if (isset($_GET['msg']) && $_GET['msg'] === 'absence_added'): ?>
     <div class="message">✅ Abwesenheit erfolgreich eingetragen!</div>
 <?php endif; ?>

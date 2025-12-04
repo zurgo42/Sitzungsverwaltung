@@ -21,7 +21,10 @@ if ($meeting_id > 0) {
     
     if ($meeting) {
         echo '<div class="protocol-view">';
-        echo '<h2>📋 Protokoll anzeigen</h2>';
+        echo '<h2>📋 Protokoll anzeigen</h2>
+
+<!-- BENACHRICHTIGUNGEN -->
+<?php render_user_notifications($pdo, $current_user['member_id']); ?>';
         echo '<p><a href="?tab=protokolle" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">&larr; Zurück zur Übersicht</a></p>';
        
         if (!empty($stichwort)) {

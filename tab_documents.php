@@ -195,6 +195,9 @@ if ($view === 'list') {
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center mb-3 documents-header">
                     <h2>📁 Dokumentenverwaltung</h2>
+
+<!-- BENACHRICHTIGUNGEN -->
+<?php render_user_notifications($pdo, $current_user['member_id']); ?>
                     <?php if ($is_admin): ?>
                         <button type="button" onclick="window.location.href='?tab=documents&view=upload'" class="btn btn-primary">
                             <i class="bi bi-upload"></i> Dokument hochladen

@@ -196,6 +196,9 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
 <h2>Meine ToDos</h2>
 
+<!-- BENACHRICHTIGUNGEN -->
+<?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
 <?php if (empty($own_todos_open)): ?>
     <p style="color: #999;">Sie haben keine offenen ToDos.</p>
 <?php else: ?>
