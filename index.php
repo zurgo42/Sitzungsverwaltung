@@ -168,14 +168,14 @@ if (defined('DEMO_MODE_ENABLED') && DEMO_MODE_ENABLED) {
 // Sie werden VOR der HTML-Ausgabe eingebunden
 // ============================================
 
-// PROCESS MEETINGS
-// Wird nur bei POST-Requests auf dem Meetings-Tab ausgeführt
+// PROCESS SITZUNGEN
+// Wird nur bei POST-Requests auf dem Sitzungen-Tab ausgeführt
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'meetings') {
     require_once 'process_meetings.php';
 }
 
 // PROCESS ABSENCES
-// Wird bei POST-Requests auf dem Meetings-Tab oder Vertretung-Tab für Abwesenheiten ausgeführt
+// Wird bei POST-Requests auf dem Sitzungen-Tab oder Vertretung-Tab für Abwesenheiten ausgeführt
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($active_tab === 'meetings' || $active_tab === 'vertretung')) {
     require_once 'process_absences.php';
 }
@@ -247,12 +247,12 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             📆 Termine
         </a>
 
-        <!-- Meetings-Tab (immer sichtbar) -->
+        <!-- Sitzungen-Tab (immer sichtbar) -->
         <a href="?tab=meetings" class="<?php echo $active_tab === 'meetings' ? 'active' : ''; ?>">
-            🤝 Meetings
+            🤝 Sitzungen
         </a>
 
-        <!-- Agenda-Tab (nur sichtbar wenn ein Meeting ausgewählt ist) -->
+        <!-- Agenda-Tab (nur sichtbar wenn eine Sitzung ausgewählt ist) -->
         <?php if ($current_meeting_id): ?>
             <a href="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>"
                class="<?php echo $active_tab === 'agenda' ? 'active' : ''; ?>">
@@ -291,9 +291,9 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             📋 Protokolle
         </a>
 
-        <!-- ToDos-Tab (immer sichtbar) -->
+        <!-- Erledigen-Tab (immer sichtbar) -->
         <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
-            ✅ Meine ToDos
+            ✅ Erledigen
         </a>
 
         <!-- Vertretungen-Tab (immer sichtbar) -->
@@ -331,12 +331,12 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
          */
         switch ($active_tab) {
             case 'meetings':
-                // Meeting-Übersicht anzeigen
+                // Sitzungsübersicht anzeigen
                 include 'tab_meetings.php';
                 break;
-            
+
             case 'agenda':
-                // Tagesordnung eines Meetings anzeigen
+                // Tagesordnung einer Sitzung anzeigen
                 include 'tab_agenda.php';
                 break;
             
@@ -389,7 +389,7 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
                 break;
             
             default:
-                // Fallback: Bei unbekanntem Tab wird Meetings angezeigt
+                // Fallback: Bei unbekanntem Tab wird Sitzungen angezeigt
                 include 'tab_meetings.php';
         }
         ?>

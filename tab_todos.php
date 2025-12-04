@@ -1,16 +1,16 @@
 <?php
 /**
- * tab_todos.php - ToDo-Verwaltung mit verbesserter Struktur
+ * tab_todos.php - Erledigen-Verwaltung mit verbesserter Struktur
  * Version: 3.0 | 29.10.2025 02:50 MEZ
  * 
  * NEUE STRUKTUR:
  * PC-Ansicht:
- *   1. Eigene ToDos als Cards (gestaffelt nebeneinander, aufklappbar)
- *   2. Fremde ToDos als Accordion-Tabelle
+ *   1. Meine Aufgaben als Cards (gestaffelt nebeneinander, aufklappbar)
+ *   2. Andere Aufgaben als Accordion-Tabelle
  * 
  * Mobile-Ansicht:
- *   - Eigene ToDos als Cards (untereinander)
- *   - Fremde ToDos als Cards (untereinander)
+ *   - Meine Aufgaben als Cards (untereinander)
+ *   - Andere Aufgaben als Cards (untereinander)
  */
 
 require_once 'functions.php';
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $todo_id = (int)($_POST['todo_id'] ?? 0);
         
         if (!$todo_id) {
-            die('❌ Ungültige ToDo-ID.');
+            die('❌ Ungültige Aufgaben-ID.');
         }
         
         $stmt = $pdo->prepare("SELECT created_by_member_id, status, title FROM svtodos WHERE todo_id = ?");
@@ -95,12 +95,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         if (!in_array($todo['status'], ['open', 'in progress'])) {
-            die('❌ Nur offene ToDos können zurückgezogen werden.');
+            die('❌ Nur offene Aufgaben können zurückgezogen werden.');
         }
         
         try {
             // Logging (vor dem Löschen!)
-            $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'todo-retract', ?, NULL)");
+            $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'aufgabe-zurueckziehen', ?, NULL)");
             $log->execute([$todo_id, $currentMemberID, $todo['status']]);
             
             $delete = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");

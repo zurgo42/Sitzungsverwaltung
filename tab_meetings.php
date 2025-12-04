@@ -1,9 +1,9 @@
 <?php
 /**
- * tab_meetings.php - Meeting-Verwaltung (Präsentation)
+ * tab_meetings.php - Sitzungs-Verwaltung (Präsentation)
  * Bereinigt: 29.10.2025 02:00 MEZ
  * 
- * Zeigt Meeting-Liste und Erstellungs-Formular
+ * Zeigt Sitzungs-Liste und Erstellungs-Formular
  * Nur Darstellung - alle Verarbeitungen in process_meetings.php
  */
 
@@ -31,7 +31,7 @@ foreach ($all_absences_raw as $abs) {
 ?>
 
 <style>
-/* Kompaktere Meeting-Cards */
+/* Kompaktere Sitzungs-Cards */
 .meeting-card {
     padding: 12px !important;
     margin-bottom: 15px !important;
@@ -61,7 +61,7 @@ foreach ($all_absences_raw as $abs) {
 }
 </style>
 
-<h2>🤝 Meetings verwalten</h2>
+<h2>🤝 Sitzungen verwalten</h2>
 
 <!-- DEZENTE ABWESENHEITS-ANZEIGE -->
 <?php
@@ -106,9 +106,9 @@ if (!empty($all_absences)):
     <div class="message">
         <?php 
         switch($_GET['success']) {
-            case 'created': echo '✅ Meeting erfolgreich erstellt!'; break;
-            case 'deleted': echo '✅ Meeting erfolgreich gelöscht!'; break;
-            case 'updated': echo '✅ Meeting erfolgreich aktualisiert!'; break;
+            case 'created': echo '✅ Sitzung erfolgreich erstellt!'; break;
+            case 'deleted': echo '✅ Sitzung erfolgreich gelöscht!'; break;
+            case 'updated': echo '✅ Sitzung erfolgreich aktualisiert!'; break;
             default: echo '✅ Aktion erfolgreich durchgeführt!';
         }
         ?>
@@ -120,27 +120,27 @@ if (!empty($all_absences)):
         <?php 
         switch($_GET['error']) {
             case 'permission': echo '❌ Keine Berechtigung für diese Aktion.'; break;
-            case 'delete_failed': echo '❌ Fehler beim Löschen des Meetings.'; break;
-            case 'update_failed': echo '❌ Fehler beim Aktualisieren des Meetings.'; break;
+            case 'delete_failed': echo '❌ Fehler beim Löschen der Sitzung.'; break;
+            case 'update_failed': echo '❌ Fehler beim Aktualisieren der Sitzung.'; break;
             case 'start_failed': echo '❌ Fehler beim Starten der Sitzung.'; break;
-            case 'create_failed': echo '❌ Fehler beim Erstellen des Meetings.'; break;
+            case 'create_failed': echo '❌ Fehler beim Erstellen der Sitzung.'; break;
             case 'missing_data': echo '❌ Pflichtfelder fehlen.'; break;
-            case 'invalid_id': echo '❌ Ungültige Meeting-ID.'; break;
+            case 'invalid_id': echo '❌ Ungültige Sitzungs-ID.'; break;
             default: echo '❌ Ein Fehler ist aufgetreten.';
         }
         ?>
     </div>
 <?php endif; ?>
 
-<!-- Neues Meeting erstellen -->
+<!-- Neue Sitzung erstellen -->
 <div style="margin-bottom: 30px;">
-    <button class="accordion-button" onclick="toggleAccordion(this)">➕ Neues Meeting erstellen</button>
+    <button class="accordion-button" onclick="toggleAccordion(this)">➕ Neue Sitzung erstellen</button>
     <div class="accordion-content">
         <form method="POST" action="process_meetings.php">
             <input type="hidden" name="create_meeting" value="1">
             
             <div class="form-group">
-                <label>Meeting-Name:</label>
+                <label>Sitzungs-Name:</label>
                 <input type="text" name="meeting_name" value="<?php echo htmlspecialchars(DEFAULT_MEETING_NAME); ?>" required>
             </div>
             
@@ -259,10 +259,10 @@ if (!empty($all_absences)):
     </div>
 </div>
 
-<!-- Meeting-Liste -->
-<h3>Bestehende Meetings</h3>
+<!-- Sitzungs-Liste -->
+<h3>Bestehende Sitzungen</h3>
 <?php if (empty($all_meetings)): ?>
-    <div class="info-box">Noch keine Meetings vorhanden.</div>
+    <div class="info-box">Noch keine Sitzungen vorhanden.</div>
 <?php else: ?>
     <?php foreach ($all_meetings as $m):
         $status_class = 'meeting-card status-' . $m['status'];
@@ -360,7 +360,7 @@ if (!empty($all_absences)):
                         <input type="hidden" name="meeting_id" value="<?php echo $m['meeting_id']; ?>">
                         
                         <div class="form-group">
-                            <label>Meeting-Name:</label>
+                            <label>Sitzungs-Name:</label>
                             <input type="text" name="meeting_name" value="<?php echo htmlspecialchars($m['meeting_name']); ?>" required>
                         </div>
                         
