@@ -104,11 +104,11 @@ function render_user_notifications($pdo, $member_id) {
 
     // 4. OFFENE MEINUNGSUMFRAGEN PRÜFEN
     $stmt_opinions = $pdo->prepare("
-        SELECT COUNT(DISTINCT o.opinion_id) as count
-        FROM svopinions o
-        LEFT JOIN svopinion_responses opr ON o.opinion_id = opr.opinion_id AND opr.member_id = ?
-        WHERE o.status = 'open'
-        AND o.end_date >= CURDATE()
+        SELECT COUNT(DISTINCT o.poll_id) as count
+        FROM svopinion_polls o
+        LEFT JOIN svopinion_responses opr ON o.poll_id = opr.poll_id AND opr.member_id = ?
+        WHERE o.status = 'active'
+        AND o.ends_at >= NOW()
         AND opr.response_id IS NULL
     ");
     $stmt_opinions->execute([$member_id]);
