@@ -365,6 +365,36 @@ function get_german_weekday_long($date_string) {
         font-size: 13px;
         padding: 6px 4px;
     }
+
+    /* Kopieren-Button kompakter auf Mobile */
+    .poll-link-container {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    .poll-link-container .btn-secondary {
+        padding: 8px 12px !important;
+        font-size: 13px !important;
+        width: 100%;
+    }
+
+    /* Vote Matrix: Kleinere Schrift, kompaktere Darstellung */
+    .vote-matrix th,
+    .vote-matrix td {
+        padding: 6px 4px;
+        font-size: 12px;
+    }
+
+    .vote-matrix th:first-child,
+    .vote-matrix td:first-child {
+        font-size: 11px;
+    }
+
+    /* Ergebnistabelle: Teilnehmernamen kürzen */
+    .vote-matrix thead th {
+        font-size: 10px;
+        padding: 4px 2px;
+    }
 }
 </style>
 
@@ -836,7 +866,7 @@ if (isset($_SESSION['error'])) {
             <p style="margin: 0 0 10px 0; color: #666;">
                 Teilen Sie diesen Link mit den Teilnehmern:
             </p>
-            <div style="display: flex; gap: 10px; align-items: center;">
+            <div class="poll-link-container" style="display: flex; gap: 10px; align-items: center;">
                 <input type="text"
                        id="poll_link_<?php echo $poll_id; ?>"
                        value="<?php echo htmlspecialchars($poll_link); ?>"
@@ -924,8 +954,7 @@ if (isset($_SESSION['error'])) {
         <table class="vote-matrix">
             <thead>
                 <tr>
-                    <th style="width: 180px;">Terminvorschlag</th>
-                    <th style="text-align: center; width: 140px;">Zusammenfassung</th>
+                    <th style="width: 220px;">Terminvorschlag & Zusammenfassung</th>
                     <?php
                     // Alle eingeladenen Teilnehmer anzeigen
                     $participants = [];
@@ -967,10 +996,8 @@ if (isset($_SESSION['error'])) {
                                 <span style="color: #2196F3; font-weight: bold; font-size: 12px;">⭐ GEWÄHLT</span><br>
                             <?php endif; ?>
                             <strong style="font-size: 15px;"><?php echo $date_str; ?></strong><br>
-                            <span style="color: #666; font-size: 13px;"><?php echo $time_str; ?></span>
-                        </td>
-                        <td style="text-align: center;">
-                            <div class="vote-summary" style="font-size: 13px;">
+                            <span style="color: #666; font-size: 13px;"><?php echo $time_str; ?></span><br>
+                            <div class="vote-summary" style="font-size: 12px; margin-top: 4px; padding-top: 4px; border-top: 1px solid #eee;">
                                 <span class="count-yes">✅<?php echo $count_yes; ?></span> ·
                                 <span class="count-maybe">🟡<?php echo $count_maybe; ?></span> ·
                                 <span class="count-no">❌<?php echo $count_no; ?></span>
