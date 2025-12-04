@@ -8,23 +8,26 @@
 // Logik einbinden
 require_once 'process_protokoll.php';
 
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
+
 $stichwort = isset($_GET['stichwort']) ? trim($_GET['stichwort']) : '';
 $meeting_id = isset($_GET['meeting_id']) ? intval($_GET['meeting_id']) : 0;
 $confidential = (in_array($current_user['role'], ['vorstand', 'gf', 'assistenz']));
-if ($confidential)
 
 // Einzelnes Protokoll anzeigen
 if ($meeting_id > 0) {
     $stmt = $pdo->prepare("SELECT protokoll, prot_intern, meeting_name, meeting_date FROM svmeetings WHERE meeting_id = ? AND protokoll IS NOT NULL");
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch();
-    
+
     if ($meeting) {
         echo '<div class="protocol-view">';
-        echo '<h2>📋 Protokoll anzeigen</h2>
+        echo '<h2>📋 Protokoll anzeigen</h2>';
 
-<!-- BENACHRICHTIGUNGEN -->
-<?php render_user_notifications($pdo, $current_user['member_id']); ?>';
+        // Benachrichtigungen anzeigen
+        render_user_notifications($pdo, $current_user['member_id']);
+
         echo '<p><a href="?tab=protokolle" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">&larr; Zurück zur Übersicht</a></p>';
        
         if (!empty($stichwort)) {

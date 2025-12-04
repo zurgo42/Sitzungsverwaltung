@@ -1,4 +1,7 @@
 <?php
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
 /**
  * tab_documents.php - Dokumentenverwaltung Tab
  * Modernes UI für Dokumentenverwaltung
@@ -107,6 +110,9 @@ if (isset($_SESSION['error'])) {
 </style>
 <?php
 
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
+
 // ============================================
 // VIEW: LISTE
 // ============================================
@@ -198,6 +204,9 @@ if ($view === 'list') {
 
 <!-- BENACHRICHTIGUNGEN -->
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
                     <?php if ($is_admin): ?>
                         <button type="button" onclick="window.location.href='?tab=documents&view=upload'" class="btn btn-primary">
                             <i class="bi bi-upload"></i> Dokument hochladen

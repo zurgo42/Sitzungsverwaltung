@@ -87,21 +87,8 @@ function render_user_notifications($pdo, $member_id) {
         LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id AND pr.member_id = ?
         WHERE p.status = 'open'
         AND pr.response_id IS NULL
-        AND (
-            p.visibility_type = 'all'
-            OR (p.visibility_type = 'role' AND ? IN (
-                SELECT pr2.allowed_role
-                FROM svpoll_roles pr2
-                WHERE pr2.poll_id = p.poll_id
-            ))
-            OR (p.visibility_type = 'meeting' AND ? IN (
-                SELECT mp.member_id
-                FROM svmeeting_participants mp
-                WHERE mp.meeting_id = p.meeting_id
-            ))
-        )
     ");
-    $stmt_termine->execute([$member_id, $member_id, $member_id]);
+    $stmt_termine->execute([$member_id]);
     $open_termine = $stmt_termine->fetch()['count'];
 
     if ($open_termine > 0) {
@@ -123,21 +110,8 @@ function render_user_notifications($pdo, $member_id) {
         WHERE o.status = 'open'
         AND o.end_date >= CURDATE()
         AND opr.response_id IS NULL
-        AND (
-            o.visibility_type = 'all'
-            OR (o.visibility_type = 'role' AND EXISTS (
-                SELECT 1 FROM svopinion_roles orr
-                JOIN svmembers m ON m.role = orr.allowed_role
-                WHERE orr.opinion_id = o.opinion_id AND m.member_id = ?
-            ))
-            OR (o.visibility_type = 'meeting' AND ? IN (
-                SELECT mp.member_id
-                FROM svmeeting_participants mp
-                WHERE mp.meeting_id = o.meeting_id
-            ))
-        )
     ");
-    $stmt_opinions->execute([$member_id, $member_id, $member_id]);
+    $stmt_opinions->execute([$member_id]);
     $open_opinions = $stmt_opinions->fetch()['count'];
 
     if ($open_opinions > 0) {

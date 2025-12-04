@@ -3,6 +3,9 @@
  * tab_vertretung.php - Abwesenheits- und Vertretungsverwaltung
  */
 
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
+
 // Alle Mitglieder laden (falls noch nicht geladen)
 if (!isset($all_members)) {
     $all_members = get_all_members($pdo);

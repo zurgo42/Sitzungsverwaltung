@@ -1,4 +1,7 @@
 <?php
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
 /**
  * tab_termine.php - Terminplanung/Umfragen (Präsentation)
  * Erstellt: 17.11.2025
@@ -505,7 +508,13 @@ function copyToClipboard(text) {
 <!-- BENACHRICHTIGUNGEN -->
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
 
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
+
 <?php
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
 // Success/Error Messages
 if (isset($_SESSION['success'])) {
     echo '<div class="message">' . htmlspecialchars($_SESSION['success']) . '</div>';
@@ -519,6 +528,9 @@ if (isset($_SESSION['error'])) {
 ?>
 
 <?php if ($view === 'dashboard'): ?>
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
     <!-- DASHBOARD VIEW -->
 
     <!-- Neue Umfrage erstellen -->
@@ -702,6 +714,9 @@ if (isset($_SESSION['error'])) {
     <?php endif; ?>
 
 <?php elseif ($view === 'poll' && $poll_id > 0): ?>
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
     <!-- POLL DETAIL VIEW -->
 
     <?php
@@ -1127,3 +1142,6 @@ if (isset($_SESSION['error'])) {
     <?php } // end if poll exists ?>
 
 <?php endif; ?>
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';

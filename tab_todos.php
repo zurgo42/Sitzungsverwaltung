@@ -1,4 +1,7 @@
 <?php
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
 /**
  * tab_todos.php - Erledigen-Verwaltung mit verbesserter Struktur
  * Version: 3.0 | 29.10.2025 02:50 MEZ
@@ -199,9 +202,18 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 <!-- BENACHRICHTIGUNGEN -->
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
 
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
+
 <?php if (empty($own_todos_open)): ?>
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
     <p style="color: #999;">Sie haben keine offenen ToDos.</p>
 <?php else: ?>
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
     <div class="own-todos-container">
         <div class="own-todos-cards">
             <?php foreach ($own_todos_open as $idx => $row): 
@@ -280,8 +292,14 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     </div>
 <?php endif; ?>
 
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
+
 <!-- ERLEDIGTE EIGENE TODOS -->
 <?php if (!empty($own_todos_done)): ?>
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
     <div class="own-todos-done-section">
         <h3>Diese ToDos hast du bereits erledigt:</h3>
         
@@ -335,8 +353,14 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     </div>
 <?php endif; ?>
 
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
+
 <!-- FREMDE TODOS -->
 <?php if (!empty($other_todos)): ?>
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
     <div class="other-todos-section">
         <div class="other-todos-accordion-header" onclick="this.classList.toggle('open'); this.nextElementSibling.classList.toggle('open');">
             <span>Weitere öffentliche ToDos der anderen Aktiven (<?php echo count($other_todos); ?>)</span>
@@ -420,3 +444,6 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         </div>
     </div>
 <?php endif; ?>
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
