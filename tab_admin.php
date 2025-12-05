@@ -16,8 +16,8 @@ require_once 'process_admin.php';
 // Dokumente-Funktionen einbinden
 require_once __DIR__ . '/documents_functions.php';
 
-// Alle Dokumente laden
-$all_documents = get_all_documents($pdo);
+// Alle Dokumente laden (Admin-Zugriff: Zugriffslevel 99)
+$all_documents = get_documents($pdo, ['status' => 'active'], 99);
 ?>
 
 <style>

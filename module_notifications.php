@@ -19,6 +19,16 @@
  * @return void (gibt direkt HTML aus)
  */
 function render_user_notifications($pdo, $member_id) {
+    // Mitglied-Rolle ermitteln
+    $stmt_role = $pdo->prepare("SELECT role FROM svmembers WHERE member_id = ?");
+    $stmt_role->execute([$member_id]);
+    $member_role = $stmt_role->fetch()['role'] ?? '';
+
+    // Für "Mitglied" keine Benachrichtigungen anzeigen
+    if (strtolower($member_role) === 'mitglied') {
+        return;
+    }
+
     $notifications = [];
 
     // 1. ABWESENHEITEN PRÜFEN
@@ -80,15 +90,18 @@ function render_user_notifications($pdo, $member_id) {
         ];
     }
 
-    // 3. OFFENE TERMINANFRAGEN PRÜFEN
+    // 3. OFFENE TERMINANFRAGEN PRÜFEN (nur nicht-finalisierte, wo User Teilnehmer ist)
     $stmt_termine = $pdo->prepare("
         SELECT COUNT(DISTINCT p.poll_id) as count
         FROM svpolls p
+        INNER JOIN svpoll_participants pp ON p.poll_id = pp.poll_id
         LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id AND pr.member_id = ?
         WHERE p.status = 'open'
+        AND p.final_date_id IS NULL
+        AND pp.member_id = ?
         AND pr.response_id IS NULL
     ");
-    $stmt_termine->execute([$member_id]);
+    $stmt_termine->execute([$member_id, $member_id]);
     $open_termine = $stmt_termine->fetch()['count'];
 
     if ($open_termine > 0) {
@@ -125,6 +138,48 @@ function render_user_notifications($pdo, $member_id) {
         ];
     }
 
+    // 5. ZUSAMMENFASSUNG: KOMMENDE SITZUNGEN & TERMINE
+    $stmt_summary = $pdo->prepare("
+        (SELECT 'meeting' as type, m.meeting_name as title, m.meeting_date as date_time
+         FROM svmeetings m
+         INNER JOIN svmeeting_participants mp ON m.meeting_id = mp.meeting_id
+         WHERE mp.member_id = ?
+         AND m.meeting_date >= NOW()
+         AND m.status IN ('preparation', 'active')
+         ORDER BY m.meeting_date ASC
+         LIMIT 3)
+        UNION ALL
+        (SELECT 'poll' as type, p.title, pd.suggested_date as date_time
+         FROM svpolls p
+         INNER JOIN svpoll_participants pp ON p.poll_id = pp.poll_id
+         INNER JOIN svpoll_dates pd ON p.final_date_id = pd.date_id
+         WHERE pp.member_id = ?
+         AND p.status = 'finalized'
+         AND pd.suggested_date >= NOW()
+         ORDER BY pd.suggested_date ASC
+         LIMIT 3)
+        ORDER BY date_time ASC
+        LIMIT 5
+    ");
+    $stmt_summary->execute([$member_id, $member_id]);
+    $upcoming = $stmt_summary->fetchAll();
+
+    if (!empty($upcoming)) {
+        $items = [];
+        foreach ($upcoming as $item) {
+            $icon = $item['type'] === 'meeting' ? '📅' : '📆';
+            $date = date('d.m. H:i', strtotime($item['date_time']));
+            $items[] = $icon . ' ' . htmlspecialchars($item['title']) . ' (' . $date . ')';
+        }
+
+        $notifications[] = [
+            'type' => 'summary',
+            'icon' => '📋',
+            'text' => '<strong>Kommende Termine:</strong> ' . implode(' • ', $items),
+            'link' => null
+        ];
+    }
+
     // AUSGABE
     if (empty($notifications)) {
         return; // Keine Meldungen
@@ -141,6 +196,9 @@ function render_user_notifications($pdo, $member_id) {
             // Abwesenheiten: Text + kleiner Link
             echo '<strong style="color: #333;">Abwesenheiten:</strong> ' . $notif['text'];
             echo ' <a href="' . $notif['link'] . '" style="margin-left: 8px; color: #2196f3; text-decoration: none; font-size: 12px;">' . $notif['link_text'] . '</a>';
+        } elseif ($notif['type'] === 'summary') {
+            // Zusammenfassung: Nur Text, kein Button
+            echo $notif['text'];
         } else {
             // Andere: Text + Button
             echo $notif['text'];
