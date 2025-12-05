@@ -99,7 +99,8 @@ require_once 'module_notifications.php';
     </div>
 <?php endif; ?>
 
-<!-- Neue Sitzung erstellen -->
+<!-- Neue Sitzung erstellen (nicht für Mitglied-Rolle) -->
+<?php if (strtolower($current_user['role']) !== 'mitglied'): ?>
 <div style="margin-bottom: 30px;">
     <button class="accordion-button" onclick="toggleAccordion(this)">➕ Neue Sitzung erstellen</button>
     <div class="accordion-content">
@@ -225,12 +226,31 @@ require_once 'module_notifications.php';
         </form>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- Sitzungs-Liste -->
 <h3>Bestehende Sitzungen</h3>
 <?php if (empty($all_meetings)): ?>
     <div class="info-box">Noch keine Sitzungen vorhanden.</div>
 <?php else: ?>
+    <?php
+    // TOP-Counts für alle Meetings laden
+    $meeting_ids = array_column($all_meetings, 'meeting_id');
+    $top_counts = [];
+    if (!empty($meeting_ids)) {
+        $placeholders = str_repeat('?,', count($meeting_ids) - 1) . '?';
+        $stmt_tops = $pdo->prepare("
+            SELECT meeting_id, COUNT(*) as top_count
+            FROM svagenda_items
+            WHERE meeting_id IN ($placeholders)
+            GROUP BY meeting_id
+        ");
+        $stmt_tops->execute($meeting_ids);
+        foreach ($stmt_tops->fetchAll() as $row) {
+            $top_counts[$row['meeting_id']] = $row['top_count'];
+        }
+    }
+    ?>
     <?php foreach ($all_meetings as $m):
         $status_class = 'meeting-card status-' . $m['status'];
         $is_creator = ($m['invited_by_member_id'] == $current_user['member_id']);
@@ -255,8 +275,6 @@ require_once 'module_notifications.php';
                         Termin am <?php echo date('d.m.Y H:i', strtotime($m['meeting_date'])); ?>
                         <?php if (in_array($m['status'], ['ended', 'protocol_ready', 'archived']) && !empty($m['meeting_end_date'])): ?>
                             <br><small>Ende der Sitzung: <?php echo date('d.m.Y H:i', strtotime($m['meeting_end_date'])); ?></small>
-                        <?php elseif (!empty($m['expected_end_date'])): ?>
-                            <br><small>Voraussichtliches Ende: <?php echo date('d.m.Y H:i', strtotime($m['expected_end_date'])); ?></small>
                         <?php endif; ?>
                         <?php if ($m['status'] === 'preparation' && !empty($m['submission_deadline'])): ?>
                             <?php
@@ -279,6 +297,10 @@ require_once 'module_notifications.php';
                         if (!empty($m['video_link']) && in_array($m['status'], ['preparation', 'active'])) {
                             echo '<br>🎥 <a href="' . htmlspecialchars($m['video_link']) . '" target="_blank" class="video-link">' . htmlspecialchars($m['video_link']) . '</a>';
                         }
+                        // TOP-Anzahl anzeigen
+                        $top_count = $top_counts[$m['meeting_id']] ?? 0;
+                        echo '<br>📋 TOPs: ' . $top_count;
+
                         if (in_array($m['status'], ['preparation', 'active'])) {
                             echo '<br>Eingeladen von: ' . htmlspecialchars($m['first_name'] . ' ' . $m['last_name']);
                         }

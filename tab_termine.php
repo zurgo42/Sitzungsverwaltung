@@ -854,7 +854,8 @@ if (isset($_SESSION['error'])) {
             </div>
         </div>
 
-        <!-- Link zur Umfrage -->
+        <!-- Link zur Umfrage (nur für Ersteller, nur wenn nicht finalisiert) -->
+        <?php if ($is_creator && $poll['status'] !== 'finalized'): ?>
         <?php
         // Basispfad ermitteln (z.B. "/Sitzungsverwaltung" oder "")
         $script_path = dirname($_SERVER['SCRIPT_NAME']); // z.B. "/Sitzungsverwaltung"
@@ -881,6 +882,7 @@ if (isset($_SESSION['error'])) {
                 </button>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- Abstimmungs-Formular -->
         <?php if ($can_vote): ?>
