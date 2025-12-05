@@ -120,8 +120,28 @@ $can_edit_meeting = ($is_secretary || $is_chairman);
     <div class="meeting-info-box" style="background: #f9f9f9; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
         <strong>Termin:</strong> <?php echo htmlspecialchars($meeting['meeting_name'] ?? 'Ohne Namen'); ?><br>
         <strong>Ort:</strong> <?php echo htmlspecialchars($meeting['location']); ?><br>
-        <strong>Datum:</strong> <?php echo date('d.m.Y H:i', strtotime($meeting['meeting_date'])); ?> Uhr<br>
-        
+        <strong>Datum:</strong> <?php
+            echo date('d.m.Y H:i', strtotime($meeting['meeting_date'])) . ' Uhr';
+
+            // Geplantes Ende anzeigen
+            if (!empty($meeting['expected_end_date'])) {
+                $start_date = date('Y-m-d', strtotime($meeting['meeting_date']));
+                $end_date = date('Y-m-d', strtotime($meeting['expected_end_date']));
+
+                if ($start_date !== $end_date) {
+                    // Anderer Tag
+                    echo ' bis (geplant) ' . date('d.m.Y H:i', strtotime($meeting['expected_end_date'])) . ' Uhr';
+                } else {
+                    // Gleicher Tag
+                    echo ' bis (geplant) ' . date('H:i', strtotime($meeting['expected_end_date'])) . ' Uhr';
+                }
+            }
+        ?><br>
+
+        <?php if (!empty($meeting['video_link'])): ?>
+            <strong>Video-Link:</strong> <a href="<?= htmlspecialchars($meeting['video_link']) ?>" target="_blank" style="color: #2196f3;"><?= htmlspecialchars($meeting['video_link']) ?></a><br>
+        <?php endif; ?>
+
         <?php if (in_array($meeting['status'], ['ended', 'protocol_ready', 'archived']) && $meeting['ended_at']): ?>
             <strong>Ende:</strong> <?php echo date('d.m.Y H:i', strtotime($meeting['ended_at'])); ?> Uhr<br>
         <?php endif; ?>
