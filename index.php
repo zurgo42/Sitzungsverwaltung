@@ -305,10 +305,12 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             ✅ Erledigen
         </a>
 
-        <!-- Vertretungen-Tab (immer sichtbar) -->
+        <!-- Vertretungen-Tab (nur für Leadership) -->
+        <?php if (in_array(strtolower($current_user['role']), ['vorstand', 'gf', 'assistenz', 'führungsteam'])): ?>
         <a href="?tab=vertretung" class="<?php echo $active_tab === 'vertretung' ? 'active' : ''; ?>">
             🏖️ Vertretungen
         </a>
+        <?php endif; ?>
 
         <!-- Meinungsbild-Tab (immer sichtbar) -->
         <a href="?tab=opinion" class="<?php echo $active_tab === 'opinion' ? 'active' : ''; ?>">
