@@ -278,12 +278,7 @@ if ($view === 'overview') {
         <p><strong>Kontext:</strong> <?php echo $context_description; ?></p>
 
         <div class="alert alert-info">
-            <strong>ℹ️ Info:</strong> Hier können Sie gemeinsam an Texten arbeiten (z.B. Pressemeldungen, Briefe).
-            <?php if ($is_meeting_mode): ?>
-            Alle Sitzungsteilnehmer können gleichzeitig an verschiedenen Absätzen arbeiten.
-            <?php else: ?>
-            Alle Vorstandsmitglieder, GF und Assistenz können gemeinsam arbeiten.
-            <?php endif; ?>
+            <strong>ℹ️ Info:</strong> Vorstand, GF und Assistenz können hier gemeinsam an Texten arbeiten.
         </div>
 
         <?php if ($is_initiator_role): ?>
@@ -894,6 +889,35 @@ if ($view === 'editor') {
         });
     }
 
+    function moveParagraph(paragraphId, newOrder) {
+        newOrder = parseInt(newOrder);
+        if (isNaN(newOrder) || newOrder < 0) {
+            alert('Bitte geben Sie eine gültige Absatznummer ein.');
+            location.reload();
+            return;
+        }
+
+        fetch('api/collab_text_move_paragraph.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({paragraph_id: paragraphId, new_order: newOrder})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Fehler: ' + (data.error || 'Absatz konnte nicht verschoben werden'));
+                location.reload();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Netzwerkfehler beim Verschieben');
+            location.reload();
+        });
+    }
+
     // Vorschau anzeigen
     function showPreview() {
         // Alle Absätze sammeln
@@ -1324,8 +1348,14 @@ function renderParagraph($para, $current_member_id) {
                 <button onclick="editParagraph(<?php echo $para['paragraph_id']; ?>)" class="btn-primary">
                     ✏️ Bearbeiten
                 </button>
-                <button onclick="deleteParagraph(<?php echo $para['paragraph_id']; ?>)" class="btn-danger">
-                    🗑️ Löschen
+                <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: 10px;">
+                    <label style="font-size: 0.9em;">Verschieben hinter Absatz:</label>
+                    <input type="number" min="0" max="999" value="<?php echo $para['paragraph_order']; ?>"
+                           style="width: 60px; padding: 4px; border: 1px solid #ccc; border-radius: 4px;"
+                           onchange="moveParagraph(<?php echo $para['paragraph_id']; ?>, this.value)">
+                </span>
+                <button onclick="deleteParagraph(<?php echo $para['paragraph_id']; ?>)" class="btn-danger" style="margin-left: 10px;">
+                    🗑️ Diesen Absatz löschen
                 </button>
             <?php else: ?>
                 <button disabled class="btn-secondary" style="opacity: 0.5;">
