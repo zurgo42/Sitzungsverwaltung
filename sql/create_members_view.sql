@@ -2,15 +2,19 @@
 -- SQL-Skript: View für berechtigte-Tabelle
 -- ============================================
 --
--- Erstellt eine View 'svmembers', die Ihre berechtigte-Tabelle
--- für die Sitzungsverwaltung verfügbar macht.
+-- ⚠️ HINWEIS: Diese View ist OPTIONAL und NICHT mehr empfohlen!
 --
--- VORTEIL: Minimale Code-Änderungen nötig
+-- Die Sitzungsverwaltung enthält bereits ein Adapter-System
+-- (member_functions.php + BerechtigteAdapter), das viel flexibler ist.
 --
--- ANLEITUNG:
--- 1. Passen Sie die Spaltennamen an Ihre berechtigte-Tabelle an
--- 2. Führen Sie dieses Skript in Ihrer Datenbank aus
--- 3. Die Sitzungsverwaltung kann dann svmembers statt berechtigte nutzen
+-- EMPFOHLEN: Nutzen Sie config_adapter.php statt dieser View!
+-- Siehe INTEGRATION.md für Details.
+--
+-- Diese View ist nur noch nützlich, wenn Sie:
+-- - Die Adapter-Architektur nicht nutzen wollen
+-- - Direkten Datenbankzugriff auf svmembers benötigen
+-- - Legacy-Code haben, der svmembers hart codiert
+--
 -- ============================================
 
 -- View löschen falls vorhanden

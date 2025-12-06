@@ -2,7 +2,10 @@
 
 ## Übersicht
 
-Die Sitzungsverwaltung wird als Modul in Ihr bestehendes System integriert, nutzt dessen SSO-Authentifizierung (`$MNr`) und die vorhandene `berechtigte`-Tabelle statt der eigenen Mitgliederverwaltung.
+Die Sitzungsverwaltung verwendet ein **Adapter-System**, das eine flexible Anbindung verschiedener Datenquellen ermöglicht. Alle benötigten Funktionen sind bereits vorhanden - Sie müssen nur die richtige Konfiguration setzen.
+
+**Das Wichtigste vorab:**
+Die Sitzungsverwaltung enthält bereits einen fertigen `BerechtigteAdapter`, der Ihre `berechtigte`-Tabelle auf das interne Format mappt. Sie müssen **keine neuen Funktionen schreiben**!
 
 ---
 
@@ -12,515 +15,280 @@ Die Sitzungsverwaltung wird als Modul in Ihr bestehendes System integriert, nutz
 - [x] Alle Skripte im Unterverzeichnis `/Sitzungsverwaltung/`
 - [x] Alle Datenbanktabellen mit `sv`-Prefix übertragen
 - [x] `config.php` mit Datenbank-Zugriff angepasst
-- [x] `config_adapter.php` bereits entwickelt
+- [x] **Adapter-System bereits vorhanden** (`member_functions.php`, `adapters/MemberAdapter.php`)
 
 ### Zu prüfen
 - [ ] Tabelle `berechtigte` hat folgende Spalten:
-  - `member_id` oder `MNr` (Primärschlüssel)
-  - `first_name` / `vorname`
-  - `last_name` / `nachname`
-  - `email`
-  - `role` / `rolle` (z.B. 'vorstand', 'gf', 'mitglied')
+  - `ID` (Primärschlüssel)
+  - `MNr` (Mitgliedsnummer für SSO)
+  - `Vorname`, `Name`, `eMail`
+  - `Funktion` (z.B. 'GF', 'SV', 'RL', 'AD', 'FP')
+  - `aktiv` (Aktivitäts-Status)
 
 ---
 
-## 2. config_adapter.php - Aufbau und Anpassung
+## 2. Wie funktioniert das Adapter-System?
 
-Die `config_adapter.php` muss als zentrale Schnittstelle zwischen Ihrem System und der Sitzungsverwaltung fungieren.
+Die Sitzungsverwaltung enthält bereits **zwei fertige Adapter**:
 
-### 2.1 Grundstruktur (Falls noch nicht vorhanden)
+1. **StandardMemberAdapter** - für die interne `svmembers`-Tabelle
+2. **BerechtigteAdapter** - für Ihre externe `berechtigte`-Tabelle
+
+### Vorhandene Dateien (NICHT ändern!)
+
+**`member_functions.php`** - Wrapper-Funktionen:
+- `get_all_members($pdo)` - Alle Mitglieder holen
+- `get_member_by_id($pdo, $id)` - Ein Mitglied nach ID
+- `get_member_by_email($pdo, $email)` - Ein Mitglied nach E-Mail
+- **`get_member_by_membership_number($pdo, $mnr)`** - **Für SSO!**
+- `create_member()`, `update_member()`, `delete_member()` - CRUD-Operationen
+
+**`adapters/MemberAdapter.php`** - Adapter-Implementierungen:
+- `BerechtigteAdapter` - Mappt automatisch:
+  - `ID` → `member_id`
+  - `MNr` → `membership_number`
+  - `Vorname` → `first_name`
+  - `Name` → `last_name`
+  - `eMail` → `email`
+  - `Funktion` + `aktiv` → `role` (Geschäftsführung, Assistenz, Führungsteam, Mitglied)
+
+**Erstellen Sie eine einfache `config_adapter.php` mit nur 3 Zeilen Code:**
 
 ```php
 <?php
-/**
- * config_adapter.php
- *
- * Adapter zwischen bestehendem System und Sitzungsverwaltung
- * - Mapped berechtigte-Tabelle auf members-Struktur
- * - Integriert SSO-Variable $MNr
- */
-
-// Vorhandenes System einbinden
+// 1. Ihr bestehendes System einbinden
 require_once __DIR__ . '/../ihre_bestehende_config.php';
 
-// Sitzungsverwaltung config einbinden
+// 2. Sitzungsverwaltung Config laden
 require_once __DIR__ . '/config.php';
 
-// ============================================
-// SESSION & AUTHENTICATION
-// ============================================
+// 3. WICHTIG: Adapter auf "berechtigte" umschalten
+define('MEMBER_SOURCE', 'berechtigte');
 
-// SSO-Variable $MNr aus bestehendem System übernehmen
+// 4. Member-Funktionen laden (nutzt jetzt BerechtigteAdapter!)
+require_once __DIR__ . '/member_functions.php';
+
+// 5. SSO-Integration: $MNr von Ihrem System übernehmen
 if (isset($MNr) && !isset($_SESSION['member_id'])) {
-    $_SESSION['member_id'] = $MNr;
-}
-
-// ============================================
-// MITGLIEDER-TABELLE MAPPING
-// ============================================
-
-/**
- * Holt Mitglied aus berechtigte-Tabelle
- * Mapped die Struktur auf Sitzungsverwaltungs-Format
- */
-function get_member_by_id($pdo, $member_id) {
-    $stmt = $pdo->prepare("
-        SELECT
-            member_id,           -- oder: MNr AS member_id
-            first_name,          -- oder: vorname AS first_name
-            last_name,           -- oder: nachname AS last_name
-            email,
-            role,                -- oder: rolle AS role
-            phone,               -- optional
-            is_active            -- optional
-        FROM berechtigte
-        WHERE member_id = ?     -- oder: MNr = ?
-    ");
-    $stmt->execute([$member_id]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
-}
-
-/**
- * Holt alle aktiven Mitglieder
- */
-function get_all_members($pdo) {
-    $stmt = $pdo->query("
-        SELECT
-            member_id,           -- oder: MNr AS member_id
-            first_name,          -- oder: vorname AS first_name
-            last_name,           -- oder: nachname AS last_name
-            email,
-            role,                -- oder: rolle AS role
-            phone
-        FROM berechtigte
-        WHERE is_active = 1     -- oder Ihre Aktivitätsbedingung
-        ORDER BY last_name, first_name
-    ");
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-/**
- * Prüft ob User Admin ist
- */
-function is_admin($member) {
-    if (!$member) return false;
-
-    $admin_roles = ['vorstand', 'gf', 'assistenz'];
-    return in_array(strtolower($member['role']), $admin_roles);
-}
-
-/**
- * Prüft ob User Leadership-Rolle hat
- */
-function is_leadership($member) {
-    if (!$member) return false;
-
-    $leadership_roles = ['vorstand', 'gf', 'assistenz', 'führungsteam'];
-    return in_array(strtolower($member['role']), $leadership_roles);
-}
-
-// ============================================
-// CURRENT USER LADEN
-// ============================================
-
-// Aktuellen User aus Session laden
-if (isset($_SESSION['member_id'])) {
-    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+    // Mitglied aus berechtigte-Tabelle holen (via Adapter)
+    $current_user = get_member_by_membership_number($pdo, $MNr);
 
     if ($current_user) {
-        // Zusätzliche Flags für einfachere Verwendung
-        $current_user['is_admin'] = is_admin($current_user);
-        $current_user['is_leadership'] = is_leadership($current_user);
-
-        // In Session speichern für schnelleren Zugriff
+        $_SESSION['member_id'] = $current_user['member_id'];
         $_SESSION['current_user'] = $current_user;
     } else {
-        // User nicht gefunden - zurück zum Login
+        // User nicht gefunden
         header('Location: /ihre_login_seite.php');
         exit;
     }
-} else {
-    // Nicht eingeloggt - zurück zum Login
-    header('Location: /ihre_login_seite.php');
-    exit;
 }
 
-// ============================================
-// OVERRIDE FUNCTIONS.PHP FUNKTIONEN
-// ============================================
-
-// Falls functions.php bereits geladen wurde, überschreiben wir die Funktionen
-if (function_exists('get_all_members')) {
-    // Bereits geladen - wir müssen nichts tun
-} else {
-    // Noch nicht geladen - Funktionen sind bereits definiert
+// 6. Falls nicht via SSO: current_user aus Session laden
+if (!isset($current_user) && isset($_SESSION['member_id'])) {
+    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
 }
 
+// Fertig! Alle Sitzungsverwaltungs-Skripte nutzen jetzt automatisch
+// die berechtigte-Tabelle via BerechtigteAdapter.
 ?>
 ```
 
-### 2.2 Spaltennamen anpassen
-
-**Falls Ihre `berechtigte`-Tabelle andere Spaltennamen hat**, passen Sie die SQL-Queries an:
-
-```php
-// Beispiel: Ihre Tabelle nutzt 'MNr' statt 'member_id'
-SELECT
-    MNr AS member_id,
-    vorname AS first_name,
-    nachname AS last_name,
-    ...
-```
+**Das war's!** ✅ Keine Spaltennamen anpassen, keine Funktionen schreiben - alles ist bereits fertig.
 
 ---
 
-## 3. Integration in Ihr System
+## 3. Wie der BerechtigteAdapter Ihre Tabelle mappt
 
-### 3.1 Einfache Include-Variante
+Der vorhandene `BerechtigteAdapter` kennt bereits Ihre Tabellenstruktur:
+
+### Feld-Mapping (automatisch)
+| berechtigte | → | Internes Format |
+|-------------|---|-----------------|
+| `ID` | → | `member_id` |
+| `MNr` | → | `membership_number` |
+| `Vorname` | → | `first_name` |
+| `Name` | → | `last_name` |
+| `eMail` | → | `email` |
+
+### Rollen-Mapping (automatisch)
+| Ihre Tabelle | → | Rolle |
+|--------------|---|-------|
+| `aktiv = 19` | → | `Vorstand` |
+| `Funktion = 'GF'` | → | `Geschäftsführung` |
+| `Funktion = 'SV'` | → | `Assistenz` |
+| `Funktion = 'RL'` | → | `Führungsteam` |
+| `Funktion = 'AD'` oder `'FP'` | → | `Mitglied` |
+
+### Admin-Rechte (automatisch)
+- `Funktion = 'GF'` → Admin
+- `Funktion = 'SV'` → Admin
+- `MNr = '0495018'` → Admin (Spezial-Admin)
+
+**Sie müssen nichts davon selbst programmieren!**
+
+---
+
+## 4. Integration in Ihr System
+
+### Variante 1: Include in bestehende Seite
 
 ```php
 <?php
 // In Ihrer Hauptseite (z.B. dashboard.php)
-
 session_start();
 
-// Ihr bestehendes System
+// Ihr bestehendes System mit SSO
 require_once 'ihre_config.php';
-
-// SSO - $MNr wird von Ihrem System gesetzt
-$MNr = $_SESSION['user_id']; // oder wie auch immer Sie die ID setzen
+// $MNr wird von Ihrem System gesetzt
 
 // Sitzungsverwaltung einbinden
 require_once __DIR__ . '/Sitzungsverwaltung/config_adapter.php';
 
-// Optional: Tab-System
-if (isset($_GET['module']) && $_GET['module'] === 'sitzungen') {
-    // Sitzungsverwaltung anzeigen
-    include __DIR__ . '/Sitzungsverwaltung/index.php';
-} else {
-    // Ihr normales Dashboard
-    include 'ihr_dashboard.php';
-}
+// Sitzungsverwaltung anzeigen
+include __DIR__ . '/Sitzungsverwaltung/index.php';
 ?>
 ```
 
-### 3.2 Als Tab/Modul einbinden
+### Variante 2: Als Tab/Modul
 
 ```php
 <!-- In Ihrer Navigation -->
 <nav>
     <a href="?module=home">Home</a>
-    <a href="?module=sitzungen">Sitzungsverwaltung</a>
-    <a href="?module=andere">Andere Module</a>
+    <a href="?module=sitzungen">Sitzungen</a>
 </nav>
 
 <?php
-switch($_GET['module'] ?? 'home') {
-    case 'sitzungen':
-        require_once __DIR__ . '/Sitzungsverwaltung/config_adapter.php';
-        include __DIR__ . '/Sitzungsverwaltung/index.php';
-        break;
-
-    case 'home':
-    default:
-        include 'ihr_home.php';
-        break;
+if (isset($_GET['module']) && $_GET['module'] === 'sitzungen') {
+    require_once __DIR__ . '/Sitzungsverwaltung/config_adapter.php';
+    include __DIR__ . '/Sitzungsverwaltung/index.php';
+} else {
+    include 'ihr_home.php';
 }
 ?>
 ```
 
-### 3.3 Als iFrame (Alternative)
+---
 
-```html
-<!-- Falls Sie die Sitzungsverwaltung in einem iFrame einbetten wollen -->
-<iframe src="/Sitzungsverwaltung/index.php"
-        style="width: 100%; height: 800px; border: none;">
-</iframe>
-```
+## 5. Keine Änderungen an anderen Skripten nötig!
 
-**Hinweis:** Bei iFrame müssen Sie sicherstellen, dass die Session geteilt wird (Same-Site Cookies).
+**WICHTIG:** Sie müssen **KEINE** anderen PHP-Dateien anpassen!
+
+Der Adapter funktioniert automatisch, weil:
+- Alle Skripte nutzen bereits die Wrapper-Funktionen aus `member_functions.php`
+- Diese Funktionen prüfen automatisch `MEMBER_SOURCE` und nutzen den richtigen Adapter
+- Der `BerechtigteAdapter` mappt automatisch alle Felder
+
+**Konkret bedeutet das:**
+- ❌ `index.php` - NICHT ändern
+- ❌ `process_*.php` - NICHT ändern
+- ❌ `tab_*.php` - NICHT ändern
+- ❌ `api/*.php` - NICHT ändern
+- ❌ `functions.php` - NICHT ändern
+
+**Einzige Datei, die Sie erstellen:** `config_adapter.php` (siehe oben)
 
 ---
 
-## 4. Anpassungen in den Sitzungsverwaltungs-Skripten
+## 6. Testing & Debugging
 
-### 4.1 index.php - Anpassungen am Anfang
+### Test-Checklist
 
-**Ersetzen Sie in `/Sitzungsverwaltung/index.php` (ca. Zeile 1-20):**
-
-```php
-<?php
-session_start();
-
-// WICHTIG: config_adapter.php STATT config.php einbinden
-require_once __DIR__ . '/config_adapter.php';
-
-// $current_user ist jetzt bereits durch config_adapter.php geladen
-// Falls nicht, Fehlerbehandlung:
-if (!isset($current_user) || !$current_user) {
-    die('Fehler: Benutzer nicht authentifiziert. Bitte melden Sie sich an.');
-}
-
-// Rest des Skripts bleibt unverändert
-...
-```
-
-### 4.2 Alle anderen PHP-Dateien
-
-**Ersetzen Sie überall:**
-
-```php
-// ALT:
-require_once 'config.php';
-
-// NEU:
-require_once __DIR__ . '/config_adapter.php';
-```
-
-**Betrifft folgende Dateien:**
-- `process_*.php` (alle Process-Dateien)
-- `tab_*.php` (alle Tab-Dateien)
-- `api/*.php` (alle API-Dateien)
-- `functions.php` (WICHTIG!)
-
-### 4.3 functions.php - Member-Funktionen auskommentieren
-
-**In `/Sitzungsverwaltung/functions.php`:**
-
-Auskommentieren oder entfernen Sie die `get_all_members()` und `get_member_by_id()` Funktionen, da diese jetzt aus `config_adapter.php` kommen:
-
-```php
-// AUSKOMMENTIERT - wird durch config_adapter.php bereitgestellt
-/*
-function get_all_members($pdo) {
-    ...
-}
-
-function get_member_by_id($pdo, $member_id) {
-    ...
-}
-*/
-```
-
----
-
-## 5. Datenbank-Anpassungen
-
-### 5.1 Fremdschlüssel prüfen
-
-Falls Ihre Tabellen Fremdschlüssel-Constraints haben, stellen Sie sicher, dass diese auf die richtige Tabelle zeigen:
-
-```sql
--- Beispiel: svmeetings Tabelle
--- ALT: FOREIGN KEY (invited_by_member_id) REFERENCES svmembers(member_id)
--- NEU: FOREIGN KEY (invited_by_member_id) REFERENCES berechtigte(member_id)
-
--- Constraint entfernen (falls vorhanden)
-ALTER TABLE svmeetings DROP FOREIGN KEY fk_invited_by;
-
--- Neuen Constraint erstellen (optional - kann auch weggelassen werden)
-ALTER TABLE svmeetings
-ADD CONSTRAINT fk_invited_by
-FOREIGN KEY (invited_by_member_id) REFERENCES berechtigte(member_id)
-ON DELETE SET NULL;
-```
-
-**Empfehlung:** Lassen Sie die Fremdschlüssel weg, wenn beide Tabellen nicht synchron bleiben.
-
-### 5.2 View erstellen (Optional - Elegante Lösung)
-
-Falls Sie die Sitzungsverwaltung-Tabellen nicht ändern wollen:
-
-```sql
--- View erstellen, die berechtigte als svmembers verfügbar macht
-CREATE OR REPLACE VIEW svmembers AS
-SELECT
-    member_id,        -- oder: MNr AS member_id
-    first_name,       -- oder: vorname AS first_name
-    last_name,        -- oder: nachname AS last_name
-    email,
-    role,             -- oder: rolle AS role
-    phone,
-    is_active,
-    created_at,
-    updated_at
-FROM berechtigte;
-```
-
-**Vorteil:** Die Sitzungsverwaltung kann unverändert bleiben und direkt `svmembers` nutzen.
-
----
-
-## 6. Rollen-Mapping
-
-### 6.1 Rollen-Struktur anpassen
-
-Falls Ihre `berechtigte`-Tabelle andere Rollennamen verwendet:
-
-**In config_adapter.php:**
-
-```php
-/**
- * Mapped Ihre Rollen auf Sitzungsverwaltungs-Rollen
- */
-function map_role($original_role) {
-    $role_mapping = [
-        'admin' => 'vorstand',
-        'manager' => 'gf',
-        'assistant' => 'assistenz',
-        'leader' => 'führungsteam',
-        'user' => 'mitglied',
-        // ... weitere Mappings
-    ];
-
-    return $role_mapping[strtolower($original_role)] ?? 'mitglied';
-}
-
-// In get_member_by_id() verwenden:
-function get_member_by_id($pdo, $member_id) {
-    $stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE member_id = ?");
-    $stmt->execute([$member_id]);
-    $member = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($member) {
-        // Rolle mappen
-        $member['role'] = map_role($member['original_role_field']);
-    }
-
-    return $member;
-}
-```
-
----
-
-## 7. URL-Struktur
-
-### 7.1 Relative Pfade sicherstellen
-
-In `config.php` oder `config_adapter.php`:
-
-```php
-// Basis-URL für Assets
-define('BASE_URL', '/Sitzungsverwaltung');
-
-// Oder dynamisch:
-define('BASE_URL', dirname($_SERVER['SCRIPT_NAME']));
-```
-
-### 7.2 .htaccess (Optional)
-
-Falls Sie schönere URLs wollen:
-
-```apache
-# /Sitzungsverwaltung/.htaccess
-RewriteEngine On
-RewriteBase /Sitzungsverwaltung/
-
-# Alle Anfragen zu index.php leiten (außer Dateien/Verzeichnisse)
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php?route=$1 [L,QSA]
-```
-
----
-
-## 8. Testing & Debugging
-
-### 8.1 Test-Checklist
-
+- [ ] **config_adapter.php erstellt:** Mit `MEMBER_SOURCE = 'berechtigte'`
 - [ ] **Login funktioniert:** `$MNr` wird korrekt übernommen
-- [ ] **User-Daten werden geladen:** `var_dump($current_user)` zeigt Daten aus `berechtigte`
+- [ ] **User-Daten werden geladen:** `$current_user` enthält Daten aus `berechtigte`
 - [ ] **Rollen funktionieren:** Leadership-Features nur für entsprechende Rollen sichtbar
 - [ ] **Meetings erstellen:** Neue Meetings werden mit korrekter `member_id` erstellt
 - [ ] **Teilnehmer-Auswahl:** Dropdown zeigt alle User aus `berechtigte`
-- [ ] **Benachrichtigungen:** Werden korrekt angezeigt basierend auf Rolle
 
-### 8.2 Debug-Modus
+### Debug-Modus
 
-In `config_adapter.php`:
+Fügen Sie temporär in `config_adapter.php` hinzu:
 
 ```php
-// Temporär zum Debuggen:
-if (isset($_GET['debug']) && $_SESSION['member_id'] == 1) {
-    echo '<pre>';
+// DEBUG: Nach dem SSO-Block
+if (isset($_GET['debug']) && !empty($current_user)) {
+    echo '<pre style="background: #f0f0f0; padding: 20px; margin: 20px; border: 2px solid #333;">';
+    echo "<h3>🔧 DEBUG MODE</h3>\n";
     echo "SSO Variable \$MNr: " . ($MNr ?? 'nicht gesetzt') . "\n";
-    echo "Session member_id: " . ($_SESSION['member_id'] ?? 'nicht gesetzt') . "\n";
+    echo "MEMBER_SOURCE: " . (defined('MEMBER_SOURCE') ? MEMBER_SOURCE : 'nicht gesetzt') . "\n\n";
     echo "Current User:\n";
     print_r($current_user);
+    echo "\n\nAlle Members (erste 3):\n";
+    print_r(array_slice(get_all_members($pdo), 0, 3));
     echo '</pre>';
+    exit; // Nicht weitermachen
 }
 ```
 
-Aufruf: `?module=sitzungen&debug=1`
+Aufruf: `?debug=1`
 
-### 8.3 Häufige Fehler
+### Häufige Probleme
 
-**Fehler:** "Undefined variable: current_user"
-- **Lösung:** `config_adapter.php` wird nicht geladen. Prüfen Sie include-Pfade.
+**Problem:** "MEMBER_SOURCE not defined"
+→ Stellen Sie sicher, dass `define('MEMBER_SOURCE', 'berechtigte');` **VOR** `require_once 'member_functions.php'` steht
 
-**Fehler:** "Table 'svmembers' doesn't exist"
-- **Lösung:** functions.php nutzt noch alte Member-Funktionen. View erstellen oder Funktionen überschreiben.
+**Problem:** "User nicht gefunden"
+→ Prüfen Sie mit Debug-Modus, ob `$MNr` korrekt gesetzt ist und ob der User in der `berechtigte`-Tabelle die Bedingung `shouldInclude()` erfüllt
 
-**Fehler:** "No members found"
-- **Lösung:** Spaltennnamen in `get_all_members()` prüfen und anpassen.
+**Problem:** "Keine Mitglieder sichtbar"
+→ Der `BerechtigteAdapter` filtert nach `aktiv > 17` ODER `Funktion IN ('RL', 'SV', 'AD', 'FP', 'GF')`
 
 ---
 
-## 9. Sicherheits-Hinweise
+## 7. Zusammenfassung - Quick Start
 
-### 9.1 Session-Sicherheit
+### ✅ In 3 Schritten zur Integration:
 
+1. **`config_adapter.php` erstellen** (siehe Abschnitt 2)
+   - Ihr System einbinden
+   - `MEMBER_SOURCE = 'berechtigte'` definieren
+   - SSO-Variable `$MNr` abfangen
+
+2. **In Ihr System einbinden** (siehe Abschnitt 4)
+   - Via Include oder als Modul/Tab
+
+3. **Testen** (siehe Abschnitt 6)
+   - Mit Debug-Modus prüfen
+
+**Das war's!** Keine einzelnen PHP-Dateien anpassen, keine Datenbank-Views erstellen, keine Funktionen schreiben.
+
+---
+
+## 8. Anpassung des BerechtigteAdapter (falls nötig)
+
+Falls Ihre `berechtigte`-Tabelle andere Werte für `Funktion` oder `aktiv` nutzt, können Sie den `BerechtigteAdapter` anpassen:
+
+**Datei:** `/Sitzungsverwaltung/adapters/MemberAdapter.php`
+
+**Rollen-Mapping ändern** (Zeile 154-162):
 ```php
-// In config_adapter.php - Session-Einstellungen
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_secure', 1);  // nur bei HTTPS
-ini_set('session.cookie_samesite', 'Lax');
+private function mapRole($funktion, $aktiv) {
+    if ($aktiv == 19) return 'Vorstand';
+
+    $roleMapping = [
+        'GF' => 'Geschäftsführung',     // ANPASSEN: Ihre Funktions-Kürzel
+        'SV' => 'Assistenz',
+        'RL' => 'Führungsteam',
+        // ... weitere Mappings
+    ];
+    return $roleMapping[$funktion] ?? 'Mitglied';
+}
 ```
 
-### 9.2 SQL-Injection-Schutz
+**Filter-Bedingung ändern** (Zeile 203-218):
+```php
+private function shouldInclude($row) {
+    $aktiv = $row['aktiv'] ?? 0;
+    $funktion = $row['Funktion'] ?? '';
 
-Alle Queries in Sitzungsverwaltung nutzen bereits Prepared Statements ✅
-
-### 9.3 XSS-Schutz
-
-Alle Ausgaben nutzen bereits `htmlspecialchars()` ✅
-
----
-
-## 10. Zusammenfassung - Quick Start
-
-### Schritt-für-Schritt Anleitung:
-
-1. **config_adapter.php erstellen** (siehe Abschnitt 2.1)
-   - Spaltennnamen an Ihre `berechtigte`-Tabelle anpassen
-   - SSO-Variable `$MNr` integrieren
-
-2. **index.php anpassen** (siehe Abschnitt 4.1)
-   - `require_once 'config.php'` → `require_once 'config_adapter.php'`
-
-3. **Alle anderen PHP-Dateien anpassen** (siehe Abschnitt 4.2)
-   - Suchen & Ersetzen: `require_once 'config.php'` → `require_once __DIR__ . '/config_adapter.php'`
-
-4. **functions.php anpassen** (siehe Abschnitt 4.3)
-   - `get_all_members()` und `get_member_by_id()` auskommentieren
-
-5. **In Ihr System einbinden** (siehe Abschnitt 3.1 oder 3.2)
-   - Via Include oder als Modul
-
-6. **Testen** (siehe Abschnitt 8.1)
-   - Alle Funktionen durchgehen
+    // ANPASSEN: Ihre Inklusionsbedingung
+    return ($aktiv > 17) || in_array($funktion, ['RL', 'SV', 'AD', 'FP', 'GF']);
+}
+```
 
 ---
 
-## 11. Support & Weiterentwicklung
-
-Bei Fragen oder Problemen:
-- Prüfen Sie die Debug-Ausgabe (Abschnitt 8.2)
-- Checken Sie die Datenbank-Logs
-- Überprüfen Sie die Session-Variablen
-
----
-
-**Version:** 1.0
+**Version:** 2.0
 **Datum:** 2025-12-06
-**Status:** Integration Ready ✅
+**Status:** Vollständig überarbeitet - nutzt vorhandenes Adapter-System ✅

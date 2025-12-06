@@ -2,194 +2,132 @@
 /**
  * config_adapter.EXAMPLE.php
  *
- * TEMPLATE für Integration mit bestehendem System
+ * MINIMALES BEISPIEL für Integration mit bestehendem System
  *
+ * ========================================
+ * WAS MACHT DIESE DATEI?
+ * ========================================
+ *
+ * Diese Datei verbindet Ihr bestehendes System (mit SSO und berechtigte-Tabelle)
+ * mit der Sitzungsverwaltung. Sie ist SEHR EINFACH, weil alle Funktionen
+ * bereits in member_functions.php und adapters/MemberAdapter.php vorhanden sind.
+ *
+ * ========================================
  * ANLEITUNG:
+ * ========================================
+ *
  * 1. Kopieren Sie diese Datei zu config_adapter.php
- * 2. Passen Sie die Pfade und Spaltennamen an Ihr System an
- * 3. Testen Sie die Integration
+ * 2. Passen Sie die Pfade an (Zeile 30 und 33)
+ * 3. Fertig! Keine weiteren Änderungen nötig.
  */
 
 // ============================================
-// 1. BESTEHENDES SYSTEM EINBINDEN
+// 1. IHR BESTEHENDES SYSTEM EINBINDEN
 // ============================================
 
 // ANPASSEN: Pfad zu Ihrer bestehenden Config
+// Diese Datei sollte die Datenbank-Verbindung ($pdo) und SSO-Variable ($MNr) bereitstellen
 require_once __DIR__ . '/../ihre_bestehende_config.php';
 
-// Sitzungsverwaltung Config einbinden
+// Sitzungsverwaltung Config einbinden (enthält $pdo falls nicht bereits vorhanden)
 require_once __DIR__ . '/config.php';
 
 // ============================================
-// 2. SSO INTEGRATION
+// 2. ADAPTER AUF "berechtigte" UMSCHALTEN
+// ============================================
+
+// WICHTIG: Diese Zeile aktiviert den BerechtigteAdapter
+// Alle member_functions.php Funktionen nutzen jetzt automatisch
+// die berechtigte-Tabelle statt svmembers!
+define('MEMBER_SOURCE', 'berechtigte');
+
+// Member-Funktionen laden (nutzt jetzt automatisch BerechtigteAdapter!)
+require_once __DIR__ . '/member_functions.php';
+
+// ============================================
+// 3. SSO INTEGRATION
 // ============================================
 
 // ANPASSEN: Wie wird die Member-ID in Ihrem System gesetzt?
-// Option A: Direkt aus Variable
+// Falls Ihr System die Variable $MNr bereitstellt (Mitgliedsnummer):
+
 if (isset($MNr) && !isset($_SESSION['member_id'])) {
-    $_SESSION['member_id'] = $MNr;
-}
-
-// Option B: Aus Ihrer Session
-// if (isset($_SESSION['user_id']) && !isset($_SESSION['member_id'])) {
-//     $_SESSION['member_id'] = $_SESSION['user_id'];
-// }
-
-// ============================================
-// 3. DATENBANK-MAPPING
-// ============================================
-
-/**
- * Holt Mitglied aus Ihrer berechtigte-Tabelle
- *
- * ANPASSEN: Spaltennamen entsprechend Ihrer Tabellenstruktur
- */
-function get_member_by_id($pdo, $member_id) {
-    $stmt = $pdo->prepare("
-        SELECT
-            member_id,           -- ANPASSEN: Ihre ID-Spalte (z.B. MNr AS member_id)
-            first_name,          -- ANPASSEN: (z.B. vorname AS first_name)
-            last_name,           -- ANPASSEN: (z.B. nachname AS last_name)
-            email,
-            role,                -- ANPASSEN: (z.B. rolle AS role)
-            phone,
-            is_active            -- ANPASSEN: oder 1 AS is_active falls nicht vorhanden
-        FROM berechtigte         -- ANPASSEN: Ihre Tabelle
-        WHERE member_id = ?      -- ANPASSEN: Ihre ID-Spalte
-    ");
-    $stmt->execute([$member_id]);
-    $member = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    // Optional: Rolle mappen falls Ihre Rollennamen anders sind
-    if ($member && isset($member['role'])) {
-        $member['role'] = map_role($member['role']);
-    }
-
-    return $member;
-}
-
-/**
- * Holt alle aktiven Mitglieder
- *
- * ANPASSEN: Spaltennamen und Aktivitätsbedingung
- */
-function get_all_members($pdo) {
-    $stmt = $pdo->query("
-        SELECT
-            member_id,           -- ANPASSEN: Ihre ID-Spalte
-            first_name,          -- ANPASSEN: vorname AS first_name
-            last_name,           -- ANPASSEN: nachname AS last_name
-            email,
-            role,                -- ANPASSEN: rolle AS role
-            phone
-        FROM berechtigte         -- ANPASSEN: Ihre Tabelle
-        WHERE is_active = 1      -- ANPASSEN: Ihre Aktivitätsbedingung
-        ORDER BY last_name, first_name
-    ");
-    $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Optional: Rollen mappen
-    foreach ($members as &$member) {
-        if (isset($member['role'])) {
-            $member['role'] = map_role($member['role']);
-        }
-    }
-
-    return $members;
-}
-
-/**
- * Mapped Ihre Rollennamen auf Sitzungsverwaltungs-Rollen
- *
- * ANPASSEN: Falls Ihre Rollennamen anders sind
- */
-function map_role($original_role) {
-    $role_mapping = [
-        // Ihre Rolle => Sitzungsverwaltungs-Rolle
-        'admin'       => 'vorstand',
-        'manager'     => 'gf',
-        'assistant'   => 'assistenz',
-        'teamleader'  => 'führungsteam',
-        'member'      => 'mitglied',
-
-        // Falls bereits korrekt benannt, 1:1 Mapping
-        'vorstand'    => 'vorstand',
-        'gf'          => 'gf',
-        'assistenz'   => 'assistenz',
-        'führungsteam'=> 'führungsteam',
-        'mitglied'    => 'mitglied',
-    ];
-
-    $role_lower = strtolower($original_role);
-    return $role_mapping[$role_lower] ?? 'mitglied';  // Default: mitglied
-}
-
-/**
- * Prüft ob User Admin ist (Vorstand, GF, Assistenz)
- */
-function is_admin($member) {
-    if (!$member) return false;
-
-    $admin_roles = ['vorstand', 'gf', 'assistenz'];
-    return in_array(strtolower($member['role']), $admin_roles);
-}
-
-/**
- * Prüft ob User Leadership-Rolle hat
- */
-function is_leadership($member) {
-    if (!$member) return false;
-
-    $leadership_roles = ['vorstand', 'gf', 'assistenz', 'führungsteam'];
-    return in_array(strtolower($member['role']), $leadership_roles);
-}
-
-// ============================================
-// 4. CURRENT USER LADEN
-// ============================================
-
-// Aktuellen User aus Session laden
-if (isset($_SESSION['member_id'])) {
-    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+    // Mitglied aus berechtigte-Tabelle holen (via BerechtigteAdapter)
+    // Diese Funktion ist in member_functions.php und nutzt automatisch
+    // den BerechtigteAdapter, weil wir MEMBER_SOURCE='berechtigte' gesetzt haben
+    $current_user = get_member_by_membership_number($pdo, $MNr);
 
     if ($current_user) {
-        // Zusätzliche Flags setzen
-        $current_user['is_admin'] = is_admin($current_user);
-        $current_user['is_leadership'] = is_leadership($current_user);
-
-        // Optional: In Session cachen
+        // User gefunden - in Session speichern
+        $_SESSION['member_id'] = $current_user['member_id'];
         $_SESSION['current_user'] = $current_user;
     } else {
-        // User nicht gefunden
+        // User nicht gefunden - zurück zum Login
         // ANPASSEN: Pfad zu Ihrer Login-Seite
         header('Location: /ihre_login_seite.php');
         exit;
     }
-} else {
-    // Nicht eingeloggt
-    // ANPASSEN: Pfad zu Ihrer Login-Seite
-    header('Location: /ihre_login_seite.php');
-    exit;
+}
+
+// Alternative: Falls $MNr nicht direkt verfügbar ist
+// if (isset($_SESSION['user_id']) && !isset($_SESSION['member_id'])) {
+//     $current_user = get_member_by_id($pdo, $_SESSION['user_id']);
+//     if ($current_user) {
+//         $_SESSION['member_id'] = $current_user['member_id'];
+//         $_SESSION['current_user'] = $current_user;
+//     }
+// }
+
+// ============================================
+// 4. CURRENT USER LADEN (falls nicht via SSO)
+// ============================================
+
+// Falls User bereits in Session, aber $current_user noch nicht geladen
+if (!isset($current_user) && isset($_SESSION['member_id'])) {
+    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+
+    if (!$current_user) {
+        // User nicht mehr vorhanden - zurück zum Login
+        // ANPASSEN: Pfad zu Ihrer Login-Seite
+        header('Location: /ihre_login_seite.php');
+        exit;
+    }
 }
 
 // ============================================
-// 5. DEBUG (Optional - für Integration)
+// FERTIG! ✅
+// ============================================
+//
+// Das war's! Alle Sitzungsverwaltungs-Skripte nutzen jetzt automatisch
+// die berechtigte-Tabelle via BerechtigteAdapter.
+//
+// Der BerechtigteAdapter mappt automatisch:
+// - ID → member_id
+// - MNr → membership_number
+// - Vorname → first_name
+// - Name → last_name
+// - eMail → email
+// - Funktion + aktiv → role
+//
+// Keine weiteren Änderungen an anderen Dateien nötig!
+//
+// ============================================
+// DEBUG (Optional - zum Testen)
 // ============================================
 
-// Temporär aktivieren zum Debuggen:
-// if (isset($_GET['debug']) && $current_user['is_admin']) {
+// Temporär aktivieren zum Debuggen: ?debug=1
+// if (isset($_GET['debug']) && !empty($current_user)) {
 //     echo '<pre style="background: #f0f0f0; padding: 20px; margin: 20px; border: 2px solid #333;">';
 //     echo "<h3>🔧 DEBUG MODE</h3>\n";
 //     echo "SSO Variable \$MNr: " . ($MNr ?? 'nicht gesetzt') . "\n";
-//     echo "Session member_id: " . ($_SESSION['member_id'] ?? 'nicht gesetzt') . "\n\n";
+//     echo "Session member_id: " . ($_SESSION['member_id'] ?? 'nicht gesetzt') . "\n";
+//     echo "MEMBER_SOURCE: " . (defined('MEMBER_SOURCE') ? MEMBER_SOURCE : 'nicht gesetzt') . "\n\n";
 //     echo "Current User:\n";
 //     print_r($current_user);
-//     echo "\n\nAll Members (erste 5):\n";
-//     print_r(array_slice(get_all_members($pdo), 0, 5));
+//     echo "\n\nAlle Members (erste 3):\n";
+//     print_r(array_slice(get_all_members($pdo), 0, 3));
 //     echo '</pre>';
-//
-//     // Nicht weitermachen im Debug-Modus
-//     // exit;
+//     exit;
 // }
 
 ?>
