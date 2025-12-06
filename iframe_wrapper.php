@@ -3,18 +3,38 @@
  * iframe_wrapper.php
  *
  * Spezieller Wrapper für iframe-Einbindung der Sitzungsverwaltung
- * - Übernimmt Session vom Hauptsystem
- * - Vermeidet Style-Konflikte durch Isolation
- * - Lädt config_adapter.php für SSO-Integration
+ * - Übernimmt Session vom Hauptsystem (inkl. $MNr)
+ * - Vermeidet Style-Konflikte durch vollständige Isolation
+ * - Nutzt BerechtigteAdapter für externe berechtigte-Tabelle
  */
 
-// Session starten (muss gleiche Session wie Hauptsystem nutzen!)
+// Session starten (nutzt gleiche Session wie Hauptsystem!)
 session_start();
 
-// WICHTIG: config_adapter.php einbinden (enthält SSO-Integration)
+// Konfiguration laden
+require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/config_adapter.php';
+require_once __DIR__ . '/member_functions.php';
 
-// Falls User nicht eingeloggt, Fehlermeldung
+// SSO-Integration: Mitgliedsnummer aus Session holen
+$MNr = get_sso_membership_number();
+
+// User laden falls noch nicht in Session
+if ($MNr && !isset($_SESSION['member_id'])) {
+    $current_user = get_member_by_membership_number($pdo, $MNr);
+
+    if ($current_user) {
+        $_SESSION['member_id'] = $current_user['member_id'];
+        $_SESSION['current_user'] = $current_user;
+    }
+}
+
+// Falls member_id in Session, aber $current_user noch nicht geladen
+if (!isset($current_user) && isset($_SESSION['member_id'])) {
+    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+}
+
+// Falls User nicht gefunden, Fehlermeldung anzeigen
 if (!isset($current_user) || !$current_user) {
     ?>
     <!DOCTYPE html>
@@ -44,6 +64,23 @@ if (!isset($current_user) || !$current_user) {
             <h2>⚠️ Nicht angemeldet</h2>
             <p>Sie müssen angemeldet sein, um die Sitzungsverwaltung zu nutzen.</p>
             <p><a href="javascript:parent.location.reload()">Seite neu laden</a></p>
+
+            <?php if (isset($_GET['debug'])): ?>
+            <hr>
+            <h3>Debug-Info:</h3>
+            <pre style="text-align: left; font-size: 11px;">
+SSO_SOURCE: <?php echo defined('SSO_SOURCE') ? SSO_SOURCE : 'nicht definiert'; ?>
+
+MEMBER_SOURCE: <?php echo defined('MEMBER_SOURCE') ? MEMBER_SOURCE : 'nicht definiert'; ?>
+
+$_SESSION['MNr']: <?php echo $_SESSION['MNr'] ?? 'nicht gesetzt'; ?>
+
+$MNr (via get_sso_membership_number()): <?php echo $MNr ?? 'null'; ?>
+
+$_SESSION keys: <?php print_r(array_keys($_SESSION)); ?>
+            </pre>
+            <p style="font-size: 11px;">Aufruf mit ?debug=1 für mehr Details</p>
+            <?php endif; ?>
         </div>
     </body>
     </html>
