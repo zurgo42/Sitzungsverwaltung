@@ -20,19 +20,25 @@ require_once __DIR__ . '/member_functions.php';
 // SSO-Integration: Mitgliedsnummer aus Session holen
 $MNr = get_sso_membership_number();
 
-// User laden falls noch nicht in Session
-if ($MNr && !isset($_SESSION['member_id'])) {
-    $current_user = get_member_by_membership_number($pdo, $MNr);
+// User laden via MNr (überschreibt ggf. falsche member_id vom Hauptsystem)
+if ($MNr) {
+    // Prüfen ob bereits korrekt in Session (via sv_member_id, nicht member_id vom Hauptsystem!)
+    if (!isset($_SESSION['sv_member_id']) || !isset($_SESSION['sv_current_user'])) {
+        // User aus berechtigte-Tabelle laden
+        $current_user = get_member_by_membership_number($pdo, $MNr);
 
-    if ($current_user) {
-        $_SESSION['member_id'] = $current_user['member_id'];
-        $_SESSION['current_user'] = $current_user;
+        if ($current_user) {
+            // In Session speichern (mit sv_ Prefix um Kollision mit Hauptsystem zu vermeiden)
+            $_SESSION['sv_member_id'] = $current_user['member_id'];
+            $_SESSION['sv_current_user'] = $current_user;
+        }
+    } else {
+        // Bereits in Session, von dort laden
+        $current_user = $_SESSION['sv_current_user'];
     }
-}
-
-// Falls member_id in Session, aber $current_user noch nicht geladen
-if (!isset($current_user) && isset($_SESSION['member_id'])) {
-    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+} else {
+    // Kein MNr vorhanden
+    $current_user = null;
 }
 
 // Falls User nicht gefunden, Fehlermeldung anzeigen
@@ -78,9 +84,27 @@ $_SESSION['MNr']: <?php echo $_SESSION['MNr'] ?? 'nicht gesetzt'; ?>
 
 $MNr (via get_sso_membership_number()): <?php echo $MNr ?? 'null'; ?>
 
+$_SESSION['sv_member_id']: <?php echo $_SESSION['sv_member_id'] ?? 'nicht gesetzt'; ?>
+
+$_SESSION['member_id'] (vom Hauptsystem): <?php echo $_SESSION['member_id'] ?? 'nicht gesetzt'; ?>
+
+User laden Versuch:
+<?php
+if ($MNr) {
+    $test_user = get_member_by_membership_number($pdo, $MNr);
+    if ($test_user) {
+        echo "✓ User gefunden: {$test_user['first_name']} {$test_user['last_name']} (ID: {$test_user['member_id']})\n";
+    } else {
+        echo "❌ User mit MNr=$MNr nicht gefunden\n";
+    }
+} else {
+    echo "❌ Kein MNr verfügbar\n";
+}
+?>
+
 $_SESSION keys: <?php print_r(array_keys($_SESSION)); ?>
             </pre>
-            <p style="font-size: 11px;">Aufruf mit ?debug=1 für mehr Details</p>
+            <p style="font-size: 11px;">Für vollständiges Debug: /debug_iframe.php aufrufen</p>
             <?php endif; ?>
         </div>
     </body>
