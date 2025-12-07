@@ -27,8 +27,18 @@ try {
     exit;
 }
 
+// functions.php laden (initialisiert $pdo)
+echo "3. functions.php laden... ";
+try {
+    require_once __DIR__ . '/functions.php';
+    echo "✓ OK\n";
+} catch (Exception $e) {
+    echo "❌ FEHLER: " . $e->getMessage() . "\n";
+    exit;
+}
+
 // config_adapter.php laden
-echo "3. config_adapter.php laden... ";
+echo "4. config_adapter.php laden... ";
 try {
     require_once __DIR__ . '/config_adapter.php';
     echo "✓ OK\n";
@@ -38,7 +48,7 @@ try {
 }
 
 // member_functions.php laden
-echo "4. member_functions.php laden... ";
+echo "5. member_functions.php laden... ";
 try {
     require_once __DIR__ . '/member_functions.php';
     echo "✓ OK\n";
