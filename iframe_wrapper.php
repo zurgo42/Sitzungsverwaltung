@@ -17,6 +17,9 @@ require_once __DIR__ . '/functions.php';  // WICHTIG: Initialisiert $pdo
 require_once __DIR__ . '/config_adapter.php';
 require_once __DIR__ . '/member_functions.php';
 
+// DISPLAY_MODE auf iframe setzen (entfernt Footer, da Parent-Seite eigenen Footer hat)
+define('DISPLAY_MODE_OVERRIDE', 'iframe');
+
 // SSO-Integration: Mitgliedsnummer aus Session holen
 $MNr = get_sso_membership_number();
 

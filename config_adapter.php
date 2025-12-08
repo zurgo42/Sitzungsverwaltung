@@ -40,6 +40,45 @@ define('TEST_MEMBERSHIP_NUMBER', '0495018');  // Ihre Test-MNr
 
 
 // ============================================
+// DISPLAY-MODUS KONFIGURATION
+// ============================================
+
+// Wie soll die Sitzungsverwaltung angezeigt werden?
+// 'standalone' = Normale Standalone-Seite mit Login
+// 'iframe'     = Im iframe eingebettet (ohne Footer)
+// 'SSOdirekt'  = Eigenständige Seite mit SSO und Custom Styling
+define('DISPLAY_MODE', 'standalone');  // Standard-Modus
+
+// ============================================
+// SSOdirekt KONFIGURATION
+// ============================================
+
+/**
+ * Konfiguration für SSOdirekt-Modus
+ * Wird nur verwendet wenn DISPLAY_MODE = 'SSOdirekt'
+ */
+$SSO_DIRECT_CONFIG = [
+    // === STYLING ===
+    'primary_color' => '#1976d2',          // Hauptfarbe (Header/Footer Hintergrund)
+    'border_color' => '#0d47a1',           // Border-Farbe
+    'header_text_color' => '#ffffff',      // Text-Farbe im Header
+    'footer_text_color' => '#ffffff',      // Text-Farbe im Footer
+    'logo_path' => '/img/logo.png',        // Pfad zum Logo (relativ oder absolut)
+    'logo_height' => '40px',               // Logo-Höhe
+
+    // === NAVIGATION ===
+    'back_button_text' => 'Zurück zum VTool',  // Text für Zurück-Button
+    'back_button_url' => 'https://aktive.mensa.de/vtool.php',  // URL für Zurück-Button
+
+    // === FOOTER ===
+    'footer_html' => '<p style="margin: 0;">© 2025 Mensa in Deutschland e.V. | <a href="/impressum" style="color: inherit;">Impressum</a> | <a href="/datenschutz" style="color: inherit;">Datenschutz</a></p>',
+
+    // === SEITEN-TITEL ===
+    'page_title' => 'Sitzungsverwaltung - Mensa in Deutschland e.V.',
+];
+
+
+// ============================================
 // ADAPTER-SPEZIFISCHE KONFIGURATIONEN
 // ============================================
 

@@ -209,6 +209,19 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
 // Dies geschieht bereits in der Presentation-Datei (tab_admin.php)
 
 // ============================================
+// DISPLAY-MODUS ERKENNUNG
+// ============================================
+// Welcher Display-Modus ist aktiv?
+$display_mode = defined('DISPLAY_MODE_OVERRIDE') ? DISPLAY_MODE_OVERRIDE : (defined('DISPLAY_MODE') ? DISPLAY_MODE : 'standalone');
+
+// SSOdirekt-Config laden falls benötigt
+if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
+    $sso_config = $SSO_DIRECT_CONFIG;
+} else {
+    $sso_config = null;
+}
+
+// ============================================
 // HTML-AUSGABE BEGINNT HIER
 // ============================================
 ?>
@@ -217,14 +230,54 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sitzungsverwaltung</title>
+    <title><?php echo $sso_config ? $sso_config['page_title'] : 'Sitzungsverwaltung'; ?></title>
     <link rel="stylesheet" href="style.css">
+
+    <?php if ($sso_config): ?>
+    <!-- Custom Styling für SSOdirekt-Modus -->
+    <style>
+        :root {
+            --primary: <?php echo $sso_config['primary_color']; ?>;
+            --primary-dark: <?php echo $sso_config['border_color']; ?>;
+            --header-text: <?php echo $sso_config['header_text_color']; ?>;
+            --footer-text: <?php echo $sso_config['footer_text_color']; ?>;
+        }
+        .header {
+            background: var(--primary);
+            border-bottom: 3px solid var(--primary-dark);
+        }
+        .header h1,
+        .header .user-info,
+        .header .user-info span,
+        .header .user-info .logout-btn {
+            color: var(--header-text);
+        }
+        .page-footer {
+            background: var(--primary);
+            color: var(--footer-text);
+        }
+        .page-footer a {
+            color: var(--footer-text);
+        }
+    </style>
+    <?php endif; ?>
 </head>
 <body>
     <!-- HEADER mit Benutzerinfo -->
     <div class="header">
         <div class="header-inner">
+            <?php if ($sso_config && !empty($sso_config['logo_path'])): ?>
+            <!-- Logo für SSOdirekt-Modus -->
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="<?php echo $sso_config['logo_path']; ?>"
+                     alt="Logo"
+                     style="height: <?php echo $sso_config['logo_height']; ?>;">
+                <h1 style="margin: 0;">Sitzungsverwaltung</h1>
+            </div>
+            <?php else: ?>
             <h1>🏛️ Sitzungsverwaltung</h1>
+            <?php endif; ?>
+
             <div class="user-info">
                 <!-- Benutzername anzeigen -->
                 <span><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?></span>
@@ -234,8 +287,15 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
                     <?php echo ucfirst($current_user['role']); ?>
                 </span>
 
-                <!-- Logout-Button -->
-                <a href="?logout=1" class="logout-btn">Abmelden</a>
+                <?php if ($display_mode === 'SSOdirekt' && $sso_config): ?>
+                    <!-- Zurück-Button für SSOdirekt-Modus -->
+                    <a href="<?php echo $sso_config['back_button_url']; ?>" class="logout-btn">
+                        <?php echo $sso_config['back_button_text']; ?>
+                    </a>
+                <?php else: ?>
+                    <!-- Normaler Logout-Button -->
+                    <a href="?logout=1" class="logout-btn">Abmelden</a>
+                <?php endif; ?>
 
                 <!-- Hamburger-Menü (nur auf Mobile) -->
                 <div class="hamburger-menu mobile-only" id="hamburger-menu">
@@ -478,11 +538,20 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
     <!-- Externes JavaScript für Hamburger-Menü -->
     <script src="script.js"></script>
 
-    <!-- FOOTER -->
+    <!-- FOOTER (abhängig vom Display-Modus) -->
+    <?php if ($display_mode !== 'iframe'): ?>
     <footer class="page-footer">
-        <?php echo FOOTER_COPYRIGHT; ?> |
-        <a href="<?php echo FOOTER_IMPRESSUM_URL; ?>" target="_blank">Impressum</a> |
-        <a href="<?php echo FOOTER_DATENSCHUTZ_URL; ?>" target="_blank">Datenschutz</a>
+        <?php if ($display_mode === 'SSOdirekt' && $sso_config): ?>
+            <!-- Custom Footer für SSOdirekt-Modus -->
+            <?php echo $sso_config['footer_html']; ?>
+        <?php else: ?>
+            <!-- Standard Footer -->
+            <?php echo FOOTER_COPYRIGHT; ?> |
+            <a href="<?php echo FOOTER_IMPRESSUM_URL; ?>" target="_blank">Impressum</a> |
+            <a href="<?php echo FOOTER_DATENSCHUTZ_URL; ?>" target="_blank">Datenschutz</a>
+        <?php endif; ?>
     </footer>
+    <?php endif; ?>
+    <!-- Footer wird im iframe-Modus nicht angezeigt -->
 </body>
 </html>
