@@ -562,6 +562,89 @@ try {
         INDEX idx_substitute (substitute_member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
+    // =========================================================
+    // KOLLABORATIVE TEXTE
+    // =========================================================
+
+    // Kollaborative Texte (Haupttabelle)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svcollab_texts (
+        text_id INT PRIMARY KEY AUTO_INCREMENT,
+        meeting_id INT NULL COMMENT 'NULL = Allgemeiner Text (Vorstand+GF+Ass), sonst Meeting-spezifisch',
+        title VARCHAR(255) NOT NULL,
+        initiator_member_id INT NOT NULL COMMENT 'Ersteller des Textes',
+        status ENUM('active', 'finalized') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        finalized_at DATETIME NULL,
+        final_name VARCHAR(255) DEFAULT NULL COMMENT 'Name für finalisierte Version',
+        FOREIGN KEY (meeting_id) REFERENCES svmeetings(meeting_id) ON DELETE CASCADE,
+        FOREIGN KEY (initiator_member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        INDEX idx_meeting (meeting_id),
+        INDEX idx_status (status),
+        INDEX idx_initiator (initiator_member_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Absätze (Paragraphs) für kollaborative Texte
+    $tables[] = "CREATE TABLE IF NOT EXISTS svcollab_text_paragraphs (
+        paragraph_id INT PRIMARY KEY AUTO_INCREMENT,
+        text_id INT NOT NULL,
+        paragraph_order INT NOT NULL COMMENT 'Reihenfolge der Absätze',
+        content TEXT DEFAULT NULL,
+        last_edited_by INT DEFAULT NULL,
+        last_edited_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (text_id) REFERENCES svcollab_texts(text_id) ON DELETE CASCADE,
+        FOREIGN KEY (last_edited_by) REFERENCES svmembers(member_id) ON DELETE SET NULL,
+        INDEX idx_text (text_id),
+        INDEX idx_order (text_id, paragraph_order),
+        INDEX idx_edited (last_edited_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Locks für Absätze (wer editiert gerade welchen Absatz?)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svcollab_text_locks (
+        lock_id INT PRIMARY KEY AUTO_INCREMENT,
+        paragraph_id INT NOT NULL,
+        member_id INT NOT NULL,
+        locked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_activity DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (paragraph_id) REFERENCES svcollab_text_paragraphs(paragraph_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        UNIQUE KEY unique_paragraph_lock (paragraph_id),
+        INDEX idx_paragraph (paragraph_id),
+        INDEX idx_member (member_id),
+        INDEX idx_activity (last_activity)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Teilnehmer & Online-Status für kollaborative Texte
+    $tables[] = "CREATE TABLE IF NOT EXISTS svcollab_text_participants (
+        participant_id INT PRIMARY KEY AUTO_INCREMENT,
+        text_id INT NOT NULL,
+        member_id INT NOT NULL,
+        last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (text_id) REFERENCES svcollab_texts(text_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        UNIQUE KEY unique_text_participant (text_id, member_id),
+        INDEX idx_text (text_id),
+        INDEX idx_member (member_id),
+        INDEX idx_last_seen (last_seen)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Versionen (Snapshots) für kollaborative Texte
+    $tables[] = "CREATE TABLE IF NOT EXISTS svcollab_text_versions (
+        version_id INT PRIMARY KEY AUTO_INCREMENT,
+        text_id INT NOT NULL,
+        version_number INT NOT NULL,
+        content TEXT NOT NULL COMMENT 'Kompletter Text-Inhalt (alle Absätze zusammengefügt)',
+        created_by INT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        version_note VARCHAR(255) DEFAULT NULL,
+        FOREIGN KEY (text_id) REFERENCES svcollab_texts(text_id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        UNIQUE KEY unique_text_version (text_id, version_number),
+        INDEX idx_text (text_id),
+        INDEX idx_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
     // Tabellen erstellen
     echo "<p>Erstelle " . count($tables) . " Tabellen...</p>";
     foreach ($tables as $sql) {

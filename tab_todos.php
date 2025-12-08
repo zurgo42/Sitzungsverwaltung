@@ -1,16 +1,19 @@
 <?php
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
 /**
- * tab_todos.php - ToDo-Verwaltung mit verbesserter Struktur
+ * tab_todos.php - Erledigen-Verwaltung mit verbesserter Struktur
  * Version: 3.0 | 29.10.2025 02:50 MEZ
  * 
  * NEUE STRUKTUR:
  * PC-Ansicht:
- *   1. Eigene ToDos als Cards (gestaffelt nebeneinander, aufklappbar)
- *   2. Fremde ToDos als Accordion-Tabelle
+ *   1. Meine Aufgaben als Cards (gestaffelt nebeneinander, aufklappbar)
+ *   2. Andere Aufgaben als Accordion-Tabelle
  * 
  * Mobile-Ansicht:
- *   - Eigene ToDos als Cards (untereinander)
- *   - Fremde ToDos als Cards (untereinander)
+ *   - Meine Aufgaben als Cards (untereinander)
+ *   - Andere Aufgaben als Cards (untereinander)
  */
 
 require_once 'functions.php';
@@ -83,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $todo_id = (int)($_POST['todo_id'] ?? 0);
         
         if (!$todo_id) {
-            die('❌ Ungültige ToDo-ID.');
+            die('❌ Ungültige Aufgaben-ID.');
         }
         
         $stmt = $pdo->prepare("SELECT created_by_member_id, status, title FROM svtodos WHERE todo_id = ?");
@@ -95,12 +98,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         if (!in_array($todo['status'], ['open', 'in progress'])) {
-            die('❌ Nur offene ToDos können zurückgezogen werden.');
+            die('❌ Nur offene Aufgaben können zurückgezogen werden.');
         }
         
         try {
             // Logging (vor dem Löschen!)
-            $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'todo-retract', ?, NULL)");
+            $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'aufgabe-zurueckziehen', ?, NULL)");
             $log->execute([$todo_id, $currentMemberID, $todo['status']]);
             
             $delete = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
@@ -196,9 +199,15 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
 <h2>Meine ToDos</h2>
 
+<!-- BENACHRICHTIGUNGEN -->
+<?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
+
 <?php if (empty($own_todos_open)): ?>
+
     <p style="color: #999;">Sie haben keine offenen ToDos.</p>
 <?php else: ?>
+
     <div class="own-todos-container">
         <div class="own-todos-cards">
             <?php foreach ($own_todos_open as $idx => $row): 
@@ -277,8 +286,10 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     </div>
 <?php endif; ?>
 
+
 <!-- ERLEDIGTE EIGENE TODOS -->
 <?php if (!empty($own_todos_done)): ?>
+
     <div class="own-todos-done-section">
         <h3>Diese ToDos hast du bereits erledigt:</h3>
         
@@ -332,8 +343,10 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     </div>
 <?php endif; ?>
 
+
 <!-- FREMDE TODOS -->
 <?php if (!empty($other_todos)): ?>
+
     <div class="other-todos-section">
         <div class="other-todos-accordion-header" onclick="this.classList.toggle('open'); this.nextElementSibling.classList.toggle('open');">
             <span>Weitere öffentliche ToDos der anderen Aktiven (<?php echo count($other_todos); ?>)</span>
@@ -417,3 +430,4 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         </div>
     </div>
 <?php endif; ?>
+

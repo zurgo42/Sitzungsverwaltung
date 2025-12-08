@@ -1,4 +1,7 @@
 <?php
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
 /**
  * tab_documents.php - Dokumentenverwaltung Tab
  * Modernes UI für Dokumentenverwaltung
@@ -107,6 +110,7 @@ if (isset($_SESSION['error'])) {
 </style>
 <?php
 
+
 // ============================================
 // VIEW: LISTE
 // ============================================
@@ -193,13 +197,11 @@ if ($view === 'list') {
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
+                <!-- BENACHRICHTIGUNGEN -->
+                <?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
                 <div class="d-flex justify-content-between align-items-center mb-3 documents-header">
                     <h2>📁 Dokumentenverwaltung</h2>
-                    <?php if ($is_admin): ?>
-                        <button type="button" onclick="window.location.href='?tab=documents&view=upload'" class="btn btn-primary">
-                            <i class="bi bi-upload"></i> Dokument hochladen
-                        </button>
-                    <?php endif; ?>
                 </div>
 
                 <!-- Info-Box -->
@@ -368,15 +370,18 @@ if ($view === 'list') {
                         </div>
                     </div>
 
-                    <!-- Mobile: Cards -->
+                    <!-- Mobile: Cards als Karteikarten -->
                     <div class="documents-mobile">
                         <?php foreach ($documents as $doc):
                             $categories = get_document_categories();
                             $cat_label = $categories[$doc['category']] ?? $doc['category'];
                         ?>
-                        <div class="card mb-3">
-                            <div class="card-body">
-                                <h5 class="card-title">
+                        <div class="document-filecard">
+                            <div class="document-filecard-tab">
+                                📁 <?= htmlspecialchars($cat_label) ?>
+                            </div>
+                            <div class="document-filecard-body">
+                                <h5 class="document-filecard-title">
                                     <?= htmlspecialchars($doc['title']) ?>
                                     <?php if ($doc['status'] !== 'active'): ?>
                                         <span class="badge bg-secondary ms-1"><?= ucfirst($doc['status']) ?></span>
@@ -386,26 +391,23 @@ if ($view === 'list') {
                                     <?php endif; ?>
                                 </h5>
 
-                                <p class="card-text text-muted small mb-2">
-                                    <span class="badge bg-info"><?= htmlspecialchars($cat_label) ?></span>
+                                <p class="document-filecard-meta">
                                     <?php if ($doc['version']): ?>
                                         <span class="badge bg-secondary">v<?= htmlspecialchars($doc['version']) ?></span>
                                     <?php endif; ?>
+                                    <span><?= strtoupper($doc['filetype']) ?></span>
+                                    <span><?= format_filesize($doc['filesize']) ?></span>
+                                    <span><?= date('d.m.Y', strtotime($doc['created_at'])) ?></span>
                                 </p>
 
                                 <?php if ($doc['description']): ?>
-                                    <p class="card-text"><?= nl2br(htmlspecialchars(mb_substr($doc['description'], 0, 120))) ?>
+                                    <p class="document-filecard-desc">
+                                        <?= nl2br(htmlspecialchars(mb_substr($doc['description'], 0, 120))) ?>
                                         <?= mb_strlen($doc['description']) > 120 ? '...' : '' ?>
                                     </p>
                                 <?php endif; ?>
 
-                                <p class="card-text small text-muted">
-                                    <i class="bi bi-file-earmark"></i> <?= strtoupper($doc['filetype']) ?>
-                                    • <?= format_filesize($doc['filesize']) ?>
-                                    • <?= date('d.m.Y', strtotime($doc['created_at'])) ?>
-                                </p>
-
-                                <div class="d-grid gap-2">
+                                <div class="document-filecard-actions">
                                     <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
                                         📥 Herunterladen
                                     </a>
@@ -413,12 +415,6 @@ if ($view === 'list') {
                                     <?php if (!empty($doc['short_url'])): ?>
                                         <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-view" target="_blank">
                                             🔗 Öffnen
-                                        </a>
-                                    <?php endif; ?>
-
-                                    <?php if ($is_admin): ?>
-                                        <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn-secondary">
-                                            ✏️ Bearbeiten
                                         </a>
                                     <?php endif; ?>
                                 </div>

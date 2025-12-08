@@ -188,6 +188,38 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 
 **Ideal für:** Urlaubsplanung, Vertretungsregelungen, Abwesenheitskalender
 
+### 📝 Kollaborative Texte
+
+**Gemeinsam an Texten arbeiten während Sitzungen:**
+
+- **Absatz-basiertes Editieren:**
+  - Text ist in Absätze unterteilt
+  - Jeder Absatz kann einzeln bearbeitet werden
+  - Automatisches Lock-System verhindert Konflikte
+  - Während ein Teilnehmer einen Absatz bearbeitet, sehen andere "🔒 Name bearbeitet"
+
+- **Live-Synchronisation:**
+  - Änderungen werden alle 1-2 Sekunden aktualisiert
+  - Online-Status zeigt wer gerade aktiv ist
+  - Änderungen anderer Teilnehmer erscheinen automatisch
+
+- **Funktionen:**
+  - Neue Absätze hinzufügen
+  - Absätze löschen (mindestens einer muss bleiben)
+  - Vorschau-Funktion für gesamten Text
+  - Versions-Snapshots erstellen
+  - Text in Zwischenablage kopieren
+
+- **Finalisierung:**
+  - Nur Initiator (Protokollant) kann Text finalisieren
+  - Nach Finalisierung: kein Editieren mehr möglich
+  - Finaler Text für alle Teilnehmer verfügbar
+  - Mit einem Klick kopierbar
+
+**Ideal für:** Pressemeldungen, offizielle Briefe, gemeinsame Stellungnahmen, heikle Formulierungen
+
+**DSGVO-konform:** Alle Daten bleiben auf Ihrem Server – kein Google Docs notwendig!
+
 ### 💬 Intelligentes Kommentar-System
 
 **Drei-Phasen-Kommentierung:**
@@ -260,13 +292,14 @@ Nach dem Login sehen Sie:
 
 1. **📅 Termine:** Terminplanung mit Umfragen (Doodle-Style)
 2. **🤝 Meetings:** Alle Sitzungen verwalten
-3. **📋 Tagesordnung:** Tagesordnungspunkte bearbeiten
-4. **📝 Protokolle:** Protokolle einsehen und verwalten
-5. **✅ Meine TODOs:** Aufgaben-Übersicht
-6. **🏖️ Vertretungen:** Abwesenheits- und Vertretungsverwaltung
-7. **🗳️ Meinungsbild:** Umfragen und Abstimmungen
-8. **📁 Dokumente:** Zentrale Dokumentenverwaltung
-9. **⚙️ Admin:** Verwaltung und Systemeinstellungen (nur für Admins)
+3. **📋 Tagesordnung:** Tagesordnungspunkte bearbeiten (nur bei ausgewählter Sitzung)
+4. **📝 Gemeinsame Texte:** Kollaboratives Editieren während Sitzungen (nur bei ausgewählter Sitzung)
+5. **📄 Protokolle:** Protokolle einsehen und verwalten
+6. **✅ Meine TODOs:** Aufgaben-Übersicht
+7. **🏖️ Vertretungen:** Abwesenheits- und Vertretungsverwaltung
+8. **🗳️ Meinungsbild:** Umfragen und Abstimmungen
+9. **📁 Dokumente:** Zentrale Dokumentenverwaltung
+10. **⚙️ Admin:** Verwaltung und Systemeinstellungen (nur für Admins)
 
 ## Typische Anwendungsszenarien
 

@@ -1,9 +1,9 @@
 <?php
 /**
- * tab_meetings.php - Meeting-Verwaltung (Präsentation)
+ * tab_meetings.php - Sitzungs-Verwaltung (Präsentation)
  * Bereinigt: 29.10.2025 02:00 MEZ
  * 
- * Zeigt Meeting-Liste und Erstellungs-Formular
+ * Zeigt Sitzungs-Liste und Erstellungs-Formular
  * Nur Darstellung - alle Verarbeitungen in process_meetings.php
  */
 
@@ -28,10 +28,13 @@ foreach ($all_absences_raw as $abs) {
     }
     $member_absences[$abs['member_id']][] = $abs;
 }
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
 ?>
 
 <style>
-/* Kompaktere Meeting-Cards */
+/* Kompaktere Sitzungs-Cards */
 .meeting-card {
     padding: 12px !important;
     margin-bottom: 15px !important;
@@ -61,54 +64,18 @@ foreach ($all_absences_raw as $abs) {
 }
 </style>
 
-<h2>🤝 Meetings verwalten</h2>
+<h2>🤝 Sitzungen verwalten</h2>
 
-<!-- DEZENTE ABWESENHEITS-ANZEIGE -->
-<?php
-// Alle aktuellen und zukünftigen Abwesenheiten laden
-$stmt_absences = $pdo->prepare("
-    SELECT a.*, m.first_name, m.last_name, s.first_name AS sub_first_name, s.last_name AS sub_last_name,
-           CURDATE() BETWEEN a.start_date AND a.end_date AS is_current
-    FROM svabsences a
-    JOIN svmembers m ON a.member_id = m.member_id
-    LEFT JOIN svmembers s ON a.substitute_member_id = s.member_id
-    WHERE a.end_date >= CURDATE()
-    ORDER BY a.start_date ASC, m.last_name ASC
-");
-$stmt_absences->execute();
-$all_absences = $stmt_absences->fetchAll();
-
-if (!empty($all_absences)):
-    $absence_items = [];
-    foreach ($all_absences as $abs) {
-        $name = htmlspecialchars($abs['first_name'] . ' ' . $abs['last_name']);
-        $dates = date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date']));
-        $vertr = $abs['substitute_member_id'] ? ' Vertr.: ' . htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']) : '';
-
-        $text = $name . ' (' . $dates . ')' . $vertr;
-
-        // Aktuelle Abwesenheiten in rot
-        if ($abs['is_current']) {
-            $absence_items[] = '<span style="color: #d32f2f; font-weight: 600;">' . $text . '</span>';
-        } else {
-            $absence_items[] = $text;
-        }
-    }
-?>
-<div style="background: #f9f9f9; padding: 8px 12px; margin-bottom: 15px; border-radius: 4px; font-size: 13px; color: #666;">
-    <strong style="color: #333;">🏖️ Abwesenheiten:</strong>
-    <?php echo implode(' • ', $absence_items); ?>
-    <a href="?tab=vertretung" style="margin-left: 10px; color: #2196f3; text-decoration: none; font-size: 12px;">→ Details</a>
-</div>
-<?php endif; ?>
+<!-- BENACHRICHTIGUNGEN -->
+<?php render_user_notifications($pdo, $current_user['member_id']); ?>
 
 <?php if (isset($_GET['success'])): ?>
     <div class="message">
         <?php 
         switch($_GET['success']) {
-            case 'created': echo '✅ Meeting erfolgreich erstellt!'; break;
-            case 'deleted': echo '✅ Meeting erfolgreich gelöscht!'; break;
-            case 'updated': echo '✅ Meeting erfolgreich aktualisiert!'; break;
+            case 'created': echo '✅ Sitzung erfolgreich erstellt!'; break;
+            case 'deleted': echo '✅ Sitzung erfolgreich gelöscht!'; break;
+            case 'updated': echo '✅ Sitzung erfolgreich aktualisiert!'; break;
             default: echo '✅ Aktion erfolgreich durchgeführt!';
         }
         ?>
@@ -120,27 +87,28 @@ if (!empty($all_absences)):
         <?php 
         switch($_GET['error']) {
             case 'permission': echo '❌ Keine Berechtigung für diese Aktion.'; break;
-            case 'delete_failed': echo '❌ Fehler beim Löschen des Meetings.'; break;
-            case 'update_failed': echo '❌ Fehler beim Aktualisieren des Meetings.'; break;
+            case 'delete_failed': echo '❌ Fehler beim Löschen der Sitzung.'; break;
+            case 'update_failed': echo '❌ Fehler beim Aktualisieren der Sitzung.'; break;
             case 'start_failed': echo '❌ Fehler beim Starten der Sitzung.'; break;
-            case 'create_failed': echo '❌ Fehler beim Erstellen des Meetings.'; break;
+            case 'create_failed': echo '❌ Fehler beim Erstellen der Sitzung.'; break;
             case 'missing_data': echo '❌ Pflichtfelder fehlen.'; break;
-            case 'invalid_id': echo '❌ Ungültige Meeting-ID.'; break;
+            case 'invalid_id': echo '❌ Ungültige Sitzungs-ID.'; break;
             default: echo '❌ Ein Fehler ist aufgetreten.';
         }
         ?>
     </div>
 <?php endif; ?>
 
-<!-- Neues Meeting erstellen -->
+<!-- Neue Sitzung erstellen (nicht für Mitglied-Rolle) -->
+<?php if (strtolower($current_user['role']) !== 'mitglied'): ?>
 <div style="margin-bottom: 30px;">
-    <button class="accordion-button" onclick="toggleAccordion(this)">➕ Neues Meeting erstellen</button>
+    <button class="accordion-button" onclick="toggleAccordion(this)">➕ Neue Sitzung erstellen</button>
     <div class="accordion-content">
         <form method="POST" action="process_meetings.php">
             <input type="hidden" name="create_meeting" value="1">
             
             <div class="form-group">
-                <label>Meeting-Name:</label>
+                <label>Sitzungs-Name:</label>
                 <input type="text" name="meeting_name" value="<?php echo htmlspecialchars(DEFAULT_MEETING_NAME); ?>" required>
             </div>
             
@@ -258,12 +226,31 @@ if (!empty($all_absences)):
         </form>
     </div>
 </div>
+<?php endif; ?>
 
-<!-- Meeting-Liste -->
-<h3>Bestehende Meetings</h3>
+<!-- Sitzungs-Liste -->
+<h3>Bestehende Sitzungen</h3>
 <?php if (empty($all_meetings)): ?>
-    <div class="info-box">Noch keine Meetings vorhanden.</div>
+    <div class="info-box">Noch keine Sitzungen vorhanden.</div>
 <?php else: ?>
+    <?php
+    // TOP-Counts für alle Meetings laden
+    $meeting_ids = array_column($all_meetings, 'meeting_id');
+    $top_counts = [];
+    if (!empty($meeting_ids)) {
+        $placeholders = str_repeat('?,', count($meeting_ids) - 1) . '?';
+        $stmt_tops = $pdo->prepare("
+            SELECT meeting_id, COUNT(*) as top_count
+            FROM svagenda_items
+            WHERE meeting_id IN ($placeholders)
+            GROUP BY meeting_id
+        ");
+        $stmt_tops->execute($meeting_ids);
+        foreach ($stmt_tops->fetchAll() as $row) {
+            $top_counts[$row['meeting_id']] = $row['top_count'];
+        }
+    }
+    ?>
     <?php foreach ($all_meetings as $m):
         $status_class = 'meeting-card status-' . $m['status'];
         $is_creator = ($m['invited_by_member_id'] == $current_user['member_id']);
@@ -288,8 +275,6 @@ if (!empty($all_absences)):
                         Termin am <?php echo date('d.m.Y H:i', strtotime($m['meeting_date'])); ?>
                         <?php if (in_array($m['status'], ['ended', 'protocol_ready', 'archived']) && !empty($m['meeting_end_date'])): ?>
                             <br><small>Ende der Sitzung: <?php echo date('d.m.Y H:i', strtotime($m['meeting_end_date'])); ?></small>
-                        <?php elseif (!empty($m['expected_end_date'])): ?>
-                            <br><small>Voraussichtliches Ende: <?php echo date('d.m.Y H:i', strtotime($m['expected_end_date'])); ?></small>
                         <?php endif; ?>
                         <?php if ($m['status'] === 'preparation' && !empty($m['submission_deadline'])): ?>
                             <?php
@@ -312,6 +297,10 @@ if (!empty($all_absences)):
                         if (!empty($m['video_link']) && in_array($m['status'], ['preparation', 'active'])) {
                             echo '<br>🎥 <a href="' . htmlspecialchars($m['video_link']) . '" target="_blank" class="video-link">' . htmlspecialchars($m['video_link']) . '</a>';
                         }
+                        // TOP-Anzahl anzeigen
+                        $top_count = $top_counts[$m['meeting_id']] ?? 0;
+                        echo '<br>📋 TOPs: ' . $top_count;
+
                         if (in_array($m['status'], ['preparation', 'active'])) {
                             echo '<br>Eingeladen von: ' . htmlspecialchars($m['first_name'] . ' ' . $m['last_name']);
                         }
@@ -360,7 +349,7 @@ if (!empty($all_absences)):
                         <input type="hidden" name="meeting_id" value="<?php echo $m['meeting_id']; ?>">
                         
                         <div class="form-group">
-                            <label>Meeting-Name:</label>
+                            <label>Sitzungs-Name:</label>
                             <input type="text" name="meeting_name" value="<?php echo htmlspecialchars($m['meeting_name']); ?>" required>
                         </div>
                         
