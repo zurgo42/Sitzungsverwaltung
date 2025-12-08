@@ -168,14 +168,14 @@ if (defined('DEMO_MODE_ENABLED') && DEMO_MODE_ENABLED) {
 // Sie werden VOR der HTML-Ausgabe eingebunden
 // ============================================
 
-// PROCESS MEETINGS
-// Wird nur bei POST-Requests auf dem Meetings-Tab ausgeführt
+// PROCESS SITZUNGEN
+// Wird nur bei POST-Requests auf dem Sitzungen-Tab ausgeführt
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'meetings') {
     require_once 'process_meetings.php';
 }
 
 // PROCESS ABSENCES
-// Wird bei POST-Requests auf dem Meetings-Tab oder Vertretung-Tab für Abwesenheiten ausgeführt
+// Wird bei POST-Requests auf dem Sitzungen-Tab oder Vertretung-Tab für Abwesenheiten ausgeführt
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($active_tab === 'meetings' || $active_tab === 'vertretung')) {
     require_once 'process_absences.php';
 }
@@ -209,6 +209,19 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
 // Dies geschieht bereits in der Presentation-Datei (tab_admin.php)
 
 // ============================================
+// DISPLAY-MODUS ERKENNUNG
+// ============================================
+// Welcher Display-Modus ist aktiv?
+$display_mode = defined('DISPLAY_MODE_OVERRIDE') ? DISPLAY_MODE_OVERRIDE : (defined('DISPLAY_MODE') ? DISPLAY_MODE : 'standalone');
+
+// SSOdirekt-Config laden falls benötigt
+if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
+    $sso_config = $SSO_DIRECT_CONFIG;
+} else {
+    $sso_config = null;
+}
+
+// ============================================
 // HTML-AUSGABE BEGINNT HIER
 // ============================================
 ?>
@@ -217,24 +230,80 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sitzungsverwaltung</title>
+    <title><?php echo $sso_config ? $sso_config['page_title'] : 'Sitzungsverwaltung'; ?></title>
     <link rel="stylesheet" href="style.css">
+
+    <?php if ($sso_config): ?>
+    <!-- Custom Styling für SSOdirekt-Modus -->
+    <style>
+        :root {
+            --primary: <?php echo $sso_config['primary_color']; ?>;
+            --primary-dark: <?php echo $sso_config['border_color']; ?>;
+            --header-text: <?php echo $sso_config['header_text_color']; ?>;
+            --footer-text: <?php echo $sso_config['footer_text_color']; ?>;
+        }
+        .header {
+            background: var(--primary);
+            border-bottom: 3px solid var(--primary-dark);
+        }
+        .header h1,
+        .header .user-info,
+        .header .user-info span,
+        .header .user-info .logout-btn {
+            color: var(--header-text);
+        }
+        .page-footer {
+            background: var(--primary);
+            color: var(--footer-text);
+        }
+        .page-footer a {
+            color: var(--footer-text);
+        }
+    </style>
+    <?php endif; ?>
 </head>
 <body>
     <!-- HEADER mit Benutzerinfo -->
     <div class="header">
-        <h1>🏛️ Sitzungsverwaltung</h1>
-        <div class="user-info">
-            <!-- Benutzername anzeigen -->
-            <span><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?></span>
-            
-            <!-- Rollen-Badge anzeigen -->
-            <span class="role-badge role-<?php echo $current_user['role']; ?>">
-                <?php echo ucfirst($current_user['role']); ?>
-            </span>
-            
-            <!-- Logout-Button -->
-            <a href="?logout=1" class="logout-btn">Abmelden</a>
+        <div class="header-inner">
+            <?php if ($sso_config && !empty($sso_config['logo_path'])): ?>
+            <!-- Logo für SSOdirekt-Modus -->
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="<?php echo $sso_config['logo_path']; ?>"
+                     alt="Logo"
+                     style="height: <?php echo $sso_config['logo_height']; ?>;">
+                <h1 style="margin: 0;">Sitzungsverwaltung</h1>
+            </div>
+            <?php else: ?>
+            <h1>🏛️ Sitzungsverwaltung</h1>
+            <?php endif; ?>
+
+            <div class="user-info">
+                <!-- Benutzername anzeigen -->
+                <span><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?></span>
+
+                <!-- Rollen-Badge anzeigen (nur auf PC) -->
+                <span class="role-badge desktop-only role-<?php echo $current_user['role']; ?>">
+                    <?php echo ucfirst($current_user['role']); ?>
+                </span>
+
+                <?php if ($display_mode === 'SSOdirekt' && $sso_config): ?>
+                    <!-- Zurück-Button für SSOdirekt-Modus -->
+                    <a href="<?php echo $sso_config['back_button_url']; ?>" class="logout-btn">
+                        <?php echo $sso_config['back_button_text']; ?>
+                    </a>
+                <?php else: ?>
+                    <!-- Normaler Logout-Button -->
+                    <a href="?logout=1" class="logout-btn">Abmelden</a>
+                <?php endif; ?>
+
+                <!-- Hamburger-Menü (nur auf Mobile) -->
+                <div class="hamburger-menu mobile-only" id="hamburger-menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -247,12 +316,12 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             📆 Termine
         </a>
 
-        <!-- Meetings-Tab (immer sichtbar) -->
+        <!-- Sitzungen-Tab (immer sichtbar) -->
         <a href="?tab=meetings" class="<?php echo $active_tab === 'meetings' ? 'active' : ''; ?>">
-            🤝 Meetings
+            🤝 Sitzungen
         </a>
 
-        <!-- Agenda-Tab (nur sichtbar wenn ein Meeting ausgewählt ist) -->
+        <!-- Agenda-Tab (nur sichtbar wenn eine Sitzung ausgewählt ist) -->
         <?php if ($current_meeting_id): ?>
             <a href="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>"
                class="<?php echo $active_tab === 'agenda' ? 'active' : ''; ?>">
@@ -260,26 +329,48 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
             </a>
         <?php endif; ?>
 
-        <!-- Gemeinsame Texte-Tab (immer sichtbar) -->
+        <!-- Textbearbeitung-Tab (nur für Vorstand/GF/Assistenz oder aktive Sitzungsteilnehmer) -->
+        <?php
+        // Prüfen ob User Zugriff hat
+        $has_texte_access = in_array($current_user['role'], ['vorstand', 'gf', 'assistenz']);
+
+        // Oder ist User Teilnehmer einer aktiven Sitzung?
+        if (!$has_texte_access) {
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) as count
+                FROM svmeeting_participants mp
+                JOIN svmeetings m ON mp.meeting_id = m.meeting_id
+                WHERE mp.member_id = ? AND m.status = 'active'
+            ");
+            $stmt->execute([$current_user['member_id']]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $has_texte_access = ($result['count'] > 0);
+        }
+
+        if ($has_texte_access):
+        ?>
         <a href="?tab=texte"
            class="<?php echo $active_tab === 'texte' ? 'active' : ''; ?>">
-            📝 Gemeinsame Texte
+            ✍️ Textbearbeitung
         </a>
+        <?php endif; ?>
 
         <!-- Protokolle-Tab (immer sichtbar) -->
         <a href="?tab=protokolle" class="<?php echo $active_tab === 'protokolle' ? 'active' : ''; ?>">
             📋 Protokolle
         </a>
 
-        <!-- ToDos-Tab (immer sichtbar) -->
+        <!-- Erledigen-Tab (immer sichtbar) -->
         <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
-            ✅ Meine ToDos
+            ✅ Erledigen
         </a>
 
-        <!-- Vertretungen-Tab (immer sichtbar) -->
+        <!-- Vertretungen-Tab (nur für Leadership) -->
+        <?php if (in_array(strtolower($current_user['role']), ['vorstand', 'gf', 'assistenz', 'führungsteam'])): ?>
         <a href="?tab=vertretung" class="<?php echo $active_tab === 'vertretung' ? 'active' : ''; ?>">
             🏖️ Vertretungen
         </a>
+        <?php endif; ?>
 
         <!-- Meinungsbild-Tab (immer sichtbar) -->
         <a href="?tab=opinion" class="<?php echo $active_tab === 'opinion' ? 'active' : ''; ?>">
@@ -311,12 +402,12 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
          */
         switch ($active_tab) {
             case 'meetings':
-                // Meeting-Übersicht anzeigen
+                // Sitzungsübersicht anzeigen
                 include 'tab_meetings.php';
                 break;
-            
+
             case 'agenda':
-                // Tagesordnung eines Meetings anzeigen
+                // Tagesordnung einer Sitzung anzeigen
                 include 'tab_agenda.php';
                 break;
             
@@ -351,7 +442,7 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
                 break;
 
             case 'texte':
-                // Kollaborative Texte für Sitzungen anzeigen
+                // Textbearbeitung für Sitzungen anzeigen
                 include 'tab_texte.php';
                 break;
 
@@ -369,7 +460,7 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
                 break;
             
             default:
-                // Fallback: Bei unbekanntem Tab wird Meetings angezeigt
+                // Fallback: Bei unbekanntem Tab wird Sitzungen angezeigt
                 include 'tab_meetings.php';
         }
         ?>
@@ -444,11 +535,23 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
     }
     </script>
 
-    <!-- FOOTER -->
+    <!-- Externes JavaScript für Hamburger-Menü -->
+    <script src="script.js"></script>
+
+    <!-- FOOTER (abhängig vom Display-Modus) -->
+    <?php if ($display_mode !== 'iframe'): ?>
     <footer class="page-footer">
-        <?php echo FOOTER_COPYRIGHT; ?> |
-        <a href="<?php echo FOOTER_IMPRESSUM_URL; ?>" target="_blank">Impressum</a> |
-        <a href="<?php echo FOOTER_DATENSCHUTZ_URL; ?>" target="_blank">Datenschutz</a>
+        <?php if ($display_mode === 'SSOdirekt' && $sso_config): ?>
+            <!-- Custom Footer für SSOdirekt-Modus -->
+            <?php echo $sso_config['footer_html']; ?>
+        <?php else: ?>
+            <!-- Standard Footer -->
+            <?php echo FOOTER_COPYRIGHT; ?> |
+            <a href="<?php echo FOOTER_IMPRESSUM_URL; ?>" target="_blank">Impressum</a> |
+            <a href="<?php echo FOOTER_DATENSCHUTZ_URL; ?>" target="_blank">Datenschutz</a>
+        <?php endif; ?>
     </footer>
+    <?php endif; ?>
+    <!-- Footer wird im iframe-Modus nicht angezeigt -->
 </body>
 </html>

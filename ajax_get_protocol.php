@@ -1,6 +1,14 @@
 <?php
 /**
  * ajax_get_protocol.php - Protokoll-Updates für Live-Anzeige
+ *
+ * ⚠️ DEPRECATED: Diese Datei ist veraltet!
+ * ⚠️ Bitte verwenden Sie stattdessen: api/meeting_get_updates.php
+ * ⚠️ Diese Datei wird nur noch aus Kompatibilitätsgründen beibehalten.
+ *
+ * Migration erfolgt am: 03.12.2025
+ * Alte Architektur: Keine session_write_close(), Error-Suppression
+ * Neue Architektur: api/* mit Best Practices (Session-Management, HTTP Codes)
  */
 
 error_reporting(0);

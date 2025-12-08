@@ -217,11 +217,15 @@ if (isset($_GET['demo_email'])) {
                 </div>
                 <div class="feature-item">
                     <span class="icon">🤝</span>
-                    <span class="text"><strong>Meetings:</strong> Meeting-Planung mit Video-Links, Teilnehmerverwaltung, Status-Workflow (Vorbereitung → Aktiv → Beendet → Protokoll)</span>
+                    <span class="text"><strong>Sitzungen:</strong> Sitzungsplanung mit Video-Links, Teilnehmerverwaltung, Status-Workflow (Vorbereitung → Aktiv → Beendet → Protokoll)</span>
                 </div>
                 <div class="feature-item">
                     <span class="icon">📋</span>
                     <span class="text"><strong>Tagesordnung:</strong> TOPs mit Kategorien, Kommentare zur Vorbereitung, Live-Diskussion während Sitzung, Abstimmungsverwaltung</span>
+                </div>
+                <div class="feature-item">
+                    <span class="icon">✍️</span>
+                    <span class="text"><strong>Textbearbeitung:</strong> Gemeinsames Erstellen von Texten (Pressemitteilungen, Stellungnahmen), absatzweise Bearbeitung mit Lock-System, Online-User-Anzeige, Versionierung</span>
                 </div>
                 <div class="feature-item">
                     <span class="icon">📄</span>
@@ -229,7 +233,7 @@ if (isset($_GET['demo_email'])) {
                 </div>
                 <div class="feature-item">
                     <span class="icon">✅</span>
-                    <span class="text"><strong>Meine ToDos:</strong> Persönliche Aufgabenliste mit Fälligkeiten, Prioritäten, Benachrichtigungen, Kalender-Export (.ics)</span>
+                    <span class="text"><strong>Erledigen:</strong> Persönliche Aufgabenliste mit Fälligkeiten, Prioritäten, Benachrichtigungen, Kalender-Export (.ics)</span>
                 </div>
                 <div class="feature-item">
                     <span class="icon">🏖️</span>

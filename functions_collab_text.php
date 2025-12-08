@@ -7,11 +7,11 @@
  */
 
 /**
- * Erstellt einen neuen kollaborativen Text für eine Sitzung
+ * Erstellt einen neuen kollaborativen Text für eine Sitzung oder allgemein
  *
  * @param PDO $pdo Datenbankverbindung
- * @param int $meeting_id ID der Sitzung
- * @param int $initiator_member_id ID des Protokollanten
+ * @param int|null $meeting_id ID der Sitzung (NULL = allgemeiner Text)
+ * @param int $initiator_member_id ID des Erstellers
  * @param string $title Titel des Textes
  * @param string $initial_content Optional: Initialer Text-Inhalt
  * @return int|false text_id bei Erfolg, false bei Fehler
@@ -28,13 +28,27 @@ function createCollabText($pdo, $meeting_id, $initiator_member_id, $title, $init
         $stmt->execute([$meeting_id, $initiator_member_id, $title]);
         $text_id = $pdo->lastInsertId();
 
-        // Ersten Absatz erstellen (falls initial content vorhanden)
+        // Initial content in Absätze aufteilen (bei 1+ Leerzeilen)
         if (!empty(trim($initial_content))) {
+            // Split bei 1+ Leerzeilen (leere Zeilen ohne Text)
+            $paragraphs = preg_split('/\n\s*\n+/', $initial_content);
+            $paragraphs = array_map('trim', $paragraphs);
+            $paragraphs = array_filter($paragraphs); // Leere entfernen
+
+            if (empty($paragraphs)) {
+                $paragraphs = [$initial_content];
+            }
+
             $stmt = $pdo->prepare("
                 INSERT INTO svcollab_text_paragraphs (text_id, paragraph_order, content, last_edited_by, last_edited_at)
-                VALUES (?, 1, ?, ?, NOW())
+                VALUES (?, ?, ?, ?, NOW())
             ");
-            $stmt->execute([$text_id, $initial_content, $initiator_member_id]);
+
+            $order = 1;
+            foreach ($paragraphs as $para_content) {
+                $stmt->execute([$text_id, $order, $para_content, $initiator_member_id]);
+                $order++;
+            }
         } else {
             // Leeren ersten Absatz erstellen
             $stmt = $pdo->prepare("
@@ -44,14 +58,26 @@ function createCollabText($pdo, $meeting_id, $initiator_member_id, $title, $init
             $stmt->execute([$text_id]);
         }
 
-        // Alle Sitzungs-Teilnehmer als Participants hinzufügen
-        $stmt = $pdo->prepare("
-            INSERT INTO svcollab_text_participants (text_id, member_id, last_seen)
-            SELECT ?, member_id, NOW()
-            FROM svmeeting_participants
-            WHERE meeting_id = ? AND status IN ('present', 'confirmed')
-        ");
-        $stmt->execute([$text_id, $meeting_id]);
+        // Teilnehmer hinzufügen
+        if ($meeting_id !== null) {
+            // MEETING-MODUS: Alle Sitzungs-Teilnehmer als Participants hinzufügen
+            $stmt = $pdo->prepare("
+                INSERT INTO svcollab_text_participants (text_id, member_id, last_seen)
+                SELECT ?, member_id, NOW()
+                FROM svmeeting_participants
+                WHERE meeting_id = ? AND status IN ('present', 'confirmed')
+            ");
+            $stmt->execute([$text_id, $meeting_id]);
+        } else {
+            // ALLGEMEIN-MODUS: Alle Vorstand, GF, Assistenz als Participants
+            $stmt = $pdo->prepare("
+                INSERT INTO svcollab_text_participants (text_id, member_id, last_seen)
+                SELECT ?, member_id, NOW()
+                FROM svmembers
+                WHERE role IN ('vorstand', 'gf', 'assistenz')
+            ");
+            $stmt->execute([$text_id]);
+        }
 
         // Erste Version speichern
         $stmt = $pdo->prepare("
@@ -64,7 +90,9 @@ function createCollabText($pdo, $meeting_id, $initiator_member_id, $title, $init
         return $text_id;
 
     } catch (PDOException $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         error_log("createCollabText Error: " . $e->getMessage());
         return false;
     }
@@ -87,7 +115,7 @@ function getCollabText($pdo, $text_id) {
                    mt.meeting_name
             FROM svcollab_texts t
             JOIN svmembers m ON t.initiator_member_id = m.member_id
-            JOIN svmeetings mt ON t.meeting_id = mt.meeting_id
+            LEFT JOIN svmeetings mt ON t.meeting_id = mt.meeting_id
             WHERE t.text_id = ?
         ");
         $stmt->execute([$text_id]);
@@ -97,7 +125,7 @@ function getCollabText($pdo, $text_id) {
             return false;
         }
 
-        // Absätze laden
+        // Absätze laden (nur aktive Locks berücksichtigen - nicht älter als 2 Minuten)
         $stmt = $pdo->prepare("
             SELECT p.*,
                    m.first_name as editor_first_name,
@@ -108,6 +136,7 @@ function getCollabText($pdo, $text_id) {
             FROM svcollab_text_paragraphs p
             LEFT JOIN svmembers m ON p.last_edited_by = m.member_id
             LEFT JOIN svcollab_text_locks l ON p.paragraph_id = l.paragraph_id
+                AND l.last_activity > DATE_SUB(NOW(), INTERVAL 2 MINUTE)
             LEFT JOIN svmembers lm ON l.member_id = lm.member_id
             WHERE p.text_id = ?
             ORDER BY p.paragraph_order ASC
@@ -222,6 +251,9 @@ function saveParagraph($pdo, $paragraph_id, $member_id, $content) {
         if (!$lock || $lock['member_id'] != $member_id) {
             return false; // Kein Lock oder nicht der Besitzer
         }
+
+        // Content trimmen (führende/nachfolgende Whitespace entfernen)
+        $content = trim($content);
 
         // Absatz aktualisieren
         $stmt = $pdo->prepare("
@@ -382,7 +414,7 @@ function getOnlineParticipants($pdo, $text_id) {
             FROM svcollab_text_participants p
             JOIN svmembers m ON p.member_id = m.member_id
             WHERE p.text_id = ?
-              AND p.last_seen > DATE_SUB(NOW(), INTERVAL 30 SECOND)
+              AND p.last_seen > DATE_SUB(NOW(), INTERVAL 60 SECOND)
             ORDER BY m.first_name, m.last_name
         ");
         $stmt->execute([$text_id]);
@@ -415,7 +447,9 @@ function createTextVersion($pdo, $text_id, $member_id, $note = '') {
         $stmt->execute([$text_id]);
         $paragraphs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $full_content = implode("\n\n", array_column($paragraphs, 'content'));
+        // Jeden Absatz trimmen (Whitespace entfernen) und dann verbinden
+        $contents = array_map('trim', array_column($paragraphs, 'content'));
+        $full_content = implode("\n\n", $contents);
 
         // Höchste Versionsnummer ermitteln
         $stmt = $pdo->prepare("
@@ -576,7 +610,7 @@ function getCollabTextsByMeeting($pdo, $meeting_id) {
 }
 
 /**
- * Prüft ob ein User Zugriff auf einen Text hat (ist Teilnehmer der Sitzung)
+ * Prüft ob ein User Zugriff auf einen Text hat (ist Teilnehmer der Sitzung oder berechtigt für allgemeine Texte)
  *
  * @param PDO $pdo
  * @param int $text_id
@@ -585,15 +619,32 @@ function getCollabTextsByMeeting($pdo, $meeting_id) {
  */
 function hasCollabTextAccess($pdo, $text_id, $member_id) {
     try {
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) as has_access
-            FROM svcollab_texts t
-            JOIN svmeeting_participants mp ON t.meeting_id = mp.meeting_id
-            WHERE t.text_id = ? AND mp.member_id = ?
-        ");
-        $stmt->execute([$text_id, $member_id]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['has_access'] > 0;
+        // Text-Info holen
+        $stmt = $pdo->prepare("SELECT meeting_id FROM svcollab_texts WHERE text_id = ?");
+        $stmt->execute([$text_id]);
+        $text = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$text) {
+            return false;
+        }
+
+        if ($text['meeting_id'] !== null) {
+            // MEETING-MODUS: Prüfen ob Teilnehmer der Sitzung
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) as has_access
+                FROM svmeeting_participants
+                WHERE meeting_id = ? AND member_id = ?
+            ");
+            $stmt->execute([$text['meeting_id'], $member_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['has_access'] > 0;
+        } else {
+            // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz
+            $stmt = $pdo->prepare("SELECT role FROM svmembers WHERE member_id = ?");
+            $stmt->execute([$member_id]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $user && in_array($user['role'], ['vorstand', 'gf', 'assistenz']);
+        }
 
     } catch (PDOException $e) {
         error_log("hasCollabTextAccess Error: " . $e->getMessage());

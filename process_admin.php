@@ -690,6 +690,66 @@ if (isset($_POST['delete_todo'])) {
 }
 
 // ============================================
+// TEXTBEARBEITUNG-VERWALTUNG
+// ============================================
+
+/**
+ * Kollaborativen Text löschen (Admin)
+ *
+ * POST-Parameter:
+ * - delete_collab_text: 1
+ * - delete_collab_text_id: Int (required)
+ *
+ * Aktion:
+ * - Text und alle zugehörigen Daten löschen (CASCADE)
+ * - Admin-Aktion protokollieren
+ */
+if (isset($_POST['delete_collab_text'])) {
+    $text_id = intval($_POST['delete_collab_text_id'] ?? 0);
+
+    if ($text_id > 0) {
+        try {
+            // Text-Infos holen (für Protokoll)
+            $stmt = $pdo->prepare("
+                SELECT t.title, t.meeting_id,
+                       m.first_name as initiator_first_name,
+                       m.last_name as initiator_last_name
+                FROM svcollab_texts t
+                JOIN svmembers m ON t.initiator_member_id = m.member_id
+                WHERE t.text_id = ?
+            ");
+            $stmt->execute([$text_id]);
+            $text_info = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($text_info) {
+                // Text löschen (CASCADE löscht alle zugehörigen Daten)
+                $stmt = $pdo->prepare("DELETE FROM svcollab_texts WHERE text_id = ?");
+                $stmt->execute([$text_id]);
+
+                // Admin-Aktion protokollieren
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'collab_text_delete',
+                    "Kollaborativer Text gelöscht: {$text_info['title']} (ID: {$text_id})",
+                    'collab_text',
+                    $text_id,
+                    $text_info,
+                    null
+                );
+
+                $success_message = "✅ Text \"{$text_info['title']}\" erfolgreich gelöscht!";
+            } else {
+                $error_message = "❌ Text nicht gefunden!";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Text-Löschen: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Löschen: " . $e->getMessage();
+        }
+    }
+}
+
+// ============================================
 // 4. DATEN LADEN
 // ============================================
 
@@ -748,5 +808,17 @@ $stats = [
     'ended' => count(array_filter($meetings, fn($m) => $m['status'] === 'ended')),
     'archived' => count(array_filter($meetings, fn($m) => $m['status'] === 'archived'))
 ];
+
+// Alle kollaborativen Texte laden (Meeting-spezifisch UND allgemein)
+$all_collab_texts = $pdo->query("
+    SELECT t.*,
+        m.first_name as initiator_first_name,
+        m.last_name as initiator_last_name,
+        mt.meeting_name
+    FROM svcollab_texts t
+    JOIN svmembers m ON t.initiator_member_id = m.member_id
+    LEFT JOIN svmeetings mt ON t.meeting_id = mt.meeting_id
+    ORDER BY t.created_at DESC
+")->fetchAll(PDO::FETCH_ASSOC);
 
 ?>

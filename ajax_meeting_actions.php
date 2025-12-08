@@ -1,7 +1,14 @@
 <?php
 /**
  * ajax_meeting_actions.php - Ultra-robuste Version
- * Verhindert JEDE HTML-Ausgabe vor JSON
+ *
+ * ⚠️ DEPRECATED: Diese Datei ist veraltet!
+ * ⚠️ Bitte verwenden Sie stattdessen: api/meeting_actions.php
+ * ⚠️ Diese Datei wird nur noch aus Kompatibilitätsgründen beibehalten.
+ *
+ * Migration erfolgt am: 03.12.2025
+ * Alte Architektur: Keine session_write_close(), Error-Suppression
+ * Neue Architektur: api/* mit Best Practices (Session-Management, HTTP Codes)
  */
 
 // SCHRITT 1: Alle Fehler unterdrücken BEVOR irgendwas geladen wird

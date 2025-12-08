@@ -3,6 +3,9 @@
  * tab_vertretung.php - Abwesenheits- und Vertretungsverwaltung
  */
 
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
+
 // Alle Mitglieder laden (falls noch nicht geladen)
 if (!isset($all_members)) {
     $all_members = get_all_members($pdo);
@@ -36,6 +39,9 @@ $my_absences = $stmt_my_absences->fetchAll();
 ?>
 
 <h2>🏖️ Vertretungen & Abwesenheiten</h2>
+
+<!-- BENACHRICHTIGUNGEN -->
+<?php render_user_notifications($pdo, $current_user['member_id']); ?>
 
 <?php if (isset($_GET['msg']) && $_GET['msg'] === 'absence_added'): ?>
     <div class="message">✅ Abwesenheit erfolgreich eingetragen!</div>
@@ -254,6 +260,10 @@ $my_absences = $stmt_my_absences->fetchAll();
                         </td>
                         <td style="padding: 10px;">
                             <?php if (!$is_past): ?>
+                                <button onclick="editAbsence(<?php echo $abs['absence_id']; ?>, '<?php echo $abs['start_date']; ?>', '<?php echo $abs['end_date']; ?>', <?php echo $abs['substitute_member_id'] ?: 'null'; ?>, '<?php echo addslashes($abs['reason'] ?? ''); ?>')"
+                                        style="background: #2196f3; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-right: 5px;">
+                                    ✏️ Bearbeiten
+                                </button>
                                 <form method="POST" style="display: inline;" onsubmit="return confirm('Abwesenheit wirklich löschen?');">
                                     <input type="hidden" name="delete_absence" value="1">
                                     <input type="hidden" name="absence_id" value="<?php echo $abs['absence_id']; ?>">
@@ -341,3 +351,73 @@ $my_absences = $stmt_my_absences->fetchAll();
         </style>
     <?php endif; ?>
 </div>
+
+<!-- Edit Modal -->
+<div id="editAbsenceModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%;">
+        <h3 style="margin-top: 0;">✏️ Abwesenheit bearbeiten</h3>
+        <form method="POST" action="?tab=vertretung">
+            <input type="hidden" name="edit_absence" value="1">
+            <input type="hidden" name="absence_id" id="edit_absence_id">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Von:</label>
+                    <input type="date" name="start_date" id="edit_start_date" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Bis:</label>
+                    <input type="date" name="end_date" id="edit_end_date" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Vertretung:</label>
+                <select name="substitute_member_id" id="edit_substitute" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">– Keine Vertretung –</option>
+                    <?php foreach ($available_members as $mem): ?>
+                        <option value="<?php echo $mem['member_id']; ?>">
+                            <?php echo htmlspecialchars($mem['first_name'] . ' ' . $mem['last_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Grund:</label>
+                <input type="text" name="reason" id="edit_reason" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeEditModal()" style="background: #999; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                    Abbrechen
+                </button>
+                <button type="submit" style="background: #2196f3; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                    Speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function editAbsence(absenceId, startDate, endDate, substituteId, reason) {
+    document.getElementById('edit_absence_id').value = absenceId;
+    document.getElementById('edit_start_date').value = startDate;
+    document.getElementById('edit_end_date').value = endDate;
+    document.getElementById('edit_substitute').value = substituteId || '';
+    document.getElementById('edit_reason').value = reason || '';
+    document.getElementById('editAbsenceModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('editAbsenceModal').style.display = 'none';
+}
+
+// Close modal on background click
+document.getElementById('editAbsenceModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeEditModal();
+    }
+});
+</script>

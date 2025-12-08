@@ -1,9 +1,17 @@
 <?php
 /**
  * AJAX-Endpoint: Kommentare eines TOPs abrufen
+ *
+ * âš ï¸ DEPRECATED: Diese Datei ist veraltet!
+ * âš ï¸ Bitte verwenden Sie stattdessen: api/meeting_get_updates.php
+ * âš ï¸ Diese Datei wird nur noch aus KompatibilitÃ¤tsgrÃ¼nden beibehalten.
+ *
+ * Migration erfolgt am: 03.12.2025
+ * Alte Architektur: Keine session_write_close(), Error-Suppression
+ * Neue Architektur: api/* mit Best Practices (Session-Management, HTTP Codes)
  */
 
-// Error Reporting aktivieren für Debugging
+// Error Reporting aktivieren fï¿½r Debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 0); // Nicht direkt ausgeben, sondern als JSON
 
@@ -35,13 +43,13 @@ try {
     
     header('Content-Type: application/json');
     
-    // Prüfen ob User eingeloggt ist
+    // Prï¿½fen ob User eingeloggt ist
     if (!isset($_SESSION['member_id'])) {
         echo json_encode(['success' => false, 'error' => 'Nicht eingeloggt']);
         exit;
     }
     
-    // Item ID prüfen
+    // Item ID prï¿½fen
     if (!isset($_GET['item_id'])) {
         echo json_encode(['success' => false, 'error' => 'Keine Item-ID angegeben']);
         exit;
@@ -68,7 +76,7 @@ try {
     $stmt->execute([$item_id]);
     $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Alle vorherigen Ausgaben löschen
+    // Alle vorherigen Ausgaben lï¿½schen
     ob_clean();
     
     echo json_encode([
@@ -77,7 +85,7 @@ try {
     ]);
     
 } catch (Exception $e) {
-    // Alle vorherigen Ausgaben löschen
+    // Alle vorherigen Ausgaben lï¿½schen
     ob_clean();
     
     // Fehler als JSON ausgeben

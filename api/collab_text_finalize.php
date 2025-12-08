@@ -5,6 +5,7 @@
  */
 session_start();
 require_once('../config.php');
+require_once('db_connection.php');
 require_once('../functions_collab_text.php');
 
 header('Content-Type: application/json');
@@ -14,6 +15,10 @@ if (!isset($_SESSION['member_id'])) {
     echo json_encode(['error' => 'Not authenticated']);
     exit;
 }
+
+// Session-Daten gelesen → Session sofort schließen für parallele Requests
+$member_id = $_SESSION['member_id'];
+session_write_close();
 
 $data = json_decode(file_get_contents('php://input'), true);
 $text_id = isset($data['text_id']) ? (int)$data['text_id'] : 0;
@@ -25,7 +30,7 @@ if ($text_id <= 0 || empty($final_name)) {
     exit;
 }
 
-$success = finalizeCollabText($pdo, $text_id, $_SESSION['member_id'], $final_name);
+$success = finalizeCollabText($pdo, $text_id, $member_id, $final_name);
 
 if ($success) {
     // Alle Absätze zu einem Text zusammenfügen für Response

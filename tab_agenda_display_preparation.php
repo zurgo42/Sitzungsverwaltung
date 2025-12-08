@@ -461,35 +461,33 @@ foreach ($agenda_items as $item):
             </form>
         </details>
         <?php endif; ?>
-        
-        <!-- Kommentare -->
+
+        <!-- Kommentare (nur anzeigen wenn vorhanden) -->
+        <?php if (!empty($comments)): ?>
         <div style="margin-top: 15px;">
             <strong style="display: block; margin-bottom: 10px; color: #333;">💬 Kommentare & Diskussion:</strong>
 
             <!-- Bestehende Kommentare anzeigen -->
-            <?php if (!empty($comments)): ?>
-                <div style="margin-bottom: 15px; background: white; border: 1px solid #ddd; border-radius: 5px; padding: 8px;">
-                    <?php foreach ($comments as $comment): ?>
-                        <?php render_comment_line($comment, 'full'); ?>
-                    <?php endforeach; ?>
-                </div>
-            <?php else: ?>
-                <p style="color: #999; font-style: italic; margin-bottom: 15px;">Noch keine Kommentare vorhanden.</p>
-            <?php endif; ?>
-            
+            <div style="margin-bottom: 15px; background: white; border: 1px solid #ddd; border-radius: 5px; padding: 8px;">
+                <?php foreach ($comments as $comment): ?>
+                    <?php render_comment_line($comment, 'full'); ?>
+                <?php endforeach; ?>
+            </div>
+
             <!-- Kommentar hinzufügen -->
             <form method="POST" action="" style="margin-top: 10px;">
                 <input type="hidden" name="add_comment_preparation" value="1">
                 <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
-                
-                <textarea name="comment" rows="3" placeholder="Ihr Kommentar zu diesem TOP..." 
+
+                <textarea name="comment" rows="3" placeholder="Ihr Kommentar zu diesem TOP..."
                           style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px;"></textarea>
-                
+
                 <button type="submit" style="background: #2c5aa0; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">
                     💬 Kommentar hinzufügen
                 </button>
             </form>
         </div>
+        <?php endif; ?>
         
     </div>
 <?php endforeach; ?>
