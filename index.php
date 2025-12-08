@@ -148,6 +148,13 @@ if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
 // Nutzt Wrapper-Funktion (funktioniert mit members ODER berechtigte)
 $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
 
+// Sicherheitscheck: Wenn User nicht gefunden wurde, Session beenden
+if (!$current_user) {
+    session_destroy();
+    header('Location: index.php');
+    exit;
+}
+
 // Aktiven Tab aus URL ermitteln (Standard: 'meetings')
 $active_tab = $_GET['tab'] ?? 'meetings';
 
