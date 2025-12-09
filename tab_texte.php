@@ -608,11 +608,29 @@ if ($view === 'editor') {
     document.addEventListener('DOMContentLoaded', function() {
         startPolling();
         startHeartbeat();
+
+        // Page Visibility API: Polling pausieren wenn Tab nicht sichtbar (Performance-Optimierung)
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                // Tab nicht sichtbar - Polling stoppen
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                }
+            } else {
+                // Tab wieder sichtbar - Polling neu starten
+                if (!pollingInterval) {
+                    startPolling();
+                    fetchUpdates(); // Sofort Updates holen
+                }
+            }
+        });
     });
 
-    // Polling alle 1,5 Sekunden
+    // Polling für Echtzeit-Updates
     function startPolling() {
-        pollingInterval = setInterval(fetchUpdates, 1500);
+        // Polling alle 5 Sekunden für bessere Performance (XAMPP-optimiert)
+        pollingInterval = setInterval(fetchUpdates, 5000);
     }
 
     function fetchUpdates() {
