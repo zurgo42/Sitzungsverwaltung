@@ -118,12 +118,12 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
             // Antragstext bei Antrag/Beschluss
             if ($item['category'] === 'antrag_beschluss' && !empty($item['proposal_text'])) {
                 $protokoll_intern .= '&lt;em&gt;Antragstext: ' .
-                                   htmlspecialchars($item['proposal_text']) . '&lt;/em&gt;&lt;br&gt;';
+                                   nl2br(htmlspecialchars($item['proposal_text'])) . '&lt;/em&gt;&lt;br&gt;';
             }
 
             // Protokolltext oder Hinweis
             if (!empty($item['protocol_notes'])) {
-                $protokoll_intern .= htmlspecialchars($item['protocol_notes']);
+                $protokoll_intern .= nl2br(htmlspecialchars($item['protocol_notes']));
             } else {
                 $protokoll_intern .= '&lt;em style=&quot;color: #999;&quot;&gt;(noch kein Protokoll)&lt;/em&gt;';
             }
@@ -150,12 +150,12 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
             // Antragstext bei Antrag/Beschluss
             if ($item['category'] === 'antrag_beschluss' && !empty($item['proposal_text'])) {
                 $protokoll .= '&lt;em&gt;Antragstext: ' .
-                             htmlspecialchars($item['proposal_text']) . '&lt;/em&gt;&lt;br&gt;';
+                             nl2br(htmlspecialchars($item['proposal_text'])) . '&lt;/em&gt;&lt;br&gt;';
             }
 
             // Protokolltext oder Hinweis
             if (!empty($item['protocol_notes'])) {
-                $protokoll .= htmlspecialchars($item['protocol_notes']);
+                $protokoll .= nl2br(htmlspecialchars($item['protocol_notes']));
             } else {
                 $protokoll .= '&lt;em style=&quot;color: #999;&quot;&gt;(noch kein Protokoll)&lt;/em&gt;';
             }

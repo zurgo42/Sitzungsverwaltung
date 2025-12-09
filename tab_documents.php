@@ -354,13 +354,6 @@ if ($view === 'list') {
                                                         🔗 Öffnen
                                                     </a>
                                                 <?php endif; ?>
-
-                                                <!-- Bearbeiten-Button (nur für Admins) -->
-                                                <?php if ($is_admin): ?>
-                                                    <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn-secondary">
-                                                        ✏️ Bearbeiten
-                                                    </a>
-                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>

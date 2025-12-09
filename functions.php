@@ -550,7 +550,7 @@ function get_visible_meetings($pdo, $member_id) {
                 FROM svmeetings m
                 LEFT JOIN svmembers mem ON m.invited_by_member_id = mem.member_id
                 WHERE m.visibility_type = 'public'
-                ORDER BY FIELD(status, 'active', 'protocol_ready', 'preparation', 'ended', 'archived'), meeting_date DESC
+                ORDER BY FIELD(status, 'active', 'protocol_ready', 'ended', 'preparation', 'archived'), meeting_date ASC
             ");
             return $stmt->fetchAll();
         } else {
@@ -565,7 +565,7 @@ function get_visible_meetings($pdo, $member_id) {
                 LEFT JOIN svmeeting_participants mp ON m.meeting_id = mp.meeting_id AND mp.member_id = ?
                 WHERE m.visibility_type = 'authenticated'
                    OR ((m.visibility_type = 'public' OR m.visibility_type = 'invited_only') AND mp.member_id IS NOT NULL)
-                ORDER BY FIELD(m.status, 'active', 'protocol_ready', 'preparation', 'ended', 'archived'), m.meeting_date DESC
+                ORDER BY FIELD(m.status, 'active', 'protocol_ready', 'ended', 'preparation', 'archived'), m.meeting_date ASC
             ");
             $stmt->execute([$member_id]);
             return $stmt->fetchAll();
