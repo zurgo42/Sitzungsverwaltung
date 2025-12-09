@@ -48,7 +48,9 @@ if ($is_meeting_mode) {
     }
 } else {
     // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz
-    if (in_array($current_user['role'], ['vorstand', 'gf', 'assistenz'])) {
+    // Case-insensitive Rollenprüfung (funktioniert mit members und berechtigte)
+    $user_role_lower = strtolower($current_user['role']);
+    if (in_array($user_role_lower, ['vorstand', 'gf', 'geschäftsführung', 'assistenz'])) {
         $has_access = true;
         $is_initiator_role = true; // Alle dürfen Texte erstellen
         $context_description = 'Allgemeine Texte (Vorstand/GF/Assistenz)';

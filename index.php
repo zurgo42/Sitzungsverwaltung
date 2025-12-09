@@ -372,10 +372,10 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
             ✅ Erledigen
         </a>
 
-        <!-- Vertretungen-Tab (nur für Leadership) -->
+        <!-- Abwesenheiten-Tab (nur für Leadership) -->
         <?php if (in_array(strtolower($current_user['role']), ['vorstand', 'gf', 'assistenz', 'führungsteam'])): ?>
         <a href="?tab=vertretung" class="<?php echo $active_tab === 'vertretung' ? 'active' : ''; ?>">
-            🏖️ Vertretungen
+            🏖️ Abwesenheiten
         </a>
         <?php endif; ?>
 
@@ -384,10 +384,12 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
             📊 Meinungsbild
         </a>
 
-        <!-- Dokumente-Tab (immer sichtbar) -->
+        <!-- Dokumente-Tab (optional, siehe config.php) -->
+        <?php if (defined('ENABLE_DOCUMENTS_TAB') && ENABLE_DOCUMENTS_TAB): ?>
         <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
             📁 Dokumente
         </a>
+        <?php endif; ?>
 
         <!-- Admin-Tab (nur für Vorstand und GF sichtbar) -->
         <?php //if (in_array($current_user['role'], ['vorstand', 'gf'])):
