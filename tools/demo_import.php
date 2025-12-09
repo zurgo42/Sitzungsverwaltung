@@ -333,8 +333,8 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 $pdo->exec("ALTER TABLE $table AUTO_INCREMENT = 1");
             }
 
-            // Foreign Key Checks wieder aktivieren
-            $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+            // Foreign Key Checks bleiben während des Imports deaktiviert!
+            // (werden am Ende wieder aktiviert)
 
             echo '</div>';
 
@@ -587,7 +587,12 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             echo '<p><a href="../index.php" class="btn">➡️ Zur Anwendung</a></p>';
             echo '</div>';
 
+            // Foreign Key Checks wieder aktivieren (am Ende des Imports)
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+
         } catch (Exception $e) {
+            // Im Fehlerfall auch Foreign Keys wieder aktivieren
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
             $pdo->rollBack();
 
             echo '<div class="error">';
