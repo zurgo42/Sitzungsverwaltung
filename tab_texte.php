@@ -509,9 +509,12 @@ if ($view === 'editor') {
 
         <!-- Absätze -->
         <div id="paragraphsContainer">
-            <?php foreach ($text['paragraphs'] as $para): ?>
-                <?php renderParagraph($para, $current_user['member_id']); ?>
-            <?php endforeach; ?>
+            <?php
+            $total_paragraphs = count($text['paragraphs']);
+            foreach ($text['paragraphs'] as $index => $para):
+                renderParagraph($para, $current_user['member_id'], $index + 1, $total_paragraphs);
+            endforeach;
+            ?>
         </div>
 
         <?php if (empty($text['paragraphs'])): ?>
@@ -807,8 +810,8 @@ if ($view === 'editor') {
                 timerEl.textContent = '⏱️ ' + timeString;
             }
 
-            // Bei 0: Auto-Speichern und Freigeben
-            if (lockTimeRemaining <= 0) {
+            // Bei 1 Sekunde: Auto-Speichern (bevor Lock abläuft)
+            if (lockTimeRemaining === 1) {
                 clearInterval(lockTimerInterval);
                 lockTimerInterval = null;
 
@@ -1438,9 +1441,11 @@ echo '<div class="alert alert-warning">Unbekannte Ansicht.</div>';
 /**
  * Hilfsfunktion: Rendert einen einzelnen Absatz
  */
-function renderParagraph($para, $current_member_id) {
+function renderParagraph($para, $current_member_id, $current_position = 1, $total_count = 1) {
     $is_locked = ($para['locked_by_member_id'] && $para['locked_by_member_id'] != $current_member_id);
     $is_own_lock = ($para['locked_by_member_id'] == $current_member_id);
+    $is_first = ($current_position === 1);
+    $is_last = ($current_position === $total_count);
     ?>
     <div class="paragraph-container <?php echo $is_locked ? 'locked' : ''; ?>"
          data-paragraph-id="<?php echo $para['paragraph_id']; ?>"
@@ -1474,10 +1479,10 @@ function renderParagraph($para, $current_member_id) {
                 <button onclick="editParagraph(<?php echo $para['paragraph_id']; ?>)" class="btn-primary">
                     ✏️ Bearbeiten
                 </button>
-                <button onclick="swapParagraph(<?php echo $para['paragraph_id']; ?>, 'up')" class="btn-secondary" title="Nach oben">
+                <button onclick="swapParagraph(<?php echo $para['paragraph_id']; ?>, 'up')" class="btn-secondary" title="Nach oben" <?php echo $is_first ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''; ?>>
                     ↑
                 </button>
-                <button onclick="swapParagraph(<?php echo $para['paragraph_id']; ?>, 'down')" class="btn-secondary" title="Nach unten">
+                <button onclick="swapParagraph(<?php echo $para['paragraph_id']; ?>, 'down')" class="btn-secondary" title="Nach unten" <?php echo $is_last ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''; ?>>
                     ↓
                 </button>
                 <button onclick="deleteParagraph(<?php echo $para['paragraph_id']; ?>)" class="btn-danger" style="margin-left: 10px;">

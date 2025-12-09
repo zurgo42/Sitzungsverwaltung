@@ -5,8 +5,9 @@
  */
 
 session_start();
-require_once __DIR__ . '/../db.php';
-require_once __DIR__ . '/../functions_collab_text.php';
+require_once('../config.php');
+require_once('db_connection.php');
+require_once('../functions_collab_text.php');
 
 header('Content-Type: application/json');
 
