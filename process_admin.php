@@ -304,6 +304,7 @@ if (isset($_POST['add_member'])) {
     $first_name = trim($_POST['first_name'] ?? '');
     $last_name = trim($_POST['last_name'] ?? '');
     $email = trim($_POST['email'] ?? '');
+    $membership_number = trim($_POST['membership_number'] ?? '');
     $role = $_POST['role'] ?? '';
     $is_admin = isset($_POST['is_admin']) ? 1 : 0;
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
@@ -318,7 +319,7 @@ if (isset($_POST['add_member'])) {
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
             // Mitglied einfügen (über Wrapper-Funktion)
-            $new_member_id = create_member($pdo, [
+            $data = [
                 'first_name' => $first_name,
                 'last_name' => $last_name,
                 'email' => $email,
@@ -326,7 +327,11 @@ if (isset($_POST['add_member'])) {
                 'is_admin' => $is_admin,
                 'is_confidential' => $is_confidential,
                 'password_hash' => $password_hash
-            ]);
+            ];
+            if ($membership_number !== '') {
+                $data['membership_number'] = $membership_number;
+            }
+            $new_member_id = create_member($pdo, $data);
 
             // Admin-Log
             log_admin_action(
@@ -378,6 +383,7 @@ if (isset($_POST['edit_member'])) {
     $first_name = trim($_POST['first_name'] ?? '');
     $last_name = trim($_POST['last_name'] ?? '');
     $email = trim($_POST['email'] ?? '');
+    $membership_number = trim($_POST['membership_number'] ?? '');
     $role = $_POST['role'] ?? '';
     $is_admin = isset($_POST['is_admin']) ? 1 : 0;
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
@@ -394,14 +400,16 @@ if (isset($_POST['edit_member'])) {
                 $error_message = "Mitglied nicht gefunden.";
             } else {
                 // Mitglied aktualisieren (über Wrapper-Funktion)
-                update_member($pdo, $member_id, [
+                $update_data = [
                     'first_name' => $first_name,
                     'last_name' => $last_name,
                     'email' => $email,
+                    'membership_number' => $membership_number,
                     'role' => $role,
                     'is_admin' => $is_admin,
                     'is_confidential' => $is_confidential
-                ]);
+                ];
+                update_member($pdo, $member_id, $update_data);
                 
                 // Passwort ändern falls angegeben
                 $password_changed = false;
