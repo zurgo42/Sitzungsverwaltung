@@ -181,15 +181,16 @@ function render_user_notifications($pdo, $member_id) {
             $date_time = '<strong>' . date('d.m. H:i', strtotime($item['date_time'])) . ':</strong>';
 
             // Titel auf max 25 Zeichen kürzen
-            $title = htmlspecialchars($item['title']);
+            $full_title = htmlspecialchars($item['title']);
+            $title = $full_title;
             if (mb_strlen($title) > 25) {
                 $title = mb_substr($title, 0, 22) . '...';
             }
 
-            // Link zur Sitzung (falls Meeting)
+            // Link zur Tagesordnung (falls Meeting)
             if ($item['type'] === 'meeting') {
-                $link = '?tab=meetings&meeting_id=' . $item['item_id'];
-                $items[] = '<a href="' . $link . '" style="text-decoration: none; color: inherit;">' . $icon . '</a>&nbsp;' . $date_time . ' ' . $title;
+                $link = '?tab=agenda&meeting_id=' . $item['item_id'];
+                $items[] = '<a href="' . $link . '" style="text-decoration: none; color: inherit;" title="' . $full_title . '">' . $icon . '</a>&nbsp;' . $date_time . ' ' . $title;
             } else {
                 $items[] = $icon . '&nbsp;' . $date_time . ' ' . $title;
             }
@@ -208,7 +209,7 @@ function render_user_notifications($pdo, $member_id) {
         return; // Keine Meldungen
     }
 
-    echo '<div style="background: #f9f9f9; padding: 10px 15px; margin-bottom: 20px; border-radius: 6px; border-left: 4px solid #2196f3;">';
+    echo '<div style="background: #f9f9f9; padding: 10px 15px; margin-bottom: 20px; border-radius: 6px; border: 2px solid #2196f3;">';
 
     foreach ($notifications as $notif) {
         echo '<div style="margin-bottom: ' . (end($notifications) === $notif ? '0' : '10px') . ';">';

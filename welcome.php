@@ -237,7 +237,7 @@ if (isset($_GET['demo_email'])) {
                 </div>
                 <div class="feature-item">
                     <span class="icon">🏖️</span>
-                    <span class="text"><strong>Vertretungen:</strong> Abwesenheitsverwaltung mit Zeiträumen, Vertretungsregelungen, automatische Anzeige in Meeting-Planung</span>
+                    <span class="text"><strong>Abwesenheiten:</strong> Abwesenheitsverwaltung mit Zeiträumen, Vertretungsregelungen, automatische Anzeige in Meeting-Planung</span>
                 </div>
                 <div class="feature-item">
                     <span class="icon">📊</span>
