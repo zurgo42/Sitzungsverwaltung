@@ -192,6 +192,80 @@ if ($view === 'list') {
                 gap: 0.75rem;
             }
         }
+
+        /* Dokument-Vorschau Tooltip */
+        .doc-preview-trigger {
+            cursor: pointer;
+            margin-left: 8px;
+            font-size: 18px;
+            color: #2196f3;
+            transition: color 0.3s;
+        }
+        .doc-preview-trigger:hover {
+            color: #1976d2;
+        }
+        .doc-preview-tooltip {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80vw;
+            max-width: 900px;
+            height: 80vh;
+            background: white;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 10000;
+            overflow: hidden;
+        }
+        .doc-preview-tooltip.active {
+            display: flex;
+            flex-direction: column;
+        }
+        .doc-preview-header {
+            padding: 12px 16px;
+            background: #2196f3;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .doc-preview-close {
+            cursor: pointer;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            background: none;
+            border: none;
+            padding: 0 8px;
+        }
+        .doc-preview-close:hover {
+            color: #ffeb3b;
+        }
+        .doc-preview-content {
+            flex: 1;
+            overflow: hidden;
+        }
+        .doc-preview-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .doc-preview-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+        }
+        .doc-preview-overlay.active {
+            display: block;
+        }
     </style>
 
     <div class="container-fluid">
@@ -326,6 +400,13 @@ if ($view === 'list') {
                                     <tr>
                                         <td>
                                             <strong><?= htmlspecialchars($doc['title']) ?></strong>
+                                            <span class="doc-preview-trigger"
+                                                  data-doc-id="<?= $doc['document_id'] ?>"
+                                                  data-doc-title="<?= htmlspecialchars($doc['title']) ?>"
+                                                  data-doc-type="<?= htmlspecialchars($doc['filetype']) ?>"
+                                                  title="Vorschau anzeigen">
+                                                👁️
+                                            </span>
                                             <?php if ($doc['status'] !== 'active'): ?>
                                                 <span class="badge bg-secondary ms-1"><?= ucfirst($doc['status']) ?></span>
                                             <?php endif; ?>
@@ -422,6 +503,96 @@ if ($view === 'list') {
             </div>
         </div>
     </div>
+
+    <!-- Vorschau-Modal -->
+    <div class="doc-preview-overlay" id="previewOverlay"></div>
+    <div class="doc-preview-tooltip" id="previewTooltip">
+        <div class="doc-preview-header">
+            <span id="previewTitle">Vorschau</span>
+            <button class="doc-preview-close" onclick="closePreview()">&times;</button>
+        </div>
+        <div class="doc-preview-content" id="previewContent">
+            <!-- Iframe wird hier eingefügt -->
+        </div>
+    </div>
+
+    <script>
+    // Vorschau-Funktionalität
+    document.addEventListener('DOMContentLoaded', function() {
+        const triggers = document.querySelectorAll('.doc-preview-trigger');
+
+        triggers.forEach(trigger => {
+            trigger.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const docId = this.dataset.docId;
+                const docTitle = this.dataset.docTitle;
+                const docType = this.dataset.docType.toLowerCase();
+
+                showPreview(docId, docTitle, docType);
+            });
+        });
+    });
+
+    function showPreview(docId, docTitle, docType) {
+        const overlay = document.getElementById('previewOverlay');
+        const tooltip = document.getElementById('previewTooltip');
+        const titleEl = document.getElementById('previewTitle');
+        const contentEl = document.getElementById('previewContent');
+
+        // Prüfen ob Vorschau möglich
+        const previewableTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'txt'];
+        if (!previewableTypes.includes(docType)) {
+            alert('Vorschau für diesen Dateityp nicht verfügbar. Bitte herunterladen.');
+            return;
+        }
+
+        // Titel setzen
+        titleEl.textContent = 'Vorschau: ' + docTitle;
+
+        // Iframe erstellen
+        const iframe = document.createElement('iframe');
+        iframe.src = 'download_document.php?id=' + docId + '&inline=1';
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = 'none';
+
+        // Content ersetzen
+        contentEl.innerHTML = '';
+        contentEl.appendChild(iframe);
+
+        // Anzeigen
+        overlay.classList.add('active');
+        tooltip.classList.add('active');
+
+        // Click auf Overlay schließt Vorschau
+        overlay.onclick = closePreview;
+
+        // ESC-Taste schließt Vorschau
+        document.addEventListener('keydown', handleEscKey);
+    }
+
+    function closePreview() {
+        const overlay = document.getElementById('previewOverlay');
+        const tooltip = document.getElementById('previewTooltip');
+        const contentEl = document.getElementById('previewContent');
+
+        overlay.classList.remove('active');
+        tooltip.classList.remove('active');
+        contentEl.innerHTML = '';
+
+        // Event-Listener entfernen
+        overlay.onclick = null;
+        document.removeEventListener('keydown', handleEscKey);
+    }
+
+    function handleEscKey(e) {
+        if (e.key === 'Escape') {
+            closePreview();
+        }
+    }
+    </script>
 
     <?php
 } // Ende List-View

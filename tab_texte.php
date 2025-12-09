@@ -596,6 +596,8 @@ if ($view === 'editor') {
     let heartbeatInterval = null;
     let editingParagraphId = null;
     let lockWarningTimeout = null;
+    let lockTimerInterval = null;
+    let lockTimeRemaining = 0;
 
     // Initialisierung
     document.addEventListener('DOMContentLoaded', function() {
@@ -746,10 +748,12 @@ if ($view === 'editor') {
         actions.innerHTML = `
             <button onclick="saveParagraph(${paragraphId})" class="btn-primary">💾 Speichern</button>
             <button onclick="cancelEdit(${paragraphId})" class="btn-secondary">❌ Abbrechen</button>
+            <span id="lockTimer_${paragraphId}" style="margin-left: 15px; font-weight: bold; color: #2196f3;">⏱️ 5:00</span>
         `;
 
-        // Lock-Warnung nach 1:45 Min (105 Sekunden) starten
+        // Lock-Warnung und Timer starten
         startLockWarning(paragraphId);
+        startLockTimer(paragraphId);
     }
 
     function startLockWarning(paragraphId) {
@@ -774,12 +778,58 @@ if ($view === 'editor') {
         }
     }
 
+    function startLockTimer(paragraphId) {
+        // Timer stoppen falls vorhanden
+        if (lockTimerInterval) {
+            clearInterval(lockTimerInterval);
+        }
+
+        // 5 Minuten in Sekunden
+        lockTimeRemaining = 300;
+
+        // Timer-Update jede Sekunde
+        lockTimerInterval = setInterval(function() {
+            lockTimeRemaining--;
+
+            const timerEl = document.getElementById('lockTimer_' + paragraphId);
+            if (timerEl) {
+                const minutes = Math.floor(lockTimeRemaining / 60);
+                const seconds = lockTimeRemaining % 60;
+                const timeString = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+
+                // Farbe ändern bei weniger als 1 Minute
+                if (lockTimeRemaining < 60) {
+                    timerEl.style.color = '#f44336'; // Rot
+                } else if (lockTimeRemaining < 120) {
+                    timerEl.style.color = '#ff9800'; // Orange
+                }
+
+                timerEl.textContent = '⏱️ ' + timeString;
+            }
+
+            // Bei 0 Timer stoppen
+            if (lockTimeRemaining <= 0) {
+                clearInterval(lockTimerInterval);
+                lockTimerInterval = null;
+            }
+        }, 1000);
+    }
+
+    function stopLockTimer() {
+        if (lockTimerInterval) {
+            clearInterval(lockTimerInterval);
+            lockTimerInterval = null;
+        }
+        lockTimeRemaining = 0;
+    }
+
     function saveParagraph(paragraphId) {
         const textarea = document.getElementById('editArea_' + paragraphId);
         const content = textarea.value;
 
-        // Lock-Warnung stoppen
+        // Lock-Warnung und Timer stoppen
         clearLockWarning();
+        stopLockTimer();
 
         fetch('api/collab_text_save_paragraph.php', {
             method: 'POST',
@@ -805,8 +855,9 @@ if ($view === 'editor') {
     }
 
     function cancelEdit(paragraphId) {
-        // Lock-Warnung stoppen
+        // Lock-Warnung und Timer stoppen
         clearLockWarning();
+        stopLockTimer();
 
         // Lock freigeben
         fetch('api/collab_text_lock_paragraph.php', {
