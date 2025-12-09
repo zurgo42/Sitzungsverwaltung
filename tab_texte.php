@@ -153,6 +153,8 @@ if (!$has_access) {
     line-height: 1.6;
     white-space: pre-wrap;
     word-wrap: break-word;
+    padding: 10px;
+    box-sizing: border-box;
 }
 
 .paragraph-edit-area {
@@ -754,31 +756,8 @@ if ($view === 'editor') {
             <span id="lockTimer_${paragraphId}" style="margin-left: 15px; font-weight: bold; color: #2196f3;">⏱️ 5:00</span>
         `;
 
-        // Lock-Warnung und Timer starten
-        startLockWarning(paragraphId);
+        // Timer starten (keine Warnung mehr nötig - Auto-Save greift)
         startLockTimer(paragraphId);
-    }
-
-    function startLockWarning(paragraphId) {
-        // Alte Warnung löschen falls vorhanden
-        if (lockWarningTimeout) {
-            clearTimeout(lockWarningTimeout);
-        }
-
-        // Nach 270 Sekunden (4:30 Min) Warnung anzeigen (Lock läuft nach 5 Min ab)
-        lockWarningTimeout = setTimeout(function() {
-            const paraDiv = document.querySelector('[data-paragraph-id="' + paragraphId + '"]');
-            if (paraDiv && paraDiv.classList.contains('editing')) {
-                alert('⚠️ Warnung: Ihr Bearbeitungs-Lock läuft in 30 Sekunden ab!\n\nBitte speichern Sie jetzt oder Ihre Änderungen gehen verloren.');
-            }
-        }, 270000); // 270 Sekunden = 4:30 Min
-    }
-
-    function clearLockWarning() {
-        if (lockWarningTimeout) {
-            clearTimeout(lockWarningTimeout);
-            lockWarningTimeout = null;
-        }
     }
 
     function startLockTimer(paragraphId) {
@@ -810,8 +789,8 @@ if ($view === 'editor') {
                 timerEl.textContent = '⏱️ ' + timeString;
             }
 
-            // Bei 1 Sekunde: Auto-Speichern (bevor Lock abläuft)
-            if (lockTimeRemaining === 1) {
+            // Bei 10 Sekunden: Auto-Speichern (sicher bevor Lock abläuft)
+            if (lockTimeRemaining === 10) {
                 clearInterval(lockTimerInterval);
                 lockTimerInterval = null;
 
@@ -852,8 +831,8 @@ if ($view === 'editor') {
                 editingParagraphId = null;
                 exitEditMode(paragraphId, content, '<?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?>');
 
-                // Hinweis anzeigen
-                alert('⏰ Bearbeitungszeit abgelaufen!\n\nIhre Änderungen wurden automatisch gespeichert und der Text ist wieder zur Bearbeitung freigegeben.');
+                // Hinweis anzeigen (nicht blockierend - Seite lädt ohnehin neu)
+                // alert('⏰ Ihre Änderungen wurden automatisch gespeichert.');
             } else {
                 alert('Auto-Speichern fehlgeschlagen: ' + (data.error || 'Unbekannter Fehler'));
                 // Bei Fehler trotzdem Lock freigeben
@@ -883,8 +862,7 @@ if ($view === 'editor') {
         const textarea = document.getElementById('editArea_' + paragraphId);
         const content = textarea.value;
 
-        // Lock-Warnung und Timer stoppen
-        clearLockWarning();
+        // Timer stoppen
         stopLockTimer();
 
         fetch('api/collab_text_save_paragraph.php', {
@@ -911,8 +889,7 @@ if ($view === 'editor') {
     }
 
     function cancelEdit(paragraphId) {
-        // Lock-Warnung und Timer stoppen
-        clearLockWarning();
+        // Timer stoppen
         stopLockTimer();
 
         // Lock freigeben
@@ -944,12 +921,8 @@ if ($view === 'editor') {
             }
         }
 
-        // Buttons zurücksetzen
-        const actions = paraDiv.querySelector('.paragraph-actions');
-        actions.innerHTML = `
-            <button onclick="editParagraph(${paragraphId})" class="btn-primary">✏️ Bearbeiten</button>
-            <button onclick="deleteParagraph(${paragraphId})" class="btn-danger">🗑️ Löschen</button>
-        `;
+        // Seite neu laden um aktuelle Reihenfolge und alle Buttons korrekt anzuzeigen
+        location.reload();
     }
 
     // Neuen Absatz hinzufügen

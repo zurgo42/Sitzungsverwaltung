@@ -71,12 +71,18 @@ try {
     $order1 = $para1['paragraph_order'];
     $order2 = $para2['paragraph_order'];
 
-    // Vertauschen
+    // Vertauschen mit temporärem Wert um UNIQUE constraint Probleme zu vermeiden
     $pdo->beginTransaction();
 
+    // Temporärer negativer Wert für paragraph1
     $stmt = $pdo->prepare("UPDATE svcollab_text_paragraphs SET paragraph_order = ? WHERE paragraph_id = ?");
-    $stmt->execute([$order2, $paragraph1_id]);
+    $stmt->execute([-9999, $paragraph1_id]);
+
+    // paragraph2 auf order1 setzen
     $stmt->execute([$order1, $paragraph2_id]);
+
+    // paragraph1 auf order2 setzen
+    $stmt->execute([$order2, $paragraph1_id]);
 
     $pdo->commit();
 
