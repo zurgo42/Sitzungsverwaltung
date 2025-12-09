@@ -50,32 +50,51 @@ class StandardMemberAdapter implements MemberAdapterInterface {
     }
 
     public function createMember($data) {
-        $stmt = $this->pdo->prepare("
-            INSERT INTO svmembers (first_name, last_name, email, password_hash, role, is_admin, is_confidential)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([
-            $data['first_name'],
-            $data['last_name'],
-            $data['email'],
-            $data['password_hash'],
-            $data['role'],
-            $data['is_admin'] ?? 0,
-            $data['is_confidential'] ?? 0
-        ]);
+        // membership_number ist optional
+        if (isset($data['membership_number']) && $data['membership_number'] !== '') {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO svmembers (first_name, last_name, email, membership_number, password_hash, role, is_admin, is_confidential)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $data['first_name'],
+                $data['last_name'],
+                $data['email'],
+                $data['membership_number'],
+                $data['password_hash'],
+                $data['role'],
+                $data['is_admin'] ?? 0,
+                $data['is_confidential'] ?? 0
+            ]);
+        } else {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO svmembers (first_name, last_name, email, password_hash, role, is_admin, is_confidential)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $data['first_name'],
+                $data['last_name'],
+                $data['email'],
+                $data['password_hash'],
+                $data['role'],
+                $data['is_admin'] ?? 0,
+                $data['is_confidential'] ?? 0
+            ]);
+        }
         return $this->pdo->lastInsertId();
     }
 
     public function updateMember($id, $data) {
         $stmt = $this->pdo->prepare("
             UPDATE svmembers
-            SET first_name = ?, last_name = ?, email = ?, role = ?, is_admin = ?, is_confidential = ?
+            SET first_name = ?, last_name = ?, email = ?, membership_number = ?, role = ?, is_admin = ?, is_confidential = ?
             WHERE member_id = ?
         ");
         return $stmt->execute([
             $data['first_name'],
             $data['last_name'],
             $data['email'],
+            $data['membership_number'] ?? null,
             $data['role'],
             $data['is_admin'] ?? 0,
             $data['is_confidential'] ?? 0,

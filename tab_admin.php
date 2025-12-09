@@ -304,8 +304,8 @@ $all_documents = get_documents($pdo, ['status' => 'active'], 99);
                 <div class="form-group">
                     <label>Rolle:</label>
                     <select name="role" required>
-                        <option value="mitglied">Mitglied</option>
-                        <option value="führungsteam">Führungsteam</option>
+                        <option value="Mitglied">Mitglied</option>
+                        <option value="fuehrungsteam">Führungsteam</option>
                         <option value="assistenz">Assistenz</option>
                         <option value="gf">Geschäftsführung</option>
                         <option value="vorstand">Vorstand</option>
@@ -394,8 +394,8 @@ $all_documents = get_documents($pdo, ['status' => 'active'], 99);
                     <div class="form-group">
                         <label>Rolle:</label>
                         <select name="role" id="edit_role" required>
-                            <option value="mitglied">Mitglied</option>
-                            <option value="führungsteam">Führungsteam</option>
+                            <option value="Mitglied">Mitglied</option>
+                            <option value="fuehrungsteam">Führungsteam</option>
                             <option value="assistenz">Assistenz</option>
                             <option value="gf">Geschäftsführung</option>
                             <option value="vorstand">Vorstand</option>
