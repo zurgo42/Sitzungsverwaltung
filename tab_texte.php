@@ -807,10 +807,13 @@ if ($view === 'editor') {
                 timerEl.textContent = '⏱️ ' + timeString;
             }
 
-            // Bei 0 Timer stoppen
+            // Bei 0: Auto-Speichern und Freigeben
             if (lockTimeRemaining <= 0) {
                 clearInterval(lockTimerInterval);
                 lockTimerInterval = null;
+
+                // Auto-Speichern und Lock freigeben
+                autoSaveParagraph(paragraphId);
             }
         }, 1000);
     }
@@ -821,6 +824,56 @@ if ($view === 'editor') {
             lockTimerInterval = null;
         }
         lockTimeRemaining = 0;
+    }
+
+    function autoSaveParagraph(paragraphId) {
+        const textarea = document.getElementById('editArea_' + paragraphId);
+        if (!textarea) return;
+
+        const content = textarea.value;
+
+        // Speichern
+        fetch('api/collab_text_save_paragraph.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                paragraph_id: paragraphId,
+                content: content,
+                text_id: TEXT_ID
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Edit-Mode verlassen
+                editingParagraphId = null;
+                exitEditMode(paragraphId, content, '<?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?>');
+
+                // Hinweis anzeigen
+                alert('⏰ Bearbeitungszeit abgelaufen!\n\nIhre Änderungen wurden automatisch gespeichert und der Text ist wieder zur Bearbeitung freigegeben.');
+            } else {
+                alert('Auto-Speichern fehlgeschlagen: ' + (data.error || 'Unbekannter Fehler'));
+                // Bei Fehler trotzdem Lock freigeben
+                unlockParagraph(paragraphId);
+            }
+        })
+        .catch(err => {
+            console.error('Auto-Save Error:', err);
+            alert('Netzwerkfehler beim Auto-Speichern');
+            // Bei Fehler trotzdem Lock freigeben
+            unlockParagraph(paragraphId);
+        });
+    }
+
+    function unlockParagraph(paragraphId) {
+        fetch('api/collab_text_lock_paragraph.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                paragraph_id: paragraphId,
+                action: 'unlock'
+            })
+        });
     }
 
     function saveParagraph(paragraphId) {
@@ -942,32 +995,52 @@ if ($view === 'editor') {
         });
     }
 
-    function moveParagraph(paragraphId, newOrder) {
-        newOrder = parseInt(newOrder);
-        if (isNaN(newOrder) || newOrder < 0) {
-            alert('Bitte geben Sie eine gültige Absatznummer ein.');
-            location.reload();
+    function swapParagraph(paragraphId, direction) {
+        // Aktuellen Absatz finden
+        const currentDiv = document.querySelector('[data-paragraph-id="' + paragraphId + '"]');
+        if (!currentDiv) return;
+
+        const currentOrder = parseInt(currentDiv.dataset.paragraphOrder);
+
+        // Ziel-Absatz finden
+        let targetDiv;
+        if (direction === 'up') {
+            // Vorherigen Absatz finden
+            targetDiv = document.querySelector('[data-paragraph-order="' + (currentOrder - 1) + '"]');
+        } else {
+            // Nächsten Absatz finden
+            targetDiv = document.querySelector('[data-paragraph-order="' + (currentOrder + 1) + '"]');
+        }
+
+        if (!targetDiv) {
+            alert('Absatz kann nicht weiter ' + (direction === 'up' ? 'nach oben' : 'nach unten') + ' verschoben werden.');
             return;
         }
 
-        fetch('api/collab_text_move_paragraph.php', {
+        const targetParagraphId = parseInt(targetDiv.dataset.paragraphId);
+
+        // An Server senden
+        fetch('api/collab_text_swap_paragraphs.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({paragraph_id: paragraphId, new_order: newOrder})
+            body: JSON.stringify({
+                text_id: TEXT_ID,
+                paragraph1_id: paragraphId,
+                paragraph2_id: targetParagraphId
+            })
         })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
+                // Seite neu laden um die neue Reihenfolge anzuzeigen
                 location.reload();
             } else {
-                alert('Fehler: ' + (data.error || 'Absatz konnte nicht verschoben werden'));
-                location.reload();
+                alert('Fehler: ' + (data.error || 'Absätze konnten nicht vertauscht werden'));
             }
         })
         .catch(err => {
             console.error(err);
-            alert('Netzwerkfehler beim Verschieben');
-            location.reload();
+            alert('Netzwerkfehler');
         });
     }
 
@@ -1401,12 +1474,12 @@ function renderParagraph($para, $current_member_id) {
                 <button onclick="editParagraph(<?php echo $para['paragraph_id']; ?>)" class="btn-primary">
                     ✏️ Bearbeiten
                 </button>
-                <span style="display: inline-flex; align-items: center; gap: 5px; margin-left: 10px;">
-                    <label style="font-size: 0.9em;">Verschieben hinter Absatz:</label>
-                    <input type="number" min="0" max="999" value="<?php echo $para['paragraph_order']; ?>"
-                           style="width: 60px; padding: 4px; border: 1px solid #ccc; border-radius: 4px;"
-                           onchange="moveParagraph(<?php echo $para['paragraph_id']; ?>, this.value)">
-                </span>
+                <button onclick="swapParagraph(<?php echo $para['paragraph_id']; ?>, 'up')" class="btn-secondary" title="Nach oben">
+                    ↑
+                </button>
+                <button onclick="swapParagraph(<?php echo $para['paragraph_id']; ?>, 'down')" class="btn-secondary" title="Nach unten">
+                    ↓
+                </button>
                 <button onclick="deleteParagraph(<?php echo $para['paragraph_id']; ?>)" class="btn-danger" style="margin-left: 10px;">
                     🗑️ Diesen Absatz löschen
                 </button>
