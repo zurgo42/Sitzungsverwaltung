@@ -426,6 +426,241 @@ $all_documents = get_documents($pdo, ['status' => 'active'], 99);
     </div> <!-- End admin-section-content -->
 </div>
 
+<!-- Abwesenheiten-Verwaltung -->
+<div id="admin-absences" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">🏖️ Abwesenheiten-Verwaltung</h3>
+
+    <div class="admin-section-content" style="display: none;">
+
+        <?php if (isset($_GET['msg']) && $_GET['msg'] === 'absence_added'): ?>
+            <div class="message">✅ Abwesenheit erfolgreich eingetragen!</div>
+        <?php endif; ?>
+        <?php if (isset($_GET['msg']) && $_GET['msg'] === 'absence_updated'): ?>
+            <div class="message">✅ Abwesenheit erfolgreich aktualisiert!</div>
+        <?php endif; ?>
+        <?php if (isset($_GET['msg']) && $_GET['msg'] === 'absence_deleted'): ?>
+            <div class="message">✅ Abwesenheit erfolgreich gelöscht!</div>
+        <?php endif; ?>
+
+        <!-- Neue Abwesenheit hinzufügen -->
+        <details style="margin-bottom: 20px; border: 1px solid #ddd; border-radius: 4px; padding: 10px;">
+            <summary style="cursor: pointer; font-weight: 600; color: #2196f3;">➕ Neue Abwesenheit für ein Mitglied eintragen</summary>
+            <form method="POST" action="?tab=admin" style="margin-top: 15px;">
+                <input type="hidden" name="add_absence" value="1">
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Mitglied:</label>
+                    <select name="absence_member_id" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <?php foreach ($members as $member): ?>
+                            <option value="<?php echo $member['member_id']; ?>">
+                                <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Von:</label>
+                        <input type="date" name="start_date" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Bis:</label>
+                        <input type="date" name="end_date" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Vertretung (optional):</label>
+                    <select name="substitute_member_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">-- Keine Vertretung --</option>
+                        <?php foreach ($members as $member): ?>
+                            <option value="<?php echo $member['member_id']; ?>">
+                                <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Grund (optional):</label>
+                    <input type="text" name="reason" placeholder="z.B. Urlaub, Dienstreise, Krankheit..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+
+                <button type="submit" style="background: #2196f3; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                    Abwesenheit eintragen
+                </button>
+            </form>
+        </details>
+
+        <!-- Liste aller Abwesenheiten -->
+        <h4 style="margin-top: 20px; margin-bottom: 10px;">📅 Alle Abwesenheiten</h4>
+
+        <?php if (empty($all_absences)): ?>
+            <p style="color: #666;">Keine Abwesenheiten eingetragen.</p>
+        <?php else: ?>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #ddd; background: #f8f9fa;">
+                        <th style="padding: 10px; text-align: left;">Mitglied</th>
+                        <th style="padding: 10px; text-align: left;">Zeitraum</th>
+                        <th style="padding: 10px; text-align: left;">Vertretung</th>
+                        <th style="padding: 10px; text-align: left;">Grund</th>
+                        <th style="padding: 10px; text-align: left;">Status</th>
+                        <th style="padding: 10px; text-align: left;">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($all_absences as $abs):
+                        $is_current = (date('Y-m-d') >= $abs['start_date'] && date('Y-m-d') <= $abs['end_date']);
+                        $is_past = (strtotime($abs['end_date']) < time());
+
+                        if ($is_past) {
+                            $row_bg = '#f5f5f5';
+                            $text_color = '#999';
+                        } elseif ($is_current) {
+                            $row_bg = '#fffbf0';
+                            $text_color = '#333';
+                        } else {
+                            $row_bg = 'white';
+                            $text_color = '#333';
+                        }
+                    ?>
+                        <tr style="border-bottom: 1px solid #eee; background: <?php echo $row_bg; ?>; color: <?php echo $text_color; ?>;">
+                            <td style="padding: 10px;">
+                                <strong><?php echo htmlspecialchars($abs['first_name'] . ' ' . $abs['last_name']); ?></strong>
+                                <br>
+                                <small style="color: #666;"><?php echo htmlspecialchars($abs['role']); ?></small>
+                            </td>
+                            <td style="padding: 10px;">
+                                <?php echo date('d.m.Y', strtotime($abs['start_date'])); ?>
+                                -
+                                <?php echo date('d.m.Y', strtotime($abs['end_date'])); ?>
+                            </td>
+                            <td style="padding: 10px;">
+                                <?php if ($abs['substitute_member_id']): ?>
+                                    <?php echo htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']); ?>
+                                    <br>
+                                    <small style="color: #666;"><?php echo htmlspecialchars($abs['sub_role']); ?></small>
+                                <?php else: ?>
+                                    <span style="color: #999;">–</span>
+                                <?php endif; ?>
+                            </td>
+                            <td style="padding: 10px;">
+                                <?php echo $abs['reason'] ? htmlspecialchars($abs['reason']) : '<span style="color: #999;">–</span>'; ?>
+                            </td>
+                            <td style="padding: 10px;">
+                                <?php if ($is_current): ?>
+                                    <span style="color: #ff9800; font-weight: 600;">● AKTUELL</span>
+                                <?php elseif ($is_past): ?>
+                                    <span style="color: #999;">Vergangenheit</span>
+                                <?php else: ?>
+                                    <span style="color: #4caf50;">Zukünftig</span>
+                                <?php endif; ?>
+                            </td>
+                            <td style="padding: 10px;">
+                                <button onclick="editAdminAbsence(<?php echo $abs['absence_id']; ?>, <?php echo $abs['member_id']; ?>, '<?php echo $abs['start_date']; ?>', '<?php echo $abs['end_date']; ?>', <?php echo $abs['substitute_member_id'] ?: 'null'; ?>, '<?php echo addslashes($abs['reason'] ?? ''); ?>')"
+                                        style="background: #2196f3; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-right: 5px;">
+                                    ✏️ Bearbeiten
+                                </button>
+                                <form method="POST" style="display: inline;" onsubmit="return confirm('Abwesenheit wirklich löschen?');">
+                                    <input type="hidden" name="delete_absence" value="1">
+                                    <input type="hidden" name="absence_id" value="<?php echo $abs['absence_id']; ?>">
+                                    <button type="submit" style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                                        🗑️ Löschen
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Edit Absence Modal for Admin -->
+<div id="editAdminAbsenceModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%;">
+        <h3 style="margin-top: 0;">✏️ Abwesenheit bearbeiten</h3>
+        <form method="POST" action="?tab=admin">
+            <input type="hidden" name="edit_absence" value="1">
+            <input type="hidden" name="absence_id" id="edit_admin_absence_id">
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Mitglied:</label>
+                <select name="absence_member_id" id="edit_admin_member_id" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <?php foreach ($members as $member): ?>
+                        <option value="<?php echo $member['member_id']; ?>">
+                            <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Von:</label>
+                    <input type="date" name="start_date" id="edit_admin_start_date" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Bis:</label>
+                    <input type="date" name="end_date" id="edit_admin_end_date" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Vertretung:</label>
+                <select name="substitute_member_id" id="edit_admin_substitute" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">– Keine Vertretung –</option>
+                    <?php foreach ($members as $mem): ?>
+                        <option value="<?php echo $mem['member_id']; ?>">
+                            <?php echo htmlspecialchars($mem['first_name'] . ' ' . $mem['last_name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Grund:</label>
+                <input type="text" name="reason" id="edit_admin_reason" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeEditAdminModal()" style="background: #999; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                    Abbrechen
+                </button>
+                <button type="submit" style="background: #2196f3; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                    Speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function editAdminAbsence(absenceId, memberId, startDate, endDate, substituteId, reason) {
+    document.getElementById('edit_admin_absence_id').value = absenceId;
+    document.getElementById('edit_admin_member_id').value = memberId;
+    document.getElementById('edit_admin_start_date').value = startDate;
+    document.getElementById('edit_admin_end_date').value = endDate;
+    document.getElementById('edit_admin_substitute').value = substituteId || '';
+    document.getElementById('edit_admin_reason').value = reason || '';
+    document.getElementById('editAdminAbsenceModal').style.display = 'flex';
+}
+
+function closeEditAdminModal() {
+    document.getElementById('editAdminAbsenceModal').style.display = 'none';
+}
+
+// Close modal on background click
+document.getElementById('editAdminAbsenceModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeEditAdminModal();
+    }
+});
+</script>
+
 <!-- Offene ToDos -->
 <div id="admin-todos" class="admin-section">
     <h3 class="admin-section-header" onclick="toggleSection(this)">📝 Offene ToDos</h3>

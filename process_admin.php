@@ -784,6 +784,9 @@ foreach ($meetings as &$meeting) {
 // Funktioniert mit members ODER berechtigte Tabelle (siehe config_adapter.php)
 $members = get_all_members($pdo);
 
+// Alle Abwesenheiten laden (für Admin-Verwaltung)
+$all_absences = get_absences_with_names($pdo);
+
 // Offene ToDos laden
 $open_todos = $pdo->query("
     SELECT t.*, 
