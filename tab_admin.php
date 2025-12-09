@@ -428,9 +428,9 @@ $all_documents = get_documents($pdo, ['status' => 'active'], 99);
 
 <!-- Abwesenheiten-Verwaltung -->
 <div id="admin-absences" class="admin-section">
-    <h3 class="admin-section-header" onclick="toggleSection(this)">🏖️ Abwesenheiten-Verwaltung</h3>
+    <h3 class="admin-section-header collapsed" onclick="toggleSection(this)">🏖️ Abwesenheiten-Verwaltung</h3>
 
-    <div class="admin-section-content" style="display: none;">
+    <div class="admin-section-content collapsed">
 
         <?php if (isset($_GET['msg']) && $_GET['msg'] === 'absence_added'): ?>
             <div class="message">✅ Abwesenheit erfolgreich eingetragen!</div>

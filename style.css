@@ -2528,3 +2528,262 @@ body.dark-mode .ql-editor {
     background: var(--bg-primary);
     color: var(--text-primary);
 }
+
+/* ==============================================
+   DARK MODE ENHANCED - KONTRAST OPTIMIERUNG
+   ============================================== */
+
+/* Buttons im Dark Mode */
+body.dark-mode button,
+body.dark-mode .btn-primary,
+body.dark-mode .btn-secondary,
+body.dark-mode .btn-success,
+body.dark-mode .btn-danger,
+body.dark-mode .btn-warning {
+    border-color: var(--border-color);
+}
+
+body.dark-mode button:not([style*="background"]):not(.btn-primary):not(.btn-secondary) {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* Links im Dark Mode */
+body.dark-mode a:not(.logout-btn):not(.btn) {
+    color: var(--primary-light);
+}
+
+body.dark-mode a:hover {
+    color: var(--accent-light);
+}
+
+/* Spezielle Overrides für inline-styled Elemente */
+body.dark-mode [style*="background: white"],
+body.dark-mode [style*="background:white"],
+body.dark-mode [style*="background: #fff"],
+body.dark-mode [style*="background:#fff"] {
+    background: var(--bg-secondary) !important;
+}
+
+body.dark-mode [style*="background: #f8f9fa"],
+body.dark-mode [style*="background:#f8f9fa"] {
+    background: var(--bg-tertiary) !important;
+}
+
+body.dark-mode [style*="color: #333"],
+body.dark-mode [style*="color:#333"],
+body.dark-mode [style*="color: #666"],
+body.dark-mode [style*="color:#666"] {
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode [style*="color: #999"],
+body.dark-mode [style*="color:#999"] {
+    color: var(--text-muted) !important;
+}
+
+body.dark-mode [style*="border: 1px solid #ddd"],
+body.dark-mode [style*="border:1px solid #ddd"],
+body.dark-mode [style*="border-color: #ddd"] {
+    border-color: var(--border-color) !important;
+}
+
+/* Admin-spezifische Anpassungen */
+body.dark-mode .admin-table {
+    background: var(--bg-primary);
+}
+
+body.dark-mode .admin-table th {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+body.dark-mode .admin-table td {
+    color: var(--text-primary);
+}
+
+/* Details/Summary Elemente */
+body.dark-mode details[style] {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode summary {
+    color: var(--text-primary) !important;
+}
+
+/* Formulare - alle inputs */
+body.dark-mode input:not([type="checkbox"]):not([type="radio"]),
+body.dark-mode textarea,
+body.dark-mode select {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+    color: var(--text-muted) !important;
+}
+
+/* Labels */
+body.dark-mode label {
+    color: var(--text-primary) !important;
+}
+
+/* Small text */
+body.dark-mode small {
+    color: var(--text-secondary) !important;
+}
+
+/* Divs mit padding (oft Container) */
+body.dark-mode div[style*="padding"][style*="background"] {
+    background: var(--bg-secondary) !important;
+}
+
+/* Tabellen Header Row */
+body.dark-mode tr[style*="background: #f8f9fa"] {
+    background: var(--bg-tertiary) !important;
+}
+
+body.dark-mode tr[style*="background: white"],
+body.dark-mode tr[style*="background:#fff"] {
+    background: var(--bg-primary) !important;
+}
+
+/* Message boxes */
+body.dark-mode div[style*="background: #e8f5e9"],
+body.dark-mode div[style*="background:#e8f5e9"] {
+    background: var(--bg-tertiary) !important;
+    color: var(--success) !important;
+}
+
+/* Code/Pre Blöcke */
+body.dark-mode code,
+body.dark-mode pre {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+/* User Info Bereich */
+body.dark-mode .user-info {
+    color: var(--text-primary);
+}
+
+body.dark-mode .user-info span {
+    color: var(--text-primary);
+}
+
+/* Role Badges */
+body.dark-mode .role-badge {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+/* Logout Button */
+body.dark-mode .logout-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+body.dark-mode .logout-btn:hover {
+    background: var(--hover-bg);
+}
+
+/* Accordion/Collapsible */
+body.dark-mode .accordion-header,
+body.dark-mode .admin-section-header {
+    /* Keep yellow background for visibility */
+    background: var(--accent) !important;
+    color: #000 !important; /* Black text on yellow for contrast */
+}
+
+body.dark-mode .accordion-content,
+body.dark-mode .admin-section-content {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Footer */
+body.dark-mode .page-footer,
+body.dark-mode footer {
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border-top-color: var(--border-color);
+}
+
+body.dark-mode .page-footer a {
+    color: var(--primary-light);
+}
+
+/* Specific for agenda items, TOPs, etc */
+body.dark-mode .agenda-item,
+body.dark-mode .top-item,
+body.dark-mode .meeting-item {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+/* Modals */
+body.dark-mode .modal,
+body.dark-mode [class*="modal"] {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+body.dark-mode .modal-content,
+body.dark-mode [class*="modal-content"] {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+/* Tooltips */
+body.dark-mode [title]::after {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+/* HR Separator */
+body.dark-mode hr {
+    border-color: var(--border-color);
+}
+
+/* Blockquote */
+body.dark-mode blockquote {
+    background: var(--bg-tertiary);
+    border-left-color: var(--primary-light);
+    color: var(--text-primary);
+}
+
+/* Specific override for really bright backgrounds */
+body.dark-mode [style*="background: #fffbf0"],
+body.dark-mode [style*="background:#fffbf0"] {
+    background: var(--bg-tertiary) !important;
+    border-left: 3px solid var(--warning) !important;
+}
+
+/* Gray backgrounds */
+body.dark-mode [style*="background: #f5f5f5"],
+body.dark-mode [style*="background:#f5f5f5"] {
+    background: var(--bg-tertiary) !important;
+}
+
+/* Strong/Bold text should be more visible */
+body.dark-mode strong,
+body.dark-mode b {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Ensure readability for warning/info messages */
+body.dark-mode .warning,
+body.dark-mode .info,
+body.dark-mode .alert {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--warning);
+}
