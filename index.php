@@ -294,6 +294,11 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
                     <?php echo ucfirst($current_user['role']); ?>
                 </span>
 
+                <!-- Dark Mode Toggle -->
+                <button class="dark-mode-toggle" id="darkModeToggle" title="Dunkelmodus umschalten">
+                    <span class="icon">🌙</span>
+                </button>
+
                 <?php if ($display_mode === 'SSOdirekt' && $sso_config): ?>
                     <!-- Zurück-Button für SSOdirekt-Modus -->
                     <a href="<?php echo $sso_config['back_button_url']; ?>" class="logout-btn">
@@ -541,6 +546,49 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
     } else {
         // DOM bereits geladen
         initAutoResize();
+    }
+
+    /**
+     * Dark Mode Toggle
+     * Schaltet zwischen hellem und dunklem Modus um
+     * Speichert Präferenz im localStorage
+     */
+    function initDarkMode() {
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const body = document.body;
+        const icon = darkModeToggle?.querySelector('.icon');
+
+        // Lade gespeicherte Präferenz
+        const savedDarkMode = localStorage.getItem('darkMode');
+
+        // Setze initialen Dark Mode basierend auf gespeicherter Präferenz
+        if (savedDarkMode === 'enabled') {
+            body.classList.add('dark-mode');
+            if (icon) icon.textContent = '☀️';
+        }
+
+        // Toggle-Funktion
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', function() {
+                body.classList.toggle('dark-mode');
+
+                // Icon wechseln
+                if (body.classList.contains('dark-mode')) {
+                    if (icon) icon.textContent = '☀️';
+                    localStorage.setItem('darkMode', 'enabled');
+                } else {
+                    if (icon) icon.textContent = '🌙';
+                    localStorage.setItem('darkMode', 'disabled');
+                }
+            });
+        }
+    }
+
+    // Dark Mode initialisieren
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDarkMode);
+    } else {
+        initDarkMode();
     }
     </script>
 

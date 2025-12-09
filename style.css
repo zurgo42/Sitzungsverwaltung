@@ -30,6 +30,34 @@
     --warning: #FAAA00;
     --danger: #d32f2f;
     --info: #8ECAF6;
+
+    /* Theme-spezifische Farben (Light Mode) */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #EBEBEB;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --text-muted: #999999;
+    --border-color: #ddd;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --hover-bg: #f5f5f5;
+}
+
+/* Dark Mode Variablen */
+body.dark-mode {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #3a3a3a;
+    --text-primary: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --text-muted: #808080;
+    --border-color: #444;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --hover-bg: #333;
+
+    /* Adjust brand colors for dark mode */
+    --primary-light: #5a9fd4;
+    --neutral: #3a3a3a;
 }
 
 /* ==============================================
@@ -48,10 +76,11 @@ html {
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
     min-height: 100vh;
     display: flex;
+    transition: background-color 0.3s ease, color 0.3s ease;
     flex-direction: column;
 }
 
@@ -2318,4 +2347,184 @@ button:hover {
     .header h1 {
         font-size: 16px;
     }
+}
+
+/* ==============================================
+   DARK MODE TOGGLE BUTTON
+   ============================================== */
+
+.dark-mode-toggle {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 6px 12px;
+    margin-left: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.dark-mode-toggle:hover {
+    background: var(--hover-bg);
+    transform: scale(1.05);
+}
+
+.dark-mode-toggle .icon {
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+body.dark-mode .dark-mode-toggle .icon {
+    transform: rotate(180deg);
+}
+
+/* Dark mode specific overrides for key components */
+body.dark-mode {
+    background-color: var(--bg-secondary);
+}
+
+body.dark-mode .header {
+    background: var(--bg-primary);
+    border-bottom-color: var(--border-color);
+}
+
+body.dark-mode .content {
+    background: var(--bg-primary);
+}
+
+body.dark-mode .tabs {
+    background: var(--bg-secondary);
+    border-bottom-color: var(--border-color);
+}
+
+body.dark-mode .tab {
+    color: var(--text-secondary);
+    border-bottom-color: transparent;
+}
+
+body.dark-mode .tab:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+body.dark-mode .tab.active {
+    background: var(--bg-primary);
+    color: var(--primary-light);
+    border-bottom-color: var(--primary-light);
+}
+
+body.dark-mode .tab-content {
+    background: var(--bg-primary);
+}
+
+body.dark-mode table {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+}
+
+body.dark-mode th {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+body.dark-mode td {
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+body.dark-mode tr:hover {
+    background: var(--hover-bg);
+}
+
+body.dark-mode input[type="text"],
+body.dark-mode input[type="email"],
+body.dark-mode input[type="password"],
+body.dark-mode input[type="date"],
+body.dark-mode input[type="datetime-local"],
+body.dark-mode input[type="time"],
+body.dark-mode input[type="number"],
+body.dark-mode input[type="url"],
+body.dark-mode textarea,
+body.dark-mode select {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+body.dark-mode input:focus,
+body.dark-mode textarea:focus,
+body.dark-mode select:focus {
+    border-color: var(--primary-light);
+    background: var(--bg-secondary);
+}
+
+body.dark-mode .message,
+body.dark-mode .error-message {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+body.dark-mode .footer {
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border-top-color: var(--border-color);
+}
+
+body.dark-mode details {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+body.dark-mode summary {
+    color: var(--text-primary);
+}
+
+body.dark-mode .admin-section-header {
+    background: var(--accent) !important;
+    color: #333 !important;
+}
+
+body.dark-mode .admin-section-content {
+    background: var(--bg-primary);
+}
+
+body.dark-mode .card,
+body.dark-mode .meeting-card,
+body.dark-mode .agenda-card {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+body.dark-mode .modal-content {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+body.dark-mode .modal-overlay {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+body.dark-mode .quill-editor {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+body.dark-mode .ql-toolbar {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+}
+
+body.dark-mode .ql-container {
+    border-color: var(--border-color);
+}
+
+body.dark-mode .ql-editor {
+    background: var(--bg-primary);
+    color: var(--text-primary);
 }
