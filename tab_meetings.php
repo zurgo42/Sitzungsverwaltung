@@ -12,13 +12,8 @@ $all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
 $all_members = get_all_members($pdo);
 
 // Abwesenheiten für alle Mitglieder laden (zukünftig und aktuell)
-$stmt_member_absences = $pdo->query("
-    SELECT a.*, s.first_name AS sub_first_name, s.last_name AS sub_last_name
-    FROM svabsences a
-    LEFT JOIN svmembers s ON a.substitute_member_id = s.member_id
-    WHERE a.end_date >= CURDATE()
-");
-$all_absences_raw = $stmt_member_absences->fetchAll();
+// Nutzt Adapter-kompatible Funktion statt direktem JOIN auf svmembers
+$all_absences_raw = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
 
 // Abwesenheiten nach member_id gruppieren
 $member_absences = [];

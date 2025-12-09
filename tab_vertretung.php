@@ -12,30 +12,12 @@ if (!isset($all_members)) {
 }
 
 // Aktuelle und zukünftige Abwesenheiten laden
-$stmt_all_absences = $pdo->prepare("
-    SELECT a.*,
-           m.first_name, m.last_name, m.role,
-           s.first_name AS sub_first_name, s.last_name AS sub_last_name, s.role AS sub_role
-    FROM svabsences a
-    JOIN svmembers m ON a.member_id = m.member_id
-    LEFT JOIN svmembers s ON a.substitute_member_id = s.member_id
-    WHERE a.end_date >= CURDATE()
-    ORDER BY a.start_date ASC, m.last_name ASC
-");
-$stmt_all_absences->execute();
-$absences = $stmt_all_absences->fetchAll();
+// Nutzt Adapter-kompatible Funktion statt direktem JOIN auf svmembers
+$absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
 
 // Eigene Abwesenheiten
-$stmt_my_absences = $pdo->prepare("
-    SELECT a.*,
-           s.first_name AS sub_first_name, s.last_name AS sub_last_name
-    FROM svabsences a
-    LEFT JOIN svmembers s ON a.substitute_member_id = s.member_id
-    WHERE a.member_id = ?
-    ORDER BY a.start_date DESC
-");
-$stmt_my_absences->execute([$current_user['member_id']]);
-$my_absences = $stmt_my_absences->fetchAll();
+// Nutzt Adapter-kompatible Funktion statt direktem JOIN auf svmembers
+$my_absences = get_absences_with_names($pdo, "a.member_id = ?", [$current_user['member_id']]);
 ?>
 
 <h2>🏖️ Vertretungen & Abwesenheiten</h2>

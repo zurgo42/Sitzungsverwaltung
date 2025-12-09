@@ -635,4 +635,56 @@ function get_member_access_level($member) {
     $role = $member['role'] ?? 'mitglied';
     return $role_levels[strtolower($role)] ?? 0;
 }
+
+/**
+ * Lädt Abwesenheiten und löst Namen über den Adapter auf
+ * Verhindert direkte JOINs auf svmembers (für Adapter-Kompatibilität)
+ *
+ * @param PDO $pdo Datenbankverbindung
+ * @param string $where_clause WHERE-Bedingung (z.B. "a.end_date >= CURDATE()")
+ * @param array $params Parameter für prepared statement
+ * @return array Abwesenheiten mit aufgelösten Namen
+ */
+function get_absences_with_names($pdo, $where_clause = "1=1", $params = []) {
+    // Abwesenheiten ohne JOIN laden
+    $sql = "SELECT * FROM svabsences a WHERE $where_clause ORDER BY a.start_date ASC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $absences = $stmt->fetchAll();
+
+    // Namen über Adapter auflösen
+    foreach ($absences as &$absence) {
+        // Hauptperson
+        $member = get_member_by_id($pdo, $absence['member_id']);
+        if ($member) {
+            $absence['first_name'] = $member['first_name'];
+            $absence['last_name'] = $member['last_name'];
+            $absence['role'] = $member['role'];
+        } else {
+            $absence['first_name'] = '???';
+            $absence['last_name'] = '(ID: ' . $absence['member_id'] . ')';
+            $absence['role'] = 'mitglied';
+        }
+
+        // Vertretung (optional)
+        if ($absence['substitute_member_id']) {
+            $substitute = get_member_by_id($pdo, $absence['substitute_member_id']);
+            if ($substitute) {
+                $absence['sub_first_name'] = $substitute['first_name'];
+                $absence['sub_last_name'] = $substitute['last_name'];
+                $absence['sub_role'] = $substitute['role'];
+            } else {
+                $absence['sub_first_name'] = '???';
+                $absence['sub_last_name'] = '(ID: ' . $absence['substitute_member_id'] . ')';
+                $absence['sub_role'] = 'mitglied';
+            }
+        } else {
+            $absence['sub_first_name'] = null;
+            $absence['sub_last_name'] = null;
+            $absence['sub_role'] = null;
+        }
+    }
+
+    return $absences;
+}
 ?>

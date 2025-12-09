@@ -32,17 +32,14 @@ function render_user_notifications($pdo, $member_id) {
     $notifications = [];
 
     // 1. ABWESENHEITEN PRÜFEN
-    $stmt_absences = $pdo->prepare("
-        SELECT a.*, m.first_name, m.last_name, s.first_name AS sub_first_name, s.last_name AS sub_last_name,
-               CURDATE() BETWEEN a.start_date AND a.end_date AS is_current
-        FROM svabsences a
-        JOIN svmembers m ON a.member_id = m.member_id
-        LEFT JOIN svmembers s ON a.substitute_member_id = s.member_id
-        WHERE a.end_date >= CURDATE()
-        ORDER BY a.start_date ASC, m.last_name ASC
-    ");
-    $stmt_absences->execute();
-    $all_absences = $stmt_absences->fetchAll();
+    // Nutzt Adapter-kompatible Funktion statt direktem JOIN auf svmembers
+    $all_absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
+
+    // is_current Flag hinzufügen
+    foreach ($all_absences as &$abs) {
+        $abs['is_current'] = (strtotime('today') >= strtotime($abs['start_date']) &&
+                              strtotime('today') <= strtotime($abs['end_date'])) ? 1 : 0;
+    }
 
     if (!empty($all_absences)) {
         $absence_items = [];

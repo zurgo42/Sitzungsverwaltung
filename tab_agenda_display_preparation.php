@@ -17,17 +17,14 @@ require_once 'module_agenda_overview.php';
 require_once 'module_comments.php';
 
 // Alle aktuellen und zukünftigen Abwesenheiten laden
-$stmt_absences = $pdo->prepare("
-    SELECT a.*, m.first_name, m.last_name, s.first_name AS sub_first_name, s.last_name AS sub_last_name,
-           CURDATE() BETWEEN a.start_date AND a.end_date AS is_current
-    FROM svabsences a
-    JOIN svmembers m ON a.member_id = m.member_id
-    LEFT JOIN svmembers s ON a.substitute_member_id = s.member_id
-    WHERE a.end_date >= CURDATE()
-    ORDER BY a.start_date ASC, m.last_name ASC
-");
-$stmt_absences->execute();
-$all_absences = $stmt_absences->fetchAll();
+// Nutzt Adapter-kompatible Funktion statt direktem JOIN auf svmembers
+$all_absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
+
+// is_current Flag hinzufügen
+foreach ($all_absences as &$abs) {
+    $abs['is_current'] = (strtotime('today') >= strtotime($abs['start_date']) &&
+                          strtotime('today') <= strtotime($abs['end_date'])) ? 1 : 0;
+}
 
 // Abwesenheitsanzeige (nur wenn Abwesenheiten vorhanden)
 if (!empty($all_absences)) {
@@ -61,13 +58,8 @@ render_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
 $is_admin = $current_user['is_admin'] == 1;
 
 // Abwesenheiten für alle Mitglieder laden (für Teilnehmerverwaltung)
-$stmt_member_absences = $pdo->query("
-    SELECT a.*, s.first_name AS sub_first_name, s.last_name AS sub_last_name
-    FROM svabsences a
-    LEFT JOIN svmembers s ON a.substitute_member_id = s.member_id
-    WHERE a.end_date >= CURDATE()
-");
-$all_absences_raw = $stmt_member_absences->fetchAll();
+// Nutzt Adapter-kompatible Funktion statt direktem JOIN auf svmembers
+$all_absences_raw = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
 
 // Nach member_id gruppieren
 $member_absences = [];
