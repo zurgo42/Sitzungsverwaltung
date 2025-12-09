@@ -125,7 +125,7 @@ function getCollabText($pdo, $text_id) {
             return false;
         }
 
-        // Absätze laden (nur aktive Locks berücksichtigen - nicht älter als 2 Minuten)
+        // Absätze laden (nur aktive Locks berücksichtigen - nicht älter als 5 Minuten)
         $stmt = $pdo->prepare("
             SELECT p.*,
                    m.first_name as editor_first_name,
@@ -136,7 +136,7 @@ function getCollabText($pdo, $text_id) {
             FROM svcollab_text_paragraphs p
             LEFT JOIN svmembers m ON p.last_edited_by = m.member_id
             LEFT JOIN svcollab_text_locks l ON p.paragraph_id = l.paragraph_id
-                AND l.last_activity > DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+                AND l.last_activity > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
             LEFT JOIN svmembers lm ON l.member_id = lm.member_id
             WHERE p.text_id = ?
             ORDER BY p.paragraph_order ASC
@@ -162,10 +162,10 @@ function getCollabText($pdo, $text_id) {
  */
 function lockParagraph($pdo, $paragraph_id, $member_id) {
     try {
-        // Alte Locks aufräumen (> 2 Minuten inaktiv)
+        // Alte Locks aufräumen (> 5 Minuten inaktiv)
         $pdo->exec("
             DELETE FROM svcollab_text_locks
-            WHERE last_activity < DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+            WHERE last_activity < DATE_SUB(NOW(), INTERVAL 5 MINUTE)
         ");
 
         // Prüfen ob schon ein Lock existiert

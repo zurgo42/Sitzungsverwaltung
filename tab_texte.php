@@ -758,13 +758,13 @@ if ($view === 'editor') {
             clearTimeout(lockWarningTimeout);
         }
 
-        // Nach 105 Sekunden (1:45 Min) Warnung anzeigen (Lock läuft nach 2 Min ab)
+        // Nach 270 Sekunden (4:30 Min) Warnung anzeigen (Lock läuft nach 5 Min ab)
         lockWarningTimeout = setTimeout(function() {
             const paraDiv = document.querySelector('[data-paragraph-id="' + paragraphId + '"]');
             if (paraDiv && paraDiv.classList.contains('editing')) {
-                alert('⚠️ Warnung: Ihr Bearbeitungs-Lock läuft in 15 Sekunden ab!\n\nBitte speichern Sie jetzt oder Ihre Änderungen gehen verloren.');
+                alert('⚠️ Warnung: Ihr Bearbeitungs-Lock läuft in 30 Sekunden ab!\n\nBitte speichern Sie jetzt oder Ihre Änderungen gehen verloren.');
             }
-        }, 105000); // 105 Sekunden = 1:45 Min
+        }, 270000); // 270 Sekunden = 4:30 Min
     }
 
     function clearLockWarning() {
