@@ -209,7 +209,7 @@ function render_user_notifications($pdo, $member_id) {
         return; // Keine Meldungen
     }
 
-    echo '<div style="background: #f9f9f9; padding: 10px 15px; margin-bottom: 20px; border-radius: 6px; border: 2px solid #2196f3;">';
+    echo '<div style="background: #f9f9f9; padding: 10px 15px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #ffc107; border-left: 4px solid #ffc107;">';
 
     foreach ($notifications as $notif) {
         echo '<div style="margin-bottom: ' . (end($notifications) === $notif ? '0' : '10px') . ';">';
@@ -220,7 +220,7 @@ function render_user_notifications($pdo, $member_id) {
             // Abwesenheiten: Text + Button
             echo '<strong style="color: #333;">Abwesenheiten:</strong> ' . $notif['text'];
             if (isset($notif['button']) && $notif['button']) {
-                echo ' <a href="' . $notif['link'] . '" style="display: inline-block; margin-left: 10px; padding: 4px 12px; background: #2196f3; color: white; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 600;">' . $notif['link_text'] . '</a>';
+                echo ' <a href="' . $notif['link'] . '" style="display: inline-block; margin-left: 10px; padding: 4px 12px; background: #ffc107; color: #333; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 600;">' . $notif['link_text'] . '</a>';
             }
         } elseif ($notif['type'] === 'summary') {
             // Zusammenfassung: Nur Text, kein Button
@@ -229,7 +229,7 @@ function render_user_notifications($pdo, $member_id) {
             // Andere: Text + Button
             echo $notif['text'];
             if (isset($notif['button']) && $notif['button']) {
-                echo ' <a href="' . $notif['link'] . '" style="display: inline-block; margin-left: 10px; padding: 4px 12px; background: #2196f3; color: white; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 600;">' . $notif['link_text'] . '</a>';
+                echo ' <a href="' . $notif['link'] . '" style="display: inline-block; margin-left: 10px; padding: 4px 12px; background: #ffc107; color: #333; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 600;">' . $notif['link_text'] . '</a>';
             }
         }
 

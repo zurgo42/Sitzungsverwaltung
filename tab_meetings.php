@@ -59,10 +59,10 @@ require_once 'module_notifications.php';
 }
 </style>
 
-<h2>🤝 Sitzungen verwalten</h2>
-
 <!-- BENACHRICHTIGUNGEN -->
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
+<h2>🤝 Sitzungen verwalten</h2>
 
 <?php if (isset($_GET['success'])): ?>
     <div class="message">
@@ -301,7 +301,7 @@ require_once 'module_notifications.php';
                         }
                         ?>
                         <br><strong>Status:</strong>
-                        <span class="meeting-status-badge <?php echo $m['status']; ?>">
+                        <span class="meeting-status-badge <?php echo $m['status']; ?>" <?php echo (in_array($m['status'], ['ended', 'protocol_ready'])) ? 'style="color: #f44336; font-weight: bold;"' : ''; ?>>
                             <?php
                             switch($m['status']) {
                                 case 'preparation': echo '📝 In Vorbereitung'; break;
@@ -558,18 +558,18 @@ function toggleLeadershipRolesEdit(meetingId) {
 // Wählt nur Vorstand, Geschäftsführung und Assistenz aus
 function toggleTopManagement() {
     const checkboxes = document.querySelectorAll('.participant-checkbox');
-    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz'];
+    const topRoles = ['vorstand', 'geschäftsführung', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role');
+        const role = cb.getAttribute('data-role').toLowerCase();
         cb.checked = topRoles.includes(role);
     });
 }
 
 function toggleTopManagementEdit(meetingId) {
     const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
-    const topRoles = ['Vorstand', 'Geschäftsführung', 'Assistenz'];
+    const topRoles = ['vorstand', 'geschäftsführung', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role');
+        const role = cb.getAttribute('data-role').toLowerCase();
         cb.checked = topRoles.includes(role);
     });
 }

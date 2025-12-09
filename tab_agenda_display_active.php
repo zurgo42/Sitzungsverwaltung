@@ -322,18 +322,18 @@ foreach ($agenda_items as $item):
                 |
                 Dauer: <?php echo $item['estimated_duration']; ?> Min.
                 
-                <?php 
+                <?php
                 // Zeitbedarfsberechnung
                 $remaining = calculate_remaining_time($pdo, $agenda_items, $item_index);
                 if ($remaining['regular'] > 0 || $remaining['confidential'] > 0):
                 ?>
-                    <br><strong>Geschätzter Zeitbedarf ab hier:</strong>
+                    <br><span style="background: #fff3cd; padding: 4px 8px; border-radius: 4px; display: inline-block;"><strong>Geschätzter Zeitbedarf ab hier:</strong>
                     <?php if ($remaining['regular'] > 0): ?>
-                        Öffentlich: ~<?php echo $remaining['regular']; ?> Min.
+                        <strong>Öffentlich: ~<?php echo $remaining['regular']; ?> Min.</strong>
                     <?php endif; ?>
                     <?php if ($remaining['confidential'] > 0): ?>
-                        | Vertraulich: ~<?php echo $remaining['confidential']; ?> Min.
-                    <?php endif; ?>
+                        <strong>| Vertraulich: ~<?php echo $remaining['confidential']; ?> Min.</strong>
+                    <?php endif; ?></span>
                 <?php endif; ?>
             </div>
         <?php endif; ?>

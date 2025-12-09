@@ -533,10 +533,10 @@ function copyToClipboard(text) {
 }
 </script>
 
-<h2>📆 Terminplanung & Umfragen</h2>
-
 <!-- BENACHRICHTIGUNGEN -->
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
+<h2>📆 Terminplanung & Umfragen</h2>
 
 
 <?php
@@ -850,6 +850,13 @@ if (isset($_SESSION['error'])) {
                             }
                         ?>
                     </p>
+                    <?php if (!empty($poll['meeting_id'])): ?>
+                    <p style="margin-top: 10px;">
+                        <a href="?tab=meetings" class="btn-primary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">
+                            📅 Zur erstellten Sitzung
+                        </a>
+                    </p>
+                    <?php endif; ?>
                 <?php endif; endif; ?>
             </div>
         </div>

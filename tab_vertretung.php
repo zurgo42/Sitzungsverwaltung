@@ -20,10 +20,10 @@ $absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
 $my_absences = get_absences_with_names($pdo, "a.member_id = ?", [$current_user['member_id']]);
 ?>
 
-<h2>🏖️ Vertretungen & Abwesenheiten</h2>
-
 <!-- BENACHRICHTIGUNGEN -->
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
+<h2>🏖️ Vertretungen & Abwesenheiten</h2>
 
 <?php if (isset($_GET['msg']) && $_GET['msg'] === 'absence_added'): ?>
     <div class="message">✅ Abwesenheit erfolgreich eingetragen!</div>

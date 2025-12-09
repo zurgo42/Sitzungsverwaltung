@@ -23,10 +23,11 @@ if ($meeting_id > 0) {
 
     if ($meeting) {
         echo '<div class="protocol-view">';
-        echo '<h2>📋 Protokoll anzeigen</h2>';
 
         // Benachrichtigungen anzeigen
         render_user_notifications($pdo, $current_user['member_id']);
+
+        echo '<h2>📋 Protokoll anzeigen</h2>';
 
         echo '<p><a href="?tab=protokolle" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">&larr; Zurück zur Übersicht</a></p>';
        
@@ -58,7 +59,10 @@ if ($meeting_id > 0) {
 } else {
     // Protokoll-Übersicht mit Suchfunktion
     ?>
-    
+
+    <!-- BENACHRICHTIGUNGEN -->
+    <?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
     <h2>📋 Protokolle</h2>
     
     <div class="search-box">

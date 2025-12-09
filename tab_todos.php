@@ -197,10 +197,10 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 // ============================================
 ?>
 
-<h2>Meine ToDos</h2>
-
 <!-- BENACHRICHTIGUNGEN -->
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
+<h2>Meine ToDos</h2>
 
 
 <?php if (empty($own_todos_open)): ?>

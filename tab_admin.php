@@ -81,10 +81,10 @@ $all_documents = get_documents($pdo, ['status' => 'active'], 99);
 }
 </style>
 
-<h2>⚙️ Admin-Verwaltung</h2>
-
 <!-- BENACHRICHTIGUNGEN -->
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
+
+<h2>⚙️ Admin-Verwaltung</h2>
 
 
 <?php if ($success_message): ?>
