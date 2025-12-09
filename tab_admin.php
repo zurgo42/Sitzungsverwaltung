@@ -23,8 +23,8 @@ $all_documents = get_documents($pdo, ['status' => 'active'], 99);
 <style>
 /* Hellere, besser lesbare Überschriften */
 .admin-section-header {
-    color: #fff !important;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #333 !important;
+    background: #ffc107 !important;
     padding: 8px 15px !important;
     border-radius: 6px !important;
     margin-bottom: 10px !important;
@@ -38,7 +38,7 @@ $all_documents = get_documents($pdo, ['status' => 'active'], 99);
 }
 
 .admin-section-header:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+    background: #ffb300 !important;
 }
 
 .admin-section-header::after {
@@ -296,11 +296,16 @@ $all_documents = get_documents($pdo, ['status' => 'active'], 99);
                 <label>E-Mail:</label>
                 <input type="email" name="email" required>
             </div>
+            <div class="form-group">
+                <label>Mitgliedsnummer (optional):</label>
+                <input type="text" name="membership_number">
+            </div>
             <div class="form-row">
                 <div class="form-group">
                     <label>Rolle:</label>
                     <select name="role" required>
                         <option value="mitglied">Mitglied</option>
+                        <option value="führungsteam">Führungsteam</option>
                         <option value="assistenz">Assistenz</option>
                         <option value="gf">Geschäftsführung</option>
                         <option value="vorstand">Vorstand</option>
@@ -381,11 +386,16 @@ $all_documents = get_documents($pdo, ['status' => 'active'], 99);
                     <label>E-Mail:</label>
                     <input type="email" name="email" id="edit_email" required>
                 </div>
+                <div class="form-group">
+                    <label>Mitgliedsnummer (optional):</label>
+                    <input type="text" name="membership_number" id="edit_membership_number">
+                </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Rolle:</label>
                         <select name="role" id="edit_role" required>
                             <option value="mitglied">Mitglied</option>
+                            <option value="führungsteam">Führungsteam</option>
                             <option value="assistenz">Assistenz</option>
                             <option value="gf">Geschäftsführung</option>
                             <option value="vorstand">Vorstand</option>
@@ -971,6 +981,7 @@ function editMember(memberId) {
         document.getElementById('edit_first_name').value = member.first_name;
         document.getElementById('edit_last_name').value = member.last_name;
         document.getElementById('edit_email').value = member.email;
+        document.getElementById('edit_membership_number').value = member.membership_number || '';
         document.getElementById('edit_role').value = member.role;
         document.getElementById('edit_is_admin').checked = member.is_admin == 1;
         document.getElementById('edit_is_confidential').checked = member.is_confidential == 1;
