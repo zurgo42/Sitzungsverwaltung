@@ -2907,3 +2907,175 @@ body.dark-mode [style*="background:#fff3cd"] {
     color: var(--text-primary) !important;
     border-color: var(--warning) !important;
 }
+
+/* Additional comprehensive overrides for remaining white/light elements */
+
+/* Tabs/Navigation - force dark on all occasions including mobile */
+body.dark-mode .tabs,
+body.dark-mode .navigation,
+body.dark-mode .tabs a,
+body.dark-mode .navigation a {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .tabs a.active,
+body.dark-mode .navigation a.active {
+    background: var(--primary-light) !important;
+    color: var(--bg-primary) !important;
+}
+
+body.dark-mode .tabs a:hover,
+body.dark-mode .navigation a:hover {
+    background: var(--hover-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Search inputs (Stichwortsuche in Termine, Protokolle etc.) */
+body.dark-mode .search-input,
+body.dark-mode .search-input-group input,
+body.dark-mode input.search-input {
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .search-results-count {
+    color: var(--text-secondary) !important;
+}
+
+/* Document cards/filecards */
+body.dark-mode .document-filecard,
+body.dark-mode .filecard,
+body.dark-mode .doc-card {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .document-filecard-title,
+body.dark-mode .document-title,
+body.dark-mode .doc-title {
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .document-filecard-meta,
+body.dark-mode .document-meta,
+body.dark-mode .doc-meta {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-mode .document-filecard-meta span,
+body.dark-mode .doc-badge {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .document-filecard-desc,
+body.dark-mode .doc-description {
+    color: var(--text-secondary) !important;
+}
+
+/* ToDo items in Erledigen tab */
+body.dark-mode .todo-item,
+body.dark-mode .task-item,
+body.dark-mode .todo-card,
+body.dark-mode .task-card {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .todo-title,
+body.dark-mode .task-title {
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .todo-description,
+body.dark-mode .task-description {
+    color: var(--text-secondary) !important;
+}
+
+/* Meinungsbilder / Polls */
+body.dark-mode .poll-container,
+body.dark-mode .opinion-container,
+body.dark-mode .poll-item,
+body.dark-mode .opinion-item {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .poll-title,
+body.dark-mode .opinion-title {
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .poll-option,
+body.dark-mode .opinion-option {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Diskussion & Übersicht */
+body.dark-mode .discussion-container,
+body.dark-mode .discussion-item,
+body.dark-mode .comment-container,
+body.dark-mode .comment-item {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .discussion-title,
+body.dark-mode .comment-title {
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .discussion-content,
+body.dark-mode .comment-content {
+    color: var(--text-primary) !important;
+}
+
+/* Überschriften in Dokumente und allen anderen Bereichen */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6 {
+    color: var(--text-primary) !important;
+}
+
+/* Paragraph text */
+body.dark-mode p {
+    color: var(--text-primary);
+}
+
+/* Spans that might have color set */
+body.dark-mode span[style*="color: #666"],
+body.dark-mode span[style*="color:#666"],
+body.dark-mode span[style*="color: #999"],
+body.dark-mode span[style*="color:#999"] {
+    color: var(--text-secondary) !important;
+}
+
+/* Mobile hamburger menu */
+body.dark-mode .hamburger-menu {
+    background: rgba(255,255,255,0.1) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .hamburger-menu .bar {
+    background: var(--text-primary) !important;
+}
+
+/* Ensure all divs with inline white backgrounds are dark */
+body.dark-mode div[style*="background:white"],
+body.dark-mode div[style*="background: white"],
+body.dark-mode section[style*="background:white"],
+body.dark-mode section[style*="background: white"] {
+    background: var(--bg-secondary) !important;
+}
