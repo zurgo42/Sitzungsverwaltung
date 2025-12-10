@@ -32,13 +32,14 @@ if (!$text_id || !$paragraph1_id || !$paragraph2_id) {
 
 try {
     // Prüfen ob User Zugriff hat
-    $stmt = $pdo->prepare("
-        SELECT ct.text_id, ct.status
-        FROM svcollab_texts ct
-        LEFT JOIN svcollab_text_participants p ON ct.text_id = p.text_id AND p.member_id = ?
-        WHERE ct.text_id = ? AND (p.member_id IS NOT NULL OR ct.created_by = ?)
-    ");
-    $stmt->execute([$current_user_id, $text_id, $current_user_id]);
+    if (!hasCollabTextAccess($pdo, $text_id, $current_user_id)) {
+        echo json_encode(['success' => false, 'error' => 'Kein Zugriff']);
+        exit;
+    }
+
+    // Text-Status holen
+    $stmt = $pdo->prepare("SELECT status FROM svcollab_texts WHERE text_id = ?");
+    $stmt->execute([$text_id]);
     $text = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$text) {
