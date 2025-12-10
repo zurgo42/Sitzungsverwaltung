@@ -468,9 +468,6 @@ if ($view === 'editor') {
     }
 
     $is_initiator = ($text['initiator_member_id'] == $current_user['member_id']);
-
-    // Versionen laden für Anzeige
-    $versions = getTextVersions($pdo, $text_id);
     ?>
 
     <div class="card">
@@ -498,10 +495,6 @@ if ($view === 'editor') {
         <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
             <button onclick="addParagraph()" class="btn-primary">+ Absatz hinzufügen</button>
             <button onclick="showPreview()" class="btn-secondary">👁️ Vorschau</button>
-            <button onclick="createVersionSnapshot()" class="btn-secondary">💾 Version speichern</button>
-            <button onclick="toggleVersionsEditor()" class="btn-secondary" id="toggleVersionsEditorBtn">
-                📚 Versionen (<?php echo count($versions); ?>)
-            </button>
             <?php if ($is_initiator): ?>
                 <button onclick="finalizeText()" class="btn-danger" style="margin-left: auto;">
                     ✅ Text finalisieren
@@ -524,37 +517,6 @@ if ($view === 'editor') {
                 Noch keine Absätze vorhanden. Klicken Sie auf "+ Absatz hinzufügen" um zu starten.
             </p>
         <?php endif; ?>
-
-        <!-- Versionshistorie (versteckt) -->
-        <div id="versionsEditorContainer" style="display: none; margin-top: 30px; border-top: 2px solid #ddd; padding-top: 20px;">
-            <h3>📚 Versionshistorie</h3>
-
-            <?php if (empty($versions)): ?>
-                <p style="color: #999; font-style: italic;">Noch keine Versionen gespeichert. Klicken Sie auf "💾 Version speichern" um eine Version zu erstellen.</p>
-            <?php else: ?>
-                <div style="display: grid; gap: 15px;">
-                    <?php foreach ($versions as $version): ?>
-                        <div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 15px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <div>
-                                    <strong>Version <?php echo $version['version_number']; ?></strong>
-                                    <?php if ($version['version_note']): ?>
-                                        <span style="color: #666;"> - <?php echo htmlspecialchars($version['version_note']); ?></span>
-                                    <?php endif; ?>
-                                </div>
-                                <button onclick="showVersionEditor(<?php echo $version['version_number']; ?>)" class="btn-secondary" style="font-size: 0.85em;">
-                                    👁️ Anzeigen
-                                </button>
-                            </div>
-                            <p style="font-size: 0.85em; color: #999; margin: 0;">
-                                Erstellt von <?php echo htmlspecialchars($version['first_name'] . ' ' . $version['last_name']); ?>
-                                am <?php echo date('d.m.Y H:i', strtotime($version['created_at'])); ?>
-                            </p>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
     </div>
 
     <!-- Vorschau-Dialog -->
@@ -581,15 +543,6 @@ if ($view === 'editor') {
                 <button onclick="confirmFinalize()" class="btn-danger">Ja, finalisieren</button>
                 <button onclick="hideFinalizeDialog()" class="btn-secondary">Abbrechen</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Version-Anzeige-Dialog (Editor) -->
-    <div id="versionDialogEditor" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 800px; width: 90%; margin: 20px; max-height: 80vh; overflow-y: auto;">
-            <h3 id="versionDialogEditorTitle">Version X</h3>
-            <div id="versionDialogEditorContent" class="text-preview">Lade...</div>
-            <button onclick="hideVersionDialogEditor()" class="btn-secondary" style="margin-top: 20px;">Schließen</button>
         </div>
     </div>
 
@@ -630,8 +583,8 @@ if ($view === 'editor') {
 
     // Polling für Echtzeit-Updates
     function startPolling() {
-        // Polling alle 5 Sekunden für bessere Performance (XAMPP-optimiert)
-        pollingInterval = setInterval(fetchUpdates, 5000);
+        // Polling alle 10 Sekunden für bessere Performance (XAMPP-optimiert)
+        pollingInterval = setInterval(fetchUpdates, 10000);
     }
 
     function fetchUpdates() {
@@ -1102,33 +1055,6 @@ if ($view === 'editor') {
         document.getElementById('previewDialog').style.display = 'none';
     }
 
-    // Version-Snapshot erstellen
-    function createVersionSnapshot() {
-        const note = prompt('Optionale Notiz zu dieser Version:', '');
-        if (note === null) return; // Abgebrochen
-
-        fetch('api/collab_text_create_version.php', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                text_id: TEXT_ID,
-                note: note
-            })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                alert('Version ' + data.version_number + ' erfolgreich gespeichert!');
-            } else {
-                alert('Fehler: ' + (data.error || 'Unbekannt'));
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert('Netzwerkfehler');
-        });
-    }
-
     // Finalisieren
     function finalizeText() {
         document.getElementById('finalizeDialog').style.display = 'flex';
@@ -1183,47 +1109,6 @@ if ($view === 'editor') {
             startPolling();
             startHeartbeat();
         });
-    }
-
-    // Versionshistorie im Editor anzeigen/verbergen
-    function toggleVersionsEditor() {
-        const container = document.getElementById('versionsEditorContainer');
-        const btn = document.getElementById('toggleVersionsEditorBtn');
-
-        if (container.style.display === 'none') {
-            container.style.display = 'block';
-            btn.textContent = '📚 Versionen verbergen';
-        } else {
-            container.style.display = 'none';
-            btn.textContent = '📚 Versionen (<?php echo count($versions); ?>)';
-        }
-    }
-
-    function showVersionEditor(versionNumber) {
-        fetch('api/collab_text_get_version.php?text_id=' + TEXT_ID + '&version=' + versionNumber)
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('versionDialogEditorTitle').textContent =
-                        'Version ' + versionNumber +
-                        (data.version.version_note ? ' - ' + data.version.version_note : '');
-
-                    document.getElementById('versionDialogEditorContent').innerHTML =
-                        data.version.content.replace(/\n/g, '<br>');
-
-                    document.getElementById('versionDialogEditor').style.display = 'flex';
-                } else {
-                    alert('Fehler beim Laden der Version');
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert('Netzwerkfehler');
-            });
-    }
-
-    function hideVersionDialogEditor() {
-        document.getElementById('versionDialogEditor').style.display = 'none';
     }
 
     // Cleanup bei Seitenverlassen
@@ -1294,9 +1179,6 @@ if ($view === 'final') {
     // Jeden Absatz trimmen (Whitespace/Einrückung entfernen) und dann verbinden
     $contents = array_map('trim', array_column($paragraphs, 'content'));
     $full_text = implode("\n\n", $contents);
-
-    // Versionen laden
-    $versions = getTextVersions($pdo, $text_id);
     ?>
 
     <div class="card">
@@ -1325,9 +1207,6 @@ if ($view === 'final') {
         <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
             <button onclick="copyToClipboard()" class="btn-primary">📋 In Zwischenablage kopieren</button>
             <button onclick="printText()" class="btn-secondary">🖨️ Drucken</button>
-            <button onclick="toggleVersions()" class="btn-secondary" id="toggleVersionsBtn">
-                📚 Versionshistorie anzeigen (<?php echo count($versions); ?>)
-            </button>
             <?php
             // Lösch-Button: Nur für Ersteller oder Admin
             $can_delete = ($text['initiator_member_id'] == $current_user['member_id']) || $current_user['is_admin'];
@@ -1340,46 +1219,6 @@ if ($view === 'final') {
         <!-- Finaler Text -->
         <div id="finalTextContent" class="text-preview" style="background: white; border: 2px solid #28a745; white-space: pre-wrap;">
             <?php echo htmlspecialchars($full_text); ?>
-        </div>
-
-        <!-- Versionshistorie (versteckt) -->
-        <div id="versionsContainer" style="display: none; margin-top: 30px;">
-            <h3>📚 Versionshistorie</h3>
-
-            <?php if (empty($versions)): ?>
-                <p style="color: #999; font-style: italic;">Keine Versionen vorhanden.</p>
-            <?php else: ?>
-                <div style="display: grid; gap: 15px;">
-                    <?php foreach ($versions as $version): ?>
-                        <div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 15px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <div>
-                                    <strong>Version <?php echo $version['version_number']; ?></strong>
-                                    <?php if ($version['version_note']): ?>
-                                        <span style="color: #666;"> - <?php echo htmlspecialchars($version['version_note']); ?></span>
-                                    <?php endif; ?>
-                                </div>
-                                <button onclick="showVersion(<?php echo $version['version_number']; ?>)" class="btn-secondary" style="font-size: 0.85em;">
-                                    👁️ Anzeigen
-                                </button>
-                            </div>
-                            <p style="font-size: 0.85em; color: #999; margin: 0;">
-                                Erstellt von <?php echo htmlspecialchars($version['first_name'] . ' ' . $version['last_name']); ?>
-                                am <?php echo date('d.m.Y H:i', strtotime($version['created_at'])); ?>
-                            </p>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Version-Anzeige-Dialog -->
-    <div id="versionDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 800px; width: 90%; margin: 20px; max-height: 80vh; overflow-y: auto;">
-            <h3 id="versionDialogTitle">Version X</h3>
-            <div id="versionDialogContent" class="text-preview">Lade...</div>
-            <button onclick="hideVersionDialog()" class="btn-secondary" style="margin-top: 20px;">Schließen</button>
         </div>
     </div>
 
@@ -1396,48 +1235,6 @@ if ($view === 'final') {
 
     function printText() {
         window.print();
-    }
-
-    function toggleVersions() {
-        const container = document.getElementById('versionsContainer');
-        const btn = document.getElementById('toggleVersionsBtn');
-
-        if (container.style.display === 'none') {
-            container.style.display = 'block';
-            btn.textContent = '📚 Versionshistorie verbergen';
-        } else {
-            container.style.display = 'none';
-            btn.textContent = '📚 Versionshistorie anzeigen (<?php echo count($versions); ?>)';
-        }
-    }
-
-    function showVersion(versionNumber) {
-        const textId = <?php echo $text_id; ?>;
-
-        fetch('api/collab_text_get_version.php?text_id=' + textId + '&version=' + versionNumber)
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('versionDialogTitle').textContent =
-                        'Version ' + versionNumber +
-                        (data.version.version_note ? ' - ' + data.version.version_note : '');
-
-                    document.getElementById('versionDialogContent').innerHTML =
-                        data.version.content.replace(/\n/g, '<br>');
-
-                    document.getElementById('versionDialog').style.display = 'flex';
-                } else {
-                    alert('Fehler beim Laden der Version');
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert('Netzwerkfehler');
-            });
-    }
-
-    function hideVersionDialog() {
-        document.getElementById('versionDialog').style.display = 'none';
     }
 
     function deleteTextFinal() {

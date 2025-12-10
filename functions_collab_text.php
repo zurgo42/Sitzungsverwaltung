@@ -79,13 +79,6 @@ function createCollabText($pdo, $meeting_id, $initiator_member_id, $title, $init
             $stmt->execute([$text_id]);
         }
 
-        // Erste Version speichern
-        $stmt = $pdo->prepare("
-            INSERT INTO svcollab_text_versions (text_id, version_number, content, created_by, version_note)
-            VALUES (?, 1, ?, ?, 'Initiale Version')
-        ");
-        $stmt->execute([$text_id, $initial_content, $initiator_member_id]);
-
         $pdo->commit();
         return $text_id;
 
@@ -430,56 +423,6 @@ function getOnlineParticipants($pdo, $text_id) {
 }
 
 /**
- * Erstellt eine neue Version (Snapshot) des aktuellen Textes
- *
- * @param PDO $pdo
- * @param int $text_id
- * @param int $member_id User der die Version erstellt
- * @param string $note Optional: Notiz zur Version
- * @return int|false version_number bei Erfolg
- */
-function createTextVersion($pdo, $text_id, $member_id, $note = '') {
-    try {
-        // Alle Absätze zu einem Text zusammenfügen
-        $stmt = $pdo->prepare("
-            SELECT content
-            FROM svcollab_text_paragraphs
-            WHERE text_id = ?
-            ORDER BY paragraph_order ASC
-        ");
-        $stmt->execute([$text_id]);
-        $paragraphs = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Jeden Absatz trimmen (Whitespace entfernen) und dann verbinden
-        $contents = array_map('trim', array_column($paragraphs, 'content'));
-        $full_content = implode("\n\n", $contents);
-
-        // Höchste Versionsnummer ermitteln
-        $stmt = $pdo->prepare("
-            SELECT MAX(version_number) as max_version
-            FROM svcollab_text_versions
-            WHERE text_id = ?
-        ");
-        $stmt->execute([$text_id]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $new_version = ($result['max_version'] ?? 0) + 1;
-
-        // Version speichern
-        $stmt = $pdo->prepare("
-            INSERT INTO svcollab_text_versions (text_id, version_number, content, created_by, version_note)
-            VALUES (?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([$text_id, $new_version, $full_content, $member_id, $note]);
-
-        return $new_version;
-
-    } catch (PDOException $e) {
-        error_log("createTextVersion Error: " . $e->getMessage());
-        return false;
-    }
-}
-
-/**
  * Finalisiert einen Text (beendet Bearbeitung)
  *
  * @param PDO $pdo
@@ -503,9 +446,6 @@ function finalizeCollabText($pdo, $text_id, $member_id, $final_name) {
 
         $pdo->beginTransaction();
 
-        // Finale Version erstellen
-        createTextVersion($pdo, $text_id, $member_id, 'Finale Version');
-
         // Alle Locks aufheben
         $stmt = $pdo->prepare("
             DELETE l FROM svcollab_text_locks l
@@ -528,56 +468,6 @@ function finalizeCollabText($pdo, $text_id, $member_id, $final_name) {
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("finalizeCollabText Error: " . $e->getMessage());
-        return false;
-    }
-}
-
-/**
- * Holt alle Versionen eines Textes
- *
- * @param PDO $pdo
- * @param int $text_id
- * @return array Liste von Versionen
- */
-function getTextVersions($pdo, $text_id) {
-    try {
-        $stmt = $pdo->prepare("
-            SELECT v.*, m.first_name, m.last_name
-            FROM svcollab_text_versions v
-            JOIN svmembers m ON v.created_by = m.member_id
-            WHERE v.text_id = ?
-            ORDER BY v.version_number DESC
-        ");
-        $stmt->execute([$text_id]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    } catch (PDOException $e) {
-        error_log("getTextVersions Error: " . $e->getMessage());
-        return [];
-    }
-}
-
-/**
- * Holt eine bestimmte Version
- *
- * @param PDO $pdo
- * @param int $text_id
- * @param int $version_number
- * @return array|false Version-Daten
- */
-function getTextVersion($pdo, $text_id, $version_number) {
-    try {
-        $stmt = $pdo->prepare("
-            SELECT v.*, m.first_name, m.last_name
-            FROM svcollab_text_versions v
-            JOIN svmembers m ON v.created_by = m.member_id
-            WHERE v.text_id = ? AND v.version_number = ?
-        ");
-        $stmt->execute([$text_id, $version_number]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-
-    } catch (PDOException $e) {
-        error_log("getTextVersion Error: " . $e->getMessage());
         return false;
     }
 }
