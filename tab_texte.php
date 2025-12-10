@@ -603,6 +603,7 @@ if ($view === 'editor') {
     let lockWarningTimeout = null;
     let lockTimerInterval = null;
     let lockTimeRemaining = 0;
+    let lockHeartbeatInterval = null;
 
     // Initialisierung
     document.addEventListener('DOMContentLoaded', function() {
@@ -774,8 +775,42 @@ if ($view === 'editor') {
             <span id="lockTimer_${paragraphId}" style="margin-left: 15px; font-weight: bold; color: #2196f3;">⏱️ 5:00</span>
         `;
 
-        // Timer starten (keine Warnung mehr nötig - Auto-Save greift)
+        // Timer und Heartbeat starten
         startLockTimer(paragraphId);
+        startLockHeartbeat(paragraphId);
+    }
+
+    function startLockHeartbeat(paragraphId) {
+        // Stoppe alten Heartbeat falls vorhanden
+        if (lockHeartbeatInterval) {
+            clearInterval(lockHeartbeatInterval);
+        }
+
+        // Alle 60 Sekunden Lock-Activity aktualisieren
+        lockHeartbeatInterval = setInterval(function() {
+            fetch('api/collab_text_lock_paragraph.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    paragraph_id: paragraphId,
+                    action: 'lock'
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    console.warn('Lock-Heartbeat fehlgeschlagen:', data.message);
+                }
+            })
+            .catch(err => console.error('Lock-Heartbeat Fehler:', err));
+        }, 60000); // Alle 60 Sekunden
+    }
+
+    function stopLockHeartbeat() {
+        if (lockHeartbeatInterval) {
+            clearInterval(lockHeartbeatInterval);
+            lockHeartbeatInterval = null;
+        }
     }
 
     function startLockTimer(paragraphId) {
@@ -807,12 +842,21 @@ if ($view === 'editor') {
                 timerEl.textContent = '⏱️ ' + timeString;
             }
 
-            // Bei 10 Sekunden: Auto-Speichern (sicher bevor Lock abläuft)
-            if (lockTimeRemaining === 10) {
+            // Bei 30 Sekunden: Auto-Speichern (großer Puffer bevor Lock abläuft)
+            if (lockTimeRemaining === 30) {
+                console.log('Auto-Save triggert bei 30 Sekunden verbleibend...');
                 clearInterval(lockTimerInterval);
                 lockTimerInterval = null;
 
                 // Auto-Speichern und Lock freigeben
+                autoSaveParagraph(paragraphId);
+            }
+
+            // Sicherheits-Check: Bei 5 Sekunden Notfall-Speichern falls 30-Sekunden-Trigger verpasst wurde
+            if (lockTimeRemaining === 5) {
+                console.log('Notfall Auto-Save bei 5 Sekunden...');
+                clearInterval(lockTimerInterval);
+                lockTimerInterval = null;
                 autoSaveParagraph(paragraphId);
             }
         }, 1000);
@@ -824,6 +868,9 @@ if ($view === 'editor') {
             lockTimerInterval = null;
         }
         lockTimeRemaining = 0;
+
+        // Heartbeat auch stoppen
+        stopLockHeartbeat();
     }
 
     function autoSaveParagraph(paragraphId) {

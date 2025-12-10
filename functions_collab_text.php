@@ -241,15 +241,18 @@ function unlockParagraph($pdo, $paragraph_id, $member_id) {
  */
 function saveParagraph($pdo, $paragraph_id, $member_id, $content) {
     try {
-        // Prüfen ob User den Lock hat
+        // Prüfen ob User einen GÜLTIGEN Lock hat (nicht abgelaufen)
         $stmt = $pdo->prepare("
-            SELECT member_id FROM svcollab_text_locks WHERE paragraph_id = ?
+            SELECT member_id, last_activity
+            FROM svcollab_text_locks
+            WHERE paragraph_id = ?
+            AND last_activity > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
         ");
         $stmt->execute([$paragraph_id]);
         $lock = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$lock || $lock['member_id'] != $member_id) {
-            return false; // Kein Lock oder nicht der Besitzer
+            return false; // Kein Lock, nicht der Besitzer, oder Lock abgelaufen
         }
 
         // Content trimmen (führende/nachfolgende Whitespace entfernen)

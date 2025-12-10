@@ -22,6 +22,7 @@ session_write_close();
 
 $data = json_decode(file_get_contents('php://input'), true);
 $paragraph_id = isset($data['paragraph_id']) ? (int)$data['paragraph_id'] : 0;
+$action = isset($data['action']) ? $data['action'] : 'lock';
 
 if ($paragraph_id <= 0) {
     http_response_code(400);
@@ -44,6 +45,18 @@ if (!$para || !hasCollabTextAccess($pdo, $para['text_id'], $member_id)) {
     exit;
 }
 
+// Unlock Action
+if ($action === 'unlock') {
+    $success = unlockParagraph($pdo, $paragraph_id, $member_id);
+    if ($success) {
+        echo json_encode(['success' => true, 'message' => 'Paragraph unlocked']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to unlock paragraph']);
+    }
+    exit;
+}
+
+// Lock Action (default)
 $success = lockParagraph($pdo, $paragraph_id, $member_id);
 
 if ($success) {
