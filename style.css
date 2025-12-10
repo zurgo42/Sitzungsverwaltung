@@ -2787,3 +2787,123 @@ body.dark-mode .alert {
     color: var(--text-primary);
     border-color: var(--warning);
 }
+
+/* Override ALL white backgrounds with !important */
+body.dark-mode [style*="background: white"],
+body.dark-mode [style*="background:white"],
+body.dark-mode [style*="background: #fff"],
+body.dark-mode [style*="background:#fff"],
+body.dark-mode [style*="background: #ffffff"],
+body.dark-mode [style*="background:#ffffff"] {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Override light gray backgrounds */
+body.dark-mode [style*="background: #f8f9fa"],
+body.dark-mode [style*="background:#f8f9fa"],
+body.dark-mode [style*="background: #f9f9f9"],
+body.dark-mode [style*="background:#f9f9f9"] {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Collab Text specific classes */
+body.dark-mode .collab-text-card {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .paragraph-container {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .paragraph-container.editing {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--primary-light) !important;
+}
+
+body.dark-mode .paragraph-container.locked {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--warning) !important;
+}
+
+body.dark-mode .text-preview {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Dialog/Modal Content - force dark backgrounds */
+body.dark-mode div[style*="background: white"][style*="padding: 30px"],
+body.dark-mode div[style*="background:white"][style*="padding: 30px"] {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Online users box */
+body.dark-mode .online-users {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-left-color: var(--primary-light) !important;
+}
+
+body.dark-mode .online-user-badge {
+    background: var(--primary-light) !important;
+    color: var(--bg-primary) !important;
+}
+
+/* Card class general override */
+body.dark-mode .card {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Textareas in edit mode */
+body.dark-mode .paragraph-edit-area {
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Labels should be visible */
+body.dark-mode label {
+    color: var(--text-primary) !important;
+}
+
+/* Paragraph headers and metadata */
+body.dark-mode .paragraph-header span,
+body.dark-mode .paragraph-lock-info {
+    color: var(--text-secondary) !important;
+}
+
+/* Status badges */
+body.dark-mode .collab-text-status {
+    filter: brightness(0.9);
+}
+
+/* Success/Info boxes with specific colors */
+body.dark-mode [style*="background: #e7f3ff"],
+body.dark-mode [style*="background:#e7f3ff"] {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-left-color: var(--primary-light) !important;
+}
+
+body.dark-mode [style*="background: #e8f5e9"],
+body.dark-mode [style*="background:#e8f5e9"] {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-left-color: var(--success) !important;
+}
+
+/* Yellow warning backgrounds */
+body.dark-mode [style*="background: #fff3cd"],
+body.dark-mode [style*="background:#fff3cd"] {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--warning) !important;
+}
