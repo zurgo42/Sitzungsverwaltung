@@ -3087,3 +3087,168 @@ body.dark-mode section[style*="background: white"] {
     background: var(--card-bg) !important;
     border: 2px solid var(--card-border) !important;
 }
+
+/* ============================================
+   SPEZIFISCHE BEREICHE - DUNKELBLAU + GELBER RAHMEN
+   ============================================ */
+
+/* TERMINE - Poll Cards und Date Suggestions */
+body.dark-mode .poll-card {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .date-suggestion-header,
+body.dark-mode .date-suggestion-row {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--card-border) !important;
+}
+
+/* SITZUNGEN - Meeting Cards */
+body.dark-mode .meeting-card-header,
+body.dark-mode .meeting-card-content,
+body.dark-mode .meeting-card-actions,
+body.dark-mode .meeting-edit-section,
+body.dark-mode .meeting-start-section {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .meeting-status-badge {
+    background: var(--card-border) !important;
+    color: var(--bg-primary) !important;
+}
+
+/* PROTOKOLLE - Stichwortsuche (verstärkt) */
+body.dark-mode .search-input,
+body.dark-mode input.search-input,
+body.dark-mode .search-input-group input[type="text"] {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+/* ERLEDIGEN - ToDo Cards und Tabellen */
+body.dark-mode .todo-filecard,
+body.dark-mode .todo-filecard-content,
+body.dark-mode .todo-filecard-tab {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .todo-filecard-title {
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .own-todos-done-section {
+    background: var(--card-bg) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .done-todos-table {
+    background: var(--card-bg) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .done-todos-table th,
+body.dark-mode .done-todos-table td {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--card-border) !important;
+}
+
+body.dark-mode .done-todos-cards {
+    background: var(--card-bg) !important;
+}
+
+/* ABWESENHEITEN - Admin Section */
+body.dark-mode .admin-section,
+body.dark-mode .admin-section-content {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .admin-section-header {
+    /* Keep yellow background for visibility but with dark yellow */
+    background: var(--card-border) !important;
+    color: #000 !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+/* MEINUNGSBILD - Opinion Container und Results */
+body.dark-mode .opinion-container,
+body.dark-mode .opinion-results,
+body.dark-mode .opinion-form {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .opinion-option,
+body.dark-mode .opinion-result-bar {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--card-border) !important;
+}
+
+/* DOKUMENTE - Filter, Titel, Cards und Tabellen */
+body.dark-mode .documents-header,
+body.dark-mode .filter-accordion,
+body.dark-mode .filter-content {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .documents-table {
+    background: var(--card-bg) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .documents-table th,
+body.dark-mode .documents-table td {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--card-border) !important;
+}
+
+body.dark-mode .document-filecard {
+    background: var(--card-bg) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .document-filecard-body {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Generische White-Background Overrides für inline styles */
+body.dark-mode [style*="background: #f0f8ff"],
+body.dark-mode [style*="background:#f0f8ff"],
+body.dark-mode [style*="background: white"],
+body.dark-mode [style*="background:white"] {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+/* Tables generell */
+body.dark-mode table,
+body.dark-mode .table {
+    background: var(--card-bg) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode table th,
+body.dark-mode table td,
+body.dark-mode .table th,
+body.dark-mode .table td {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--card-border) !important;
+}
