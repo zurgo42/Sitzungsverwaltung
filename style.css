@@ -2795,8 +2795,9 @@ body.dark-mode [style*="background: #fff"],
 body.dark-mode [style*="background:#fff"],
 body.dark-mode [style*="background: #ffffff"],
 body.dark-mode [style*="background:#ffffff"] {
-    background: var(--bg-secondary) !important;
+    background: var(--card-bg) !important;
     color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
 }
 
 /* Override light gray backgrounds */
@@ -2810,15 +2811,15 @@ body.dark-mode [style*="background:#f9f9f9"] {
 
 /* Collab Text specific classes */
 body.dark-mode .collab-text-card {
-    background: var(--bg-secondary) !important;
+    background: var(--card-bg) !important;
     color: var(--text-primary) !important;
-    border-color: var(--border-color) !important;
+    border: 2px solid var(--card-border) !important;
 }
 
 body.dark-mode .paragraph-container {
-    background: var(--bg-secondary) !important;
+    background: var(--card-bg) !important;
     color: var(--text-primary) !important;
-    border-color: var(--border-color) !important;
+    border: 2px solid var(--card-border) !important;
 }
 
 body.dark-mode .paragraph-container.editing {
@@ -2840,8 +2841,9 @@ body.dark-mode .text-preview {
 /* Dialog/Modal Content - force dark backgrounds */
 body.dark-mode div[style*="background: white"][style*="padding: 30px"],
 body.dark-mode div[style*="background:white"][style*="padding: 30px"] {
-    background: var(--bg-secondary) !important;
+    background: var(--card-bg) !important;
     color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
 }
 
 /* Online users box */
@@ -2856,10 +2858,11 @@ body.dark-mode .online-user-badge {
     color: var(--bg-primary) !important;
 }
 
-/* Card class general override */
+/* Card class general override - Dunkelblau mit dunkelgelbem Rahmen */
 body.dark-mode .card {
-    background: var(--bg-secondary) !important;
+    background: var(--card-bg) !important;
     color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
 }
 
 /* Textareas in edit mode */
@@ -2949,9 +2952,9 @@ body.dark-mode .search-results-count {
 body.dark-mode .document-filecard,
 body.dark-mode .filecard,
 body.dark-mode .doc-card {
-    background: var(--bg-secondary) !important;
+    background: var(--card-bg) !important;
     color: var(--text-primary) !important;
-    border-color: var(--border-color) !important;
+    border: 2px solid var(--card-border) !important;
 }
 
 body.dark-mode .document-filecard-title,
@@ -2982,9 +2985,9 @@ body.dark-mode .todo-item,
 body.dark-mode .task-item,
 body.dark-mode .todo-card,
 body.dark-mode .task-card {
-    background: var(--bg-secondary) !important;
+    background: var(--card-bg) !important;
     color: var(--text-primary) !important;
-    border-color: var(--border-color) !important;
+    border: 2px solid var(--card-border) !important;
 }
 
 body.dark-mode .todo-title,
@@ -3002,9 +3005,9 @@ body.dark-mode .poll-container,
 body.dark-mode .opinion-container,
 body.dark-mode .poll-item,
 body.dark-mode .opinion-item {
-    background: var(--bg-secondary) !important;
+    background: var(--card-bg) !important;
     color: var(--text-primary) !important;
-    border-color: var(--border-color) !important;
+    border: 2px solid var(--card-border) !important;
 }
 
 body.dark-mode .poll-title,
@@ -3024,9 +3027,9 @@ body.dark-mode .discussion-container,
 body.dark-mode .discussion-item,
 body.dark-mode .comment-container,
 body.dark-mode .comment-item {
-    background: var(--bg-secondary) !important;
+    background: var(--card-bg) !important;
     color: var(--text-primary) !important;
-    border-color: var(--border-color) !important;
+    border: 2px solid var(--card-border) !important;
 }
 
 body.dark-mode .discussion-title,
@@ -3077,5 +3080,6 @@ body.dark-mode div[style*="background:white"],
 body.dark-mode div[style*="background: white"],
 body.dark-mode section[style*="background:white"],
 body.dark-mode section[style*="background: white"] {
-    background: var(--bg-secondary) !important;
+    background: var(--card-bg) !important;
+    border: 2px solid var(--card-border) !important;
 }
