@@ -3106,10 +3106,20 @@ body.dark-mode .date-suggestion-row {
     border-color: var(--card-border) !important;
 }
 
-/* SITZUNGEN - Meeting Cards */
-body.dark-mode .meeting-card-header,
+/* SITZUNGEN - Meeting Cards (nur äußere Border) */
+body.dark-mode .meeting-card-header {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
 body.dark-mode .meeting-card-content,
-body.dark-mode .meeting-card-actions,
+body.dark-mode .meeting-card-actions {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: none !important; /* Keine innere Border */
+}
+
 body.dark-mode .meeting-edit-section,
 body.dark-mode .meeting-start-section {
     background: var(--card-bg) !important;
@@ -3122,13 +3132,28 @@ body.dark-mode .meeting-status-badge {
     color: var(--bg-primary) !important;
 }
 
-/* PROTOKOLLE - Stichwortsuche (verstärkt) */
+/* PROTOKOLLE - Stichwortsuche (verstärkt mit mehreren Selektoren) */
 body.dark-mode .search-input,
 body.dark-mode input.search-input,
-body.dark-mode .search-input-group input[type="text"] {
+body.dark-mode .search-input-group input[type="text"],
+body.dark-mode input[placeholder*="Stichwort"],
+body.dark-mode input[placeholder*="suchen"] {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
+}
+
+/* Anzeigen-Button dunkler */
+body.dark-mode button.btn-view,
+body.dark-mode .btn-view {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--card-border) !important;
+}
+
+body.dark-mode button.btn-view:hover,
+body.dark-mode .btn-view:hover {
+    background: var(--card-bg) !important;
 }
 
 /* ERLEDIGEN - ToDo Cards und Tabellen */
@@ -3152,6 +3177,14 @@ body.dark-mode .own-todos-done-section {
 body.dark-mode .done-todos-table {
     background: var(--card-bg) !important;
     border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .done-todos-table thead,
+body.dark-mode .done-todos-table thead tr,
+body.dark-mode .done-todos-table thead th {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--card-border) !important;
 }
 
 body.dark-mode .done-todos-table th,
@@ -3199,7 +3232,9 @@ body.dark-mode .opinion-result-bar {
 /* DOKUMENTE - Filter, Titel, Cards und Tabellen */
 body.dark-mode .documents-header,
 body.dark-mode .filter-accordion,
-body.dark-mode .filter-content {
+body.dark-mode .filter-accordion summary,
+body.dark-mode .filter-content,
+body.dark-mode details.filter-accordion {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
@@ -3244,6 +3279,17 @@ body.dark-mode .table {
     border: 2px solid var(--card-border) !important;
 }
 
+body.dark-mode table thead,
+body.dark-mode table thead tr,
+body.dark-mode table thead th,
+body.dark-mode .table thead,
+body.dark-mode .table thead tr,
+body.dark-mode .table thead th {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--card-border) !important;
+}
+
 body.dark-mode table th,
 body.dark-mode table td,
 body.dark-mode .table th,
@@ -3251,4 +3297,86 @@ body.dark-mode .table td {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border-color: var(--card-border) !important;
+}
+
+/* TAGESORDNUNG - Korpus und Items */
+body.dark-mode .tab-content,
+body.dark-mode .agenda-item,
+body.dark-mode .top-item {
+    background: var(--card-bg) !important;
+    color: var(--text-secondary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+/* Tagesordnung - keine gelben Rahmen um Teilnehmer */
+body.dark-mode .attendance-radio,
+body.dark-mode .participant-checkbox,
+body.dark-mode .form-group {
+    border: none !important;
+}
+
+/* Tagesordnung - Übersicht ohne gelben Rahmen */
+body.dark-mode .meeting-info-box {
+    background: var(--card-bg) !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+body.dark-mode .info-box {
+    background: var(--card-bg) !important;
+    color: var(--text-secondary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+/* Tagesordnung - Form Section */
+body.dark-mode .form-section {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .live-comment-form {
+    background: var(--card-bg) !important;
+    border: 1px solid var(--card-border) !important;
+}
+
+/* TEXTBEARBEITUNG - Dialog für neuen Text erstellen */
+body.dark-mode #createTextDialog > div,
+body.dark-mode #previewDialog > div,
+body.dark-mode #finalizeDialog > div {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode #createTextDialog input,
+body.dark-mode #createTextDialog textarea {
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+/* MEINUNGSBILD - Ergebnisfelder nicht mehr weiß */
+body.dark-mode .opinion-results,
+body.dark-mode .opinion-result-item,
+body.dark-mode .poll-results {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+/* Inline styles mit background #e8f5e9 (grüne Info-Boxen) */
+body.dark-mode [style*="background: #e8f5e9"],
+body.dark-mode [style*="background:#e8f5e9"] {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--success) !important;
+}
+
+/* Inline styles mit background #f9f9f9 */
+body.dark-mode [style*="background: #f9f9f9"],
+body.dark-mode [style*="background:#f9f9f9"] {
+    background: var(--card-bg) !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--border-color) !important;
 }
