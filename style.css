@@ -3380,3 +3380,101 @@ body.dark-mode [style*="background:#f9f9f9"] {
     color: var(--text-secondary) !important;
     border: 1px solid var(--border-color) !important;
 }
+
+/* ============================================
+   FINALE SPEZIFISCHE KORREKTUREN
+   ============================================ */
+
+/* HINWEISFELDER - Alert Info/Warning mit gelbem Rahmen */
+body.dark-mode .alert,
+body.dark-mode .alert-info,
+body.dark-mode .alert-warning {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+/* Gelbe Buttons - Schrift dunkelblau */
+body.dark-mode button[style*="background: #ffc107"],
+body.dark-mode button[style*="background:#ffc107"],
+body.dark-mode .btn-warning,
+body.dark-mode .accordion-button {
+    background: var(--card-border) !important;
+    color: #1e3a5f !important;
+}
+
+/* SITZUNGEN - Neue Sitzung erstellen Card */
+body.dark-mode .accordion-content,
+body.dark-mode .meeting-form-grid-2,
+body.dark-mode .meeting-form-grid-equal {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Teilnehmerliste - Fläche dunkelblau */
+body.dark-mode .participants-selector,
+body.dark-mode .participant-buttons {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+/* Teilnehmer-Labels - kein gelber Rahmen außer bei Abwesenheit */
+body.dark-mode .participant-label {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+body.dark-mode .participant-label[style*="background: #fff3cd"] {
+    background: var(--bg-tertiary) !important;
+    border-left: 3px solid var(--warning) !important;
+}
+
+/* Teilnehmerliste für Protokollant - keine gelben Rahmen */
+body.dark-mode .attendance-radio,
+body.dark-mode .attendance-label {
+    border: none !important;
+}
+
+/* Übersicht Tabelle - weiße Schrift, keine gelben Rahmen um Elemente */
+body.dark-mode table tr,
+body.dark-mode table tbody tr {
+    border: none !important;
+}
+
+/* Status Active - Wiedervorlage Hintergrund */
+body.dark-mode [style*="background: #e8f5e9"],
+body.dark-mode [style*="background:#e8f5e9"],
+body.dark-mode .form-section[style*="background: #e8f5e9"] {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--success) !important;
+}
+
+/* PROTOKOLLE - Stichwortsuche alle Inputs */
+body.dark-mode input[type="text"]:not(.btn):not([type="button"]),
+body.dark-mode input[type="search"] {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+/* ERLEDIGEN - QR-Code Hintergrund dunkelgrau */
+body.dark-mode .todo-filecard-qr,
+body.dark-mode [class*="qr-"],
+body.dark-mode div[class*="qr"] {
+    background: var(--bg-tertiary) !important;
+    padding: 10px !important;
+}
+
+/* MEINUNGSBILD - Alle Ergebnisfelder dunkelblau */
+body.dark-mode .opinion-results,
+body.dark-mode .poll-results,
+body.dark-mode .opinion-result-item,
+body.dark-mode .poll-result-item,
+body.dark-mode div[class*="result"] {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
