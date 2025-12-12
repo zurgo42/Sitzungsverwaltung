@@ -58,6 +58,10 @@ body.dark-mode {
     /* Adjust brand colors for dark mode */
     --primary-light: #5a9fd4;
     --neutral: #3a3a3a;
+
+    /* Card-Farben für besseren Kontrast */
+    --card-bg: #1e3a5f;        /* Dunkelblau für Cards */
+    --card-border: #b8860b;    /* Dunkelgelb für Rahmen */
 }
 
 /* ==============================================
