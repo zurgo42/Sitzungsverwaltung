@@ -3135,6 +3135,10 @@ body.dark-mode .meeting-card-actions {
     border: none !important; /* Keine innere Border */
 }
 
+body.dark-mode .agenda-meta {
+    color: var(--text-primary) !important;
+}
+
 body.dark-mode .meeting-edit-section,
 body.dark-mode .meeting-start-section {
     background: var(--card-bg) !important;
@@ -3781,6 +3785,11 @@ body.dark-mode table[style*="border-collapse: collapse"] td {
     border: none !important;
 }
 
+body.dark-mode table[style*="border-collapse: collapse"] td,
+body.dark-mode table[style*="border-collapse: collapse"] td * {
+    color: var(--text-primary) !important;
+}
+
 body.dark-mode table[style*="border-collapse: collapse"] td a,
 body.dark-mode table[style*="border-collapse: collapse"] td a[style*="color: #333"],
 body.dark-mode table[style*="border-collapse: collapse"] td a[style*="color: #2c5aa0"] {
@@ -3802,9 +3811,13 @@ body.dark-mode details table tr {
 
 body.dark-mode details table th,
 body.dark-mode details table td {
-    padding: 4px 8px !important;
+    padding: 2px 4px !important;
 }
 
 body.dark-mode details[style*="padding: 15px"] {
-    padding: 8px !important;
+    padding: 4px !important;
+}
+
+body.dark-mode details[open] {
+    padding: 4px !important;
 }
