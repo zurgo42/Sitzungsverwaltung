@@ -1151,6 +1151,16 @@ button:hover {
     background: #e8e8e8;
 }
 
+body.dark-mode .other-todos-accordion-header {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--card-border) !important;
+}
+
+body.dark-mode .other-todos-accordion-header:hover {
+    background: var(--bg-tertiary) !important;
+}
+
 .other-todos-accordion-header.open .other-todos-arrow::before {
     content: '▼';
 }
@@ -3099,6 +3109,11 @@ body.dark-mode .poll-card {
     border: 2px solid var(--card-border) !important;
 }
 
+body.dark-mode .poll-card .poll-meta,
+body.dark-mode .poll-card .poll-meta p {
+    color: var(--text-primary) !important;
+}
+
 body.dark-mode .date-suggestion-header,
 body.dark-mode .date-suggestion-row {
     background: var(--card-bg) !important;
@@ -3770,11 +3785,20 @@ body.dark-mode table[style*="border-collapse: collapse"] tr {
     border: none !important;
 }
 
-/* Teilnehmerliste - keine Borders */
+/* Teilnehmerliste - keine Borders, weniger Padding */
 body.dark-mode details table,
 body.dark-mode details table th,
 body.dark-mode details table td,
 body.dark-mode details table tr {
     border: none !important;
     color: var(--text-primary) !important;
+}
+
+body.dark-mode details table th,
+body.dark-mode details table td {
+    padding: 4px 8px !important;
+}
+
+body.dark-mode details[style*="padding: 15px"] {
+    padding: 8px !important;
 }
