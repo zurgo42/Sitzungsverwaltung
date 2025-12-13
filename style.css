@@ -3781,6 +3781,12 @@ body.dark-mode table[style*="border-collapse: collapse"] td {
     border: none !important;
 }
 
+body.dark-mode table[style*="border-collapse: collapse"] td a,
+body.dark-mode table[style*="border-collapse: collapse"] td a[style*="color: #333"],
+body.dark-mode table[style*="border-collapse: collapse"] td a[style*="color: #2c5aa0"] {
+    color: var(--text-primary) !important;
+}
+
 body.dark-mode table[style*="border-collapse: collapse"] tr {
     border: none !important;
 }
