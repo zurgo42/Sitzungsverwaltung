@@ -3198,6 +3198,27 @@ body.dark-mode .done-todos-cards {
     background: var(--card-bg) !important;
 }
 
+/* ERLEDIGEN - Weitere öffentliche ToDos Tabelle */
+body.dark-mode .other-todos-table {
+    background: var(--card-bg) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .other-todos-table thead,
+body.dark-mode .other-todos-table thead tr,
+body.dark-mode .other-todos-table thead th {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--card-border) !important;
+}
+
+body.dark-mode .other-todos-table th,
+body.dark-mode .other-todos-table td {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--card-border) !important;
+}
+
 /* ABWESENHEITEN - Admin Section */
 body.dark-mode .admin-section,
 body.dark-mode .admin-section-content {
@@ -3662,4 +3683,72 @@ body.dark-mode *[style*="background:#f8f9fa"] {
     background-color: var(--card-bg) !important;
     background: var(--card-bg) !important;
     color: var(--text-secondary) !important;
+}
+
+/* ==========================================
+   GEZIELTE FIXES FÜR BESTEHENDE ELEMENTE
+   ========================================== */
+
+/* 1. PROTOKOLLE - Stichwortsuche */
+body.dark-mode .search-box {
+    background: var(--card-bg) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode .search-input {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--card-border) !important;
+}
+
+/* 2. HINWEISFELD (Abwesenheiten) mit gelben Buttons */
+body.dark-mode *[style*="background: #f9f9f9"] strong {
+    color: var(--text-primary) !important;
+}
+
+/* Gelbe Buttons im Hinweisfeld - dunkelblauer Text statt weiß */
+body.dark-mode .btn-warning,
+body.dark-mode button[style*="background: #ffc107"],
+body.dark-mode button[style*="background:#ffc107"],
+body.dark-mode a[style*="background: #ffc107"],
+body.dark-mode a[style*="background:#ffc107"] {
+    background: var(--card-border) !important;
+    color: #1e3a5f !important;
+    font-weight: bold !important;
+}
+
+/* 3. WIEDERVORLAGE - Form mit hellem Hintergrund */
+body.dark-mode *[style*="background: #e3f2fd"],
+body.dark-mode *[style*="background:#e3f2fd"] {
+    background-color: var(--card-bg) !important;
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode *[style*="background: #e3f2fd"] div,
+body.dark-mode *[style*="background:#e3f2fd"] div {
+    color: var(--text-primary) !important;
+}
+
+/* 4. MEINUNGSBILD - Buttons dunkel machen */
+body.dark-mode .btn-secondary {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .btn-secondary:hover {
+    background: var(--bg-secondary) !important;
+}
+
+/* 5. TAGESORDNUNG - Teilnehmerliste ohne gelbe Rahmen */
+body.dark-mode label[style*="padding: 8px"],
+body.dark-mode label[style*="cursor: pointer"] {
+    border: 1px solid #666 !important;
+}
+
+/* Tabellen-Übersicht: weiße Schrift, keine gelben Rahmen */
+body.dark-mode table th,
+body.dark-mode table td {
+    color: var(--text-primary) !important;
+    border-color: #666 !important;
 }
