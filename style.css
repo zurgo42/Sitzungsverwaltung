@@ -3388,93 +3388,171 @@ body.dark-mode [style*="background:#f9f9f9"] {
 /* HINWEISFELDER - Alert Info/Warning mit gelbem Rahmen */
 body.dark-mode .alert,
 body.dark-mode .alert-info,
-body.dark-mode .alert-warning {
+body.dark-mode .alert-warning,
+body.dark-mode div.alert,
+body.dark-mode div.alert-info,
+body.dark-mode div.alert-warning {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-/* Gelbe Buttons - Schrift dunkelblau */
+/* Gelbe Buttons - Schrift dunkelblau STATT weiß */
 body.dark-mode button[style*="background: #ffc107"],
 body.dark-mode button[style*="background:#ffc107"],
 body.dark-mode .btn-warning,
-body.dark-mode .accordion-button {
+body.dark-mode .accordion-button,
+body.dark-mode button.accordion-button {
     background: var(--card-border) !important;
     color: #1e3a5f !important;
+    font-weight: bold !important;
 }
 
-/* SITZUNGEN - Neue Sitzung erstellen Card */
+/* TERMINE - Alle Buttons mit weißer Schrift */
+body.dark-mode .btn-primary,
+body.dark-mode .btn-secondary,
+body.dark-mode .btn-danger,
+body.dark-mode button.btn-primary,
+body.dark-mode button.btn-secondary,
+body.dark-mode button.btn-danger {
+    color: white !important;
+}
+
+/* SITZUNGEN - Neue Sitzung erstellen Card und Teilnehmerliste */
 body.dark-mode .accordion-content,
 body.dark-mode .meeting-form-grid-2,
-body.dark-mode .meeting-form-grid-equal {
+body.dark-mode .meeting-form-grid-equal,
+body.dark-mode div.accordion-content,
+body.dark-mode div.meeting-form-grid-2,
+body.dark-mode div.meeting-form-grid-equal {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
 }
 
-/* Teilnehmerliste - Fläche dunkelblau */
+/* Teilnehmerliste - Fläche dunkelblau (verstärkt) */
 body.dark-mode .participants-selector,
-body.dark-mode .participant-buttons {
+body.dark-mode .participant-buttons,
+body.dark-mode div.participants-selector,
+body.dark-mode div.participant-buttons {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Teilnehmer-Labels - kein gelber Rahmen außer bei Abwesenheit */
-body.dark-mode .participant-label {
+body.dark-mode .participant-label,
+body.dark-mode label.participant-label {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border: 1px solid var(--border-color) !important;
 }
 
-body.dark-mode .participant-label[style*="background: #fff3cd"] {
+body.dark-mode .participant-label[style*="background: #fff3cd"],
+body.dark-mode label.participant-label[style*="background: #fff3cd"] {
     background: var(--bg-tertiary) !important;
     border-left: 3px solid var(--warning) !important;
 }
 
+/* TAGESORDNUNG - Korpus dunkelblau (verstärkt) */
+body.dark-mode .tab-content,
+body.dark-mode div.tab-content {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
 /* Teilnehmerliste für Protokollant - keine gelben Rahmen */
 body.dark-mode .attendance-radio,
-body.dark-mode .attendance-label {
+body.dark-mode .attendance-label,
+body.dark-mode input.attendance-radio,
+body.dark-mode label.attendance-label {
     border: none !important;
 }
 
-/* Übersicht Tabelle - weiße Schrift, keine gelben Rahmen um Elemente */
+/* Übersicht Tabelle - WEISSE Schrift, keine gelben Rahmen um Elemente */
 body.dark-mode table tr,
 body.dark-mode table tbody tr {
     border: none !important;
 }
 
-/* Status Active - Wiedervorlage Hintergrund */
+body.dark-mode table td,
+body.dark-mode table th {
+    color: white !important;
+}
+
+/* Status Active - Wiedervorlage Hintergrund (verstärkt) */
 body.dark-mode [style*="background: #e8f5e9"],
 body.dark-mode [style*="background:#e8f5e9"],
+body.dark-mode div[style*="background: #e8f5e9"],
+body.dark-mode div[style*="background:#e8f5e9"],
 body.dark-mode .form-section[style*="background: #e8f5e9"] {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--success) !important;
 }
 
-/* PROTOKOLLE - Stichwortsuche alle Inputs */
-body.dark-mode input[type="text"]:not(.btn):not([type="button"]),
-body.dark-mode input[type="search"] {
+/* PROTOKOLLE - Stichwortsuche alle Inputs (VERSTÄRKT) */
+body.dark-mode input[type="text"],
+body.dark-mode input[type="search"],
+body.dark-mode .search-input,
+body.dark-mode input.search-input {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-/* ERLEDIGEN - QR-Code Hintergrund dunkelgrau */
+/* Anzeigen-Button dunkler (verstärkt) */
+body.dark-mode button.btn-view,
+body.dark-mode .btn-view,
+body.dark-mode a.btn-view {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--card-border) !important;
+}
+
+/* ERLEDIGEN - Table thead VERSTÄRKT */
+body.dark-mode table thead,
+body.dark-mode table thead tr,
+body.dark-mode table thead th,
+body.dark-mode thead,
+body.dark-mode thead tr,
+body.dark-mode thead th {
+    background: var(--card-bg) !important;
+    color: white !important;
+    border-color: var(--card-border) !important;
+}
+
+/* QR-Code Hintergrund dunkelgrau (verstärkt) */
 body.dark-mode .todo-filecard-qr,
+body.dark-mode div.todo-filecard-qr,
 body.dark-mode [class*="qr-"],
 body.dark-mode div[class*="qr"] {
     background: var(--bg-tertiary) !important;
     padding: 10px !important;
 }
 
-/* MEINUNGSBILD - Alle Ergebnisfelder dunkelblau */
+/* MEINUNGSBILD - Alle Ergebnisfelder dunkelblau (VERSTÄRKT) */
 body.dark-mode .opinion-results,
 body.dark-mode .poll-results,
 body.dark-mode .opinion-result-item,
 body.dark-mode .poll-result-item,
+body.dark-mode div.opinion-results,
+body.dark-mode div.poll-results,
 body.dark-mode div[class*="result"] {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
+}
+
+/* Alle weißen inline backgrounds VERSTÄRKT überschreiben */
+body.dark-mode [style*="background: white"],
+body.dark-mode [style*="background:white"],
+body.dark-mode [style*="background: #fff"],
+body.dark-mode [style*="background:#fff"],
+body.dark-mode [style*="background: #ffffff"],
+body.dark-mode [style*="background:#ffffff"],
+body.dark-mode div[style*="background: white"],
+body.dark-mode div[style*="background:white"] {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
 }
