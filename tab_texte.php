@@ -849,19 +849,22 @@ if ($view === 'editor') {
                 editingParagraphId = null;
                 exitEditMode(paragraphId, content, '<?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?>');
 
+                // WICHTIG: Updates abrufen damit andere Benutzer sehen dass Lock weg ist
+                fetchUpdates();
+
                 // Hinweis anzeigen (nicht blockierend - Seite lädt ohnehin neu)
                 // alert('⏰ Ihre Änderungen wurden automatisch gespeichert.');
             } else {
                 alert('Auto-Speichern fehlgeschlagen: ' + (data.error || 'Unbekannter Fehler'));
                 // Bei Fehler trotzdem Lock freigeben
-                unlockParagraph(paragraphId);
+                unlockParagraphAndRefresh(paragraphId);
             }
         })
         .catch(err => {
             console.error('Auto-Save Error:', err);
             alert('Netzwerkfehler beim Auto-Speichern');
             // Bei Fehler trotzdem Lock freigeben
-            unlockParagraph(paragraphId);
+            unlockParagraphAndRefresh(paragraphId);
         });
     }
 
@@ -873,6 +876,21 @@ if ($view === 'editor') {
                 paragraph_id: paragraphId,
                 action: 'unlock'
             })
+        });
+    }
+
+    function unlockParagraphAndRefresh(paragraphId) {
+        fetch('api/collab_text_lock_paragraph.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                paragraph_id: paragraphId,
+                action: 'unlock'
+            })
+        })
+        .then(() => {
+            // Updates abrufen damit andere sehen dass Lock weg ist
+            fetchUpdates();
         });
     }
 
