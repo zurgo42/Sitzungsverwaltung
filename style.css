@@ -3036,6 +3036,21 @@ body.dark-mode .opinion-option {
     border-color: var(--border-color) !important;
 }
 
+/* Template Tooltip für Meinungsbild */
+body.dark-mode .template-options-tooltip {
+    background: rgba(30, 58, 95, 0.95) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--card-border) !important;
+}
+
+body.dark-mode .template-options-tooltip::before {
+    border-right-color: rgba(30, 58, 95, 0.95) !important;
+}
+
+body.dark-mode .tooltip-header {
+    border-bottom-color: var(--card-border) !important;
+}
+
 /* Diskussion & Übersicht */
 body.dark-mode .discussion-container,
 body.dark-mode .discussion-item,

@@ -89,7 +89,17 @@ if (!isset($all_members)) {
 
         <div class="template-selector">
             <?php foreach ($templates as $template): ?>
-                <div class="template-card" onclick="selectTemplate(<?php echo $template['template_id']; ?>)">
+                <?php
+                // Optionen sammeln für Tooltip
+                $options = [];
+                for ($i = 1; $i <= 10; $i++) {
+                    if (!empty($template["option_$i"])) {
+                        $options[] = htmlspecialchars($template["option_$i"]);
+                    }
+                }
+                $optionsTooltip = implode("\n", $options);
+                ?>
+                <div class="template-card template-card-with-tooltip" onclick="selectTemplate(<?php echo $template['template_id']; ?>)" data-options="<?php echo htmlspecialchars($optionsTooltip); ?>">
                     <input type="radio" name="template_radio" value="<?php echo $template['template_id']; ?>">
                     <div style="font-weight: bold; margin-bottom: 5px;">
                         <?php echo htmlspecialchars($template['template_name']); ?>
@@ -98,15 +108,14 @@ if (!isset($all_members)) {
                         <?php echo htmlspecialchars($template['description']); ?>
                     </div>
                     <div style="margin-top: 8px; font-size: 11px; color: #999;">
-                        <?php
-                        $options = [];
-                        for ($i = 1; $i <= 10; $i++) {
-                            if (!empty($template["option_$i"])) {
-                                $options[] = $template["option_$i"];
-                            }
-                        }
-                        echo count($options) . ' Optionen';
-                        ?>
+                        <?php echo count($options); ?> Optionen
+                    </div>
+                    <!-- Tooltip für Antworten -->
+                    <div class="template-options-tooltip">
+                        <div class="tooltip-header">Antwortmöglichkeiten:</div>
+                        <?php foreach ($options as $idx => $option): ?>
+                            <div class="tooltip-option"><?php echo ($idx + 1); ?>. <?php echo $option; ?></div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             <?php endforeach; ?>

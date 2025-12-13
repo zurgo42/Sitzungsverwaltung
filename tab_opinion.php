@@ -184,6 +184,61 @@ if ($access_token && !$poll_id) {
     display: none;
 }
 
+/* Tooltip für Template-Optionen */
+.template-card-with-tooltip {
+    position: relative;
+}
+
+.template-options-tooltip {
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translateY(-50%);
+    margin-left: 15px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    min-width: 200px;
+    max-width: 300px;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.template-card-with-tooltip:hover .template-options-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.tooltip-header {
+    font-weight: bold;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffd700;
+}
+
+.tooltip-option {
+    padding: 3px 0;
+}
+
+/* Pfeil für Tooltip */
+.template-options-tooltip::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -10px;
+    transform: translateY(-50%);
+    border: 10px solid transparent;
+    border-right-color: rgba(0, 0, 0, 0.9);
+}
+
 .custom-options-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
