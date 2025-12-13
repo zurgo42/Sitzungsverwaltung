@@ -3146,6 +3146,14 @@ body.dark-mode .agenda-meta strong {
     color: var(--text-primary) !important;
 }
 
+body.dark-mode .agenda-title {
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .agenda-title * {
+    color: var(--text-primary) !important;
+}
+
 body.dark-mode .meeting-edit-section,
 body.dark-mode .meeting-start-section {
     background: var(--card-bg) !important;
@@ -3701,6 +3709,14 @@ body.dark-mode *[style*="background:#fff"] {
     background: var(--card-bg) !important;
 }
 
+/* Protokoll-Anzeige im Sitzungsverlauf */
+body.dark-mode div[id*="protocol-display"] {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    padding: 10px !important;
+    border-radius: 4px !important;
+}
+
 /* ABSOLUTER OVERRIDE für alle hellen Hintergründe */
 body.dark-mode *[style*="background: #f9f9f9"],
 body.dark-mode *[style*="background:#f9f9f9"],
@@ -3837,6 +3853,12 @@ body.dark-mode details ul[style*="list-style: none"] li {
 body.dark-mode details ul[style*="list-style: none"] li a,
 body.dark-mode details ul[style*="list-style: none"] li a[style*="color: #2c5aa0"],
 body.dark-mode details ul[style*="list-style: none"] li span {
+    color: var(--text-primary) !important;
+}
+
+/* TAGESORDNUNG - Hinweis-Text */
+body.dark-mode details p[style*="color: #555"],
+body.dark-mode details p[style*="color:#555"] {
     color: var(--text-primary) !important;
 }
 
