@@ -3204,19 +3204,19 @@ body.dark-mode .other-todos-table {
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .other-todos-table thead,
-body.dark-mode .other-todos-table thead tr,
-body.dark-mode .other-todos-table thead th {
-    background: var(--card-bg) !important;
+body.dark-mode table.other-todos-table thead,
+body.dark-mode table.other-todos-table thead tr,
+body.dark-mode table.other-todos-table thead th {
+    background: var(--bg-secondary) !important;
     color: var(--text-primary) !important;
-    border-color: var(--card-border) !important;
+    border: none !important;
 }
 
-body.dark-mode .other-todos-table th,
-body.dark-mode .other-todos-table td {
+body.dark-mode table.other-todos-table th,
+body.dark-mode table.other-todos-table td {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
-    border-color: var(--card-border) !important;
+    border: none !important;
 }
 
 /* ABWESENHEITEN - Admin Section */
@@ -3701,7 +3701,11 @@ body.dark-mode .search-input {
     border-color: var(--card-border) !important;
 }
 
-/* 2. HINWEISFELD (Abwesenheiten) mit gelben Buttons */
+/* 2. HINWEISFELD (Abwesenheiten) - dünner hellgelber Rand */
+body.dark-mode *[style*="background: #f9f9f9"] {
+    border: 1px solid var(--card-border) !important;
+}
+
 body.dark-mode *[style*="background: #f9f9f9"] strong {
     color: var(--text-primary) !important;
 }
@@ -3746,9 +3750,31 @@ body.dark-mode label[style*="cursor: pointer"] {
     border: 1px solid #666 !important;
 }
 
-/* Tabellen-Übersicht: weiße Schrift, keine gelben Rahmen */
-body.dark-mode table th,
-body.dark-mode table td {
+/* 6. TAGESORDNUNG - Übersichts-Tabelle ohne Umrandungen, weiße Schrift */
+body.dark-mode table[style*="border-collapse: collapse"] {
+    background: var(--card-bg) !important;
+    border: 2px solid var(--card-border) !important;
+}
+
+body.dark-mode table[style*="border-collapse: collapse"] thead tr {
+    background: var(--bg-secondary) !important;
+}
+
+body.dark-mode table[style*="border-collapse: collapse"] th,
+body.dark-mode table[style*="border-collapse: collapse"] td {
     color: var(--text-primary) !important;
-    border-color: #666 !important;
+    border: none !important;
+}
+
+body.dark-mode table[style*="border-collapse: collapse"] tr {
+    border: none !important;
+}
+
+/* Teilnehmerliste - keine Borders */
+body.dark-mode details table,
+body.dark-mode details table th,
+body.dark-mode details table td,
+body.dark-mode details table tr {
+    border: none !important;
+    color: var(--text-primary) !important;
 }
