@@ -3139,6 +3139,13 @@ body.dark-mode .agenda-meta {
     color: var(--text-primary) !important;
 }
 
+body.dark-mode .agenda-meta *,
+body.dark-mode .agenda-meta a,
+body.dark-mode .agenda-meta span,
+body.dark-mode .agenda-meta strong {
+    color: var(--text-primary) !important;
+}
+
 body.dark-mode .meeting-edit-section,
 body.dark-mode .meeting-start-section {
     background: var(--card-bg) !important;
@@ -3820,4 +3827,29 @@ body.dark-mode details[style*="padding: 15px"] {
 
 body.dark-mode details[open] {
     padding: 4px !important;
+}
+
+/* TAGESORDNUNG - Übersicht UL-Liste */
+body.dark-mode details ul[style*="list-style: none"] li {
+    background: var(--card-bg) !important;
+}
+
+body.dark-mode details ul[style*="list-style: none"] li a,
+body.dark-mode details ul[style*="list-style: none"] li a[style*="color: #2c5aa0"],
+body.dark-mode details ul[style*="list-style: none"] li span {
+    color: var(--text-primary) !important;
+}
+
+/* TEILNEHMERLISTE - Grid Gap und Padding reduzieren */
+body.dark-mode details div[style*="display: grid"] {
+    gap: 4px !important;
+}
+
+body.dark-mode details div[style*="padding: 8px"][style*="background: white"] {
+    padding: 4px !important;
+    background: var(--card-bg) !important;
+}
+
+body.dark-mode details div[style*="margin-bottom: 15px"] {
+    margin-bottom: 8px !important;
 }
