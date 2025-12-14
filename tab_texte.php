@@ -158,7 +158,8 @@ if (!$has_access) {
 }
 
 .paragraph-edit-area {
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
     min-height: 300px;
     padding: 10px;
     border: 1px solid #ced4da;
@@ -167,7 +168,7 @@ if (!$has_access) {
     font-size: inherit;
     line-height: 1.6;
     resize: vertical;
-    box-sizing: border-box;
+    box-sizing: border-box !important;
 }
 
 .paragraph-actions {
@@ -711,7 +712,7 @@ if ($view === 'editor') {
         const contentDiv = paraDiv.querySelector('.paragraph-content');
         const currentContent = contentDiv.textContent;
 
-        contentDiv.innerHTML = '<textarea class="paragraph-edit-area" id="editArea_' + paragraphId + '" style="width: 100%; box-sizing: border-box;">' +
+        contentDiv.innerHTML = '<textarea class="paragraph-edit-area" id="editArea_' + paragraphId + '">' +
             currentContent + '</textarea>';
 
         paraDiv.classList.add('editing');

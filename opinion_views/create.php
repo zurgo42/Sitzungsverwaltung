@@ -262,23 +262,33 @@ document.addEventListener('DOMContentLoaded', function() {
             const rect = this.getBoundingClientRect();
             const tooltipWidth = 300; // max-width
             const spacing = 15;
+            const minMargin = 10;
 
             // Position rechts von der Karte
             let left = rect.right + spacing;
             let top = rect.top + (rect.height / 2);
 
             // Wenn rechts nicht genug Platz, links positionieren
-            if (left + tooltipWidth > window.innerWidth) {
+            if (left + tooltipWidth > window.innerWidth - minMargin) {
                 left = rect.left - tooltipWidth - spacing;
+
+                // Wenn auch links nicht genug Platz, zentriert über/unter der Karte
+                if (left < minMargin) {
+                    left = Math.max(minMargin, Math.min(window.innerWidth - tooltipWidth - minMargin, rect.left));
+                    top = rect.bottom + spacing;
+                }
             }
+
+            // Sicherstellen, dass left im Viewport ist
+            left = Math.max(minMargin, Math.min(left, window.innerWidth - tooltipWidth - minMargin));
 
             // Sicherstellen, dass es nicht oben/unten rausgeht
             const tooltipHeight = tooltip.offsetHeight || 150;
-            if (top - tooltipHeight/2 < 0) {
-                top = tooltipHeight/2 + 10;
+            if (top - tooltipHeight/2 < minMargin) {
+                top = tooltipHeight/2 + minMargin;
             }
-            if (top + tooltipHeight/2 > window.innerHeight) {
-                top = window.innerHeight - tooltipHeight/2 - 10;
+            if (top + tooltipHeight/2 > window.innerHeight - minMargin) {
+                top = window.innerHeight - tooltipHeight/2 - minMargin;
             }
 
             tooltip.style.left = left + 'px';
