@@ -352,6 +352,14 @@ button:hover {
     background: #777;
 }
 
+.back-to-overview-btn {
+    background: var(--primary) !important;
+}
+
+.back-to-overview-btn:hover {
+    background: #004477 !important;
+}
+
 .btn-view {
     padding: 6px 12px;
     background: var(--info);
@@ -662,6 +670,19 @@ button:hover {
     background: var(--primary);
     color: white;
     border-color: var(--primary);
+}
+
+.accordion-button.create-poll-button,
+.accordion-button.create-meeting-button {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.accordion-button.create-poll-button:hover,
+.accordion-button.create-meeting-button:hover {
+    background: #004477;
+    color: white;
 }
 
 .accordion-content {
@@ -2140,6 +2161,36 @@ body.dark-mode .other-todos-accordion-header:hover {
         margin-right: 10px;
     }
 
+    .dark-mode-toggle {
+        padding: 4px 8px;
+        font-size: 14px;
+        margin-left: 5px;
+    }
+
+    .kommende-termine-break {
+        display: block;
+        height: 8px;
+    }
+
+    /* Textbearbeitung - Textarea ohne Padding für volle Breite */
+    .paragraph-edit-area {
+        padding: 0 !important;
+    }
+
+    /* Status ändern Form - Auswahlfeld größer, Button kleiner */
+    .status-form select {
+        flex: 2;
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .status-form .btn-status {
+        flex: 1;
+        font-size: 12px;
+        padding: 10px 8px;
+        white-space: nowrap;
+    }
+
     /* Navigation - Mobile: Versteckbar mit LocalStorage */
     .navigation {
         flex-direction: column;
@@ -3228,6 +3279,11 @@ body.dark-mode .done-todos-table td {
     border-color: var(--card-border) !important;
 }
 
+body.dark-mode .done-todos-table tbody,
+body.dark-mode .done-todos-table tbody tr {
+    background: var(--card-bg) !important;
+}
+
 body.dark-mode .done-todos-cards {
     background: var(--card-bg) !important;
 }
@@ -3251,6 +3307,11 @@ body.dark-mode table.other-todos-table td {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: none !important;
+}
+
+body.dark-mode table.other-todos-table tbody,
+body.dark-mode table.other-todos-table tbody tr {
+    background: var(--card-bg) !important;
 }
 
 /* ABWESENHEITEN - Admin Section */

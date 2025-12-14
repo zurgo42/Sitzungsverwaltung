@@ -30,7 +30,7 @@ if (!isset($all_members)) {
 
 <h3>Neues Meinungsbild erstellen</h3>
 
-<form method="POST" action="process_opinion.php">
+<form method="POST" action="process_opinion.php" onsubmit="return validateOpinionForm()">
     <input type="hidden" name="action" value="create_opinion">
     <input type="hidden" name="template_id" id="template_id" value="">
 
@@ -289,5 +289,30 @@ function toggleOpinionTopManagement() {
 // Template-Auswahl
 function selectTemplate(templateId) {
     document.getElementById('template_id').value = templateId;
+}
+
+// Formular-Validierung
+function validateOpinionForm() {
+    const templateId = document.getElementById('template_id').value;
+
+    // Prüfen ob ein Template ausgewählt wurde
+    if (!templateId) {
+        // Prüfen ob mindestens ein custom option Feld ausgefüllt ist
+        let hasCustomOption = false;
+        for (let i = 1; i <= 10; i++) {
+            const field = document.querySelector(`input[name="custom_option_${i}"]`);
+            if (field && field.value.trim() !== '') {
+                hasCustomOption = true;
+                break;
+            }
+        }
+
+        if (!hasCustomOption) {
+            alert('Bitte wählen Sie ein Antwort-Template aus oder geben Sie eigene Antwortmöglichkeiten ein.');
+            return false;
+        }
+    }
+
+    return true;
 }
 </script>

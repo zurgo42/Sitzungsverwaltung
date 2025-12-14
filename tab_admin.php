@@ -99,6 +99,11 @@ $all_documents = get_documents($pdo, ['status' => 'active'], 99);
 <?php endif; ?>
 
 
+<!-- Mobile Warnung -->
+<div class="alert alert-warning mobile-only" style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px;">
+    <strong>⚠️ Hinweis:</strong> Diese Seite ist für den PC optimiert, und daher für das Smartphone nur bedingt geeignet!
+</div>
+
 <!-- Statistik-Übersicht -->
 <div class="info-box" style="margin-bottom: 30px;">
     <strong>📊 Übersicht:</strong> 

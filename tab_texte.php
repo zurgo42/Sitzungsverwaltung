@@ -284,7 +284,6 @@ if ($view === 'overview') {
     ?>
 
     <h2>📝 Gemeinsame Texte</h2>
-    <p><strong>Kontext:</strong> <?php echo $context_description; ?></p>
 
     <div class="alert alert-info">
         <strong>ℹ️ Info:</strong> Vorstand, GF und Assistenz können hier gemeinsam an Texten arbeiten.
@@ -481,7 +480,7 @@ if ($view === 'editor') {
                 Erstellt von <?php echo htmlspecialchars($text['initiator_first_name'] . ' ' . $text['initiator_last_name']); ?>
             </p>
         </div>
-        <button onclick="window.location.href='?tab=texte&view=overview'" class="btn-secondary">
+        <button onclick="window.location.href='?tab=texte&view=overview'" class="btn-secondary back-to-overview-btn">
             ← Zurück zur Übersicht
         </button>
     </div>
@@ -1208,7 +1207,7 @@ if ($view === 'final') {
                 <span class="collab-text-status status-finalized">✅ Finalisiert</span>
             </p>
         </div>
-        <button onclick="window.location.href='?tab=texte&view=overview'" class="btn-secondary">
+        <button onclick="window.location.href='?tab=texte&view=overview'" class="btn-secondary back-to-overview-btn">
             ← Zurück zur Übersicht
         </button>
     </div>

@@ -559,7 +559,7 @@ if (isset($_SESSION['error'])) {
 
     <!-- Neue Umfrage erstellen -->
     <div style="margin-bottom: 30px;">
-        <button class="accordion-button" onclick="toggleAccordion(this)">➕ Neue Terminumfrage erstellen</button>
+        <button class="accordion-button create-poll-button" onclick="toggleAccordion(this)">➕ Neue Terminumfrage erstellen</button>
         <div class="accordion-content">
             <form method="POST" action="process_termine.php" id="poll-create-form">
                 <input type="hidden" name="action" value="create_poll">
