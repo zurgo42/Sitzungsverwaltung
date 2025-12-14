@@ -674,14 +674,14 @@ button:hover {
 
 .accordion-button.create-poll-button,
 .accordion-button.create-meeting-button {
-    background: var(--primary);
+    background: #2196f3;
     color: white;
-    border-color: var(--primary);
+    border-color: #2196f3;
 }
 
 .accordion-button.create-poll-button:hover,
 .accordion-button.create-meeting-button:hover {
-    background: #004477;
+    background: #1976d2;
     color: white;
 }
 
@@ -2162,8 +2162,8 @@ body.dark-mode .other-todos-accordion-header:hover {
     }
 
     .dark-mode-toggle {
-        padding: 4px 8px;
-        font-size: 14px;
+        padding: 3px 6px;
+        font-size: 12px;
         margin-left: 5px;
     }
 

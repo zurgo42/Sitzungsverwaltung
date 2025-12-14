@@ -341,23 +341,11 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
             </a>
         <?php endif; ?>
 
-        <!-- Textbearbeitung-Tab (nur für Vorstand/GF/Assistenz oder aktive Sitzungsteilnehmer) -->
+        <!-- Textbearbeitung-Tab (nur für Vorstand/GF/Assistenz/Führungsteam, NICHT für Mitglied) -->
         <?php
-        // Prüfen ob User Zugriff hat
-        $has_texte_access = in_array($current_user['role'], ['vorstand', 'gf', 'assistenz']);
-
-        // Oder ist User Teilnehmer einer aktiven Sitzung?
-        if (!$has_texte_access) {
-            $stmt = $pdo->prepare("
-                SELECT COUNT(*) as count
-                FROM svmeeting_participants mp
-                JOIN svmeetings m ON mp.meeting_id = m.meeting_id
-                WHERE mp.member_id = ? AND m.status = 'active'
-            ");
-            $stmt->execute([$current_user['member_id']]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $has_texte_access = ($result['count'] > 0);
-        }
+        // Prüfen ob User Zugriff hat (Mitglieder niemals)
+        $user_role = strtolower($current_user['role'] ?? '');
+        $has_texte_access = in_array($user_role, ['vorstand', 'gf', 'assistenz', 'fuehrungsteam']) && $user_role !== 'mitglied';
 
         if ($has_texte_access):
         ?>
