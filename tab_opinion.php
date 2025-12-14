@@ -190,13 +190,9 @@ if ($access_token && !$poll_id) {
 }
 
 .template-options-tooltip {
-    position: absolute;
-    top: 50%;
-    left: 100%;
-    transform: translateY(-50%);
-    margin-left: 15px;
-    background: #1a1a1a !important;
-    color: white !important;
+    position: fixed;
+    background: #000000 !important;
+    color: #ffffff !important;
     padding: 12px 16px;
     border-radius: 8px;
     font-size: 13px;
@@ -207,8 +203,10 @@ if ($access_token && !$poll_id) {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s, visibility 0.3s;
-    z-index: 10000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 99999;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9) !important;
+    white-space: normal;
+    border: 2px solid #333 !important;
 }
 
 .template-card-with-tooltip:hover .template-options-tooltip {
@@ -220,23 +218,13 @@ if ($access_token && !$poll_id) {
     font-weight: bold;
     margin-bottom: 8px;
     padding-bottom: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-    color: #ffd700;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+    color: #ffd700 !important;
 }
 
 .tooltip-option {
     padding: 3px 0;
-}
-
-/* Pfeil für Tooltip */
-.template-options-tooltip::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: -10px;
-    transform: translateY(-50%);
-    border: 10px solid transparent;
-    border-right-color: #1a1a1a;
+    color: #ffffff !important;
 }
 
 .custom-options-grid {

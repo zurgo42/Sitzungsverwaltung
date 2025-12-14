@@ -3038,17 +3038,18 @@ body.dark-mode .opinion-option {
 
 /* Template Tooltip für Meinungsbild */
 body.dark-mode .template-options-tooltip {
-    background: #1e3a5f !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--card-border) !important;
-}
-
-body.dark-mode .template-options-tooltip::before {
-    border-right-color: #1e3a5f !important;
+    background: #0d1b2a !important;
+    color: #ffffff !important;
+    border: 2px solid var(--card-border) !important;
 }
 
 body.dark-mode .tooltip-header {
     border-bottom-color: var(--card-border) !important;
+    color: #ffd700 !important;
+}
+
+body.dark-mode .tooltip-option {
+    color: #ffffff !important;
 }
 
 /* Diskussion & Übersicht */

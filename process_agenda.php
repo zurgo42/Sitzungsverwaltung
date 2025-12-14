@@ -58,14 +58,17 @@ if (isset($_POST['add_agenda_item'])) {
 
     if ($current_meeting_id && $title) {
         try {
+            $start_time = microtime(true);
+
             // Transaktion starten für atomare Operation
             $pdo->beginTransaction();
+            error_log(sprintf("[TIMING] Transaction started after %.3fs", microtime(true) - $start_time));
 
             error_log("Adding TOP: meeting_id=$current_meeting_id, confidential=$is_confidential, title=$title");
 
             // TOP-Nummer automatisch vergeben
             $top_number = get_next_top_number($pdo, $current_meeting_id, $is_confidential);
-            error_log("Assigned TOP number: $top_number");
+            error_log(sprintf("[TIMING] TOP number assigned (%d) after %.3fs", $top_number, microtime(true) - $start_time));
 
             // TOP in Datenbank einfügen
             $stmt = $pdo->prepare("
@@ -87,7 +90,7 @@ if (isset($_POST['add_agenda_item'])) {
             ]);
 
             $new_item_id = $pdo->lastInsertId();
-            error_log("Inserted TOP with ID: $new_item_id");
+            error_log(sprintf("[TIMING] TOP inserted (ID: %d) after %.3fs", $new_item_id, microtime(true) - $start_time));
 
             // BUGFIX: Keinen initialen "-" Kommentar mehr erstellen
             // Stattdessen nur initiale Bewertung ohne sichtbaren Kommentar
@@ -96,13 +99,15 @@ if (isset($_POST['add_agenda_item'])) {
                 VALUES (?, ?, '', ?, ?, NOW())
             ");
             $stmt->execute([$new_item_id, $current_user['member_id'], $priority, $duration]);
-
-            // Durchschnittswerte berechnen
-            recalculate_item_metrics($pdo, $new_item_id);
+            error_log(sprintf("[TIMING] Comment inserted after %.3fs", microtime(true) - $start_time));
 
             // Transaktion abschließen
             $pdo->commit();
-            error_log("TOP successfully added and committed");
+            error_log(sprintf("[TIMING] Transaction committed after %.3fs - TOTAL TIME", microtime(true) - $start_time));
+
+            // Durchschnittswerte berechnen (NACH commit, nicht in Transaktion)
+            // Nicht nötig beim Erstellen, da nur ein Kommentar existiert und Werte schon korrekt sind
+            // recalculate_item_metrics($pdo, $new_item_id);
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
             exit;

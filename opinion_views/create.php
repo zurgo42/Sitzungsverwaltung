@@ -249,4 +249,42 @@ function toggleOpinionTopManagement() {
         }
     });
 }
+
+// Tooltip-Positionierung
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.template-card-with-tooltip');
+
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function(e) {
+            const tooltip = this.querySelector('.template-options-tooltip');
+            if (!tooltip) return;
+
+            const rect = this.getBoundingClientRect();
+            const tooltipWidth = 300; // max-width
+            const spacing = 15;
+
+            // Position rechts von der Karte
+            let left = rect.right + spacing;
+            let top = rect.top + (rect.height / 2);
+
+            // Wenn rechts nicht genug Platz, links positionieren
+            if (left + tooltipWidth > window.innerWidth) {
+                left = rect.left - tooltipWidth - spacing;
+            }
+
+            // Sicherstellen, dass es nicht oben/unten rausgeht
+            const tooltipHeight = tooltip.offsetHeight || 150;
+            if (top - tooltipHeight/2 < 0) {
+                top = tooltipHeight/2 + 10;
+            }
+            if (top + tooltipHeight/2 > window.innerHeight) {
+                top = window.innerHeight - tooltipHeight/2 - 10;
+            }
+
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+            tooltip.style.transform = 'translateY(-50%)';
+        });
+    });
+});
 </script>
