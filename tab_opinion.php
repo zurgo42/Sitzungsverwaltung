@@ -195,8 +195,8 @@ if ($access_token && !$poll_id) {
     left: 100%;
     transform: translateY(-50%);
     margin-left: 15px;
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
+    background: #1a1a1a !important;
+    color: white !important;
     padding: 12px 16px;
     border-radius: 8px;
     font-size: 13px;
@@ -207,8 +207,8 @@ if ($access_token && !$poll_id) {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s, visibility 0.3s;
-    z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .template-card-with-tooltip:hover .template-options-tooltip {
@@ -236,7 +236,7 @@ if ($access_token && !$poll_id) {
     left: -10px;
     transform: translateY(-50%);
     border: 10px solid transparent;
-    border-right-color: rgba(0, 0, 0, 0.9);
+    border-right-color: #1a1a1a;
 }
 
 .custom-options-grid {

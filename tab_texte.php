@@ -346,7 +346,7 @@ if ($view === 'overview') {
 
     <!-- Dialog: Neuen Text erstellen -->
     <div id="createTextDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; padding: 20px 0;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 900px; width: 90%; margin: 0 auto; min-height: fit-content;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 1024px; width: 90%; margin: 0 auto; min-height: fit-content;">
             <h3>Neuen Text erstellen</h3>
 
             <label>Titel:</label>
@@ -517,7 +517,7 @@ if ($view === 'editor') {
 
     <!-- Vorschau-Dialog -->
     <div id="previewDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 800px; width: 90%; margin: 20px; max-height: 80vh; overflow-y: auto;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 1024px; width: 90%; margin: 20px; max-height: 80vh; overflow-y: auto;">
             <h3>Vorschau: <?php echo htmlspecialchars($text['title']); ?></h3>
             <div id="previewContent" class="text-preview">Lade...</div>
             <button onclick="hidePreview()" class="btn-secondary" style="margin-top: 20px;">Schließen</button>

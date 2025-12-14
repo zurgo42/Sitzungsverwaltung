@@ -3038,13 +3038,13 @@ body.dark-mode .opinion-option {
 
 /* Template Tooltip für Meinungsbild */
 body.dark-mode .template-options-tooltip {
-    background: rgba(30, 58, 95, 0.95) !important;
+    background: #1e3a5f !important;
     color: var(--text-primary) !important;
     border: 1px solid var(--card-border) !important;
 }
 
 body.dark-mode .template-options-tooltip::before {
-    border-right-color: rgba(30, 58, 95, 0.95) !important;
+    border-right-color: #1e3a5f !important;
 }
 
 body.dark-mode .tooltip-header {
