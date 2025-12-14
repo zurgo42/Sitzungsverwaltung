@@ -126,6 +126,9 @@ if (!$has_access) {
     background: white;
     position: relative;
     transition: border-color 0.3s;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .paragraph-container.editing {
@@ -148,13 +151,14 @@ if (!$has_access) {
 }
 
 .paragraph-content {
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
     min-height: 60px;
     line-height: 1.6;
     white-space: pre-wrap;
     word-wrap: break-word;
     padding: 10px;
-    box-sizing: border-box;
+    box-sizing: border-box !important;
 }
 
 .paragraph-edit-area {

@@ -200,8 +200,8 @@ if ($access_token && !$poll_id) {
     min-width: 200px !important;
     max-width: 300px !important;
     pointer-events: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
+    opacity: 0;
+    visibility: hidden;
     transition: opacity 0.3s, visibility 0.3s !important;
     z-index: 99999 !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.95) !important;

@@ -59,15 +59,31 @@ if (isset($_POST['add_agenda_item'])) {
     if ($current_meeting_id && $title) {
         try {
             $start_time = microtime(true);
-            $log_file = __DIR__ . '/logs/timing.log';
+
+            // Timing-Log Setup
+            $log_dir = __DIR__ . '/logs';
+            $log_file = $log_dir . '/timing.log';
+
+            // Verzeichnis erstellen falls nicht vorhanden
+            if (!is_dir($log_dir)) {
+                mkdir($log_dir, 0777, true);
+            }
+
             $log = function($msg) use ($log_file, $start_time) {
-                $elapsed = microtime(true) - $start_time;
+                $elapsed = sprintf('%.4f', microtime(true) - $start_time);
                 $timestamp = date('Y-m-d H:i:s');
-                @file_put_contents($log_file, "[$timestamp] [+{$elapsed}s] $msg\n", FILE_APPEND);
-                error_log($msg);
+                $log_msg = "[$timestamp] [+{$elapsed}s] $msg";
+
+                // In beide Logs schreiben
+                error_log("[TIMING] $msg");
+
+                $result = file_put_contents($log_file, $log_msg . "\n", FILE_APPEND);
+                if ($result === false) {
+                    error_log("[ERROR] Could not write to timing.log: $log_file");
+                }
             };
 
-            $log("[START] Adding TOP: meeting_id=$current_meeting_id, confidential=$is_confidential, title=$title");
+            $log("[START] Adding TOP: meeting_id=$current_meeting_id, confidential=$is_confidential, title=" . substr($title, 0, 50));
 
             // Transaktion starten für atomare Operation
             $pdo->beginTransaction();

@@ -3038,9 +3038,15 @@ body.dark-mode .opinion-option {
 
 /* Template Tooltip für Meinungsbild */
 body.dark-mode .template-options-tooltip {
-    background: #0d1b2a !important;
+    background-color: #000000 !important;
+    background: #000000 !important;
     color: #ffffff !important;
     border: 2px solid var(--card-border) !important;
+    opacity: 1 !important;
+}
+
+body.dark-mode .template-card-with-tooltip:hover .template-options-tooltip {
+    opacity: 1 !important;
 }
 
 body.dark-mode .tooltip-header {
