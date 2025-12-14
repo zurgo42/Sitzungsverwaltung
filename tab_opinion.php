@@ -184,48 +184,6 @@ if ($access_token && !$poll_id) {
     display: none;
 }
 
-/* Tooltip für Template-Optionen */
-.template-card-with-tooltip {
-    position: relative;
-}
-
-.template-options-tooltip {
-    position: fixed !important;
-    background-color: #000000 !important;
-    color: #ffffff !important;
-    padding: 12px 16px !important;
-    border-radius: 8px !important;
-    font-size: 13px !important;
-    line-height: 1.6 !important;
-    min-width: 200px !important;
-    max-width: 300px !important;
-    pointer-events: none !important;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s, visibility 0.3s !important;
-    z-index: 99999 !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.95) !important;
-    white-space: normal !important;
-    border: 2px solid #444 !important;
-}
-
-.template-card-with-tooltip:hover .template-options-tooltip {
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-.tooltip-header {
-    font-weight: bold !important;
-    margin-bottom: 8px !important;
-    padding-bottom: 6px !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.5) !important;
-    color: #ffd700 !important;
-}
-
-.tooltip-option {
-    padding: 3px 0 !important;
-    color: #ffffff !important;
-}
 
 .custom-options-grid {
     display: grid;

@@ -87,39 +87,51 @@ if (!isset($all_members)) {
 
         <p>Wählen Sie ein vorgefertigtes Antwort-Set oder geben Sie eigene Antworten ein:</p>
 
-        <div class="template-selector">
-            <?php foreach ($templates as $template): ?>
-                <?php
-                // Optionen sammeln für Tooltip
-                $options = [];
-                for ($i = 1; $i <= 10; $i++) {
-                    if (!empty($template["option_$i"])) {
-                        $options[] = htmlspecialchars($template["option_$i"]);
+        <table class="template-table" style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+                <tr style="background: #f0f0f0;">
+                    <th style="padding: 10px; text-align: left; width: 50px;">Wahl</th>
+                    <th style="padding: 10px; text-align: left;">Template</th>
+                    <th style="padding: 10px; text-align: left;">Beschreibung</th>
+                    <th style="padding: 10px; text-align: center; width: 100px;">Optionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($templates as $template): ?>
+                    <?php
+                    // Optionen sammeln
+                    $options = [];
+                    for ($i = 1; $i <= 10; $i++) {
+                        if (!empty($template["option_$i"])) {
+                            $options[] = htmlspecialchars($template["option_$i"]);
+                        }
                     }
-                }
-                $optionsTooltip = implode("\n", $options);
-                ?>
-                <div class="template-card template-card-with-tooltip" onclick="selectTemplate(<?php echo $template['template_id']; ?>)" data-options="<?php echo htmlspecialchars($optionsTooltip); ?>">
-                    <input type="radio" name="template_radio" value="<?php echo $template['template_id']; ?>">
-                    <div style="font-weight: bold; margin-bottom: 5px;">
-                        <?php echo htmlspecialchars($template['template_name']); ?>
-                    </div>
-                    <div style="font-size: 12px; color: #666;">
-                        <?php echo htmlspecialchars($template['description']); ?>
-                    </div>
-                    <div style="margin-top: 8px; font-size: 11px; color: #999;">
-                        <?php echo count($options); ?> Optionen
-                    </div>
-                    <!-- Tooltip für Antworten -->
-                    <div class="template-options-tooltip">
-                        <div class="tooltip-header">Antwortmöglichkeiten:</div>
-                        <?php foreach ($options as $idx => $option): ?>
-                            <div class="tooltip-option"><?php echo ($idx + 1); ?>. <?php echo $option; ?></div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
+                    ?>
+                    <tr>
+                        <td colspan="4" style="padding: 0;">
+                            <details class="template-accordion" style="border-bottom: 1px solid #ddd;">
+                                <summary style="padding: 12px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px;">
+                                    <input type="radio" name="template_radio" value="<?php echo $template['template_id']; ?>"
+                                           onclick="selectTemplate(<?php echo $template['template_id']; ?>); event.stopPropagation();"
+                                           style="margin: 0;">
+                                    <span style="font-weight: bold; flex: 1;"><?php echo htmlspecialchars($template['template_name']); ?></span>
+                                    <span style="font-size: 12px; color: #666; flex: 2;"><?php echo htmlspecialchars($template['description']); ?></span>
+                                    <span style="font-size: 11px; color: #999;"><?php echo count($options); ?> Optionen ▼</span>
+                                </summary>
+                                <div style="padding: 15px; background: #f9f9f9; border-top: 1px solid #ddd;">
+                                    <strong style="display: block; margin-bottom: 10px;">Antwortmöglichkeiten:</strong>
+                                    <ol style="margin: 0; padding-left: 20px;">
+                                        <?php foreach ($options as $option): ?>
+                                            <li style="margin: 5px 0;"><?php echo $option; ?></li>
+                                        <?php endforeach; ?>
+                                    </ol>
+                                </div>
+                            </details>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
 
         <div id="custom-options-section" style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #ddd;">
             <h5>Oder: Eigene Antwortmöglichkeiten eingeben (bis zu 10)</h5>
@@ -250,51 +262,8 @@ function toggleOpinionTopManagement() {
     });
 }
 
-// Tooltip-Positionierung
-document.addEventListener('DOMContentLoaded', function() {
-    const cards = document.querySelectorAll('.template-card-with-tooltip');
-
-    cards.forEach(card => {
-        card.addEventListener('mouseenter', function(e) {
-            const tooltip = this.querySelector('.template-options-tooltip');
-            if (!tooltip) return;
-
-            const rect = this.getBoundingClientRect();
-            const tooltipWidth = 300; // max-width
-            const spacing = 15;
-            const minMargin = 10;
-
-            // Position rechts von der Karte
-            let left = rect.right + spacing;
-            let top = rect.top + (rect.height / 2);
-
-            // Wenn rechts nicht genug Platz, links positionieren
-            if (left + tooltipWidth > window.innerWidth - minMargin) {
-                left = rect.left - tooltipWidth - spacing;
-
-                // Wenn auch links nicht genug Platz, zentriert über/unter der Karte
-                if (left < minMargin) {
-                    left = Math.max(minMargin, Math.min(window.innerWidth - tooltipWidth - minMargin, rect.left));
-                    top = rect.bottom + spacing;
-                }
-            }
-
-            // Sicherstellen, dass left im Viewport ist
-            left = Math.max(minMargin, Math.min(left, window.innerWidth - tooltipWidth - minMargin));
-
-            // Sicherstellen, dass es nicht oben/unten rausgeht
-            const tooltipHeight = tooltip.offsetHeight || 150;
-            if (top - tooltipHeight/2 < minMargin) {
-                top = tooltipHeight/2 + minMargin;
-            }
-            if (top + tooltipHeight/2 > window.innerHeight - minMargin) {
-                top = window.innerHeight - tooltipHeight/2 - minMargin;
-            }
-
-            tooltip.style.left = left + 'px';
-            tooltip.style.top = top + 'px';
-            tooltip.style.transform = 'translateY(-50%)';
-        });
-    });
-});
+// Template-Auswahl
+function selectTemplate(templateId) {
+    document.getElementById('template_id').value = templateId;
+}
 </script>

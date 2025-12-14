@@ -58,40 +58,11 @@ if (isset($_POST['add_agenda_item'])) {
 
     if ($current_meeting_id && $title) {
         try {
-            $start_time = microtime(true);
-
-            // Timing-Log Setup
-            $log_dir = __DIR__ . '/logs';
-            $log_file = $log_dir . '/timing.log';
-
-            // Verzeichnis erstellen falls nicht vorhanden
-            if (!is_dir($log_dir)) {
-                mkdir($log_dir, 0777, true);
-            }
-
-            $log = function($msg) use ($log_file, $start_time) {
-                $elapsed = sprintf('%.4f', microtime(true) - $start_time);
-                $timestamp = date('Y-m-d H:i:s');
-                $log_msg = "[$timestamp] [+{$elapsed}s] $msg";
-
-                // In beide Logs schreiben
-                error_log("[TIMING] $msg");
-
-                $result = file_put_contents($log_file, $log_msg . "\n", FILE_APPEND);
-                if ($result === false) {
-                    error_log("[ERROR] Could not write to timing.log: $log_file");
-                }
-            };
-
-            $log("[START] Adding TOP: meeting_id=$current_meeting_id, confidential=$is_confidential, title=" . substr($title, 0, 50));
-
             // Transaktion starten für atomare Operation
             $pdo->beginTransaction();
-            $log("Transaction started");
 
             // TOP-Nummer automatisch vergeben
             $top_number = get_next_top_number($pdo, $current_meeting_id, $is_confidential);
-            $log("TOP number assigned: $top_number");
 
             // TOP in Datenbank einfügen
             $stmt = $pdo->prepare("
@@ -113,7 +84,6 @@ if (isset($_POST['add_agenda_item'])) {
             ]);
 
             $new_item_id = $pdo->lastInsertId();
-            $log("TOP inserted with ID: $new_item_id");
 
             // BUGFIX: Keinen initialen "-" Kommentar mehr erstellen
             // Stattdessen nur initiale Bewertung ohne sichtbaren Kommentar
@@ -122,11 +92,9 @@ if (isset($_POST['add_agenda_item'])) {
                 VALUES (?, ?, '', ?, ?, NOW())
             ");
             $stmt->execute([$new_item_id, $current_user['member_id'], $priority, $duration]);
-            $log("Comment inserted");
 
             // Transaktion abschließen
             $pdo->commit();
-            $log("[COMPLETE] Transaction committed - TOTAL TIME");
 
             // Durchschnittswerte berechnen (NACH commit, nicht in Transaktion)
             // Nicht nötig beim Erstellen, da nur ein Kommentar existiert und Werte schon korrekt sind

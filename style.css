@@ -3036,28 +3036,6 @@ body.dark-mode .opinion-option {
     border-color: var(--border-color) !important;
 }
 
-/* Template Tooltip für Meinungsbild */
-body.dark-mode .template-options-tooltip {
-    background-color: #000000 !important;
-    background: #000000 !important;
-    color: #ffffff !important;
-    border: 2px solid var(--card-border) !important;
-    opacity: 1 !important;
-}
-
-body.dark-mode .template-card-with-tooltip:hover .template-options-tooltip {
-    opacity: 1 !important;
-}
-
-body.dark-mode .tooltip-header {
-    border-bottom-color: var(--card-border) !important;
-    color: #ffd700 !important;
-}
-
-body.dark-mode .tooltip-option {
-    color: #ffffff !important;
-}
-
 /* Diskussion & Übersicht */
 body.dark-mode .discussion-container,
 body.dark-mode .discussion-item,

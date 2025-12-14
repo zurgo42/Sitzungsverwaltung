@@ -122,7 +122,7 @@ if (!$has_access) {
     margin-bottom: 20px;
     border: 2px solid #e0e0e0;
     border-radius: 8px;
-    padding: 15px;
+    padding: 0;
     background: white;
     position: relative;
     transition: border-color 0.3s;
@@ -145,8 +145,8 @@ if (!$has_access) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
+    margin-bottom: 0;
+    padding: 10px 10px 8px 10px;
     border-bottom: 1px solid #ddd;
 }
 
@@ -179,6 +179,7 @@ if (!$has_access) {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+    padding: 10px;
 }
 
 .online-users {
