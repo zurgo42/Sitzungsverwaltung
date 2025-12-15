@@ -693,6 +693,12 @@ if ($view === 'editor') {
 
     // Absatz bearbeiten
     function editParagraph(paragraphId) {
+        // Prüfen ob bereits ein anderer Absatz bearbeitet wird
+        if (editingParagraphId && editingParagraphId !== paragraphId) {
+            alert('⚠️ Du bearbeitest bereits einen anderen Absatz.\n\nBitte speichere oder breche die aktuelle Bearbeitung ab, bevor du einen weiteren Absatz öffnest.\n\nDadurch wird verhindert, dass Arbeit verloren geht.');
+            return;
+        }
+
         // Lock erwerben
         fetch('api/collab_text_lock_paragraph.php', {
             method: 'POST',
