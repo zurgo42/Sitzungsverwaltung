@@ -47,13 +47,13 @@ if ($is_meeting_mode) {
         $context_description = 'Sitzung: ' . htmlspecialchars($meeting['meeting_name']);
     }
 } else {
-    // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz
+    // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz, Führungsteam
     // Case-insensitive Rollenprüfung (funktioniert mit members und berechtigte)
     $user_role_lower = strtolower($current_user['role']);
-    if (in_array($user_role_lower, ['vorstand', 'gf', 'geschäftsführung', 'assistenz'])) {
+    if (in_array($user_role_lower, ['vorstand', 'gf', 'geschäftsführung', 'assistenz', 'fuehrungsteam'])) {
         $has_access = true;
         $is_initiator_role = true; // Alle dürfen Texte erstellen
-        $context_description = 'Allgemeine Texte (Vorstand/GF/Assistenz)';
+        $context_description = 'Allgemeine Texte (Vorstand/GF/Assistenz/Führungsteam)';
     }
 }
 
@@ -65,7 +65,7 @@ if (!$has_access) {
     if ($is_meeting_mode) {
         echo '<p>Du bist kein Teilnehmer dieser Sitzung.</p>';
     } else {
-        echo '<p>Diese Funktion steht nur Vorstand, Geschäftsführung und Assistenz zur Verfügung.</p>';
+        echo '<p>Diese Funktion steht nur Vorstand, Geschäftsführung, Assistenz und Führungsteam zur Verfügung.</p>';
     }
     echo '</div>';
     echo '</div>';
@@ -286,7 +286,7 @@ if ($view === 'overview') {
     <h2>📝 Gemeinsame Texte</h2>
 
     <div class="alert alert-info">
-        <strong>ℹ️ Info:</strong> Vorstand, GF und Assistenz können hier gemeinsam an Texten arbeiten.
+        <strong>ℹ️ Info:</strong> Vorstand, GF, Assistenz und Führungsteam können hier gemeinsam an Texten arbeiten.
     </div>
 
     <?php if ($is_initiator_role): ?>
@@ -1190,13 +1190,13 @@ if ($view === 'final') {
     // Zugriffsprüfung
     if ($text['meeting_id']) {
         if (!hasCollabTextAccess($pdo, $text_id, $current_user['member_id'])) {
-            echo '<div class="alert alert-danger">Sie haben keinen Zugriff auf diesen Text.</div>';
+            echo '<div class="alert alert-danger">Du hast keinen Zugriff auf diesen Text.</div>';
             return;
         }
     } else {
-        // Allgemeiner Text: Nur Vorstand, GF, Assistenz
-        if (!in_array($current_user['role'], ['vorstand', 'gf', 'assistenz'])) {
-            echo '<div class="alert alert-danger">Sie haben keinen Zugriff auf diesen Text.</div>';
+        // Allgemeiner Text: Nur Vorstand, GF, Assistenz, Führungsteam
+        if (!in_array(strtolower($current_user['role']), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam'])) {
+            echo '<div class="alert alert-danger">Du hast keinen Zugriff auf diesen Text.</div>';
             return;
         }
     }

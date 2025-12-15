@@ -532,11 +532,11 @@ function hasCollabTextAccess($pdo, $text_id, $member_id) {
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             return $result['has_access'] > 0;
         } else {
-            // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz
+            // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz, Führungsteam
             $stmt = $pdo->prepare("SELECT role FROM svmembers WHERE member_id = ?");
             $stmt->execute([$member_id]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $user && in_array($user['role'], ['vorstand', 'gf', 'assistenz']);
+            return $user && in_array(strtolower($user['role']), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam']);
         }
 
     } catch (PDOException $e) {
