@@ -65,7 +65,8 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
    - Titel, Datum, Ort (physisch oder virtuell)
    - Video-Link für Online-Meetings
    - Einladen von Teilnehmern
-   - Sichtbarkeits-Einstellungen
+   - Sichtbarkeits-Einstellungen (🔒 Nur Eingeladene, 👔 Führungsteam, 🌐 Öffentlich)
+   - Sichtbarkeitsstatus wird überall angezeigt (Meetings, Tagesordnung, Protokolle)
 
 2. **Tagesordnung erstellen:**
    - Strukturierte TOPs mit Nummerierung
@@ -147,6 +148,10 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 - **Öffentliches Protokoll:** Für allgemeine Verbreitung
 - **Vertrauliches Protokoll:** Nur für berechtigte Personen
 - Getrennte Speicherung und Zugriffsrechte
+- **Rollenbasierte Protokoll-Filterung:**
+  - Vorstand/GF/Assistenz: Sehen alle Protokolle
+  - Führungsteam: Sehen Protokolle von eigenen Meetings + öffentliche + Führungsteam-Meetings
+  - Mitglieder: Sehen nur öffentliche Protokolle
 - Markdown-Unterstützung für Formatierung
 - Änderungsanfragen von Teilnehmern
 - Versionierung
@@ -155,10 +160,10 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 
 **Rollen und Berechtigungen:**
 
-- **Vorstand / Geschäftsführung:** Volle Admin-Rechte
-- **Assistenz:** Meetings anlegen und verwalten
-- **Führungsteam:** Erweiterte Rechte
-- **Mitglied:** Basis-Teilnahmerechte
+- **Vorstand / Geschäftsführung:** Volle Admin-Rechte, alle Protokolle und Meetings sichtbar
+- **Assistenz:** Meetings anlegen und verwalten, alle Protokolle sichtbar
+- **Führungsteam:** Erweiterte Rechte, Textbearbeitung, sehen eigene Meetings + öffentliche + Führungsteam-Meetings
+- **Mitglied:** Basis-Teilnahmerechte, sehen nur öffentliche Protokolle
 
 **Features:**
 - Mitgliedsnummern
@@ -192,11 +197,16 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 
 **Gemeinsam an Texten arbeiten während Sitzungen:**
 
+- **Zwei Modi:**
+  - **Meeting-Modus:** Alle Sitzungsteilnehmer können mitarbeiten
+  - **Allgemein-Modus:** Vorstand, GF, Assistenz und Führungsteam können allgemeine Texte erstellen
+
 - **Absatz-basiertes Editieren:**
   - Text ist in Absätze unterteilt
   - Jeder Absatz kann einzeln bearbeitet werden
   - Automatisches Lock-System verhindert Konflikte
   - Während ein Teilnehmer einen Absatz bearbeitet, sehen andere "🔒 Name bearbeitet"
+  - **Schutz vor Datenverlust:** Nur ein Absatz kann gleichzeitig bearbeitet werden
 
 - **Live-Synchronisation:**
   - Änderungen werden alle 1-2 Sekunden aktualisiert
@@ -206,12 +216,12 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 - **Funktionen:**
   - Neue Absätze hinzufügen
   - Absätze löschen (mindestens einer muss bleiben)
-  - Vorschau-Funktion für gesamten Text
+  - Text anzeigen und in Zwischenablage kopieren (mit einem Klick)
   - Versions-Snapshots erstellen
-  - Text in Zwischenablage kopieren
+  - Absätze neu anordnen
 
 - **Finalisierung:**
-  - Nur Initiator (Protokollant) kann Text finalisieren
+  - Nur Initiator kann Text finalisieren
   - Nach Finalisierung: kein Editieren mehr möglich
   - Finaler Text für alle Teilnehmer verfügbar
   - Mit einem Klick kopierbar
