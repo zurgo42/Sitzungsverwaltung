@@ -4,7 +4,7 @@
  */
 
 if (!$current_user) {
-    echo "<p>Bitte melden Sie sich an.</p>";
+    echo "<p>Bitte melde dich an.</p>";
     return;
 }
 
@@ -30,14 +30,14 @@ if (!isset($all_members)) {
 
 <h3>Neues Meinungsbild erstellen</h3>
 
-<form method="POST" action="process_opinion.php">
+<form method="POST" action="process_opinion.php" onsubmit="return validateOpinionForm()">
     <input type="hidden" name="action" value="create_opinion">
     <input type="hidden" name="template_id" id="template_id" value="">
 
     <div class="opinion-card">
         <h4>1. Frage formulieren</h4>
         <div class="form-group">
-            <label>Ihre Frage:*</label>
+            <label>Deine Frage:*</label>
             <textarea name="title" rows="3" required placeholder="z.B. Sollen wir das neue Feature implementieren?" style="width: 100%;"></textarea>
         </div>
     </div>
@@ -47,7 +47,7 @@ if (!isset($all_members)) {
         <div class="form-group">
             <label style="display: block; margin-bottom: 10px;">
                 <input type="radio" name="target_type" value="individual" checked onchange="updateTargetOptions()">
-                <strong>Individuell</strong> - Link, den Sie weitergeben können
+                <strong>Individuell</strong> - Link, den du weitergeben kannst
             </label>
             <label style="display: block; margin-bottom: 10px;">
                 <input type="radio" name="target_type" value="list" onchange="updateTargetOptions()">
@@ -85,46 +85,91 @@ if (!isset($all_members)) {
     <div class="opinion-card">
         <h4>3. Antwortmöglichkeiten festlegen</h4>
 
-        <p>Wählen Sie ein vorgefertigtes Antwort-Set oder geben Sie eigene Antworten ein:</p>
+        <p>Wähle ein vorgefertigtes Antwort-Set oder gib eigene Antworten ein:</p>
 
-        <div class="template-selector">
-            <?php foreach ($templates as $template): ?>
-                <div class="template-card" onclick="selectTemplate(<?php echo $template['template_id']; ?>)">
-                    <input type="radio" name="template_radio" value="<?php echo $template['template_id']; ?>">
-                    <div style="font-weight: bold; margin-bottom: 5px;">
-                        <?php echo htmlspecialchars($template['template_name']); ?>
-                    </div>
-                    <div style="font-size: 12px; color: #666;">
-                        <?php echo htmlspecialchars($template['description']); ?>
-                    </div>
-                    <div style="margin-top: 8px; font-size: 11px; color: #999;">
-                        <?php
-                        $options = [];
-                        for ($i = 1; $i <= 10; $i++) {
-                            if (!empty($template["option_$i"])) {
-                                $options[] = $template["option_$i"];
-                            }
+        <?php
+        // Templates sortieren: "Frei" ans Ende
+        $frei_template = null;
+        $other_templates = [];
+
+        foreach ($templates as $template) {
+            if (stripos($template['template_name'], 'Frei') !== false) {
+                $frei_template = $template;
+            } else {
+                $other_templates[] = $template;
+            }
+        }
+
+        // Falls "Frei" gefunden, ans Ende hängen
+        if ($frei_template) {
+            $sorted_templates = array_merge($other_templates, [$frei_template]);
+        } else {
+            $sorted_templates = $templates;
+        }
+        ?>
+
+        <table class="template-table" style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+                <tr style="background: #f0f0f0;">
+                    <th style="padding: 10px; text-align: left; width: 50px;">Wahl</th>
+                    <th style="padding: 10px; text-align: left;">Template</th>
+                    <th style="padding: 10px; text-align: left;">Beschreibung</th>
+                    <th style="padding: 10px; text-align: center; width: 100px;">Optionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($sorted_templates as $template): ?>
+                    <?php
+                    // Optionen sammeln
+                    $options = [];
+                    for ($i = 1; $i <= 10; $i++) {
+                        if (!empty($template["option_$i"])) {
+                            $options[] = htmlspecialchars($template["option_$i"]);
                         }
-                        echo count($options) . ' Optionen';
-                        ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
+                    }
 
-        <div id="custom-options-section" style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #ddd;">
-            <h5>Oder: Eigene Antwortmöglichkeiten eingeben (bis zu 10)</h5>
-            <small style="color: #666;">Wenn Sie eigene Antworten eingeben, wird kein Template verwendet.</small>
-
-            <div class="custom-options-grid" style="margin-top: 15px;">
-                <?php for ($i = 1; $i <= 10; $i++): ?>
-                    <div>
-                        <label><?php echo $i; ?>.</label>
-                        <input type="text" name="custom_option_<?php echo $i; ?>" placeholder="Antwortmöglichkeit <?php echo $i; ?>" style="width: 100%;">
-                    </div>
-                <?php endfor; ?>
-            </div>
-        </div>
+                    // Prüfen ob dies das "Frei" Template ist
+                    $is_frei = (stripos($template['template_name'], 'Frei') !== false);
+                    ?>
+                    <tr>
+                        <td colspan="4" style="padding: 0;">
+                            <details class="template-accordion" style="border-bottom: 1px solid #ddd;">
+                                <summary style="padding: 12px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px;">
+                                    <input type="radio" name="template_radio" value="<?php echo $template['template_id']; ?>"
+                                           onclick="selectTemplate(<?php echo $template['template_id']; ?>); event.stopPropagation();"
+                                           style="margin: 0;">
+                                    <span style="font-weight: bold; flex: 1;"><?php echo htmlspecialchars($template['template_name']); ?></span>
+                                    <span style="font-size: 12px; color: #666; flex: 2;"><?php echo htmlspecialchars($template['description']); ?></span>
+                                    <span style="font-size: 11px; color: #999;"><?php echo $is_frei ? '10 Eingabefelder' : count($options) . ' Optionen'; ?> ▼</span>
+                                </summary>
+                                <div style="padding: 15px; background: #f9f9f9; border-top: 1px solid #ddd;">
+                                    <?php if ($is_frei): ?>
+                                        <!-- Eigene Antwortmöglichkeiten für "Frei" Template -->
+                                        <strong style="display: block; margin-bottom: 10px;">Eigene Antwortmöglichkeiten eingeben (bis zu 10):</strong>
+                                        <div class="custom-options-grid" style="margin-top: 15px;">
+                                            <?php for ($i = 1; $i <= 10; $i++): ?>
+                                                <div>
+                                                    <label><?php echo $i; ?>.</label>
+                                                    <input type="text" name="custom_option_<?php echo $i; ?>" placeholder="Antwortmöglichkeit <?php echo $i; ?>" style="width: 100%;">
+                                                </div>
+                                            <?php endfor; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <!-- Vordefinierte Optionen für andere Templates -->
+                                        <strong style="display: block; margin-bottom: 10px;">Antwortmöglichkeiten:</strong>
+                                        <ol style="margin: 0; padding-left: 20px;">
+                                            <?php foreach ($options as $option): ?>
+                                                <li style="margin: 5px 0;"><?php echo $option; ?></li>
+                                            <?php endforeach; ?>
+                                        </ol>
+                                    <?php endif; ?>
+                                </div>
+                            </details>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
     </div>
 
     <div class="opinion-card">
@@ -239,5 +284,35 @@ function toggleOpinionTopManagement() {
             cb.checked = !cb.checked;
         }
     });
+}
+
+// Template-Auswahl
+function selectTemplate(templateId) {
+    document.getElementById('template_id').value = templateId;
+}
+
+// Formular-Validierung
+function validateOpinionForm() {
+    const templateId = document.getElementById('template_id').value;
+
+    // Prüfen ob ein Template ausgewählt wurde
+    if (!templateId) {
+        // Prüfen ob mindestens ein custom option Feld ausgefüllt ist
+        let hasCustomOption = false;
+        for (let i = 1; i <= 10; i++) {
+            const field = document.querySelector(`input[name="custom_option_${i}"]`);
+            if (field && field.value.trim() !== '') {
+                hasCustomOption = true;
+                break;
+            }
+        }
+
+        if (!hasCustomOption) {
+            alert('Bitte wähle ein Antwort-Template aus oder gib eigene Antwortmöglichkeiten ein.');
+            return false;
+        }
+    }
+
+    return true;
 }
 </script>

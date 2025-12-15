@@ -352,6 +352,14 @@ button:hover {
     background: #777;
 }
 
+.back-to-overview-btn {
+    background: var(--primary) !important;
+}
+
+.back-to-overview-btn:hover {
+    background: #004477 !important;
+}
+
 .btn-view {
     padding: 6px 12px;
     background: var(--info);
@@ -662,6 +670,19 @@ button:hover {
     background: var(--primary);
     color: white;
     border-color: var(--primary);
+}
+
+.accordion-button.create-poll-button,
+.accordion-button.create-meeting-button {
+    background: #2196f3;
+    color: white;
+    border-color: #2196f3;
+}
+
+.accordion-button.create-poll-button:hover,
+.accordion-button.create-meeting-button:hover {
+    background: #1976d2;
+    color: white;
 }
 
 .accordion-content {
@@ -2140,6 +2161,41 @@ body.dark-mode .other-todos-accordion-header:hover {
         margin-right: 10px;
     }
 
+    .dark-mode-toggle {
+        padding: 3px;
+        font-size: 16px;
+        margin-left: 5px;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .kommende-termine-break {
+        display: block;
+        height: 8px;
+    }
+
+    /* Textbearbeitung - Textarea ohne Padding für volle Breite */
+    .paragraph-edit-area {
+        padding: 0 !important;
+    }
+
+    /* Status ändern Form - Auswahlfeld größer, Button kleiner */
+    .status-form select {
+        flex: 2;
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .status-form .btn-status {
+        flex: 1;
+        font-size: 12px;
+        padding: 10px 8px;
+        white-space: nowrap;
+    }
+
     /* Navigation - Mobile: Versteckbar mit LocalStorage */
     .navigation {
         flex-direction: column;
@@ -3146,6 +3202,14 @@ body.dark-mode .agenda-meta strong {
     color: var(--text-primary) !important;
 }
 
+body.dark-mode .agenda-title {
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .agenda-title * {
+    color: var(--text-primary) !important;
+}
+
 body.dark-mode .meeting-edit-section,
 body.dark-mode .meeting-start-section {
     background: var(--card-bg) !important;
@@ -3220,6 +3284,11 @@ body.dark-mode .done-todos-table td {
     border-color: var(--card-border) !important;
 }
 
+body.dark-mode .done-todos-table tbody,
+body.dark-mode .done-todos-table tbody tr {
+    background: var(--card-bg) !important;
+}
+
 body.dark-mode .done-todos-cards {
     background: var(--card-bg) !important;
 }
@@ -3243,6 +3312,11 @@ body.dark-mode table.other-todos-table td {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: none !important;
+}
+
+body.dark-mode table.other-todos-table tbody,
+body.dark-mode table.other-todos-table tbody tr {
+    background: var(--card-bg) !important;
 }
 
 /* ABWESENHEITEN - Admin Section */
@@ -3453,6 +3527,23 @@ body.dark-mode button.accordion-button {
     background: var(--card-border) !important;
     color: #1e3a5f !important;
     font-weight: bold !important;
+}
+
+body.dark-mode .accordion-button.create-poll-button,
+body.dark-mode .accordion-button.create-meeting-button,
+body.dark-mode button.accordion-button.create-poll-button,
+body.dark-mode button.accordion-button.create-meeting-button {
+    background: #2196f3 !important;
+    color: white !important;
+    border-color: #2196f3 !important;
+}
+
+body.dark-mode .accordion-button.create-poll-button:hover,
+body.dark-mode .accordion-button.create-meeting-button:hover,
+body.dark-mode button.accordion-button.create-poll-button:hover,
+body.dark-mode button.accordion-button.create-meeting-button:hover {
+    background: #1976d2 !important;
+    color: white !important;
 }
 
 /* TERMINE - Alle Buttons mit weißer Schrift */
@@ -3701,6 +3792,14 @@ body.dark-mode *[style*="background:#fff"] {
     background: var(--card-bg) !important;
 }
 
+/* Protokoll-Anzeige im Sitzungsverlauf */
+body.dark-mode div[id*="protocol-display"] {
+    background: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    padding: 10px !important;
+    border-radius: 4px !important;
+}
+
 /* ABSOLUTER OVERRIDE für alle hellen Hintergründe */
 body.dark-mode *[style*="background: #f9f9f9"],
 body.dark-mode *[style*="background:#f9f9f9"],
@@ -3837,6 +3936,12 @@ body.dark-mode details ul[style*="list-style: none"] li {
 body.dark-mode details ul[style*="list-style: none"] li a,
 body.dark-mode details ul[style*="list-style: none"] li a[style*="color: #2c5aa0"],
 body.dark-mode details ul[style*="list-style: none"] li span {
+    color: var(--text-primary) !important;
+}
+
+/* TAGESORDNUNG - Hinweis-Text */
+body.dark-mode details p[style*="color: #555"],
+body.dark-mode details p[style*="color:#555"] {
     color: var(--text-primary) !important;
 }
 

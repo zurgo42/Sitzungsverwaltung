@@ -97,7 +97,7 @@ require_once 'module_notifications.php';
 <!-- Neue Sitzung erstellen (nicht für Mitglied-Rolle) -->
 <?php if (strtolower($current_user['role']) !== 'mitglied'): ?>
 <div style="margin-bottom: 30px;">
-    <button class="accordion-button" onclick="toggleAccordion(this)">➕ Neue Sitzung erstellen</button>
+    <button class="accordion-button create-meeting-button" onclick="toggleAccordion(this)">➕ Neue Sitzung erstellen</button>
     <div class="accordion-content">
         <form method="POST" action="process_meetings.php">
             <input type="hidden" name="create_meeting" value="1">
@@ -176,9 +176,9 @@ require_once 'module_notifications.php';
                     <option value="public">Öffentlich</option>
                 </select>
                 <small style="display: block; margin-top: 5px; color: #666;">
-                    • <strong>Nur Eingeladene:</strong> Nur ausgewählte Teilnehmer sehen diese Sitzung<br>
-                    • <strong>Alle angemeldeten:</strong> Alle eingeloggten Mitglieder sehen diese Sitzung (read-only, Teilnehmer haben volle Rechte)<br>
-                    • <strong>Öffentlich:</strong> Auch der Spezial-User "Mitglied alle" kann diese Sitzung sehen (read-only, Teilnehmer haben volle Rechte)
+                    • <strong>Nur Eingeladene:</strong> Nur die bei Anlegen der Sitzung (oder später hinzugefügte) ausgewählten Teilnehmer sehen die Sitzung, können kommentieren und sehen später das Protokoll<br>
+                    • <strong>Alle angemeldeten:</strong> Das Führungsteam einschl. Vorstand, GF und Assistenz sehen die Sitzung, können kommentieren und sehen später das Protokoll<br>
+                    • <strong>Öffentlich:</strong> Alle im System eingeloggten User sehen die Tagesordnung (read only) und das Protokoll
                 </small>
             </div>
 
@@ -313,6 +313,18 @@ require_once 'module_notifications.php';
                             }
                             ?>
                         </span>
+                        <br><strong>Sichtbarkeit:</strong>
+                        <span style="font-size: 0.9em;">
+                            <?php
+                            $visibility = $m['visibility_type'] ?? 'invited_only';
+                            switch($visibility) {
+                                case 'invited_only': echo '🔒 Nur Eingeladene'; break;
+                                case 'authenticated': echo '👔 Führungsteam'; break;
+                                case 'public': echo '🌐 Öffentlich'; break;
+                                default: echo htmlspecialchars($visibility);
+                            }
+                            ?>
+                        </span>
                         <?php if ($needs_protocol_completion): ?>
                             <br><strong style="color: #f44336;">⚠️ Fertigstellung des Protokolls steht aus</strong>
                         <?php elseif ($needs_protocol_approval): ?>
@@ -414,12 +426,12 @@ require_once 'module_notifications.php';
                             <select name="visibility_type">
                                 <option value="invited_only" <?php echo ($m['visibility_type'] ?? 'invited_only') === 'invited_only' ? 'selected' : ''; ?>>Nur Eingeladene</option>
                                 <option value="authenticated" <?php echo ($m['visibility_type'] ?? 'invited_only') === 'authenticated' ? 'selected' : ''; ?>>Alle angemeldeten Mitglieder</option>
-                                <option value="public" <?php echo ($m['visibility_type'] ?? 'invited_only') === 'public' ? 'selected' : ''; ?>>Öffentlich (nur für User "Mitglied alle")</option>
+                                <option value="public" <?php echo ($m['visibility_type'] ?? 'invited_only') === 'public' ? 'selected' : ''; ?>>Öffentlich</option>
                             </select>
                             <small style="display: block; margin-top: 5px; color: #666;">
-                                • <strong>Nur Eingeladene:</strong> Nur ausgewählte Teilnehmer sehen diese Sitzung<br>
-                                • <strong>Alle angemeldeten:</strong> Alle Members sehen diese Sitzung<br>
-                                • <strong>Öffentlich:</strong> Nur der Spezial-User "Mitglied alle" sieht diese Sitzung (read-only)
+                                • <strong>Nur Eingeladene:</strong> Nur die bei Anlegen der Sitzung (oder später hinzugefügte) ausgewählten Teilnehmer sehen die Sitzung, können kommentieren und sehen später das Protokoll<br>
+                                • <strong>Alle angemeldeten:</strong> Das Führungsteam einschl. Vorstand, GF und Assistenz sehen die Sitzung, können kommentieren und sehen später das Protokoll<br>
+                                • <strong>Öffentlich:</strong> Alle im System eingeloggten User sehen die Tagesordnung (read only) und das Protokoll
                             </small>
                         </div>
 

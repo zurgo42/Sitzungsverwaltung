@@ -143,7 +143,7 @@ if ($access_token) {
 
     if (!$poll) {
         die('<div style="background:#f8d7da;padding:20px;border:1px solid #f5c6cb;color:#721c24;border-radius:5px;margin:20px;">
-            ❌ Ungültiger oder abgelaufener Zugangs-Link. Bitte prüfen Sie den Link oder kontaktieren Sie den Ersteller.
+            ❌ Ungültiger oder abgelaufener Zugangs-Link. Bitte prüfe den Link oder kontaktiere den Ersteller.
         </div>');
     }
 
@@ -255,7 +255,7 @@ if ($view === 'list') {
             }
         }
     } else {
-        echo '<p class="error">Bitte melden Sie sich an, um Meinungsbilder zu sehen.</p>';
+        echo '<p class="error">Bitte melde dich an, um Meinungsbilder zu sehen.</p>';
     }
 
     echo '</div>';

@@ -85,8 +85,8 @@ function testFetch() {
 </script>
 
 <h2>Browser-Konsole überprüfen</h2>
-<p>Öffnen Sie die Browser-Entwicklertools (F12) und gehen Sie zum Tab "Console" oder "Konsole".</p>
-<p>Dort sollten Sie sehen können, ob JavaScript-Fehler auftreten.</p>
+<p>Öffne die Browser-Entwicklertools (F12) und gehe zum Tab "Console" oder "Konsole".</p>
+<p>Dort solltest du sehen können, ob JavaScript-Fehler auftreten.</p>
 
 <h2>Network-Tab überprüfen</h2>
-<p>Im Tab "Network" oder "Netzwerk" der Entwicklertools können Sie sehen, ob die AJAX-Requests gesendet werden und welche Antworten sie erhalten.</p>
+<p>Im Tab "Network" oder "Netzwerk" der Entwicklertools kannst du sehen, ob die AJAX-Requests gesendet werden und welche Antworten sie erhalten.</p>

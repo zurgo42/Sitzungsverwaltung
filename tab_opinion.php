@@ -184,6 +184,7 @@ if ($access_token && !$poll_id) {
     display: none;
 }
 
+
 .custom-options-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);

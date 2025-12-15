@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['test_mail'])) {
         $text .= "Zeitstempel: " . date('d.m.Y H:i:s') . "\n";
         $text .= "Backend: $test_backend\n";
         $text .= "Modus: " . ($use_integrated ? 'Integriert (Sitzungsverwaltung)' : 'Standalone') . "\n\n";
-        $text .= "Wenn Sie diese Mail erhalten, funktioniert das Mail-System! ✓\n\n";
+        $text .= "Wenn du diese Mail erhältst, funktioniert das Mail-System! ✓\n\n";
         $text .= "---\n";
         $text .= "Diese Mail wurde automatisch generiert.";
 
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['test_mail'])) {
         $html .= "🔧 Modus: " . ($use_integrated ? 'Integriert (Sitzungsverwaltung)' : 'Standalone') . "<br>";
         $html .= "</div>";
         $html .= "<p style='background: #d4edda; padding: 15px; border-radius: 6px; border: 1px solid #c3e6cb; color: #155724;'>";
-        $html .= "✅ <strong>Wenn Sie diese Mail erhalten, funktioniert das Mail-System!</strong>";
+        $html .= "✅ <strong>Wenn du diese Mail erhältst, funktioniert das Mail-System!</strong>";
         $html .= "</p>";
         $html .= "<p style='font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 15px; margin-top: 20px;'>";
         $html .= "Diese Mail wurde automatisch generiert.";
@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['test_mail'])) {
                 $success_msg .= " (zur Queue hinzugefügt - Versand erfolgt via Cronjob)";
             }
         } else {
-            $error = "❌ Fehler beim Versenden der Test-Mail. Prüfen Sie die Logs.";
+            $error = "❌ Fehler beim Versenden der Test-Mail. Prüfe die Logs.";
         }
     }
 }
@@ -178,7 +178,7 @@ if (!$is_cli) {
     echo '<div class="test-result info">';
     echo '<strong>ℹ️ Hinweise:</strong><br>';
     echo '• Die Test-Mail wird an die angegebene Adresse versendet<br>';
-    echo '• Prüfen Sie ggf. den Spam-Ordner<br>';
+    echo '• Prüfe ggf. den Spam-Ordner<br>';
     echo '• Bei Queue-Backend: Cronjob muss laufen (php process_mail_queue.php)<br>';
     echo '• Logs prüfen: PHP Error Log oder /var/log/mail.log<br>';
     echo '</div>';

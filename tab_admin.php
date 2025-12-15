@@ -99,6 +99,11 @@ $all_documents = get_documents($pdo, ['status' => 'active'], 99);
 <?php endif; ?>
 
 
+<!-- Mobile Warnung -->
+<div class="alert alert-warning mobile-only" style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px;">
+    <strong>⚠️ Hinweis:</strong> Diese Seite ist für den PC optimiert, und daher für das Smartphone nur bedingt geeignet!
+</div>
+
 <!-- Statistik-Übersicht -->
 <div class="info-box" style="margin-bottom: 30px;">
     <strong>📊 Übersicht:</strong> 
@@ -877,7 +882,7 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
                     <h5 style="margin-top: 0; color: #007bff;">📦 Demo-Daten exportieren</h5>
                     <p style="font-size: 14px; color: #666;">
                         Exportiert den aktuellen Datenbankstand als Demo-Daten-Datei.
-                        Nützlich wenn Sie einen neuen Demo-Stand erstellen möchten.
+                        Nützlich wenn du einen neuen Demo-Stand erstellen möchtest.
                     </p>
                     <a href="tools/demo_export.php" class="btn" style="background-color: #007bff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank">
                         📦 Export starten
@@ -891,7 +896,7 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
                         <strong>ACHTUNG:</strong> Löscht ALLE aktuellen Daten und lädt Demo-Daten ein.
                         Dieser Vorgang kann nicht rückgängig gemacht werden!
                     </p>
-                    <a href="tools/demo_import.php" class="btn btn-danger" style="background-color: #dc3545; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank" onclick="return confirm('WARNUNG: Dies löscht ALLE aktuellen Daten!\n\nMöchten Sie wirklich fortfahren?');">
+                    <a href="tools/demo_import.php" class="btn btn-danger" style="background-color: #dc3545; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank" onclick="return confirm('WARNUNG: Dies löscht ALLE aktuellen Daten!\n\nMöchtest du wirklich fortfahren?');">
                         ♻️ Demo-Reset durchführen
                     </a>
                 </div>
@@ -900,9 +905,9 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
             <div style="margin-top: 20px; padding: 15px; background-color: #e7f3ff; border-left: 4px solid #0c5460; border-radius: 5px;">
                 <h5 style="margin-top: 0;">💡 Workflow</h5>
                 <ol style="font-size: 14px; margin: 0;">
-                    <li>Erstellen Sie in der Anwendung verschiedene Meetings, TODOs, Kommentare etc.</li>
-                    <li>Exportieren Sie diese als Demo-Daten (erzeugt <code>demo_data.json</code>)</li>
-                    <li>Wenn Sie den Demo-Stand wiederherstellen möchten, nutzen Sie "Demo-Reset"</li>
+                    <li>Erstelle in der Anwendung verschiedene Meetings, TODOs, Kommentare etc.</li>
+                    <li>Exportiere diese als Demo-Daten (erzeugt <code>demo_data.json</code>)</li>
+                    <li>Wenn du den Demo-Stand wiederherstellen möchtest, nutze "Demo-Reset"</li>
                 </ol>
             </div>
         </div>
@@ -1055,7 +1060,7 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
             <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #4CAF50;">
                 <h4 style="margin-top: 0; color: #4CAF50;">💾 Backup & Restore</h4>
                 <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
-                    Erstellen Sie regelmäßig Sicherungen der Datenbank.
+                    Erstelle regelmäßig Sicherungen der Datenbank.
                     Backups können jederzeit wiederhergestellt werden.
                 </p>
                 <p style="font-size: 13px; color: #999; margin-bottom: 15px;">
@@ -1101,7 +1106,7 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
         <div style="margin-top: 20px; padding: 15px; background-color: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 5px;">
             <h5 style="margin-top: 0;">💡 Wichtige Hinweise</h5>
             <ul style="font-size: 14px; margin: 0;">
-                <li><strong>Backup:</strong> Erstellen Sie regelmäßig Backups vor wichtigen Änderungen</li>
+                <li><strong>Backup:</strong> Erstelle regelmäßig Backups vor wichtigen Änderungen</li>
                 <li><strong>Restore:</strong> Beim Wiederherstellen werden ALLE aktuellen Daten überschrieben</li>
                 <li><strong>Passwort:</strong> System-Admin-Passwort in config.php konfigurieren</li>
             </ul>

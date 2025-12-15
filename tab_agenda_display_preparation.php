@@ -238,17 +238,27 @@ if (!$submission_deadline_passed) {
                 <textarea name="proposal_text" rows="4" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px;"></textarea>
             </div>
             
+            <?php
+            // Priorität/Dauer nur für Führungsteam
+            $is_leadership = in_array(strtolower($current_user['role'] ?? ''), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam']);
+            if ($is_leadership):
+            ?>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div class="form-group">
                     <label style="font-weight: 600;">Priorität (1-10):</label>
                     <input type="number" name="priority" min="1" max="10" step="0.1" value="5" required>
                 </div>
-                
+
                 <div class="form-group">
                     <label style="font-weight: 600;">Geschätzte Dauer (Min.):</label>
                     <input type="number" name="duration" min="1" value="10" required>
                 </div>
             </div>
+            <?php else: ?>
+            <!-- Hidden fields mit Standardwerten für nicht-Führungsteam -->
+            <input type="hidden" name="priority" value="5">
+            <input type="hidden" name="duration" value="10">
+            <?php endif; ?>
             
             <div class="form-group">
                 <label style="display: flex; align-items: center; cursor: pointer;">

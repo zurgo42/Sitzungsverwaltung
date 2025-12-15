@@ -5,7 +5,7 @@
 
 // Nur für eingeloggte User
 if (!$current_user) {
-    echo "<p>Bitte melden Sie sich an, um Meinungsbilder zu sehen.</p>";
+    echo "<p>Bitte melde dich an, um Meinungsbilder zu sehen.</p>";
     return;
 }
 
@@ -20,7 +20,7 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
 <?php if (empty($all_polls)): ?>
     <div class="opinion-card">
         <p>Noch keine Meinungsbilder vorhanden.</p>
-        <p><a href="?tab=opinion&view=create">Erstellen Sie jetzt Ihr erstes Meinungsbild!</a></p>
+        <p><a href="?tab=opinion&view=create">Erstelle jetzt dein erstes Meinungsbild!</a></p>
     </div>
 <?php else: ?>
     <?php foreach ($all_polls as $poll):
@@ -68,7 +68,7 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
 
                     <?php if ($has_responded): ?>
                         <div style="margin-top: 10px; color: #4CAF50; font-weight: bold;">
-                            ✓ Sie haben an dieser Umfrage teilgenommen
+                            ✓ Du hast an dieser Umfrage teilgenommen
                         </div>
                     <?php endif; ?>
 
@@ -94,7 +94,7 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
                             <small style="color: #666; display: block; margin-top: 5px;">
                                 <?php
                                 if ($poll['target_type'] === 'individual') {
-                                    echo 'Dieser Link ist eindeutig für diese Umfrage. Teilen Sie ihn mit den gewünschten Teilnehmern.';
+                                    echo 'Dieser Link ist eindeutig für diese Umfrage. Teile ihn mit den gewünschten Teilnehmern.';
                                 } elseif ($poll['target_type'] === 'public') {
                                     echo 'Dieser Link ist öffentlich. Jeder mit diesem Link kann teilnehmen.';
                                 } else {

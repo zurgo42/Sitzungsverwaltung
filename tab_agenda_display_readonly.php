@@ -101,7 +101,7 @@ foreach ($agenda_items as $item):
     <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border: 2px solid #4caf50; border-radius: 8px;">
         <h4 style="color: #2e7d32; margin-bottom: 10px;">✅ Protokoll genehmigen</h4>
         <p style="color: #666; margin-bottom: 10px;">
-            Als Vorsitzender können Sie das Protokoll jetzt genehmigen.
+            Als Vorsitzender kannst du das Protokoll jetzt genehmigen.
         </p>
         <form method="POST" action="" onsubmit="return confirm('Protokoll jetzt genehmigen?');">
             <input type="hidden" name="approve_protocol" value="1">

@@ -55,33 +55,36 @@ if (isset($_POST['add_agenda_item'])) {
     $priority = floatval($_POST['priority'] ?? 5.0);
     $duration = intval($_POST['duration'] ?? 15);
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
-    
+
     if ($current_meeting_id && $title) {
         try {
+            // Transaktion starten für atomare Operation
+            $pdo->beginTransaction();
+
             // TOP-Nummer automatisch vergeben
             $top_number = get_next_top_number($pdo, $current_meeting_id, $is_confidential);
-            
+
             // TOP in Datenbank einfügen
             $stmt = $pdo->prepare("
-                INSERT INTO svagenda_items 
-                (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id) 
+                INSERT INTO svagenda_items
+                (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
-                $current_meeting_id, 
-                $top_number, 
-                $title, 
-                $description, 
+                $current_meeting_id,
+                $top_number,
+                $title,
+                $description,
                 $category,
                 $proposal_text,
-                $priority, 
-                $duration, 
-                $is_confidential, 
+                $priority,
+                $duration,
+                $is_confidential,
                 $current_user['member_id']
             ]);
-            
+
             $new_item_id = $pdo->lastInsertId();
-            
+
             // BUGFIX: Keinen initialen "-" Kommentar mehr erstellen
             // Stattdessen nur initiale Bewertung ohne sichtbaren Kommentar
             $stmt = $pdo->prepare("
@@ -89,16 +92,24 @@ if (isset($_POST['add_agenda_item'])) {
                 VALUES (?, ?, '', ?, ?, NOW())
             ");
             $stmt->execute([$new_item_id, $current_user['member_id'], $priority, $duration]);
-            
-            // Durchschnittswerte berechnen
-            recalculate_item_metrics($pdo, $new_item_id);
-            
+
+            // Transaktion abschließen
+            $pdo->commit();
+
+            // Durchschnittswerte berechnen (NACH commit, nicht in Transaktion)
+            // Nicht nötig beim Erstellen, da nur ein Kommentar existiert und Werte schon korrekt sind
+            // recalculate_item_metrics($pdo, $new_item_id);
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
             exit;
-            
+
         } catch (PDOException $e) {
-            error_log("Fehler beim Hinzufügen des TOP: " . $e->getMessage());
-            $error = "Fehler beim Hinzufügen des TOP";
+            // Rollback bei Fehler
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("FEHLER beim Hinzufügen des TOP: " . $e->getMessage() . " | Stack: " . $e->getTraceAsString());
+            $error = "Fehler beim Hinzufügen des TOP: " . $e->getMessage();
         }
     }
 }
@@ -1291,33 +1302,48 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
     $category = $_POST['category'] ?? 'information';
     $proposal_text = ($category === 'antrag_beschluss') ? trim($_POST['proposal_text'] ?? '') : '';
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
-    
+
     if ($title) {
         try {
+            // Transaktion starten für atomare Operation
+            $pdo->beginTransaction();
+
+            error_log("Adding TOP (active meeting): meeting_id=$current_meeting_id, confidential=$is_confidential, title=$title");
+
             $top_number = get_next_top_number($pdo, $current_meeting_id, $is_confidential);
-            
+            error_log("Assigned TOP number: $top_number");
+
             $stmt = $pdo->prepare("
-                INSERT INTO svagenda_items 
-                (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id) 
+                INSERT INTO svagenda_items
+                (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id)
                 VALUES (?, ?, ?, ?, ?, ?, 5, 10, ?, ?)
             ");
             $stmt->execute([
-                $current_meeting_id, 
-                $top_number, 
-                $title, 
-                $description, 
+                $current_meeting_id,
+                $top_number,
+                $title,
+                $description,
                 $category,
                 $proposal_text,
-                $is_confidential, 
+                $is_confidential,
                 $current_user['member_id']
             ]);
-            
+
             $new_item_id = $pdo->lastInsertId();
-            
+            error_log("Inserted TOP with ID: $new_item_id");
+
+            // Transaktion abschließen
+            $pdo->commit();
+            error_log("TOP successfully added and committed");
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
             exit;
         } catch (PDOException $e) {
-            error_log("Fehler beim Hinzufügen des TOP: " . $e->getMessage());
+            // Rollback bei Fehler
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("FEHLER beim Hinzufügen des TOP (active): " . $e->getMessage() . " | Stack: " . $e->getTraceAsString());
         }
     }
 }
@@ -1823,7 +1849,7 @@ if (isset($_POST['approve_protocol']) && $is_chairman && $meeting['status'] === 
 if (isset($_POST['request_protocol_revision']) && $is_chairman && $meeting['status'] === 'protocol_ready') {
     try {
         $todo_title = "Protokoll überarbeiten: " . $meeting['meeting_name'] . " vom " . date('d.m.Y', strtotime($meeting['meeting_date']));
-        $todo_description = "Der Sitzungsleiter hat Änderungen am Protokoll angefordert. Bitte prüfen Sie Ihre Anmerkungen und überarbeiten Sie das Protokoll entsprechend.\n\nLink: " . get_full_meeting_link($current_meeting_id);
+        $todo_description = "Der Sitzungsleiter hat Änderungen am Protokoll angefordert. Bitte prüfe deine Anmerkungen und überarbeite das Protokoll entsprechend.\n\nLink: " . get_full_meeting_link($current_meeting_id);
 
         $stmt = $pdo->prepare("
             INSERT INTO svtodos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id, entry_date)

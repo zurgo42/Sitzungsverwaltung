@@ -161,9 +161,9 @@ require_once __DIR__ . '/../config.php';
     <?php if (IS_LOCAL): ?>
     <div class="warning">
         <strong>⚠️ Hinweis für lokale Entwicklung:</strong><br>
-        Stellen Sie sicher, dass die lokale Datenbank '<strong><?php echo DB_NAME; ?></strong>' existiert und alle benötigten Tabellen enthält.
+        Stelle sicher, dass die lokale Datenbank '<strong><?php echo DB_NAME; ?></strong>' existiert und alle benötigten Tabellen enthält.
         <br><br>
-        Führen Sie ggf. die SQL-Struktur vom Produktivserver in Ihre lokale Datenbank ein.
+        Führe ggf. die SQL-Struktur vom Produktivserver in deine lokale Datenbank ein.
     </div>
     <?php endif; ?>
 

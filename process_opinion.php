@@ -91,7 +91,7 @@ try {
         // ====== NEUE UMFRAGE ERSTELLEN ======
         case 'create_opinion':
             if (!$is_authenticated) {
-                $_SESSION['error'] = 'Bitte melden Sie sich an';
+                $_SESSION['error'] = 'Bitte melde dich an';
                 header('Location: index.php?tab=opinion');
                 exit;
             }
@@ -108,7 +108,7 @@ try {
             $delete_after_days = intval($_POST['delete_after_days'] ?? 30);
 
             if (empty($title)) {
-                $_SESSION['error'] = 'Bitte geben Sie eine Frage ein';
+                $_SESSION['error'] = 'Bitte gib eine Frage ein';
                 header('Location: index.php?tab=opinion');
                 exit;
             }
@@ -236,7 +236,7 @@ try {
             $force_anonymous = !empty($_POST['force_anonymous']) ? 1 : 0;
 
             if (empty($selected_options)) {
-                $_SESSION['error'] = 'Bitte wählen Sie mindestens eine Antwort';
+                $_SESSION['error'] = 'Bitte wähle mindestens eine Antwort';
                 header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
                 exit;
             }
@@ -299,7 +299,7 @@ try {
                 $option_stmt->execute([$response_id, intval($option_id)]);
             }
 
-            $_SESSION['success'] = 'Ihre Antwort wurde gespeichert!';
+            $_SESSION['success'] = 'Deine Antwort wurde gespeichert!';
             header('Location: index.php?tab=opinion&view=results&poll_id=' . $poll_id);
             exit;
 

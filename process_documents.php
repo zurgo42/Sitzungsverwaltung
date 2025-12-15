@@ -45,7 +45,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'upload') {
     }
 
     if (!isset($_FILES['document_file']) || $_FILES['document_file']['error'] === UPLOAD_ERR_NO_FILE) {
-        $_SESSION['error'] = 'Bitte wählen Sie eine Datei aus';
+        $_SESSION['error'] = 'Bitte wähle eine Datei aus';
         header('Location: index.php?tab=documents&view=upload');
         exit;
     }
@@ -174,7 +174,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'delete') {
 
     // Sicherheitsabfrage für permanentes Löschen
     if ($permanent && (!isset($_POST['confirm']) || $_POST['confirm'] !== 'DELETE')) {
-        $_SESSION['error'] = 'Bitte bestätigen Sie das permanente Löschen';
+        $_SESSION['error'] = 'Bitte bestätige das permanente Löschen';
         header('Location: index.php?tab=documents&view=edit&id=' . $document_id);
         exit;
     }

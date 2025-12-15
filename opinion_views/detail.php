@@ -100,7 +100,7 @@ if ($access_link):
         <p style="margin: 0 0 10px 0; color: #666;">
             <?php
             if ($poll['target_type'] === 'individual') {
-                echo 'Teilen Sie diesen eindeutigen Link mit den gewünschten Teilnehmern:';
+                echo 'Teile diesen eindeutigen Link mit den gewünschten Teilnehmern:';
             } elseif ($poll['target_type'] === 'public') {
                 echo 'Dieser Link ist öffentlich. Jeder mit diesem Link kann teilnehmen:';
             } else {

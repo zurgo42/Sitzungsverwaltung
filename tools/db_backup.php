@@ -6,9 +6,9 @@
  * ohne IT-Kenntnisse. Geschützt durch System-Admin-Passwort.
  *
  * VERWENDUNG:
- * 1. Rufen Sie dieses Skript im Browser auf
- * 2. Geben Sie das System-Admin-Passwort ein
- * 3. Erstellen Sie Backups oder stellen Sie welche wieder her
+ * 1. Rufe dieses Skript im Browser auf
+ * 2. Gib das System-Admin-Passwort ein
+ * 3. Erstelle Backups oder stelle welche wieder her
  */
 
 require_once __DIR__ . '/../config.php';
@@ -193,7 +193,7 @@ if (isset($_POST['restore_backup']) && isset($_POST['backup_file'])) {
         $message = "❌ Backup-Datei nicht gefunden!";
         $message_type = 'error';
     } elseif (!isset($_POST['confirm_restore'])) {
-        $message = "❌ Bitte bestätigen Sie die Wiederherstellung!";
+        $message = "❌ Bitte bestätige die Wiederherstellung!";
         $message_type = 'error';
     } else {
         try {
@@ -388,7 +388,7 @@ if (is_dir($backup_dir)) {
                         </div>
                         <div class="backup-actions">
                             <!-- Wiederherstellen -->
-                            <form method="POST" onsubmit="return confirm('⚠️ WARNUNG: Dies überschreibt ALLE aktuellen Daten!\n\nMöchten Sie wirklich dieses Backup wiederherstellen?');">
+                            <form method="POST" onsubmit="return confirm('⚠️ WARNUNG: Dies überschreibt ALLE aktuellen Daten!\n\nMöchtest du wirklich dieses Backup wiederherstellen?');">
                                 <input type="hidden" name="backup_file" value="<?php echo htmlspecialchars($backup['filename']); ?>">
                                 <label style="margin-bottom: 5px;">
                                     <input type="checkbox" name="confirm_restore" required>

@@ -6,9 +6,9 @@
  * Es sollte nur in Entwicklungs- oder Demo-Umgebungen verwendet werden.
  *
  * VERWENDUNG:
- * 1. Stellen Sie sicher, dass demo_data.json im tools/-Verzeichnis existiert
- * 2. Rufen Sie dieses Skript im Browser auf
- * 3. Bestätigen Sie den Vorgang
+ * 1. Stelle sicher, dass demo_data.json im tools/-Verzeichnis existiert
+ * 2. Rufe dieses Skript im Browser auf
+ * 3. Bestätige den Vorgang
  * 4. Alle Daten werden gelöscht und durch die Demo-Daten ersetzt
  */
 
@@ -218,8 +218,8 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 <strong>Für den echten Produktivbetrieb sollte DEMO_MODE_ENABLED = false sein!</strong>
             </p>
             <p>
-                Wenn Sie auf einem Demo-Server oder in einer Entwicklungsumgebung arbeiten und die Demo-Funktionen nutzen möchten,
-                setzen Sie in der <code>config.php</code>:
+                Wenn du auf einem Demo-Server oder in einer Entwicklungsumgebung arbeitest und die Demo-Funktionen nutzen möchtest,
+                setze in der <code>config.php</code>:
             </p>
             <pre>define('DEMO_MODE_ENABLED', true);</pre>
         </div>
@@ -240,10 +240,10 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 <li>✓ <code>tools/demo_data.json</code> existiert <?php echo file_exists($demo_file) ? '✅' : '❌'; ?></li>
             </ol>
             <?php if (!DEMO_MODE_ENABLED): ?>
-                <p style="color: #dc3545; font-weight: bold;">⚠️ DEMO_MODE_ENABLED ist auf false! Setzen Sie es auf true in config.php</p>
+                <p style="color: #dc3545; font-weight: bold;">⚠️ DEMO_MODE_ENABLED ist auf false! Setze es auf true in config.php</p>
             <?php endif; ?>
             <?php if (!file_exists($demo_file)): ?>
-                <p style="color: #dc3545; font-weight: bold;">⚠️ demo_data.json nicht gefunden! Erstellen Sie sie zuerst mit demo_export.php auf dem Quellserver</p>
+                <p style="color: #dc3545; font-weight: bold;">⚠️ demo_data.json nicht gefunden! Erstelle sie zuerst mit demo_export.php auf dem Quellserver</p>
             <?php endif; ?>
         </div>
         <p><strong>Was wird gelöscht:</strong></p>
@@ -278,7 +278,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
         echo '<div class="error">';
         echo '<h3>❌ Demo-Datei nicht gefunden</h3>';
         echo '<p>Die Datei <code>' . htmlspecialchars($demo_file) . '</code> existiert nicht.</p>';
-        echo '<p>Bitte erstellen Sie zuerst Demo-Daten mit <code>demo_export.php</code>.</p>';
+        echo '<p>Bitte erstelle zuerst Demo-Daten mit <code>demo_export.php</code>.</p>';
         echo '<a href="demo_export.php" class="btn">➡️ Zum Export-Tool</a>';
         echo '</div>';
         exit;
@@ -367,7 +367,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 }
                 echo '</ul>';
                 echo '<p><strong>Mögliche Ursache:</strong> Die demo_data.json wurde von einem Server exportiert, der selbst keine Daten hatte!</p>';
-                echo '<p><strong>Lösung:</strong> Exportieren Sie die Daten vom RICHTIGEN Quellserver (der mit den tatsächlichen Meeting-Daten).</p>';
+                echo '<p><strong>Lösung:</strong> Exportiere die Daten vom RICHTIGEN Quellserver (der mit den tatsächlichen Meeting-Daten).</p>';
                 echo '</div>';
             }
 

@@ -22,7 +22,7 @@ require_once 'module_agenda_overview.php';
 // ============================================
 
 if (!$current_meeting_id) {
-    echo '<div class="error-message">Bitte wählen Sie ein Meeting aus.</div>';
+    echo '<div class="error-message">Bitte wähle ein Meeting aus.</div>';
     return;
 }
 
@@ -146,7 +146,7 @@ $can_edit_meeting = ($is_secretary || $is_chairman);
             <strong>Ende:</strong> <?php echo date('d.m.Y H:i', strtotime($meeting['ended_at'])); ?> Uhr<br>
         <?php endif; ?>
         
-        <strong>Status:</strong> 
+        <strong>Status:</strong>
         <?php
         switch($meeting['status']) {
             case 'preparation':
@@ -164,6 +164,23 @@ $can_edit_meeting = ($is_secretary || $is_chairman);
             case 'archived':
                 echo '📁 Archiviert';
                 break;
+        }
+        ?><br>
+        <strong>Sichtbarkeit:</strong>
+        <?php
+        $visibility = $meeting['visibility_type'] ?? 'invited_only';
+        switch($visibility) {
+            case 'invited_only':
+                echo '🔒 Nur Eingeladene';
+                break;
+            case 'authenticated':
+                echo '👔 Führungsteam';
+                break;
+            case 'public':
+                echo '🌐 Öffentlich';
+                break;
+            default:
+                echo htmlspecialchars($visibility);
         }
         ?>
     </div>

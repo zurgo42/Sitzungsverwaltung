@@ -70,14 +70,14 @@ if ($meeting_id !== null) {
         exit;
     }
 } else {
-    // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz
+    // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz, Führungsteam
     $stmt = $pdo->prepare("SELECT role FROM svmembers WHERE member_id = ?");
     $stmt->execute([$member_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$user || !in_array($user['role'], ['vorstand', 'gf', 'assistenz'])) {
+    if (!$user || !in_array(strtolower($user['role']), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam'])) {
         http_response_code(403);
-        echo json_encode(['error' => 'Access denied - Nur Vorstand, GF und Assistenz dürfen allgemeine Texte erstellen']);
+        echo json_encode(['error' => 'Access denied - Nur Vorstand, GF, Assistenz und Führungsteam dürfen allgemeine Texte erstellen']);
         ob_end_flush();
         exit;
     }

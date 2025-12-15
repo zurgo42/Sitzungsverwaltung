@@ -92,9 +92,9 @@ if (empty($agenda_items)) {
 <div style="margin: 15px 0; padding: 12px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
     <strong>ℹ️ Status:</strong> Die Sitzung ist beendet. 
     <?php if ($is_secretary): ?>
-        Sie können Ihr Protokoll noch bearbeiten.
+        Du kannst dein Protokoll noch bearbeiten.
     <?php else: ?>
-        Sie können nachträgliche Anmerkungen zu den TOPs hinzufügen.
+        Du kannst nachträgliche Anmerkungen zu den TOPs hinzufügen.
     <?php endif; ?>
 </div>
 
@@ -243,7 +243,7 @@ foreach ($agenda_items as $item):
 
             <!-- Nachträgliche Anmerkungen auch für Protokollant -->
             <div style="margin-top: 15px; padding: 12px; background: #e8f5e9; border: 2px solid #4caf50; border-radius: 6px;">
-                <h4 style="color: #2e7d32; margin-bottom: 8px;">💭 Ihre nachträgliche Anmerkung zum Protokoll</h4>
+                <h4 style="color: #2e7d32; margin-bottom: 8px;">💭 Deine nachträgliche Anmerkung zum Protokoll</h4>
 
                 <?php
                 // Eigene nachträgliche Anmerkung des Protokollanten laden
@@ -258,7 +258,7 @@ foreach ($agenda_items as $item):
 
                 <div class="form-group">
                     <label style="font-size: 13px; font-weight: 600; color: #2e7d32;">
-                        Ihre Anmerkung zu diesem TOP:
+                        Deine Anmerkung zu diesem TOP:
                     </label>
                     <textarea name="post_comment[<?php echo $item['item_id']; ?>]"
                               rows="3"
@@ -320,7 +320,7 @@ foreach ($agenda_items as $item):
                 
                 <div class="form-group">
                     <label style="font-size: 13px; font-weight: 600; color: #2e7d32;">
-                        Ihre Anmerkung zu diesem TOP:
+                        Deine Anmerkung zu diesem TOP:
                     </label>
                     <textarea name="post_comment[<?php echo $item['item_id']; ?>]"
                               rows="3"
@@ -367,9 +367,9 @@ foreach ($agenda_items as $item):
     <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border: 2px solid #4caf50; border-radius: 8px;">
         <h4 style="color: #2e7d32; margin-bottom: 10px;">✅ Protokoll zur Genehmigung freigeben</h4>
         <p style="color: #666; margin-bottom: 10px;">
-            Wenn das Protokoll fertig ist, können Sie es zur Genehmigung durch den Sitzungsleiter freigeben.
+            Wenn das Protokoll fertig ist, kannst du es zur Genehmigung durch den Sitzungsleiter freigeben.
         </p>
-        <form method="POST" action="" onsubmit="return confirm('Protokoll wirklich freigeben? Sie können danach noch Änderungen vornehmen.');">
+        <form method="POST" action="" onsubmit="return confirm('Protokoll wirklich freigeben? Du kannst danach noch Änderungen vornehmen.');">
             <input type="hidden" name="release_protocol" value="1">
             <button type="submit" style="background: #4caf50; color: white; padding: 10px 20px; font-size: 16px; font-weight: 600; border: none; border-radius: 4px; cursor: pointer;">
                 ✅ Protokoll jetzt freigeben

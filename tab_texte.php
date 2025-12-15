@@ -47,13 +47,13 @@ if ($is_meeting_mode) {
         $context_description = 'Sitzung: ' . htmlspecialchars($meeting['meeting_name']);
     }
 } else {
-    // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz
+    // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz, Führungsteam
     // Case-insensitive Rollenprüfung (funktioniert mit members und berechtigte)
     $user_role_lower = strtolower($current_user['role']);
-    if (in_array($user_role_lower, ['vorstand', 'gf', 'geschäftsführung', 'assistenz'])) {
+    if (in_array($user_role_lower, ['vorstand', 'gf', 'geschäftsführung', 'assistenz', 'fuehrungsteam'])) {
         $has_access = true;
         $is_initiator_role = true; // Alle dürfen Texte erstellen
-        $context_description = 'Allgemeine Texte (Vorstand/GF/Assistenz)';
+        $context_description = 'Allgemeine Texte (Vorstand/GF/Assistenz/Führungsteam)';
     }
 }
 
@@ -63,9 +63,9 @@ if (!$has_access) {
     echo '<h2>📝 Gemeinsame Texte</h2>';
     echo '<div class="alert alert-danger">';
     if ($is_meeting_mode) {
-        echo '<p>Sie sind kein Teilnehmer dieser Sitzung.</p>';
+        echo '<p>Du bist kein Teilnehmer dieser Sitzung.</p>';
     } else {
-        echo '<p>Diese Funktion steht nur Vorstand, Geschäftsführung und Assistenz zur Verfügung.</p>';
+        echo '<p>Diese Funktion steht nur Vorstand, Geschäftsführung, Assistenz und Führungsteam zur Verfügung.</p>';
     }
     echo '</div>';
     echo '</div>';
@@ -122,10 +122,13 @@ if (!$has_access) {
     margin-bottom: 20px;
     border: 2px solid #e0e0e0;
     border-radius: 8px;
-    padding: 15px;
+    padding: 0;
     background: white;
     position: relative;
     transition: border-color 0.3s;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .paragraph-container.editing {
@@ -142,23 +145,25 @@ if (!$has_access) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
+    margin-bottom: 0;
+    padding: 10px 10px 8px 10px;
     border-bottom: 1px solid #ddd;
 }
 
 .paragraph-content {
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
     min-height: 60px;
     line-height: 1.6;
     white-space: pre-wrap;
     word-wrap: break-word;
     padding: 10px;
-    box-sizing: border-box;
+    box-sizing: border-box !important;
 }
 
 .paragraph-edit-area {
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
     min-height: 300px;
     padding: 10px;
     border: 1px solid #ced4da;
@@ -167,13 +172,14 @@ if (!$has_access) {
     font-size: inherit;
     line-height: 1.6;
     resize: vertical;
-    box-sizing: border-box;
+    box-sizing: border-box !important;
 }
 
 .paragraph-actions {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+    padding: 10px;
 }
 
 .online-users {
@@ -277,78 +283,75 @@ if ($view === 'overview') {
     }
     ?>
 
-    <div class="card">
-        <h2>📝 Gemeinsame Texte</h2>
-        <p><strong>Kontext:</strong> <?php echo $context_description; ?></p>
+    <h2>📝 Gemeinsame Texte</h2>
 
-        <div class="alert alert-info">
-            <strong>ℹ️ Info:</strong> Vorstand, GF und Assistenz können hier gemeinsam an Texten arbeiten.
-        </div>
-
-        <?php if ($is_initiator_role): ?>
-        <button onclick="showCreateTextDialog()" class="btn-primary" style="margin-bottom: 20px;">
-            + Neuen Text erstellen
-        </button>
-        <?php endif; ?>
-
-        <?php if (empty($all_texts)): ?>
-            <p style="color: #666; font-style: italic;">
-                Noch keine gemeinsamen Texte vorhanden.
-                <?php if ($is_initiator_role): ?>
-                Erstellen Sie den ersten Text mit dem Button oben.
-                <?php endif; ?>
-            </p>
-        <?php else: ?>
-            <div class="collab-text-list">
-                <?php foreach ($all_texts as $text): ?>
-                    <div class="collab-text-card">
-                        <h3><?php echo htmlspecialchars($text['title']); ?></h3>
-
-                        <p style="font-size: 0.9em; color: #666;">
-                            Ersteller: <?php echo htmlspecialchars($text['initiator_first_name'] . ' ' . $text['initiator_last_name']); ?>
-                        </p>
-
-                        <p>
-                            <span class="collab-text-status <?php echo $text['status'] === 'active' ? 'status-active' : 'status-finalized'; ?>">
-                                <?php echo $text['status'] === 'active' ? '⏳ Aktiv' : '✅ Finalisiert'; ?>
-                            </span>
-                        </p>
-
-                        <p style="font-size: 0.85em; color: #999;">
-                            Erstellt: <?php echo date('d.m.Y H:i', strtotime($text['created_at'])); ?>
-                        </p>
-
-                        <?php if ($text['status'] === 'finalized'): ?>
-                            <button onclick="window.location.href='?tab=texte&view=final&text_id=<?php echo $text['text_id']; ?>'"
-                                    class="btn-secondary" style="width: 100%; margin-bottom: 8px;">
-                                📄 Ansehen
-                            </button>
-                        <?php else: ?>
-                            <button onclick="window.location.href='?tab=texte&view=editor&text_id=<?php echo $text['text_id']; ?>'"
-                                    class="btn-primary" style="width: 100%; margin-bottom: 8px;">
-                                ✏️ Bearbeiten
-                            </button>
-                        <?php endif; ?>
-
-                        <?php
-                        // Lösch-Button: Nur für Ersteller oder Admin
-                        $can_delete = ($text['initiator_member_id'] == $current_user['member_id']) || $current_user['is_admin'];
-                        if ($can_delete):
-                        ?>
-                            <button onclick="deleteText(<?php echo $text['text_id']; ?>, '<?php echo htmlspecialchars($text['title'], ENT_QUOTES); ?>')"
-                                    class="btn-danger" style="width: 100%; font-size: 0.9em;">
-                                🗑️ Löschen
-                            </button>
-                        <?php endif; ?>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
+    <div class="alert alert-info">
+        <strong>ℹ️ Info:</strong> Vorstand, GF, Assistenz und Führungsteam können hier gemeinsam an Texten arbeiten.
     </div>
+
+    <?php if ($is_initiator_role): ?>
+    <button onclick="showCreateTextDialog()" class="btn-primary" style="margin-bottom: 20px;">
+        + Neuen Text erstellen
+    </button>
+    <?php endif; ?>
+
+    <?php if (empty($all_texts)): ?>
+        <p style="color: #666; font-style: italic;">
+            Noch keine gemeinsamen Texte vorhanden.
+            <?php if ($is_initiator_role): ?>
+            Erstelle den ersten Text mit dem Button oben.
+            <?php endif; ?>
+        </p>
+    <?php else: ?>
+        <div class="collab-text-list">
+            <?php foreach ($all_texts as $text): ?>
+                <div class="collab-text-card">
+                    <h3><?php echo htmlspecialchars($text['title']); ?></h3>
+
+                    <p style="font-size: 0.9em; color: #666;">
+                        Ersteller: <?php echo htmlspecialchars($text['initiator_first_name'] . ' ' . $text['initiator_last_name']); ?>
+                    </p>
+
+                    <p>
+                        <span class="collab-text-status <?php echo $text['status'] === 'active' ? 'status-active' : 'status-finalized'; ?>">
+                            <?php echo $text['status'] === 'active' ? '⏳ Aktiv' : '✅ Finalisiert'; ?>
+                        </span>
+                    </p>
+
+                    <p style="font-size: 0.85em; color: #999;">
+                        Erstellt: <?php echo date('d.m.Y H:i', strtotime($text['created_at'])); ?>
+                    </p>
+
+                    <?php if ($text['status'] === 'finalized'): ?>
+                        <button onclick="window.location.href='?tab=texte&view=final&text_id=<?php echo $text['text_id']; ?>'"
+                                class="btn-secondary" style="width: 100%; margin-bottom: 8px;">
+                            📄 Ansehen
+                        </button>
+                    <?php else: ?>
+                        <button onclick="window.location.href='?tab=texte&view=editor&text_id=<?php echo $text['text_id']; ?>'"
+                                class="btn-primary" style="width: 100%; margin-bottom: 8px;">
+                            ✏️ Bearbeiten
+                        </button>
+                    <?php endif; ?>
+
+                    <?php
+                    // Lösch-Button: Nur für Ersteller oder Admin
+                    $can_delete = ($text['initiator_member_id'] == $current_user['member_id']) || $current_user['is_admin'];
+                    if ($can_delete):
+                    ?>
+                        <button onclick="deleteText(<?php echo $text['text_id']; ?>, '<?php echo htmlspecialchars($text['title'], ENT_QUOTES); ?>')"
+                                class="btn-danger" style="width: 100%; font-size: 0.9em;">
+                            🗑️ Löschen
+                        </button>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 
     <!-- Dialog: Neuen Text erstellen -->
     <div id="createTextDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; padding: 20px 0;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 900px; width: 90%; margin: 0 auto; min-height: fit-content;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 1024px; width: 90%; margin: 0 auto; min-height: fit-content;">
             <h3>Neuen Text erstellen</h3>
 
             <label>Titel:</label>
@@ -384,7 +387,7 @@ Tipp: Texte mit einer oder mehreren Leerzeilen werden automatisch in mehrere Abs
         const content = document.getElementById('newTextContent').value.trim();
 
         if (!title) {
-            alert('Bitte geben Sie einen Titel ein.');
+            alert('Bitte gib einen Titel ein.');
             return;
         }
 
@@ -412,7 +415,7 @@ Tipp: Texte mit einer oder mehreren Leerzeilen werden automatisch in mehrere Abs
     }
 
     function deleteText(textId, textTitle) {
-        if (!confirm('Möchten Sie den Text "' + textTitle + '" wirklich löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden!')) {
+        if (!confirm('Möchtest du den Text "' + textTitle + '" wirklich löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden!')) {
             return;
         }
 
@@ -470,61 +473,62 @@ if ($view === 'editor') {
     $is_initiator = ($text['initiator_member_id'] == $current_user['member_id']);
     ?>
 
-    <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div>
-                <h2>✏️ <?php echo htmlspecialchars($text['title']); ?></h2>
-                <p style="color: #666; font-size: 0.9em; margin: 5px 0 0 0;">
-                    Erstellt von <?php echo htmlspecialchars($text['initiator_first_name'] . ' ' . $text['initiator_last_name']); ?>
-                </p>
-            </div>
-            <button onclick="window.location.href='?tab=texte&view=overview'" class="btn-secondary">
-                ← Zurück zur Übersicht
-            </button>
-        </div>
-
-        <!-- Online-Benutzer -->
-        <div id="onlineUsersBox" class="online-users">
-            <strong>🟢 Online:</strong>
-            <div id="onlineUsersList" class="online-users-list">
-                <span style="color: #999;">Lade...</span>
-            </div>
-        </div>
-
-        <!-- Buttons -->
-        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-            <button onclick="addParagraph()" class="btn-primary">+ Absatz hinzufügen</button>
-            <button onclick="showPreview()" class="btn-secondary">👁️ Vorschau</button>
-            <?php if ($is_initiator): ?>
-                <button onclick="finalizeText()" class="btn-danger" style="margin-left: auto;">
-                    ✅ Text finalisieren
-                </button>
-            <?php endif; ?>
-        </div>
-
-        <!-- Absätze -->
-        <div id="paragraphsContainer">
-            <?php
-            $total_paragraphs = count($text['paragraphs']);
-            foreach ($text['paragraphs'] as $index => $para):
-                renderParagraph($para, $current_user['member_id'], $index + 1, $total_paragraphs);
-            endforeach;
-            ?>
-        </div>
-
-        <?php if (empty($text['paragraphs'])): ?>
-            <p style="color: #999; font-style: italic;">
-                Noch keine Absätze vorhanden. Klicken Sie auf "+ Absatz hinzufügen" um zu starten.
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h2>✏️ <?php echo htmlspecialchars($text['title']); ?></h2>
+            <p style="color: #666; font-size: 0.9em; margin: 5px 0 0 0;">
+                Erstellt von <?php echo htmlspecialchars($text['initiator_first_name'] . ' ' . $text['initiator_last_name']); ?>
             </p>
+        </div>
+        <button onclick="window.location.href='?tab=texte&view=overview'" class="btn-secondary back-to-overview-btn">
+            ← Zurück zur Übersicht
+        </button>
+    </div>
+
+    <!-- Online-Benutzer -->
+    <div id="onlineUsersBox" class="online-users">
+        <strong>🟢 Online:</strong>
+        <div id="onlineUsersList" class="online-users-list">
+            <span style="color: #999;">Lade...</span>
+        </div>
+    </div>
+
+    <!-- Buttons -->
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+        <button onclick="addParagraph()" class="btn-primary">+ Absatz hinzufügen</button>
+        <button onclick="showPreview()" class="btn-secondary">👁️ Text zeigen und ggf. kopieren</button>
+        <?php if ($is_initiator): ?>
+            <button onclick="finalizeText()" class="btn-danger" style="margin-left: auto;">
+                ✅ Text finalisieren
+            </button>
         <?php endif; ?>
     </div>
 
+    <!-- Absätze -->
+    <div id="paragraphsContainer">
+        <?php
+        $total_paragraphs = count($text['paragraphs']);
+        foreach ($text['paragraphs'] as $index => $para):
+            renderParagraph($para, $current_user['member_id'], $index + 1, $total_paragraphs);
+        endforeach;
+        ?>
+    </div>
+
+    <?php if (empty($text['paragraphs'])): ?>
+        <p style="color: #999; font-style: italic;">
+            Noch keine Absätze vorhanden. Klicke auf "+ Absatz hinzufügen" um zu starten.
+        </p>
+    <?php endif; ?>
+
     <!-- Vorschau-Dialog -->
     <div id="previewDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 800px; width: 90%; margin: 20px; max-height: 80vh; overflow-y: auto;">
-            <h3>Vorschau: <?php echo htmlspecialchars($text['title']); ?></h3>
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 1024px; width: 90%; margin: 20px; max-height: 80vh; overflow-y: auto;">
+            <h3>Text: <?php echo htmlspecialchars($text['title']); ?></h3>
             <div id="previewContent" class="text-preview">Lade...</div>
-            <button onclick="hidePreview()" class="btn-secondary" style="margin-top: 20px;">Schließen</button>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="copyPreviewToClipboard()" class="btn-primary">📋 In Zwischenablage kopieren</button>
+                <button onclick="hidePreview()" class="btn-secondary">Schließen</button>
+            </div>
         </div>
     </div>
 
@@ -689,6 +693,12 @@ if ($view === 'editor') {
 
     // Absatz bearbeiten
     function editParagraph(paragraphId) {
+        // Prüfen ob bereits ein anderer Absatz bearbeitet wird
+        if (editingParagraphId && editingParagraphId !== paragraphId) {
+            alert('⚠️ Du bearbeitest bereits einen anderen Absatz.\n\nBitte speichere oder breche die aktuelle Bearbeitung ab, bevor du einen weiteren Absatz öffnest.\n\nDadurch wird verhindert, dass Arbeit verloren geht.');
+            return;
+        }
+
         // Lock erwerben
         fetch('api/collab_text_lock_paragraph.php', {
             method: 'POST',
@@ -715,7 +725,7 @@ if ($view === 'editor') {
         const contentDiv = paraDiv.querySelector('.paragraph-content');
         const currentContent = contentDiv.textContent;
 
-        contentDiv.innerHTML = '<textarea class="paragraph-edit-area" id="editArea_' + paragraphId + '" style="width: 100%; box-sizing: border-box;">' +
+        contentDiv.innerHTML = '<textarea class="paragraph-edit-area" id="editArea_' + paragraphId + '">' +
             currentContent + '</textarea>';
 
         paraDiv.classList.add('editing');
@@ -849,19 +859,22 @@ if ($view === 'editor') {
                 editingParagraphId = null;
                 exitEditMode(paragraphId, content, '<?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?>');
 
+                // WICHTIG: Updates abrufen damit andere Benutzer sehen dass Lock weg ist
+                fetchUpdates();
+
                 // Hinweis anzeigen (nicht blockierend - Seite lädt ohnehin neu)
-                // alert('⏰ Ihre Änderungen wurden automatisch gespeichert.');
+                // alert('⏰ Deine Änderungen wurden automatisch gespeichert.');
             } else {
                 alert('Auto-Speichern fehlgeschlagen: ' + (data.error || 'Unbekannter Fehler'));
                 // Bei Fehler trotzdem Lock freigeben
-                unlockParagraph(paragraphId);
+                unlockParagraphAndRefresh(paragraphId);
             }
         })
         .catch(err => {
             console.error('Auto-Save Error:', err);
             alert('Netzwerkfehler beim Auto-Speichern');
             // Bei Fehler trotzdem Lock freigeben
-            unlockParagraph(paragraphId);
+            unlockParagraphAndRefresh(paragraphId);
         });
     }
 
@@ -873,6 +886,21 @@ if ($view === 'editor') {
                 paragraph_id: paragraphId,
                 action: 'unlock'
             })
+        });
+    }
+
+    function unlockParagraphAndRefresh(paragraphId) {
+        fetch('api/collab_text_lock_paragraph.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                paragraph_id: paragraphId,
+                action: 'unlock'
+            })
+        })
+        .then(() => {
+            // Updates abrufen damit andere sehen dass Lock weg ist
+            fetchUpdates();
         });
     }
 
@@ -1055,6 +1083,19 @@ if ($view === 'editor') {
         document.getElementById('previewDialog').style.display = 'none';
     }
 
+    // Text aus Vorschau in Zwischenablage kopieren
+    function copyPreviewToClipboard() {
+        const previewContent = document.getElementById('previewContent');
+        const text = previewContent.textContent;
+
+        navigator.clipboard.writeText(text).then(() => {
+            alert('✅ Text wurde in die Zwischenablage kopiert!');
+        }).catch(err => {
+            console.error('Fehler beim Kopieren:', err);
+            alert('❌ Fehler beim Kopieren in die Zwischenablage.');
+        });
+    }
+
     // Finalisieren
     function finalizeText() {
         document.getElementById('finalizeDialog').style.display = 'flex';
@@ -1068,7 +1109,7 @@ if ($view === 'editor') {
         const finalName = document.getElementById('finalNameInput').value.trim();
 
         if (!finalName) {
-            alert('Bitte geben Sie einen Namen für die finale Version ein.');
+            alert('Bitte gib einen Namen für die finale Version ein.');
             return;
         }
 
@@ -1149,13 +1190,13 @@ if ($view === 'final') {
     // Zugriffsprüfung
     if ($text['meeting_id']) {
         if (!hasCollabTextAccess($pdo, $text_id, $current_user['member_id'])) {
-            echo '<div class="alert alert-danger">Sie haben keinen Zugriff auf diesen Text.</div>';
+            echo '<div class="alert alert-danger">Du hast keinen Zugriff auf diesen Text.</div>';
             return;
         }
     } else {
-        // Allgemeiner Text: Nur Vorstand, GF, Assistenz
-        if (!in_array($current_user['role'], ['vorstand', 'gf', 'assistenz'])) {
-            echo '<div class="alert alert-danger">Sie haben keinen Zugriff auf diesen Text.</div>';
+        // Allgemeiner Text: Nur Vorstand, GF, Assistenz, Führungsteam
+        if (!in_array(strtolower($current_user['role']), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam'])) {
+            echo '<div class="alert alert-danger">Du hast keinen Zugriff auf diesen Text.</div>';
             return;
         }
     }
@@ -1181,45 +1222,43 @@ if ($view === 'final') {
     $full_text = implode("\n\n", $contents);
     ?>
 
-    <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div>
-                <h2>📄 <?php echo htmlspecialchars($text['final_name'] ?: $text['title']); ?></h2>
-                <p style="color: #666; font-size: 0.9em; margin: 5px 0 0 0;">
-                    <span class="collab-text-status status-finalized">✅ Finalisiert</span>
-                </p>
-            </div>
-            <button onclick="window.location.href='?tab=texte&view=overview'" class="btn-secondary">
-                ← Zurück zur Übersicht
-            </button>
-        </div>
-
-        <div style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-            <p style="margin: 0;">
-                <strong>Erstellt von:</strong> <?php echo htmlspecialchars($text['initiator_first_name'] . ' ' . $text['initiator_last_name']); ?><br>
-                <?php if ($text['meeting_name']): ?>
-                <strong>Sitzung:</strong> <?php echo htmlspecialchars($text['meeting_name']); ?><br>
-                <?php endif; ?>
-                <strong>Finalisiert am:</strong> <?php echo date('d.m.Y H:i', strtotime($text['finalized_at'])); ?>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h2>📄 <?php echo htmlspecialchars($text['final_name'] ?: $text['title']); ?></h2>
+            <p style="color: #666; font-size: 0.9em; margin: 5px 0 0 0;">
+                <span class="collab-text-status status-finalized">✅ Finalisiert</span>
             </p>
         </div>
+        <button onclick="window.location.href='?tab=texte&view=overview'" class="btn-secondary back-to-overview-btn">
+            ← Zurück zur Übersicht
+        </button>
+    </div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-            <button onclick="copyToClipboard()" class="btn-primary">📋 In Zwischenablage kopieren</button>
-            <button onclick="printText()" class="btn-secondary">🖨️ Drucken</button>
-            <?php
-            // Lösch-Button: Nur für Ersteller oder Admin
-            $can_delete = ($text['initiator_member_id'] == $current_user['member_id']) || $current_user['is_admin'];
-            if ($can_delete):
-            ?>
-                <button onclick="deleteTextFinal()" class="btn-danger">🗑️ Text löschen</button>
+    <div style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+        <p style="margin: 0;">
+            <strong>Erstellt von:</strong> <?php echo htmlspecialchars($text['initiator_first_name'] . ' ' . $text['initiator_last_name']); ?><br>
+            <?php if ($text['meeting_name']): ?>
+            <strong>Sitzung:</strong> <?php echo htmlspecialchars($text['meeting_name']); ?><br>
             <?php endif; ?>
-        </div>
+            <strong>Finalisiert am:</strong> <?php echo date('d.m.Y H:i', strtotime($text['finalized_at'])); ?>
+        </p>
+    </div>
 
-        <!-- Finaler Text -->
-        <div id="finalTextContent" class="text-preview" style="background: white; border: 2px solid #28a745; white-space: pre-wrap;">
-            <?php echo htmlspecialchars($full_text); ?>
-        </div>
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+        <button onclick="copyToClipboard()" class="btn-primary">📋 In Zwischenablage kopieren</button>
+        <button onclick="printText()" class="btn-secondary">🖨️ Drucken</button>
+        <?php
+        // Lösch-Button: Nur für Ersteller oder Admin
+        $can_delete = ($text['initiator_member_id'] == $current_user['member_id']) || $current_user['is_admin'];
+        if ($can_delete):
+        ?>
+            <button onclick="deleteTextFinal()" class="btn-danger">🗑️ Text löschen</button>
+        <?php endif; ?>
+    </div>
+
+    <!-- Finaler Text -->
+    <div id="finalTextContent" class="text-preview" style="background: white; border: 2px solid #28a745; white-space: pre-wrap;">
+        <?php echo htmlspecialchars($full_text); ?>
     </div>
 
     <script>
@@ -1241,7 +1280,7 @@ if ($view === 'final') {
         const textId = <?php echo $text_id; ?>;
         const textTitle = '<?php echo htmlspecialchars($text['title'], ENT_QUOTES); ?>';
 
-        if (!confirm('Möchten Sie den Text "' + textTitle + '" wirklich löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden!')) {
+        if (!confirm('Möchtest du den Text "' + textTitle + '" wirklich löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden!')) {
             return;
         }
 
@@ -1302,7 +1341,7 @@ function renderParagraph($para, $current_member_id, $current_position = 1, $tota
                     ?>
                     🔒 Wird bearbeitet von: <?php echo $locker_name; ?>
                 <?php elseif ($is_own_lock): ?>
-                    ✏️ Sie bearbeiten gerade
+                    ✏️ Du bearbeitest gerade
                 <?php endif; ?>
             </span>
         </div>

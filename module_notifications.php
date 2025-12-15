@@ -199,7 +199,7 @@ function render_user_notifications($pdo, $member_id) {
         $notifications[] = [
             'type' => 'summary',
             'icon' => '📋',
-            'text' => '<strong>Kommende Termine:</strong> ' . implode(' ', $items),
+            'text' => '<strong class="kommende-termine-label">Kommende Termine:</strong><span class="kommende-termine-break"></span> ' . implode(' ', $items),
             'link' => null
         ];
     }

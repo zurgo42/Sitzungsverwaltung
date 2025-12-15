@@ -11,7 +11,7 @@ Ermöglicht mehreren Benutzern gleichzeitig an einem Text zu arbeiten (ähnlich 
 
 ### Zwei Modi
 1. **Meeting-Modus**: Text gehört zu einer Sitzung → Alle Sitzungs-Teilnehmer haben Zugriff
-2. **Allgemein-Modus**: Text ohne Sitzung → Nur Vorstand/GF/Assistenz haben Zugriff
+2. **Allgemein-Modus**: Text ohne Sitzung → Vorstand/GF/Assistenz/Führungsteam haben Zugriff
 
 ---
 
@@ -54,7 +54,33 @@ Ermöglicht mehreren Benutzern gleichzeitig an einem Text zu arbeiten (ähnlich 
 
 ---
 
-## 3. FRONTEND-ARCHITEKTUR
+## 3. BENUTZER-FEATURES
+
+### Schutz vor Datenverlust
+- **Concurrent Editing Prevention**: User können nur einen Absatz gleichzeitig bearbeiten
+  - Beim Versuch, einen zweiten Absatz zu öffnen, erscheint eine Warnung
+  - Verhindert Datenverlust durch gleichzeitige Bearbeitung mehrerer Absätze
+  - Implementiert über `editingParagraphId` Variable
+
+### Text-Vorschau und Export
+- **Text anzeigen**: Alle Absätze werden zusammengefügt angezeigt
+- **In Zwischenablage kopieren**: Mit einem Klick den gesamten Text kopieren
+  - Nutzt moderne Clipboard API (`navigator.clipboard.writeText()`)
+  - Erfolgs-/Fehler-Feedback für den User
+  - Ideal für Weiterverarbeitung in anderen Programmen
+
+### Berechtigungen
+- **Meeting-Modus**: Alle Sitzungsteilnehmer
+- **Allgemein-Modus**:
+  - Vorstand: Vollzugriff
+  - Geschäftsführung: Vollzugriff
+  - Assistenz: Vollzugriff
+  - Führungsteam: Vollzugriff (neu seit Version 2025)
+  - Mitglieder: Kein Zugriff auf allgemeine Texte
+
+---
+
+## 4. FRONTEND-ARCHITEKTUR
 
 ### JavaScript-Variablen (tab_texte.php)
 ```javascript
@@ -105,7 +131,7 @@ Aktualisiert: svcollab_text_participants.last_seen = NOW()
 
 ---
 
-## 4. BACKEND-ARCHITEKTUR
+## 5. BACKEND-ARCHITEKTUR
 
 ### API-Endpoints (alle in `/api/`)
 
@@ -172,7 +198,7 @@ Aktualisiert: svcollab_text_participants.last_seen = NOW()
 
 ---
 
-## 5. PERFORMANCE-KRITISCHE PUNKTE
+## 6. PERFORMANCE-KRITISCHE PUNKTE
 
 ### Häufigste API-Calls (Pro User)
 - **Polling**: 40 Requests/Minute (alle 1,5s)
@@ -212,7 +238,7 @@ Aktualisiert: svcollab_text_participants.last_seen = NOW()
 
 ---
 
-## 6. ABLAUF-SZENARIEN
+## 7. ABLAUF-SZENARIEN
 
 ### Szenario A: User öffnet Editor-View
 
@@ -330,7 +356,7 @@ location.reload();          // Seite neu laden
 
 ---
 
-## 7. FEHLER-SZENARIEN & RECOVERY
+## 8. FEHLER-SZENARIEN & RECOVERY
 
 ### A) Heartbeat schlägt fehl
 **Ursachen**:
@@ -393,7 +419,7 @@ API → 403 Error
 
 ---
 
-## 8. PERFORMANCE-BOTTLENECKS
+## 9. PERFORMANCE-BOTTLENECKS
 
 ### Identifizierte Probleme
 
@@ -450,7 +476,7 @@ SELECT * FROM svcollab_text_paragraphs WHERE text_id = ? ORDER BY paragraph_orde
 
 ---
 
-## 9. DIAGNOSE-CHECKLISTE
+## 10. DIAGNOSE-CHECKLISTE
 
 Wenn Performance-Probleme auftreten:
 
@@ -510,7 +536,7 @@ Wenn Performance-Probleme auftreten:
 
 ---
 
-## 10. ERWARTETES SYSTEM-VERHALTEN
+## 11. ERWARTETES SYSTEM-VERHALTEN
 
 ### Bei normalem Betrieb (1 User)
 - Editor öffnen: <1 Sekunde
@@ -534,15 +560,18 @@ Wenn Performance-Probleme auftreten:
 
 ---
 
-## 11. AKTUELLE PROBLEME (Stand: letzter Test)
+## 12. AKTUELLE PROBLEME (Stand: letzter Test)
 
 ### ✅ Behoben
 - [x] 401 Unauthorized bei Heartbeat → Authentication-Bug gefixt
 - [x] "undefined" in Lock-Meldungen → Null-Checks hinzugefügt
 - [x] Session-Locking → session_write_close() überall
+- [x] Datenverlust bei gleichzeitiger Bearbeitung mehrerer Absätze → Concurrent Editing Prevention
+- [x] Umständliche Textvorschau → Copy-to-Clipboard Button hinzugefügt
+- [x] Fehlende Berechtigungen für Führungsteam → Vollzugriff auf allgemeine Texte
 
 ### ❌ Offen
-- [ ] **Performance immer noch langsam (>5 Sekunden)**
+- [ ] **Performance immer noch langsam (>5 Sekunden)** (Falls zutreffend)
   - Bearbeiten-Button: >5 Sekunden bis Reaktion
   - Speichern: >7 Sekunden
   - Online-User: Erscheinen erst nach langer Wartezeit
@@ -556,7 +585,7 @@ Wenn Performance-Probleme auftreten:
 
 ---
 
-## 12. NÄCHSTE SCHRITTE
+## 13. NÄCHSTE SCHRITTE
 
 1. **Systematische Performance-Messung**
    - Network Tab: Jede API-Call-Dauer einzeln messen

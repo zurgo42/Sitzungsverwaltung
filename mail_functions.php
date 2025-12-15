@@ -324,7 +324,7 @@ function send_poll_invitation($pdo, $poll_id, $host_url_base = null) {
     $message_text .= "\n";
 
     if ($poll_link) {
-        $message_text .= "Bitte stimmen Sie ab unter:\n$poll_link\n\n";
+        $message_text .= "Bitte stimme ab unter:\n$poll_link\n\n";
     }
 
     $message_text .= "---\n";
@@ -371,7 +371,7 @@ function send_poll_invitation($pdo, $poll_id, $host_url_base = null) {
     }
     $message_html .= "</ol></div>";
 
-    $message_html .= "<p><strong>Bitte stimmen Sie ab!</strong></p>";
+    $message_html .= "<p><strong>Bitte stimme ab!</strong></p>";
 
     if ($poll_link) {
         $message_html .= "<a href='$poll_link' class='btn'>Zur Umfrage &rarr;</a>";
@@ -498,7 +498,7 @@ function send_poll_finalization_notification($pdo, $poll_id, $final_date_id, $ho
         $message_text .= "Details zur Umfrage: $poll_link\n\n";
     }
 
-    $message_text .= "Bitte merken Sie sich den Termin vor!\n\n";
+    $message_text .= "Bitte merke dir den Termin vor!\n\n";
     $message_text .= "---\n";
     $message_text .= "Diese Nachricht wurde automatisch vom Meeting-System versendet.\n";
     $message_text .= "Erstellt von: {$poll['first_name']} {$poll['last_name']}";
@@ -540,7 +540,7 @@ function send_poll_finalization_notification($pdo, $poll_id, $final_date_id, $ho
     $message_html .= "
                 </div>
 
-                <p>Bitte merken Sie sich den Termin vor!</p>
+                <p>Bitte merke dir den Termin vor!</p>
     ";
 
     if ($poll_link) {
@@ -688,7 +688,7 @@ function send_poll_reminder($pdo, $poll_id, $host_url_base = null) {
         $message_text .= "Details zur Umfrage: $poll_link\n\n";
     }
 
-    $message_text .= "Wir freuen uns auf Ihre Teilnahme!\n\n";
+    $message_text .= "Wir freuen uns auf deine Teilnahme!\n\n";
     $message_text .= "---\n";
     $message_text .= "Diese Nachricht wurde automatisch vom Meeting-System versendet.\n";
     $message_text .= "Erstellt von: {$poll['first_name']} {$poll['last_name']}";
@@ -733,7 +733,7 @@ function send_poll_reminder($pdo, $poll_id, $host_url_base = null) {
     $message_html .= "
                 </div>
 
-                <p>Wir freuen uns auf Ihre Teilnahme!</p>
+                <p>Wir freuen uns auf deine Teilnahme!</p>
     ";
 
     if ($poll_link) {

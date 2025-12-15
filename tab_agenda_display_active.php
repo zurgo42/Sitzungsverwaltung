@@ -533,7 +533,7 @@ foreach ($agenda_items as $item):
     <div style="margin-top: 20px; padding: 15px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px;">
         <h4 style="color: #e65100; margin-bottom: 10px;">⏸️ Sitzung beenden</h4>
         <p style="color: #666; margin-bottom: 10px;">
-            Wenn alle TOPs behandelt wurden, können Sie die Sitzung beenden und das Protokoll erstellen.
+            Wenn alle TOPs behandelt wurden, kannst du die Sitzung beenden und das Protokoll erstellen.
         </p>
         <form method="POST" action="" onsubmit="return confirm('Sitzung jetzt beenden?');">
             <input type="hidden" name="end_meeting" value="1">
