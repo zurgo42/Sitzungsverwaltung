@@ -313,6 +313,18 @@ require_once 'module_notifications.php';
                             }
                             ?>
                         </span>
+                        <br><strong>Sichtbarkeit:</strong>
+                        <span style="font-size: 0.9em;">
+                            <?php
+                            $visibility = $m['visibility_type'] ?? 'invited_only';
+                            switch($visibility) {
+                                case 'invited_only': echo '🔒 Nur Eingeladene'; break;
+                                case 'authenticated': echo '👔 Führungsteam'; break;
+                                case 'public': echo '🌐 Öffentlich'; break;
+                                default: echo htmlspecialchars($visibility);
+                            }
+                            ?>
+                        </span>
                         <?php if ($needs_protocol_completion): ?>
                             <br><strong style="color: #f44336;">⚠️ Fertigstellung des Protokolls steht aus</strong>
                         <?php elseif ($needs_protocol_approval): ?>

@@ -542,15 +542,34 @@ function get_visible_meetings($pdo, $member_id) {
             return [];
         }
 
-        $is_leadership = in_array(strtolower($user['role']), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam']);
+        $user_role = strtolower($user['role']);
+        $is_top_management = in_array($user_role, ['vorstand', 'gf', 'assistenz']);
+        $is_fuehrungsteam = ($user_role === 'fuehrungsteam');
+        $is_mitglied = ($user_role === 'mitglied');
 
         // Meetings laden basierend auf Visibility-Regeln:
         // - public: Alle eingeloggten User sehen
-        // - authenticated: Nur Führungsteam (Vorstand, GF, Assistenz)
+        // - authenticated: Nur Führungsteam (Vorstand, GF, Assistenz, Führungsteam)
         // - invited_only: Nur Teilnehmer
+        //
+        // Protokoll-Filterung (für ended, protocol_ready, archived):
+        // - Vorstand+GF+Assistenz: sehen alle Protokolle
+        // - Führungsteam: sehen Protokolle von Meetings, an denen sie teilnahmen + authenticated + public
+        // - Mitglied: sehen nur Protokolle von public Meetings
 
-        if ($is_leadership) {
+        if ($is_top_management) {
+            // Vorstand, GF, Assistenz sehen ALLES
+            $stmt = $pdo->prepare("
+                SELECT DISTINCT m.*, mem.first_name, mem.last_name
+                FROM svmeetings m
+                LEFT JOIN svmembers mem ON m.invited_by_member_id = mem.member_id
+                ORDER BY FIELD(m.status, 'active', 'protocol_ready', 'ended', 'preparation', 'archived'), m.meeting_date ASC
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll();
+        } elseif ($is_fuehrungsteam) {
             // Führungsteam sieht: public + authenticated + invited_only (wenn Teilnehmer)
+            // Für Protokolle (ended/protocol_ready/archived): public + authenticated + nur eigene invited_only
             $stmt = $pdo->prepare("
                 SELECT DISTINCT m.*, mem.first_name, mem.last_name
                 FROM svmeetings m
@@ -563,14 +582,21 @@ function get_visible_meetings($pdo, $member_id) {
             $stmt->execute([$member_id]);
             return $stmt->fetchAll();
         } else {
-            // Normale User sehen: public + invited_only (wenn Teilnehmer)
+            // Mitglieder sehen:
+            // - Bei preparation/active: invited_only (wenn Teilnehmer)
+            // - Bei ended/protocol_ready/archived (Protokolle): nur public
             $stmt = $pdo->prepare("
                 SELECT DISTINCT m.*, mem.first_name, mem.last_name
                 FROM svmeetings m
                 LEFT JOIN svmembers mem ON m.invited_by_member_id = mem.member_id
                 LEFT JOIN svmeeting_participants mp ON m.meeting_id = mp.meeting_id AND mp.member_id = ?
-                WHERE m.visibility_type = 'public'
-                   OR (m.visibility_type = 'invited_only' AND mp.member_id IS NOT NULL)
+                WHERE
+                    -- Immer public Meetings
+                    m.visibility_type = 'public'
+                    -- invited_only nur wenn Teilnehmer UND nicht archiviert
+                    OR (m.visibility_type = 'invited_only'
+                        AND mp.member_id IS NOT NULL
+                        AND m.status IN ('preparation', 'active'))
                 ORDER BY FIELD(m.status, 'active', 'protocol_ready', 'ended', 'preparation', 'archived'), m.meeting_date ASC
             ");
             $stmt->execute([$member_id]);
