@@ -212,7 +212,7 @@ $demo_file = __DIR__ . '/demo_data.json';
             }
             echo '</ul>';
             echo '<p><strong>Ursache:</strong> Diese JSON-Datei wurde von einem System ohne Meeting-Daten exportiert!</p>';
-            echo '<p><strong>Lösung:</strong> Exportieren Sie die Daten vom RICHTIGEN Quellsystem (localhost mit echten Meetings).</p>';
+            echo '<p><strong>Lösung:</strong> Exportiere die Daten vom RICHTIGEN Quellsystem (localhost mit echten Meetings).</p>';
             echo '</div>';
         } else {
             echo '<div class="success">';

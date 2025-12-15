@@ -20,7 +20,7 @@ if (!$is_active) {
 
 // Prüfen ob berechtigt
 if (!can_participate($poll, $current_user ? $current_user['member_id'] : null)) {
-    echo "<p>Sie sind nicht berechtigt, an dieser Umfrage teilzunehmen.</p>";
+    echo "<p>Du bist nicht berechtigt, an dieser Umfrage teilzunehmen.</p>";
     return;
 }
 
@@ -49,8 +49,8 @@ $can_edit = $is_creator && $stats['total_responses'] <= 1;
 
     <?php if ($existing_response && !$can_edit): ?>
         <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-            <strong>Sie haben bereits geantwortet!</strong><br>
-            Ihre Antwort: <strong><?php echo htmlspecialchars($existing_response['selected_options_text'] ?? 'N/A'); ?></strong>
+            <strong>Du hast bereits geantwortet!</strong><br>
+            Deine Antwort: <strong><?php echo htmlspecialchars($existing_response['selected_options_text'] ?? 'N/A'); ?></strong>
             <?php if (!empty($existing_response['free_text'])): ?>
                 <br>Kommentar: "<?php echo htmlspecialchars($existing_response['free_text']); ?>"
             <?php endif; ?>
@@ -61,8 +61,8 @@ $can_edit = $is_creator && $stats['total_responses'] <= 1;
     <?php else: ?>
         <?php if ($existing_response && $can_edit): ?>
             <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                <strong>Sie bearbeiten Ihre Antwort</strong><br>
-                Als Ersteller können Sie Ihre Antwort ändern, solange nur Sie geantwortet haben.
+                <strong>Du bearbeitest deine Antwort</strong><br>
+                Als Ersteller kannst du deine Antwort ändern, solange nur du geantwortet hast.
             </div>
         <?php endif; ?>
 
@@ -70,7 +70,7 @@ $can_edit = $is_creator && $stats['total_responses'] <= 1;
             <input type="hidden" name="action" value="submit_response">
             <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
 
-            <h4>Bitte wählen Sie Ihre Antwort:
+            <h4>Bitte wähle deine Antwort:
                 <?php if (!empty($poll['description'])): ?>
                     <span style="font-size: 0.85em; font-weight: normal; color: #666;"> (<?php echo htmlspecialchars($poll['description']); ?>)</span>
                 <?php endif; ?>
@@ -98,7 +98,7 @@ $can_edit = $is_creator && $stats['total_responses'] <= 1;
 
             <div class="form-group" style="margin-top: 20px;">
                 <label>Optionaler Kommentar / Begründung:</label>
-                <textarea name="free_text" rows="4" placeholder="Sie können hier einen Kommentar zu Ihrer Antwort hinzufügen..." style="width: 100%;"><?php echo ($existing_response && isset($existing_response['free_text'])) ? htmlspecialchars($existing_response['free_text']) : ''; ?></textarea>
+                <textarea name="free_text" rows="4" placeholder="Du kannst hier einen Kommentar zu deiner Antwort hinzufügen..." style="width: 100%;"><?php echo ($existing_response && isset($existing_response['free_text'])) ? htmlspecialchars($existing_response['free_text']) : ''; ?></textarea>
             </div>
 
             <?php if (!$poll['is_anonymous'] && $current_user): ?>
@@ -108,7 +108,7 @@ $can_edit = $is_creator && $stats['total_responses'] <= 1;
                         <strong>Meine Antwort soll trotzdem anonym bleiben</strong>
                     </label>
                     <small style="display: block; margin-left: 24px; color: #666;">
-                        Auch wenn die Umfrage nicht als anonym markiert ist, können Sie verlangen, dass Ihr Name nicht angezeigt wird
+                        Auch wenn die Umfrage nicht als anonym markiert ist, kannst du verlangen, dass dein Name nicht angezeigt wird
                     </small>
                 </div>
             <?php endif; ?>

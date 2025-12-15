@@ -4,7 +4,7 @@
  */
 
 if (!$current_user) {
-    echo "<p>Bitte melden Sie sich an.</p>";
+    echo "<p>Bitte melde dich an.</p>";
     return;
 }
 
@@ -37,7 +37,7 @@ if (!isset($all_members)) {
     <div class="opinion-card">
         <h4>1. Frage formulieren</h4>
         <div class="form-group">
-            <label>Ihre Frage:*</label>
+            <label>Deine Frage:*</label>
             <textarea name="title" rows="3" required placeholder="z.B. Sollen wir das neue Feature implementieren?" style="width: 100%;"></textarea>
         </div>
     </div>
@@ -47,7 +47,7 @@ if (!isset($all_members)) {
         <div class="form-group">
             <label style="display: block; margin-bottom: 10px;">
                 <input type="radio" name="target_type" value="individual" checked onchange="updateTargetOptions()">
-                <strong>Individuell</strong> - Link, den Sie weitergeben können
+                <strong>Individuell</strong> - Link, den du weitergeben kannst
             </label>
             <label style="display: block; margin-bottom: 10px;">
                 <input type="radio" name="target_type" value="list" onchange="updateTargetOptions()">
@@ -85,7 +85,7 @@ if (!isset($all_members)) {
     <div class="opinion-card">
         <h4>3. Antwortmöglichkeiten festlegen</h4>
 
-        <p>Wählen Sie ein vorgefertigtes Antwort-Set oder geben Sie eigene Antworten ein:</p>
+        <p>Wähle ein vorgefertigtes Antwort-Set oder gib eigene Antworten ein:</p>
 
         <?php
         // Templates sortieren: "Frei" ans Ende
@@ -308,7 +308,7 @@ function validateOpinionForm() {
         }
 
         if (!hasCustomOption) {
-            alert('Bitte wählen Sie ein Antwort-Template aus oder geben Sie eigene Antwortmöglichkeiten ein.');
+            alert('Bitte wähle ein Antwort-Template aus oder gib eigene Antwortmöglichkeiten ein.');
             return false;
         }
     }

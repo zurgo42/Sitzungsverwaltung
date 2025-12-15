@@ -6,9 +6,9 @@
  * Datenbank in eine JSON-Datei, die später als Demoversion eingespielt werden kann.
  *
  * VERWENDUNG:
- * 1. Erstellen Sie in der Anwendung verschiedene Meetings mit unterschiedlichen Stati
- * 2. Fügen Sie Kommentare, TODOs, Protokolle etc. hinzu
- * 3. Rufen Sie dieses Skript im Browser auf
+ * 1. Erstelle in der Anwendung verschiedene Meetings mit unterschiedlichen Stati
+ * 2. Füge Kommentare, TODOs, Protokolle etc. hinzu
+ * 3. Rufe dieses Skript im Browser auf
  * 4. Die Datei demo_data.json wird im tools/-Verzeichnis erstellt
  */
 
@@ -176,7 +176,7 @@ if (!$password_correct) {
     <div class="card">
         <h2>Über dieses Tool</h2>
         <p>
-            Dieses Skript exportiert den aktuellen Stand Ihrer Datenbank (members-basiert)
+            Dieses Skript exportiert den aktuellen Stand deiner Datenbank (members-basiert)
             in eine JSON-Datei. Diese kann später als "Demoversion" eingespielt werden.
         </p>
         <p><strong>Exportierte Tabellen:</strong></p>
@@ -212,7 +212,7 @@ if (!$password_correct) {
         $tables_to_export = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
         if (empty($tables_to_export)) {
-            throw new Exception('Keine Tabellen mit "sv"-Prefix gefunden. Bitte prüfen Sie die Datenbank.');
+            throw new Exception('Keine Tabellen mit "sv"-Prefix gefunden. Bitte prüfe die Datenbank.');
         }
 
         $total_records = 0;
@@ -245,7 +245,7 @@ if (!$password_correct) {
                 echo '<li>❌ Keine Tagesordnungspunkte gefunden (svagenda_items ist leer)</li>';
             }
             echo '</ul>';
-            echo '<p><strong>Lösung:</strong> Erstellen Sie zuerst einige Demo-Meetings mit TOPs, Kommentaren etc. in der Anwendung, bevor Sie exportieren!</p>';
+            echo '<p><strong>Lösung:</strong> Erstelle zuerst einige Demo-Meetings mit TOPs, Kommentaren etc. in der Anwendung, bevor du exportierst!</p>';
             echo '<p>Diese leere JSON-Datei kann zwar importiert werden, enthält aber keine sinnvollen Demo-Daten.</p>';
             echo '</div>';
         }
@@ -273,21 +273,21 @@ if (!$password_correct) {
 
         // Nächste Schritte
         echo '<div class="info">';
-        echo '<h3>📋 Nächste Schritte - So übertragen Sie die Daten auf einen anderen Server</h3>';
+        echo '<h3>📋 Nächste Schritte - So überträgst du die Daten auf einen anderen Server</h3>';
         echo '<ol>';
         echo '<li><strong>Export erfolgreich!</strong> Die Datei <code>demo_data.json</code> wurde im <code>tools/</code>-Verzeichnis erstellt</li>';
         echo '<li><strong>Datei auf neuen Server kopieren:</strong>';
         echo '<ul>';
-        echo '<li>Laden Sie die Datei <code>tools/demo_data.json</code> herunter</li>';
-        echo '<li>Laden Sie sie auf dem Zielserver in das gleiche <code>tools/</code>-Verzeichnis hoch</li>';
+        echo '<li>Lade die Datei <code>tools/demo_data.json</code> herunter</li>';
+        echo '<li>Lade sie auf dem Zielserver in das gleiche <code>tools/</code>-Verzeichnis hoch</li>';
         echo '</ul></li>';
         echo '<li><strong>Auf dem Zielserver:</strong>';
         echo '<ul>';
-        echo '<li>Stellen Sie sicher, dass <code>config.php</code> die Einstellung <code>DEMO_MODE_ENABLED = true</code> hat</li>';
-        echo '<li>Führen Sie zuerst <code>init-db.php</code> aus, um die Tabellen anzulegen</li>';
-        echo '<li>Rufen Sie dann <code>tools/demo_import.php</code> im Browser auf</li>';
+        echo '<li>Stelle sicher, dass <code>config.php</code> die Einstellung <code>DEMO_MODE_ENABLED = true</code> hat</li>';
+        echo '<li>Führe zuerst <code>init-db.php</code> aus, um die Tabellen anzulegen</li>';
+        echo '<li>Rufe dann <code>tools/demo_import.php</code> im Browser auf</li>';
         echo '</ul></li>';
-        echo '<li><strong>Lokaler Test:</strong> Sie können die Demo-Daten auch lokal testen mit <code>demo_import.php</code></li>';
+        echo '<li><strong>Lokaler Test:</strong> Du kannst die Demo-Daten auch lokal testen mit <code>demo_import.php</code></li>';
         echo '</ol>';
         echo '<a href="demo_import.php" class="btn">➡️ Zum Import-Tool (lokaler Test)</a>';
         echo '</div>';
@@ -295,7 +295,7 @@ if (!$password_correct) {
         // Download-Link für die JSON-Datei
         echo '<div class="card">';
         echo '<h3>💾 Datei herunterladen</h3>';
-        echo '<p>Klicken Sie hier, um die demo_data.json direkt herunterzuladen:</p>';
+        echo '<p>Klicke hier, um die demo_data.json direkt herunterzuladen:</p>';
         echo '<a href="demo_data.json" download class="btn">⬇️ demo_data.json herunterladen</a>';
         echo ' ';
         echo '<a href="demo_analyze.php" class="btn" style="background: #6c757d;">🔍 JSON-Datei analysieren</a>';
