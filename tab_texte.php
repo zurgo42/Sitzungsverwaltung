@@ -496,7 +496,7 @@ if ($view === 'editor') {
     <!-- Buttons -->
     <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
         <button onclick="addParagraph()" class="btn-primary">+ Absatz hinzufügen</button>
-        <button onclick="showPreview()" class="btn-secondary">👁️ Vorschau</button>
+        <button onclick="showPreview()" class="btn-secondary">👁️ Text zeigen und ggf. kopieren</button>
         <?php if ($is_initiator): ?>
             <button onclick="finalizeText()" class="btn-danger" style="margin-left: auto;">
                 ✅ Text finalisieren
@@ -523,9 +523,12 @@ if ($view === 'editor') {
     <!-- Vorschau-Dialog -->
     <div id="previewDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
         <div style="background: white; padding: 30px; border-radius: 8px; max-width: 1024px; width: 90%; margin: 20px; max-height: 80vh; overflow-y: auto;">
-            <h3>Vorschau: <?php echo htmlspecialchars($text['title']); ?></h3>
+            <h3>Text: <?php echo htmlspecialchars($text['title']); ?></h3>
             <div id="previewContent" class="text-preview">Lade...</div>
-            <button onclick="hidePreview()" class="btn-secondary" style="margin-top: 20px;">Schließen</button>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="copyPreviewToClipboard()" class="btn-primary">📋 In Zwischenablage kopieren</button>
+                <button onclick="hidePreview()" class="btn-secondary">Schließen</button>
+            </div>
         </div>
     </div>
 
@@ -1072,6 +1075,19 @@ if ($view === 'editor') {
 
     function hidePreview() {
         document.getElementById('previewDialog').style.display = 'none';
+    }
+
+    // Text aus Vorschau in Zwischenablage kopieren
+    function copyPreviewToClipboard() {
+        const previewContent = document.getElementById('previewContent');
+        const text = previewContent.textContent;
+
+        navigator.clipboard.writeText(text).then(() => {
+            alert('✅ Text wurde in die Zwischenablage kopiert!');
+        }).catch(err => {
+            console.error('Fehler beim Kopieren:', err);
+            alert('❌ Fehler beim Kopieren in die Zwischenablage.');
+        });
     }
 
     // Finalisieren
