@@ -121,13 +121,13 @@ try {
             $participant_ids = $_POST['participant_ids'] ?? [];
 
             if (empty($title)) {
-                $_SESSION['error'] = 'Bitte geben Sie einen Titel ein';
+                $_SESSION['error'] = 'Bitte gib einen Titel ein';
                 header('Location: index.php?tab=termine');
                 exit;
             }
 
             if (empty($participant_ids)) {
-                $_SESSION['error'] = 'Bitte wählen Sie mindestens einen Teilnehmer aus';
+                $_SESSION['error'] = 'Bitte wähle mindestens einen Teilnehmer aus';
                 header('Location: index.php?tab=termine');
                 exit;
             }
@@ -241,7 +241,7 @@ try {
                 }
             }
 
-            $_SESSION['success'] = 'Ihre Abstimmung wurde gespeichert!';
+            $_SESSION['success'] = 'Deine Abstimmung wurde gespeichert!';
             header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
             exit;
 

@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                 $location = trim($_POST['location'] ?? '');
 
                 if (empty($title)) {
-                    $error_message = 'Bitte geben Sie einen Titel ein';
+                    $error_message = 'Bitte gib einen Titel ein';
                     break;
                 }
 

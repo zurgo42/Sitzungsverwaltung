@@ -821,7 +821,7 @@ try {
         echo "<h4 style='margin-top: 0;'>⚠️ Default-Admin Zugangsdaten</h4>";
         echo "<p><strong>Email:</strong> admin@example.com</p>";
         echo "<p><strong>Passwort:</strong> admin123</p>";
-        echo "<p style='color: #856404;'><strong>WICHTIG:</strong> Bitte ändern Sie das Passwort nach dem ersten Login!</p>";
+        echo "<p style='color: #856404;'><strong>WICHTIG:</strong> Bitte ändere das Passwort nach dem ersten Login!</p>";
         echo "</div>";
     } else {
         echo "<p style='color: orange;'>⚠ Members-Tabelle enthält bereits Einträge - überspringe Default-Admin</p>";

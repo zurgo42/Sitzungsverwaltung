@@ -8,7 +8,7 @@ require_once 'module_notifications.php';
  */
 
 if (!isset($_SESSION['member_id'])) {
-    echo '<div class="alert alert-warning">Bitte melden Sie sich an, um Dokumente zu sehen.</div>';
+    echo '<div class="alert alert-warning">Bitte melde dich an, um Dokumente zu sehen.</div>';
     return;
 }
 
@@ -281,7 +281,7 @@ if ($view === 'list') {
                 <!-- Info-Box -->
                 <div class="alert alert-info mb-3">
                     <strong>📚 Willkommen in der Dokumentensammlung!</strong><br>
-                    Hier finden Sie alle wichtigen Vereinsdokumente in der jeweils aktuellen Version.
+                    Hier findest du alle wichtigen Vereinsdokumente in der jeweils aktuellen Version.
                 </div>
 
                 <!-- Filter & Suche als Details/Summary -->

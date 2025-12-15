@@ -92,9 +92,9 @@ if (empty($agenda_items)) {
 <div style="margin: 15px 0; padding: 12px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
     <strong>ℹ️ Status:</strong> Das Protokoll wurde zur Genehmigung freigegeben.
     <?php if ($is_chairman): ?>
-        Sie können das Protokoll jetzt genehmigen.
+        Du kannst das Protokoll jetzt genehmigen.
     <?php elseif ($is_secretary): ?>
-        Sie können Ihr Protokoll noch bearbeiten, bis es genehmigt wird.
+        Du kannst dein Protokoll noch bearbeiten, bis es genehmigt wird.
     <?php else: ?>
         Das Protokoll wartet auf Genehmigung durch den Sitzungsleiter.
     <?php endif; ?>
@@ -282,7 +282,7 @@ foreach ($agenda_items as $item):
 
             <!-- Eigene nachträgliche Anmerkung des Protokollanten -->
             <div style="margin-top: 15px; padding: 12px; background: #e8f5e9; border: 2px solid #4caf50; border-radius: 6px;">
-                <h4 style="color: #2e7d32; margin-bottom: 8px;">💭 Ihre nachträgliche Anmerkung zum Protokoll</h4>
+                <h4 style="color: #2e7d32; margin-bottom: 8px;">💭 Deine nachträgliche Anmerkung zum Protokoll</h4>
 
                 <?php
                 // Eigene nachträgliche Anmerkung des Protokollanten laden
@@ -297,7 +297,7 @@ foreach ($agenda_items as $item):
 
                 <div class="form-group">
                     <label style="font-size: 13px; font-weight: 600; color: #2e7d32;">
-                        Ihre Anmerkung zu diesem TOP:
+                        Deine Anmerkung zu diesem TOP:
                     </label>
                     <textarea name="post_comment[<?php echo $item['item_id']; ?>]"
                               rows="3"
@@ -314,7 +314,7 @@ foreach ($agenda_items as $item):
         <!-- KOMMENTARFELD FÜR SITZUNGSLEITER -->
         <?php if ($is_chairman): ?>
             <div style="margin-top: 15px; padding: 12px; background: #ffebee; border: 2px solid #f44336; border-radius: 6px;">
-                <h4 style="color: #c62828; margin-bottom: 8px;">💭 Ihre Anmerkungen als Sitzungsleiter</h4>
+                <h4 style="color: #c62828; margin-bottom: 8px;">💭 Deine Anmerkungen als Sitzungsleiter</h4>
 
                 <?php
                 // Bestehende Kommentare des Sitzungsleiters laden
@@ -404,7 +404,7 @@ foreach ($agenda_items as $item):
     <div style="margin-top: 20px; padding: 15px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px;">
         <h4 style="color: #e65100; margin-bottom: 10px;">📝 Protokolländerung anfordern</h4>
         <p style="color: #666; margin-bottom: 10px;">
-            Falls Sie Änderungen am Protokoll wünschen, können Sie dem Protokollanten eine Überarbeitungsanfrage senden.
+            Falls du Änderungen am Protokoll wünschst, kannst du dem Protokollanten eine Überarbeitungsanfrage senden.
         </p>
         <form method="POST" action="" onsubmit="return confirm('Überarbeitungsanfrage wirklich senden? Der Protokollant erhält ein entsprechendes ToDo.');">
             <input type="hidden" name="request_protocol_revision" value="1">
@@ -418,7 +418,7 @@ foreach ($agenda_items as $item):
     <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border: 2px solid #4caf50; border-radius: 8px;">
         <h4 style="color: #2e7d32; margin-bottom: 10px;">✅ Protokoll genehmigen</h4>
         <p style="color: #666; margin-bottom: 10px;">
-            Als Sitzungsleiter können Sie das Protokoll jetzt genehmigen und archivieren.
+            Als Sitzungsleiter kannst du das Protokoll jetzt genehmigen und archivieren.
         </p>
         <form method="POST" action="" onsubmit="return confirm('Protokoll wirklich genehmigen? Das Meeting wird dann archiviert.');">
             <input type="hidden" name="approve_protocol" value="1">

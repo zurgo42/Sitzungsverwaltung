@@ -15,7 +15,7 @@
 // ============================================
 
 if (empty($current_user['is_admin'])) {
-    echo '<div class="error-message">❌ Zugriff verweigert. Sie haben keine Admin-Rechte.</div>';
+    echo '<div class="error-message">❌ Zugriff verweigert. Du hast keine Admin-Rechte.</div>';
     exit;
 }
 

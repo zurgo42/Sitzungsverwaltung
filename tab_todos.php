@@ -33,7 +33,7 @@ function make_links_clickable($text) {
 $currentMemberID = $_SESSION['member_id'] ?? 0;
 
 if (!$currentMemberID) {
-    die('❌ Bitte melden Sie sich an.');
+    die('❌ Bitte melde dich an.');
 }
 
 // ============================================

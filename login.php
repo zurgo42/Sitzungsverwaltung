@@ -21,7 +21,7 @@ try {
     if (DEBUG_MODE) {
         die("Datenbankverbindung fehlgeschlagen: " . $e->getMessage());
     } else {
-        die("Datenbankverbindung fehlgeschlagen. Bitte kontaktieren Sie den Administrator.");
+        die("Datenbankverbindung fehlgeschlagen. Bitte kontaktiere den Administrator.");
     }
 }
 
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (DEBUG_MODE) {
             $error = 'Datenbankfehler: ' . $e->getMessage();
         } else {
-            $error = 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.';
+            $error = 'Ein Fehler ist aufgetreten. Bitte versuche es später erneut.';
         }
     }
 }
@@ -250,7 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-container">
         <div class="login-banner">
             <h1>📋 Meeting-Verwaltung</h1>
-            <p>Organisieren Sie Ihre Online-Sitzungen effizient. Tagesordnung, Diskussionen, Protokolle - alles an einem Ort.</p>
+            <p>Organisiere deine Online-Sitzungen effizient. Tagesordnung, Diskussionen, Protokolle - alles an einem Ort.</p>
         </div>
         
         <div class="login-form">
@@ -278,7 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <div class="demo-info">
                 <h3>🔐 Demo-Benutzer (Testsystem)</h3>
-                <p>Dies ist ein Testsystem. Verwenden Sie eine dieser Demo-Identitäten:</p>
+                <p>Dies ist ein Testsystem. Verwende eine dieser Demo-Identitäten:</p>
                 <div class="demo-users">
                     <div class="demo-user"><strong>Vorstand:</strong> <code>max@example.com</code> / <code>test123</code></div>
                     <div class="demo-user"><strong>Vorstand:</strong> <code>erika@example.com</code> / <code>test123</code></div>

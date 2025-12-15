@@ -19,7 +19,7 @@ try {
     if (DEBUG_MODE) {
         die("Datenbankverbindung fehlgeschlagen: " . $e->getMessage());
     } else {
-        die("Datenbankverbindung fehlgeschlagen. Bitte kontaktieren Sie den Administrator.");
+        die("Datenbankverbindung fehlgeschlagen. Bitte kontaktiere den Administrator.");
     }
 }
 

@@ -110,7 +110,7 @@ function render_agenda_overview($agenda_items, $current_user = null, $current_me
             </div>
 
             <p style="margin-bottom: 10px; color: #555;">
-                <strong>Hinweis:</strong> Hier können Sie alle TOPs auf einen Blick sehen und Ihre Bewertungen (Priorität & geschätzte Dauer) eingeben.
+                <strong>Hinweis:</strong> Hier kannst du alle TOPs auf einen Blick sehen und deine Bewertungen (Priorität & geschätzte Dauer) eingeben.
             </p>
             
             <form method="POST" action="" style="margin-top: 15px;">

@@ -1849,7 +1849,7 @@ if (isset($_POST['approve_protocol']) && $is_chairman && $meeting['status'] === 
 if (isset($_POST['request_protocol_revision']) && $is_chairman && $meeting['status'] === 'protocol_ready') {
     try {
         $todo_title = "Protokoll überarbeiten: " . $meeting['meeting_name'] . " vom " . date('d.m.Y', strtotime($meeting['meeting_date']));
-        $todo_description = "Der Sitzungsleiter hat Änderungen am Protokoll angefordert. Bitte prüfen Sie Ihre Anmerkungen und überarbeiten Sie das Protokoll entsprechend.\n\nLink: " . get_full_meeting_link($current_meeting_id);
+        $todo_description = "Der Sitzungsleiter hat Änderungen am Protokoll angefordert. Bitte prüfe deine Anmerkungen und überarbeite das Protokoll entsprechend.\n\nLink: " . get_full_meeting_link($current_meeting_id);
 
         $stmt = $pdo->prepare("
             INSERT INTO svtodos (meeting_id, assigned_to_member_id, title, description, due_date, status, created_by_member_id, entry_date)

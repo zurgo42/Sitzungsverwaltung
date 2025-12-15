@@ -635,7 +635,7 @@ if (isset($_SESSION['error'])) {
 
                     <button type="button" onclick="addMorePollDates()" class="btn-secondary" style="margin-top: 10px;">+ Weiteren Termin hinzufügen</button>
                     <small style="display: block; margin-top: 10px; color: #666;">
-                        Sie können bis zu 20 Terminvorschläge hinzufügen. Wenn Sie ins nächste Datumsfeld klicken, wird automatisch der Folgetag mit gleicher Uhrzeit vorgeschlagen.
+                        Du kannst bis zu 20 Terminvorschläge hinzufügen. Wenn du ins nächste Datumsfeld klickst, wird automatisch der Folgetag mit gleicher Uhrzeit vorgeschlagen.
                     </small>
                 </div>
 
@@ -872,7 +872,7 @@ if (isset($_SESSION['error'])) {
         <div class="poll-card" style="background: #f0f8ff; border: 2px solid #4CAF50; margin-bottom: 20px;">
             <h4 style="margin: 0 0 10px 0;">🔗 Link zu dieser Umfrage</h4>
             <p style="margin: 0 0 10px 0; color: #666;">
-                Teilen Sie diesen Link mit den Teilnehmern:
+                Teile diesen Link mit den Teilnehmern:
             </p>
             <div class="poll-link-container" style="display: flex; gap: 10px; align-items: center;">
                 <input type="text"
@@ -893,9 +893,9 @@ if (isset($_SESSION['error'])) {
 
         <!-- Abstimmungs-Formular -->
         <?php if ($can_vote): ?>
-            <h3>📝 Ihre Abstimmung</h3>
+            <h3>📝 Deine Abstimmung</h3>
             <p style="margin-bottom: 15px; color: #666;">
-                Bitte geben Sie für jeden Terminvorschlag an, ob der Termin für Sie passt:<br>
+                Bitte gib für jeden Terminvorschlag an, ob der Termin für dich passt:<br>
                 <strong>✅ Passt</strong> – Der Termin passt mir gut<br>
                 <strong>🟡 Muss</strong> – Wenn es sein muss, kann ich<br>
                 <strong>❌ Passt nicht</strong> – Der Termin passt mir nicht
@@ -954,7 +954,7 @@ if (isset($_SESSION['error'])) {
                 <button type="submit" class="btn-primary" style="font-size: 16px; padding: 12px 24px;">💾 Abstimmung speichern</button>
             </form>
         <?php else: ?>
-            <div class="info-box">Diese Umfrage ist geschlossen. Sie können nicht mehr abstimmen.</div>
+            <div class="info-box">Diese Umfrage ist geschlossen. Du kannst nicht mehr abstimmen.</div>
         <?php endif; ?>
 
         <!-- Ergebnisse anzeigen -->
@@ -1078,7 +1078,7 @@ if (isset($_SESSION['error'])) {
 
                         <div style="flex: 1; min-width: 200px;">
                             <p style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.95;">
-                                Fügen Sie den Termin zu Ihrem Kalender hinzu:
+                                Füge den Termin zu deinem Kalender hinzu:
                             </p>
                             <a href="poll_ics.php?id=<?php echo $poll_id; ?>"
                                class="btn-primary"

@@ -15,7 +15,7 @@ require_once 'config.php';
 
 // Nur im Demo-Modus erlaubt
 if (!defined('DEMO_MODE_ENABLED') || !DEMO_MODE_ENABLED) {
-    die('<h1>Fehler</h1><p>Demo-Modus ist nicht aktiviert. Setzen Sie <code>DEMO_MODE_ENABLED = true</code> in config.php</p>');
+    die('<h1>Fehler</h1><p>Demo-Modus ist nicht aktiviert. Setze <code>DEMO_MODE_ENABLED = true</code> in config.php</p>');
 }
 
 try {
@@ -202,7 +202,7 @@ try {
     ");
     $stmt->execute([
         'Termin für Jahreshauptversammlung 2026',
-        'Bitte wählen Sie einen passenden Termin',
+        'Bitte wähle einen passenden Termin',
         'Stadthalle',
         $member_ids[0]
     ]);
@@ -250,8 +250,8 @@ try {
 
     $opinion_polls_data = [
         [
-            'title' => 'Wie gefällt Ihnen das neue Bürokonzept?',
-            'description' => 'Bitte bewerten Sie unser neues Open-Space-Konzept',
+            'title' => 'Wie gefällt dir das neue Bürokonzept?',
+            'description' => 'Bitte bewerte unser neues Open-Space-Konzept',
             'target_type' => 'public',
             'options' => ['gefällt mir sehr gut', 'gefällt mir gut', 'neutral', 'gefällt mir nicht', 'gefällt mir überhaupt nicht']
         ],

@@ -63,7 +63,7 @@ if (!$has_access) {
     echo '<h2>📝 Gemeinsame Texte</h2>';
     echo '<div class="alert alert-danger">';
     if ($is_meeting_mode) {
-        echo '<p>Sie sind kein Teilnehmer dieser Sitzung.</p>';
+        echo '<p>Du bist kein Teilnehmer dieser Sitzung.</p>';
     } else {
         echo '<p>Diese Funktion steht nur Vorstand, Geschäftsführung und Assistenz zur Verfügung.</p>';
     }
@@ -299,7 +299,7 @@ if ($view === 'overview') {
         <p style="color: #666; font-style: italic;">
             Noch keine gemeinsamen Texte vorhanden.
             <?php if ($is_initiator_role): ?>
-            Erstellen Sie den ersten Text mit dem Button oben.
+            Erstelle den ersten Text mit dem Button oben.
             <?php endif; ?>
         </p>
     <?php else: ?>
@@ -387,7 +387,7 @@ Tipp: Texte mit einer oder mehreren Leerzeilen werden automatisch in mehrere Abs
         const content = document.getElementById('newTextContent').value.trim();
 
         if (!title) {
-            alert('Bitte geben Sie einen Titel ein.');
+            alert('Bitte gib einen Titel ein.');
             return;
         }
 
@@ -415,7 +415,7 @@ Tipp: Texte mit einer oder mehreren Leerzeilen werden automatisch in mehrere Abs
     }
 
     function deleteText(textId, textTitle) {
-        if (!confirm('Möchten Sie den Text "' + textTitle + '" wirklich löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden!')) {
+        if (!confirm('Möchtest du den Text "' + textTitle + '" wirklich löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden!')) {
             return;
         }
 
@@ -516,7 +516,7 @@ if ($view === 'editor') {
 
     <?php if (empty($text['paragraphs'])): ?>
         <p style="color: #999; font-style: italic;">
-            Noch keine Absätze vorhanden. Klicken Sie auf "+ Absatz hinzufügen" um zu starten.
+            Noch keine Absätze vorhanden. Klicke auf "+ Absatz hinzufügen" um zu starten.
         </p>
     <?php endif; ?>
 
@@ -854,7 +854,7 @@ if ($view === 'editor') {
                 fetchUpdates();
 
                 // Hinweis anzeigen (nicht blockierend - Seite lädt ohnehin neu)
-                // alert('⏰ Ihre Änderungen wurden automatisch gespeichert.');
+                // alert('⏰ Deine Änderungen wurden automatisch gespeichert.');
             } else {
                 alert('Auto-Speichern fehlgeschlagen: ' + (data.error || 'Unbekannter Fehler'));
                 // Bei Fehler trotzdem Lock freigeben
@@ -1087,7 +1087,7 @@ if ($view === 'editor') {
         const finalName = document.getElementById('finalNameInput').value.trim();
 
         if (!finalName) {
-            alert('Bitte geben Sie einen Namen für die finale Version ein.');
+            alert('Bitte gib einen Namen für die finale Version ein.');
             return;
         }
 
@@ -1258,7 +1258,7 @@ if ($view === 'final') {
         const textId = <?php echo $text_id; ?>;
         const textTitle = '<?php echo htmlspecialchars($text['title'], ENT_QUOTES); ?>';
 
-        if (!confirm('Möchten Sie den Text "' + textTitle + '" wirklich löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden!')) {
+        if (!confirm('Möchtest du den Text "' + textTitle + '" wirklich löschen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden!')) {
             return;
         }
 
@@ -1319,7 +1319,7 @@ function renderParagraph($para, $current_member_id, $current_position = 1, $tota
                     ?>
                     🔒 Wird bearbeitet von: <?php echo $locker_name; ?>
                 <?php elseif ($is_own_lock): ?>
-                    ✏️ Sie bearbeiten gerade
+                    ✏️ Du bearbeitest gerade
                 <?php endif; ?>
             </span>
         </div>

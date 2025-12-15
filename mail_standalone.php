@@ -616,7 +616,7 @@ if (basename($_SERVER['PHP_SELF']) === 'mail_standalone.php' && !isset($GLOBALS[
                         if ($result) {
                             echo '<div class="message success">✅ Test-Mail erfolgreich versendet an ' . htmlspecialchars($to) . '</div>';
                         } else {
-                            echo '<div class="message error">❌ Fehler beim Versenden der Test-Mail. Prüfen Sie die Logs.</div>';
+                            echo '<div class="message error">❌ Fehler beim Versenden der Test-Mail. Prüfe die Logs.</div>';
                         }
                     }
                 }
@@ -674,7 +674,7 @@ if (basename($_SERVER['PHP_SELF']) === 'mail_standalone.php' && !isset($GLOBALS[
                     <?php if (!$is_sitzungsverwaltung): ?>
                     <div class="info-box">
                         <strong>📝 Konfiguration ändern:</strong><br>
-                        Bearbeiten Sie <code>mail_standalone_config.php</code> im gleichen Verzeichnis.
+                        Bearbeite <code>mail_standalone_config.php</code> im gleichen Verzeichnis.
                     </div>
                     <?php endif; ?>
                 </div>
@@ -768,7 +768,7 @@ Diese Nachricht wurde automatisch generiert.</textarea>
                             if ($pending > 0) {
                                 echo '<div class="info-box" style="margin-top: 15px;">';
                                 echo '<strong>ℹ️ Queue-Verarbeitung:</strong><br>';
-                                echo 'Führen Sie <code>php process_mail_queue.php</code> aus oder richten Sie einen Cronjob ein.<br>';
+                                echo 'Führe <code>php process_mail_queue.php</code> aus oder richte einen Cronjob ein.<br>';
                                 echo 'Empfehlung: <code>*/5 * * * * /usr/bin/php ' . __DIR__ . '/process_mail_queue.php</code>';
                                 echo '</div>';
                             }

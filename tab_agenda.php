@@ -22,7 +22,7 @@ require_once 'module_agenda_overview.php';
 // ============================================
 
 if (!$current_meeting_id) {
-    echo '<div class="error-message">Bitte wählen Sie ein Meeting aus.</div>';
+    echo '<div class="error-message">Bitte wähle ein Meeting aus.</div>';
     return;
 }
 
