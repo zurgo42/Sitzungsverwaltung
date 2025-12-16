@@ -560,35 +560,32 @@ function get_visible_meetings($pdo, $member_id) {
         if ($is_top_management) {
             // Vorstand, GF, Assistenz sehen ALLES
             $stmt = $pdo->prepare("
-                SELECT DISTINCT m.*, mem.first_name, mem.last_name
+                SELECT DISTINCT m.*
                 FROM svmeetings m
-                LEFT JOIN svmembers mem ON m.invited_by_member_id = mem.member_id
                 ORDER BY FIELD(m.status, 'active', 'protocol_ready', 'ended', 'preparation', 'archived'), m.meeting_date ASC
             ");
             $stmt->execute();
-            return $stmt->fetchAll();
+            $meetings = $stmt->fetchAll();
         } elseif ($is_fuehrungsteam) {
             // Führungsteam sieht: public + authenticated + invited_only (wenn Teilnehmer)
             // Für Protokolle (ended/protocol_ready/archived): public + authenticated + nur eigene invited_only
             $stmt = $pdo->prepare("
-                SELECT DISTINCT m.*, mem.first_name, mem.last_name
+                SELECT DISTINCT m.*
                 FROM svmeetings m
-                LEFT JOIN svmembers mem ON m.invited_by_member_id = mem.member_id
                 LEFT JOIN svmeeting_participants mp ON m.meeting_id = mp.meeting_id AND mp.member_id = ?
                 WHERE m.visibility_type IN ('public', 'authenticated')
                    OR (m.visibility_type = 'invited_only' AND mp.member_id IS NOT NULL)
                 ORDER BY FIELD(m.status, 'active', 'protocol_ready', 'ended', 'preparation', 'archived'), m.meeting_date ASC
             ");
             $stmt->execute([$member_id]);
-            return $stmt->fetchAll();
+            $meetings = $stmt->fetchAll();
         } else {
             // Mitglieder sehen:
             // - Bei preparation/active: invited_only (wenn Teilnehmer)
             // - Bei ended/protocol_ready/archived (Protokolle): nur public
             $stmt = $pdo->prepare("
-                SELECT DISTINCT m.*, mem.first_name, mem.last_name
+                SELECT DISTINCT m.*
                 FROM svmeetings m
-                LEFT JOIN svmembers mem ON m.invited_by_member_id = mem.member_id
                 LEFT JOIN svmeeting_participants mp ON m.meeting_id = mp.meeting_id AND mp.member_id = ?
                 WHERE
                     -- Immer public Meetings
@@ -600,8 +597,23 @@ function get_visible_meetings($pdo, $member_id) {
                 ORDER BY FIELD(m.status, 'active', 'protocol_ready', 'ended', 'preparation', 'archived'), m.meeting_date ASC
             ");
             $stmt->execute([$member_id]);
-            return $stmt->fetchAll();
+            $meetings = $stmt->fetchAll();
         }
+
+        // Namen aus dem globalen members-Array hinzufügen
+        foreach ($meetings as &$meeting) {
+            if ($meeting['invited_by_member_id']) {
+                $inviter = get_member_name($meeting['invited_by_member_id']);
+                $meeting['first_name'] = $inviter['first_name'] ?? null;
+                $meeting['last_name'] = $inviter['last_name'] ?? null;
+            } else {
+                $meeting['first_name'] = null;
+                $meeting['last_name'] = null;
+            }
+        }
+        unset($meeting); // Referenz aufheben
+
+        return $meetings;
     } catch (PDOException $e) {
         if (DEBUG_MODE) {
             die("Fehler in get_visible_meetings(): " . $e->getMessage());

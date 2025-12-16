@@ -20,9 +20,26 @@ require_once 'config_adapter.php';   // Konfiguration für Mitgliederquelle
 require_once 'member_functions.php'; // Prozedurale Wrapper-Funktionen für Mitglieder
 require_once 'functions.php';        // Wiederverwendbare Funktionen
 
-// SSO-Modus: svmembers VIEW initialisieren (falls MEMBER_SOURCE = 'berechtigte')
-// Ermöglicht, dass alle JOIN svmembers automatisch mit externer Tabelle funktionieren
-ensure_svmembers_view($pdo);
+// ============================================
+// GLOBALES MEMBERS-ARRAY (für SSO und Standard-Modus)
+// ============================================
+// Alle Mitglieder EINMAL laden und als assoziatives Array bereitstellen
+// Verhindert wiederholte DB-Queries und ermöglicht schnellen Zugriff nach member_id
+$GLOBALS['all_members'] = get_all_members($pdo);
+$GLOBALS['members_by_id'] = [];
+foreach ($GLOBALS['all_members'] as $member) {
+    $GLOBALS['members_by_id'][$member['member_id']] = $member;
+}
+
+/**
+ * Hilfsfunktion: Holt Member-Daten nach ID aus dem globalen Array
+ * @param int $member_id
+ * @return array|null Member-Daten oder null wenn nicht gefunden
+ */
+function get_member_name($member_id) {
+    if (!$member_id) return null;
+    return $GLOBALS['members_by_id'][$member_id] ?? null;
+}
 
 // ============================================
 // LOGOUT-VERARBEITUNG
@@ -233,11 +250,17 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
 }
 
 // ============================================
+// DARK MODE: Serverseitige Erkennung (verhindert Flash)
+// ============================================
+// Dark Mode Cookie auslesen - Cookie wird von JavaScript gesetzt
+$dark_mode_enabled = isset($_COOKIE['darkMode']) && $_COOKIE['darkMode'] === 'enabled';
+
+// ============================================
 // HTML-AUSGABE BEGINNT HIER
 // ============================================
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" <?php echo $dark_mode_enabled ? 'class="dark-mode"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -313,16 +336,6 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
             color: #e0e0e0 !important;
         }
     </style>
-
-    <!-- Schritt 2: Sofortiges Script (setzt .dark-mode auf <html> VOR CSS-Load) -->
-    <script>
-        (function() {
-            const savedDarkMode = localStorage.getItem('darkMode');
-            if (savedDarkMode === 'enabled') {
-                document.documentElement.classList.add('dark-mode');
-            }
-        })();
-    </script>
 
     <link rel="stylesheet" href="style.css">
 
@@ -699,9 +712,18 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
     }
 
     /**
+     * Hilfsfunktion zum Setzen von Cookies
+     */
+    function setCookie(name, value, days = 365) {
+        const expires = new Date();
+        expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+        document.cookie = name + '=' + value + ';expires=' + expires.toUTCString() + ';path=/';
+    }
+
+    /**
      * Dark Mode Toggle
      * Schaltet zwischen hellem und dunklem Modus um
-     * Speichert Präferenz im localStorage
+     * Speichert Präferenz in Cookie UND localStorage (Cookie für PHP, localStorage als Fallback)
      */
     function initDarkMode() {
         const darkModeToggle = document.getElementById('darkModeToggle');
@@ -709,14 +731,12 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
         const html = document.documentElement;
         const icon = darkModeToggle?.querySelector('.icon');
 
-        // Lade gespeicherte Präferenz
-        const savedDarkMode = localStorage.getItem('darkMode');
+        // HTML hat bereits die dark-mode Klasse vom Server (Cookie)
+        // Wir müssen nur noch body synchronisieren und Icon setzen
+        const isDarkMode = html.classList.contains('dark-mode');
 
-        // Setze initialen Dark Mode basierend auf gespeicherter Präferenz
-        // (Klasse auf <html> wurde bereits im <head> gesetzt, jetzt auch auf <body>)
-        if (savedDarkMode === 'enabled') {
+        if (isDarkMode) {
             body.classList.add('dark-mode');
-            html.classList.add('dark-mode'); // Sicherstellen dass auch <html> die Klasse hat
             if (icon) icon.textContent = '☀️';
         }
 
@@ -727,12 +747,14 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
                 body.classList.toggle('dark-mode');
                 html.classList.toggle('dark-mode');
 
-                // Icon wechseln
+                // Icon wechseln und Präferenz speichern
                 if (body.classList.contains('dark-mode')) {
                     if (icon) icon.textContent = '☀️';
+                    setCookie('darkMode', 'enabled');
                     localStorage.setItem('darkMode', 'enabled');
                 } else {
                     if (icon) icon.textContent = '🌙';
+                    setCookie('darkMode', 'disabled');
                     localStorage.setItem('darkMode', 'disabled');
                 }
             });

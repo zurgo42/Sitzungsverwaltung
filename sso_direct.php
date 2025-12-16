@@ -18,9 +18,25 @@ require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/config_adapter.php';
 require_once __DIR__ . '/member_functions.php';
 
-// SSO-Modus: svmembers VIEW initialisieren (falls MEMBER_SOURCE = 'berechtigte')
-// Ermöglicht, dass alle JOIN svmembers automatisch mit externer Tabelle funktionieren
-ensure_svmembers_view($pdo);
+// ============================================
+// GLOBALES MEMBERS-ARRAY (für SSO und Standard-Modus)
+// ============================================
+// Alle Mitglieder EINMAL laden und als assoziatives Array bereitstellen
+$GLOBALS['all_members'] = get_all_members($pdo);
+$GLOBALS['members_by_id'] = [];
+foreach ($GLOBALS['all_members'] as $member) {
+    $GLOBALS['members_by_id'][$member['member_id']] = $member;
+}
+
+/**
+ * Hilfsfunktion: Holt Member-Daten nach ID aus dem globalen Array
+ * @param int $member_id
+ * @return array|null Member-Daten oder null wenn nicht gefunden
+ */
+function get_member_name($member_id) {
+    if (!$member_id) return null;
+    return $GLOBALS['members_by_id'][$member_id] ?? null;
+}
 
 // DISPLAY_MODE auf SSOdirekt setzen (überschreibt config_adapter.php für diese Seite)
 define('DISPLAY_MODE_OVERRIDE', 'SSOdirekt');

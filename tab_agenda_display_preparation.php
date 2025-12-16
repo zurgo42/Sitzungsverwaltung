@@ -104,15 +104,27 @@ if (!$submission_deadline_passed) {
             <h4 style="margin: 0 0 10px 0; color: #1976d2;">Eingeladene Teilnehmer</h4>
             <div style="margin-bottom: 20px; padding: 10px; background: white; border-radius: 4px;">
                 <?php
+                // Teilnehmer aus DB laden (ohne JOIN svmembers)
                 $stmt_participants = $pdo->prepare("
-                    SELECT m.member_id, m.first_name, m.last_name, m.role
-                    FROM svmeeting_participants mp
-                    JOIN svmembers m ON mp.member_id = m.member_id
-                    WHERE mp.meeting_id = ?
-                    ORDER BY m.last_name, m.first_name
+                    SELECT member_id
+                    FROM svmeeting_participants
+                    WHERE meeting_id = ?
                 ");
                 $stmt_participants->execute([$current_meeting_id]);
-                $current_participants = $stmt_participants->fetchAll();
+                $participant_ids = $stmt_participants->fetchAll(PDO::FETCH_COLUMN);
+
+                // Member-Daten aus globalem Array holen und sortieren
+                $current_participants = [];
+                foreach ($participant_ids as $pid) {
+                    $member = get_member_name($pid);
+                    if ($member) {
+                        $current_participants[] = $member;
+                    }
+                }
+                // Nach Nachname sortieren
+                usort($current_participants, function($a, $b) {
+                    return strcmp($a['last_name'], $b['last_name']);
+                });
                 ?>
 
                 <?php if (count($current_participants) > 0): ?>
@@ -149,17 +161,22 @@ if (!$submission_deadline_passed) {
 
                 <?php
                 // Alle Members laden, die NICHT eingeladen sind
-                $stmt_uninvited = $pdo->prepare("
-                    SELECT m.member_id, m.first_name, m.last_name, m.role
-                    FROM svmembers m
-                    WHERE m.member_id NOT IN (
-                        SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?
-                    )
-                    AND m.is_active = 1
-                    ORDER BY m.last_name, m.first_name
-                ");
-                $stmt_uninvited->execute([$current_meeting_id]);
-                $uninvited_members = $stmt_uninvited->fetchAll();
+                // Eingeladene IDs holen
+                $stmt_invited = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
+                $stmt_invited->execute([$current_meeting_id]);
+                $invited_ids = $stmt_invited->fetchAll(PDO::FETCH_COLUMN);
+
+                // Aus globalem Array filtern
+                $uninvited_members = [];
+                foreach ($GLOBALS['all_members'] as $member) {
+                    if (!in_array($member['member_id'], $invited_ids) && $member['is_active']) {
+                        $uninvited_members[] = $member;
+                    }
+                }
+                // Nach Nachname sortieren
+                usort($uninvited_members, function($a, $b) {
+                    return strcmp($a['last_name'], $b['last_name']);
+                });
                 ?>
 
                 <?php if (count($uninvited_members) > 0): ?>
