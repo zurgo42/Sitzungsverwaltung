@@ -12,7 +12,10 @@
  */
 
 // Session starten (muss ganz am Anfang stehen, vor jeder Ausgabe)
-session_start();
+// Prüfen ob Session bereits gestartet wurde (z.B. durch sso_direct.php)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Konfiguration und Hilfsfunktionen laden
 require_once 'config.php';           // Datenbankverbindung und Konstanten
