@@ -115,17 +115,29 @@ $active_item_id = $stmt->fetchColumn();
 
                 <?php
                 // Alle Members laden, die NICHT eingeladen sind
-                $stmt_uninvited = $pdo->prepare("
-                    SELECT m.member_id, m.first_name, m.last_name, m.role
-                    FROM svmembers m
-                    WHERE m.member_id NOT IN (
-                        SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?
-                    )
-                    AND m.is_active = 1
-                    ORDER BY m.last_name, m.first_name
-                ");
-                $stmt_uninvited->execute([$current_meeting_id]);
-                $uninvited_members = $stmt_uninvited->fetchAll();
+                $stmt_invited = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
+                $stmt_invited->execute([$current_meeting_id]);
+                $invited_ids = $stmt_invited->fetchAll(PDO::FETCH_COLUMN);
+
+                // Aus $all_members Array filtern
+                $uninvited_members = [];
+                if (isset($all_members)) {
+                    foreach ($all_members as $member) {
+                        if (!in_array($member['member_id'], $invited_ids) && $member['is_active']) {
+                            $uninvited_members[] = $member;
+                        }
+                    }
+                } else {
+                    // Fallback
+                    $uninvited_members = get_all_members($pdo);
+                    $uninvited_members = array_filter($uninvited_members, function($m) use ($invited_ids) {
+                        return !in_array($m['member_id'], $invited_ids) && $m['is_active'];
+                    });
+                }
+                // Sortieren
+                usort($uninvited_members, function($a, $b) {
+                    return strcmp($a['last_name'], $b['last_name']);
+                });
                 ?>
 
                 <?php if (count($uninvited_members) > 0): ?>

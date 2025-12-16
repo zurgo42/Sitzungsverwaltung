@@ -269,8 +269,9 @@ function toggleAllOpinionParticipants(select) {
 function toggleOpinionLeadershipRoles() {
     const checkboxes = document.querySelectorAll('.opinion-participant-checkbox');
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role');
-        if (role === 'vorstand' || role === 'gf' || role === 'assistenz' || role === 'fuehrungsteam') {
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (role === 'vorstand' || role === 'gf' || role === 'assistenz' || role === 'fuehrungsteam' ||
+            role === 'geschäftsführung' || role === 'führungsteam') {
             cb.checked = !cb.checked;
         }
     });
@@ -279,8 +280,8 @@ function toggleOpinionLeadershipRoles() {
 function toggleOpinionTopManagement() {
     const checkboxes = document.querySelectorAll('.opinion-participant-checkbox');
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role');
-        if (role === 'vorstand' || role === 'gf' || role === 'assistenz') {
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (role === 'vorstand' || role === 'gf' || role === 'assistenz' || role === 'geschäftsführung') {
             cb.checked = !cb.checked;
         }
     });

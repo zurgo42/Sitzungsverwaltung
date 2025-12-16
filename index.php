@@ -259,14 +259,18 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
 // DARK MODE: Serverseitige Erkennung (verhindert Flash)
 // ============================================
 // Dark Mode Cookie auslesen - Cookie wird von JavaScript gesetzt
+// FALLBACK: Wenn kein Cookie existiert, aus localStorage lesen (client-side)
 $dark_mode_enabled = isset($_COOKIE['darkMode']) && $_COOKIE['darkMode'] === 'enabled';
+
+// Wenn kein Cookie, aber localStorage vorhanden sein könnte: Client-seitiges Script
+$check_localstorage = !isset($_COOKIE['darkMode']);
 
 // ============================================
 // HTML-AUSGABE BEGINNT HIER
 // ============================================
 ?>
 <!DOCTYPE html>
-<html lang="de" <?php echo $dark_mode_enabled ? 'class="dark-mode"' : ''; ?>>
+<html lang="de" <?php echo $dark_mode_enabled ? 'class="dark-mode"' : ''; ?> id="root-html">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -342,6 +346,21 @@ $dark_mode_enabled = isset($_COOKIE['darkMode']) && $_COOKIE['darkMode'] === 'en
             color: #e0e0e0 !important;
         }
     </style>
+
+    <?php if ($check_localstorage): ?>
+    <!-- localStorage Check & Cookie Sync (nur wenn kein Cookie existiert) -->
+    <script>
+        (function() {
+            const savedDarkMode = localStorage.getItem('darkMode');
+            if (savedDarkMode === 'enabled') {
+                // Klasse sofort setzen
+                document.documentElement.classList.add('dark-mode');
+                // Cookie für nächstes Mal setzen
+                document.cookie = 'darkMode=enabled;path=/;max-age=31536000';
+            }
+        })();
+    </script>
+    <?php endif; ?>
 
     <link rel="stylesheet" href="style.css">
 

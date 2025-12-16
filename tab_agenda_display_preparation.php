@@ -362,16 +362,23 @@ foreach ($agenda_items as $item):
     $stmt->execute([$item['item_id'], $current_user['member_id']]);
     $own_comment = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Alle Kommentare laden
+    // Alle Kommentare laden (ohne JOIN auf svmembers)
     $stmt = $pdo->prepare("
-        SELECT ac.*, m.first_name, m.last_name, m.member_id
+        SELECT ac.*
         FROM svagenda_comments ac
-        JOIN svmembers m ON ac.member_id = m.member_id
         WHERE ac.item_id = ? AND ac.comment_text != ''
         ORDER BY ac.created_at ASC
     ");
     $stmt->execute([$item['item_id']]);
     $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Member-Namen aus Array hinzufügen
+    foreach ($comments as &$comment) {
+        $member = get_member_from_array($comment['member_id']);
+        $comment['first_name'] = $member['first_name'] ?? 'Unbekannt';
+        $comment['last_name'] = $member['last_name'] ?? '';
+    }
+    unset($comment);
     
     // Prüfen ob User der Ersteller ist
     $is_creator = ($item['created_by_member_id'] == $current_user['member_id']);

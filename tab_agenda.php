@@ -72,6 +72,23 @@ unset($item);
 // Alle Mitglieder laden
 $all_members = get_all_members($pdo);
 
+// Members-Array für schnellen Zugriff nach ID indizieren
+$members_by_id = [];
+foreach ($all_members as $member) {
+    $members_by_id[$member['member_id']] = $member;
+}
+
+/**
+ * Helper: Holt Member-Daten aus dem lokalen Array
+ * Verfügbar in allen tab_agenda_display_*.php Dateien
+ */
+if (!function_exists('get_member_from_array')) {
+    function get_member_from_array($member_id) {
+        global $members_by_id;
+        return $members_by_id[$member_id] ?? null;
+    }
+}
+
 // Teilnehmer des Meetings laden (über Adapter!)
 $stmt = $pdo->prepare("
     SELECT member_id
