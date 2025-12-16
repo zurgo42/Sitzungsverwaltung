@@ -166,12 +166,20 @@ if (!$submission_deadline_passed) {
                 $stmt_invited->execute([$current_meeting_id]);
                 $invited_ids = $stmt_invited->fetchAll(PDO::FETCH_COLUMN);
 
-                // Aus globalem Array filtern
+                // Aus Members-Array filtern (verwendet $all_members aus tab_agenda.php)
                 $uninvited_members = [];
-                foreach ($GLOBALS['all_members'] as $member) {
-                    if (!in_array($member['member_id'], $invited_ids) && $member['is_active']) {
-                        $uninvited_members[] = $member;
+                if (isset($all_members) && is_array($all_members)) {
+                    foreach ($all_members as $member) {
+                        if (!in_array($member['member_id'], $invited_ids) && $member['is_active']) {
+                            $uninvited_members[] = $member;
+                        }
                     }
+                } else {
+                    // Fallback: Direkt aus DB laden
+                    $uninvited_members = get_all_members($pdo);
+                    $uninvited_members = array_filter($uninvited_members, function($m) use ($invited_ids) {
+                        return !in_array($m['member_id'], $invited_ids) && $m['is_active'];
+                    });
                 }
                 // Nach Nachname sortieren
                 usort($uninvited_members, function($a, $b) {
