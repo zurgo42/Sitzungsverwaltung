@@ -265,6 +265,90 @@ function authenticate_member($pdo, $email, $password) {
 }
 
 // ============================================
+// SSO-MODUS: VIEW-VERWALTUNG
+// ============================================
+
+/**
+ * Erstellt oder aktualisiert die svmembers VIEW für SSO-Modus
+ *
+ * Im SSO-Modus (MEMBER_SOURCE = 'berechtigte') erstellt diese Funktion
+ * automatisch eine VIEW "svmembers", die auf die externe Tabelle zeigt.
+ * Dadurch funktionieren alle bestehenden SQL-Queries mit JOIN svmembers
+ * automatisch mit der externen Datenquelle.
+ *
+ * WICHTIG: Diese Funktion sollte beim Start der Anwendung aufgerufen werden!
+ *
+ * @param PDO $pdo Datenbankverbindung
+ * @return bool True bei Erfolg, False bei Fehler
+ */
+function ensure_svmembers_view($pdo) {
+    // Nur im SSO-Modus mit berechtigte-Tabelle
+    $source = defined('MEMBER_SOURCE') ? MEMBER_SOURCE : 'members';
+
+    if ($source !== 'berechtigte') {
+        // Im Standard-Modus nichts tun - svmembers ist eine echte Tabelle
+        return true;
+    }
+
+    try {
+        // Prüfen ob berechtigte-Tabelle existiert
+        $stmt = $pdo->query("SHOW TABLES LIKE 'berechtigte'");
+        if (!$stmt->fetch()) {
+            error_log("WARNUNG: berechtigte-Tabelle existiert nicht, kann keine VIEW erstellen");
+            return false;
+        }
+
+        // VIEW erstellen oder ersetzen
+        // Mapping entsprechend BerechtigteAdapter
+        $sql = "
+        CREATE OR REPLACE VIEW svmembers AS
+        SELECT
+            ID AS member_id,
+            MNr AS membership_number,
+            Vorname AS first_name,
+            Name AS last_name,
+            eMail AS email,
+            '' AS password_hash,
+            CASE
+                WHEN aktiv = 19 THEN 'Vorstand'
+                WHEN Funktion = 'GF' THEN 'Geschäftsführung'
+                WHEN Funktion = 'SV' THEN 'Assistenz'
+                WHEN Funktion = 'RL' THEN 'Führungsteam'
+                WHEN Funktion IN ('AD', 'FP') THEN 'Mitglied'
+                ELSE 'Mitglied'
+            END AS role,
+            CASE
+                WHEN Funktion IN ('GF', 'SV') OR MNr = '0495018' THEN 1
+                ELSE 0
+            END AS is_admin,
+            CASE
+                WHEN aktiv = 19 OR Funktion IN ('GF', 'SV') THEN 1
+                ELSE 0
+            END AS is_confidential,
+            1 AS is_active,
+            angelegt AS created_at,
+            angelegt AS updated_at
+        FROM berechtigte
+        WHERE
+            (aktiv > 17)
+            OR Funktion IN ('RL', 'SV', 'AD', 'FP', 'GF')
+            OR MNr = '0495018'
+        ";
+
+        $pdo->exec($sql);
+
+        // Log-Eintrag für Debugging
+        error_log("INFO: svmembers VIEW erfolgreich erstellt/aktualisiert für SSO-Modus");
+
+        return true;
+
+    } catch (PDOException $e) {
+        error_log("FEHLER beim Erstellen der svmembers VIEW: " . $e->getMessage());
+        return false;
+    }
+}
+
+// ============================================
 // KOMPATIBILITÄT
 // ============================================
 

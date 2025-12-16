@@ -18,6 +18,10 @@ require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/config_adapter.php';
 require_once __DIR__ . '/member_functions.php';
 
+// SSO-Modus: svmembers VIEW initialisieren (falls MEMBER_SOURCE = 'berechtigte')
+// Ermöglicht, dass alle JOIN svmembers automatisch mit externer Tabelle funktionieren
+ensure_svmembers_view($pdo);
+
 // DISPLAY_MODE auf SSOdirekt setzen (überschreibt config_adapter.php für diese Seite)
 define('DISPLAY_MODE_OVERRIDE', 'SSOdirekt');
 

@@ -20,6 +20,10 @@ require_once 'config_adapter.php';   // Konfiguration für Mitgliederquelle
 require_once 'member_functions.php'; // Prozedurale Wrapper-Funktionen für Mitglieder
 require_once 'functions.php';        // Wiederverwendbare Funktionen
 
+// SSO-Modus: svmembers VIEW initialisieren (falls MEMBER_SOURCE = 'berechtigte')
+// Ermöglicht, dass alle JOIN svmembers automatisch mit externer Tabelle funktionieren
+ensure_svmembers_view($pdo);
+
 // ============================================
 // LOGOUT-VERARBEITUNG
 // ============================================
@@ -257,10 +261,14 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
         html.dark-mode .content {
             background-color: #1a1a1a !important;
         }
+        html.dark-mode .container {
+            background-color: #1a1a1a !important;
+        }
         html.dark-mode .tabs {
             background-color: #252525 !important;
         }
-        html.dark-mode .tab {
+        html.dark-mode .tab,
+        html.dark-mode a.tab {
             background-color: #2d2d2d !important;
             color: #b0b0b0 !important;
         }
@@ -268,8 +276,40 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
             background-color: #1a1a1a !important;
         }
         html.dark-mode .card,
+        html.dark-mode .poll-card,
+        html.dark-mode .collab-text-card,
         html.dark-mode table {
             background-color: #252525 !important;
+            color: #e0e0e0 !important;
+        }
+        html.dark-mode .accordion-button,
+        html.dark-mode .btn-primary,
+        html.dark-mode .btn-secondary {
+            background-color: #2d2d2d !important;
+            color: #e0e0e0 !important;
+            border-color: #404040 !important;
+        }
+        html.dark-mode .accordion-content,
+        html.dark-mode .poll-header,
+        html.dark-mode .poll-meta {
+            background-color: #252525 !important;
+            color: #e0e0e0 !important;
+        }
+        html.dark-mode input,
+        html.dark-mode textarea,
+        html.dark-mode select {
+            background-color: #2d2d2d !important;
+            color: #e0e0e0 !important;
+            border-color: #404040 !important;
+        }
+        html.dark-mode .participants-selector,
+        html.dark-mode .online-users {
+            background-color: #252525 !important;
+            color: #e0e0e0 !important;
+        }
+        html.dark-mode .info-box,
+        html.dark-mode .alert {
+            background-color: #2d2d2d !important;
             color: #e0e0e0 !important;
         }
     </style>
