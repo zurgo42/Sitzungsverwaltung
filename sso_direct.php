@@ -27,18 +27,24 @@ $MNr = get_sso_membership_number();
 // User laden via MNr
 if ($MNr) {
     // Prüfen ob bereits korrekt in Session
-    if (!isset($_SESSION['sv_member_id']) || !isset($_SESSION['sv_current_user'])) {
+    // WICHTIG: Verwende die gleichen Session-Keys wie index.php!
+    if (!isset($_SESSION['member_id'])) {
         // User aus berechtigte-Tabelle laden
         $current_user = get_member_by_membership_number($pdo, $MNr);
 
         if ($current_user) {
-            // In Session speichern
-            $_SESSION['sv_member_id'] = $current_user['member_id'];
-            $_SESSION['sv_current_user'] = $current_user;
+            // In Session speichern (gleiche Keys wie index.php!)
+            $_SESSION['member_id'] = $current_user['member_id'];
+            $_SESSION['role'] = $current_user['role'];
+
+            // Optional: Für spätere Verwendung
+            $_SESSION['first_name'] = $current_user['first_name'];
+            $_SESSION['last_name'] = $current_user['last_name'];
+            $_SESSION['email'] = $current_user['email'];
         }
     } else {
-        // Bereits in Session, von dort laden
-        $current_user = $_SESSION['sv_current_user'];
+        // Bereits in Session, User-Objekt aus DB neu laden
+        $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
     }
 } else {
     // Kein MNr vorhanden
