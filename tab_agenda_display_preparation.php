@@ -116,7 +116,12 @@ if (!$submission_deadline_passed) {
                 // Member-Daten aus globalem Array holen und sortieren
                 $current_participants = [];
                 foreach ($participant_ids as $pid) {
-                    $member = get_member_name($pid);
+                    // Verwende get_member_from_cache wenn verfügbar (index.php Kontext), sonst get_member_by_id
+                    if (function_exists('get_member_from_cache')) {
+                        $member = get_member_from_cache($pid);
+                    } else {
+                        $member = get_member_by_id($pdo, $pid);
+                    }
                     if ($member) {
                         $current_participants[] = $member;
                     }

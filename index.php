@@ -38,8 +38,11 @@ foreach ($GLOBALS['all_members'] as $member) {
  * Hilfsfunktion: Holt Member-Daten nach ID aus dem globalen Array
  * @param int $member_id
  * @return array|null Member-Daten oder null wenn nicht gefunden
+ *
+ * HINWEIS: Diese Funktion existiert nur in index.php Kontext!
+ * In anderen Kontexten (process_*, module_*) wird get_member_name($pdo, $id) aus module_helpers.php verwendet.
  */
-function get_member_name($member_id) {
+function get_member_from_cache($member_id) {
     if (!$member_id) return null;
     return $GLOBALS['members_by_id'][$member_id] ?? null;
 }
