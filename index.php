@@ -239,9 +239,43 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $sso_config ? $sso_config['page_title'] : 'Sitzungsverwaltung'; ?></title>
 
-    <!-- KRITISCH: Dark Mode VOR CSS aktivieren um Flash zu verhindern -->
+    <!-- KRITISCH: Dark Mode Flash Prevention - MUSS VOR allem anderen kommen! -->
+
+    <!-- Schritt 1: Sofortiges inline CSS (greift bevor irgendwas geladen wird) -->
+    <style id="dark-mode-flash-prevention">
+        /* Greift SOFORT wenn .dark-mode auf <html> ist */
+        html.dark-mode,
+        html.dark-mode body {
+            background-color: #1a1a1a !important;
+            color: #e0e0e0 !important;
+        }
+        html.dark-mode .header {
+            background-color: #1e1e1e !important;
+            color: #e0e0e0 !important;
+            border-bottom-color: #2d2d2d !important;
+        }
+        html.dark-mode .content {
+            background-color: #1a1a1a !important;
+        }
+        html.dark-mode .tabs {
+            background-color: #252525 !important;
+        }
+        html.dark-mode .tab {
+            background-color: #2d2d2d !important;
+            color: #b0b0b0 !important;
+        }
+        html.dark-mode .tab-content {
+            background-color: #1a1a1a !important;
+        }
+        html.dark-mode .card,
+        html.dark-mode table {
+            background-color: #252525 !important;
+            color: #e0e0e0 !important;
+        }
+    </style>
+
+    <!-- Schritt 2: Sofortiges Script (setzt .dark-mode auf <html> VOR CSS-Load) -->
     <script>
-        // Dark Mode sofort auf <html> und <body> anwenden (verhindert Flash)
         (function() {
             const savedDarkMode = localStorage.getItem('darkMode');
             if (savedDarkMode === 'enabled') {
@@ -249,14 +283,6 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
             }
         })();
     </script>
-
-    <!-- Temporäres inline CSS für sofortigen Dark Mode auf body -->
-    <style id="dark-mode-init">
-        html.dark-mode body {
-            background-color: #1a1a1a;
-            color: #e0e0e0;
-        }
-    </style>
 
     <link rel="stylesheet" href="style.css">
 
@@ -284,8 +310,9 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
             --sso-back-btn-text: <?php echo $light['back_button']['text']; ?>;
         }
 
-        /* Dark Mode Farben */
-        html.dark-mode {
+        /* Dark Mode Farben - sowohl html.dark-mode als auch body.dark-mode */
+        html.dark-mode,
+        body.dark-mode {
             --sso-header-bg: <?php echo $dark['header']['background']; ?>;
             --sso-header-text: <?php echo $dark['header']['text']; ?>;
             --sso-header-border: <?php echo $dark['header']['border']; ?>;
@@ -319,14 +346,20 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
             color: var(--sso-footer-text) !important;
         }
 
-        /* Back Button Styling */
-        .sso-back-button {
+        /* Back Button Styling - Höhere Spezifität für Überschreibung */
+        .header .user-info .sso-back-button,
+        .header .user-info a.sso-back-button {
             background: var(--sso-back-btn-bg) !important;
             color: var(--sso-back-btn-text) !important;
             border: 1px solid var(--sso-back-btn-text) !important;
+            /* Überschreibe alle logout-btn Styles */
+            background-color: var(--sso-back-btn-bg) !important;
         }
-        .sso-back-button:hover {
-            opacity: 0.9;
+        .header .user-info .sso-back-button:hover,
+        .header .user-info a.sso-back-button:hover {
+            opacity: 0.85;
+            background: var(--sso-back-btn-bg) !important;
+            color: var(--sso-back-btn-text) !important;
         }
 
         <?php else: ?>
