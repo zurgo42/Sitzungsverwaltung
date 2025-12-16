@@ -238,16 +238,104 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $sso_config ? $sso_config['page_title'] : 'Sitzungsverwaltung'; ?></title>
+
+    <!-- KRITISCH: Dark Mode VOR CSS aktivieren um Flash zu verhindern -->
+    <script>
+        // Dark Mode sofort auf <html> und <body> anwenden (verhindert Flash)
+        (function() {
+            const savedDarkMode = localStorage.getItem('darkMode');
+            if (savedDarkMode === 'enabled') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+
+    <!-- Temporäres inline CSS für sofortigen Dark Mode auf body -->
+    <style id="dark-mode-init">
+        html.dark-mode body {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+    </style>
+
     <link rel="stylesheet" href="style.css">
 
     <?php if ($sso_config): ?>
-    <!-- Custom Styling für SSOdirekt-Modus -->
+    <!-- Custom Styling für SSOdirekt-Modus (Version 2.0 - Light/Dark Mode Support) -->
     <style>
+        <?php
+        // Prüfen ob neues Format (light/dark) vorhanden ist
+        $has_new_format = isset($sso_config['light']) && isset($sso_config['dark']);
+
+        if ($has_new_format):
+            // Neues Format: Separate Farben für Light und Dark Mode
+            $light = $sso_config['light'];
+            $dark = $sso_config['dark'];
+        ?>
+        /* Light Mode Farben (Standard) */
         :root {
-            --primary: <?php echo $sso_config['primary_color']; ?>;
-            --primary-dark: <?php echo $sso_config['border_color']; ?>;
-            --header-text: <?php echo $sso_config['header_text_color']; ?>;
-            --footer-text: <?php echo $sso_config['footer_text_color']; ?>;
+            --sso-header-bg: <?php echo $light['header']['background']; ?>;
+            --sso-header-text: <?php echo $light['header']['text']; ?>;
+            --sso-header-border: <?php echo $light['header']['border']; ?>;
+            --sso-footer-bg: <?php echo $light['footer']['background']; ?>;
+            --sso-footer-text: <?php echo $light['footer']['text']; ?>;
+            --sso-footer-border: <?php echo $light['footer']['border']; ?>;
+            --sso-back-btn-bg: <?php echo $light['back_button']['background']; ?>;
+            --sso-back-btn-text: <?php echo $light['back_button']['text']; ?>;
+        }
+
+        /* Dark Mode Farben */
+        html.dark-mode {
+            --sso-header-bg: <?php echo $dark['header']['background']; ?>;
+            --sso-header-text: <?php echo $dark['header']['text']; ?>;
+            --sso-header-border: <?php echo $dark['header']['border']; ?>;
+            --sso-footer-bg: <?php echo $dark['footer']['background']; ?>;
+            --sso-footer-text: <?php echo $dark['footer']['text']; ?>;
+            --sso-footer-border: <?php echo $dark['footer']['border']; ?>;
+            --sso-back-btn-bg: <?php echo $dark['back_button']['background']; ?>;
+            --sso-back-btn-text: <?php echo $dark['back_button']['text']; ?>;
+        }
+
+        /* Header Styling */
+        .header {
+            background: var(--sso-header-bg) !important;
+            border-bottom: 3px solid var(--sso-header-border) !important;
+        }
+        .header h1,
+        .header .user-info,
+        .header .user-info span,
+        .header .user-info .logout-btn,
+        .header .header-left a {
+            color: var(--sso-header-text) !important;
+        }
+
+        /* Footer Styling */
+        .page-footer {
+            background: var(--sso-footer-bg) !important;
+            border-top: 3px solid var(--sso-footer-border) !important;
+            color: var(--sso-footer-text) !important;
+        }
+        .page-footer a {
+            color: var(--sso-footer-text) !important;
+        }
+
+        /* Back Button Styling */
+        .sso-back-button {
+            background: var(--sso-back-btn-bg) !important;
+            color: var(--sso-back-btn-text) !important;
+            border: 1px solid var(--sso-back-btn-text) !important;
+        }
+        .sso-back-button:hover {
+            opacity: 0.9;
+        }
+
+        <?php else: ?>
+        /* Altes Format: Rückwärtskompatibilität */
+        :root {
+            --primary: <?php echo $sso_config['primary_color'] ?? '#1976d2'; ?>;
+            --primary-dark: <?php echo $sso_config['border_color'] ?? '#0d47a1'; ?>;
+            --header-text: <?php echo $sso_config['header_text_color'] ?? '#ffffff'; ?>;
+            --footer-text: <?php echo $sso_config['footer_text_color'] ?? '#ffffff'; ?>;
         }
         .header {
             background: var(--primary);
@@ -266,6 +354,7 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
         .page-footer a {
             color: var(--footer-text);
         }
+        <?php endif; ?>
     </style>
     <?php endif; ?>
 </head>
@@ -301,7 +390,7 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
 
                 <?php if ($display_mode === 'SSOdirekt' && $sso_config): ?>
                     <!-- Zurück-Button für SSOdirekt-Modus -->
-                    <a href="<?php echo $sso_config['back_button_url']; ?>" class="logout-btn">
+                    <a href="<?php echo $sso_config['back_button_url']; ?>" class="logout-btn sso-back-button">
                         <?php echo $sso_config['back_button_text']; ?>
                     </a>
                 <?php else: ?>
@@ -544,21 +633,26 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
     function initDarkMode() {
         const darkModeToggle = document.getElementById('darkModeToggle');
         const body = document.body;
+        const html = document.documentElement;
         const icon = darkModeToggle?.querySelector('.icon');
 
         // Lade gespeicherte Präferenz
         const savedDarkMode = localStorage.getItem('darkMode');
 
         // Setze initialen Dark Mode basierend auf gespeicherter Präferenz
+        // (Klasse auf <html> wurde bereits im <head> gesetzt, jetzt auch auf <body>)
         if (savedDarkMode === 'enabled') {
             body.classList.add('dark-mode');
+            html.classList.add('dark-mode'); // Sicherstellen dass auch <html> die Klasse hat
             if (icon) icon.textContent = '☀️';
         }
 
         // Toggle-Funktion
         if (darkModeToggle) {
             darkModeToggle.addEventListener('click', function() {
+                // Toggle auf beiden Elementen
                 body.classList.toggle('dark-mode');
+                html.classList.toggle('dark-mode');
 
                 // Icon wechseln
                 if (body.classList.contains('dark-mode')) {
