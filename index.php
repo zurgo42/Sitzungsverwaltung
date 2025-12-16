@@ -279,88 +279,74 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
     <!-- KRITISCH: Dark Mode Flash Prevention - MUSS VOR allem anderen kommen! -->
 
     <!-- Schritt 1: Sofortiges inline CSS (greift bevor irgendwas geladen wird) -->
-    <style id="dark-mode-flash-prevention">
-        /* Greift SOFORT wenn .dark-mode auf <html> ist */
-        html.dark-mode,
-        html.dark-mode body {
-            background-color: #1a1a1a !important;
-            color: #e0e0e0 !important;
-        }
-        html.dark-mode .header {
-            background-color: #1e1e1e !important;
-            color: #e0e0e0 !important;
-            border-bottom-color: #2d2d2d !important;
-        }
-        html.dark-mode .content {
-            background-color: #1a1a1a !important;
-        }
-        html.dark-mode .container {
-            background-color: #1a1a1a !important;
-        }
-        html.dark-mode .tabs {
-            background-color: #252525 !important;
-        }
-        html.dark-mode .tab,
-        html.dark-mode a.tab {
-            background-color: #2d2d2d !important;
-            color: #b0b0b0 !important;
-        }
-        html.dark-mode .tab-content {
-            background-color: #1a1a1a !important;
-        }
-        html.dark-mode .card,
-        html.dark-mode .poll-card,
-        html.dark-mode .collab-text-card,
-        html.dark-mode table {
-            background-color: #252525 !important;
-            color: #e0e0e0 !important;
-        }
-        html.dark-mode .accordion-button,
-        html.dark-mode .btn-primary,
-        html.dark-mode .btn-secondary {
-            background-color: #2d2d2d !important;
-            color: #e0e0e0 !important;
-            border-color: #404040 !important;
-        }
-        html.dark-mode .accordion-content,
-        html.dark-mode .poll-header,
-        html.dark-mode .poll-meta {
-            background-color: #252525 !important;
-            color: #e0e0e0 !important;
-        }
-        html.dark-mode input,
-        html.dark-mode textarea,
-        html.dark-mode select {
-            background-color: #2d2d2d !important;
-            color: #e0e0e0 !important;
-            border-color: #404040 !important;
-        }
-        html.dark-mode .participants-selector,
-        html.dark-mode .online-users {
-            background-color: #252525 !important;
-            color: #e0e0e0 !important;
-        }
-        html.dark-mode .info-box,
-        html.dark-mode .alert {
-            background-color: #2d2d2d !important;
-            color: #e0e0e0 !important;
-        }
-    </style>
-
-    <?php if ($check_localstorage): ?>
-    <!-- localStorage Check & Cookie Sync (nur wenn kein Cookie existiert) -->
     <script>
+        // SEHR WICHTIG: Vor CSS! Setzt dark-mode Klasse auf body wenn nötig
         (function() {
-            const savedDarkMode = localStorage.getItem('darkMode');
-            if (savedDarkMode === 'enabled') {
-                // Klasse sofort setzen
-                document.documentElement.classList.add('dark-mode');
-                // Cookie für nächstes Mal setzen
-                document.cookie = 'darkMode=enabled;path=/;max-age=31536000';
+            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
+            if (!hasCookie) {
+                const savedDarkMode = localStorage.getItem('darkMode');
+                if (savedDarkMode === 'enabled') {
+                    // Setze auf <body> weil style.css body.dark-mode verwendet!
+                    document.documentElement.className = 'dark-mode';
+                    document.body.className = 'dark-mode';
+                    // Cookie für nächstes Mal
+                    document.cookie = 'darkMode=enabled;path=/;max-age=31536000';
+                }
+            } else if (document.cookie.includes('darkMode=enabled')) {
+                // Cookie vorhanden, Klasse auch auf body setzen
+                document.body.className = 'dark-mode';
             }
         })();
     </script>
-    <?php endif; ?>
+    <style id="dark-mode-flash-prevention">
+        /* Inline CSS für SOFORTIGE Dark Mode Anwendung - verhindert Flash */
+        html.dark-mode,
+        html.dark-mode body,
+        body.dark-mode {
+            background-color: #1a1a1a !important;
+            color: #e0e0e0 !important;
+        }
+
+        /* Tabs und Navigation sofort dunkel machen */
+        html.dark-mode nav,
+        html.dark-mode .nav-tabs,
+        html.dark-mode .nav-link,
+        html.dark-mode .tab-content,
+        body.dark-mode nav,
+        body.dark-mode .nav-tabs,
+        body.dark-mode .nav-link,
+        body.dark-mode .tab-content {
+            background-color: #1a1a1a !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+
+        /* Buttons sofort dunkel machen */
+        html.dark-mode button,
+        html.dark-mode .btn,
+        html.dark-mode input[type="button"],
+        html.dark-mode input[type="submit"],
+        body.dark-mode button,
+        body.dark-mode .btn,
+        body.dark-mode input[type="button"],
+        body.dark-mode input[type="submit"] {
+            background-color: #2d2d2d !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+
+        /* Container und Cards sofort dunkel machen */
+        html.dark-mode .container,
+        html.dark-mode .card,
+        html.dark-mode .form-control,
+        body.dark-mode .container,
+        body.dark-mode .card,
+        body.dark-mode .form-control {
+            background-color: #2d2d2d !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+    </style>
 
     <link rel="stylesheet" href="style.css">
 

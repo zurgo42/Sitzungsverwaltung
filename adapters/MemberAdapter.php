@@ -146,6 +146,7 @@ class BerechtigteAdapter implements MemberAdapterInterface {
             'role' => $this->mapRole($funktion, $aktiv),
             'is_admin' => $this->isAdmin($funktion, $row['MNr']),
             'is_confidential' => $this->isConfidential($funktion, $aktiv),
+            'is_active' => ($aktiv > 17) ? 1 : 0, // Aktiv wenn shouldInclude() true zurückgibt
             'password_hash' => '', // Kein Passwort bei SSO
             'created_at' => $row['angelegt'] ?? null,
             'role_priority' => $this->getRolePriority($funktion, $aktiv) // Für Sortierung

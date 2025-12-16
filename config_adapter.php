@@ -11,7 +11,12 @@
 
 // Welche Tabelle soll für Mitgliederdaten verwendet werden?
 // Optionen: 'members' (interne Tabelle) oder 'berechtigte' (externe Tabelle)
-define('MEMBER_SOURCE', 'members');  // Standard: interne Tabelle verwenden
+// WICHTIG: Im SSOdirekt-Modus wird automatisch 'berechtigte' verwendet!
+if (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt') {
+    define('MEMBER_SOURCE', 'berechtigte');  // SSO-Modus: externe Tabelle
+} else {
+    define('MEMBER_SOURCE', 'members');  // Standard: interne Tabelle
+}
 
 // Alternative: Umgebungsvariable oder automatische Erkennung
 // define('MEMBER_SOURCE', getenv('MEMBER_SOURCE') ?: 'members');
