@@ -268,10 +268,36 @@ if (!$submission_deadline_passed) {
         </summary>
     
     <div style="padding: 15px; background: #f1f8e9;">
+        <style>
+            .top-form-group {
+                margin-bottom: 15px;
+            }
+            .top-form-group label {
+                display: block;
+                margin-bottom: 5px;
+            }
+            .top-submit-button {
+                width: 100%;
+                background: #4caf50;
+                color: white;
+                padding: 12px 20px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 16px;
+            }
+            @media (max-width: 768px) {
+                .top-submit-button {
+                    padding: 14px 20px;
+                    font-size: 15px;
+                }
+            }
+        </style>
         <form method="POST" action="">
             <input type="hidden" name="add_agenda_item" value="1">
-            
-            <div class="form-group">
+
+            <div class="form-group top-form-group">
                 <label style="font-weight: 600;">Titel:</label>
                 <input type="text" name="title" required>
             </div>
@@ -313,15 +339,15 @@ if (!$submission_deadline_passed) {
             <input type="hidden" name="duration" value="10">
             <?php endif; ?>
             
-            <div class="form-group">
+            <div class="form-group top-form-group">
                 <label style="display: flex; align-items: center; cursor: pointer;">
                     <input type="checkbox" name="is_confidential" value="1" style="margin-right: 8px;">
                     🔒 Vertraulich (nur für berechtigte Teilnehmer)
                 </label>
             </div>
 
-            <div class="form-group">
-                <button type="submit" style="width: 100%; background: #4caf50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+            <div class="form-group top-form-group">
+                <button type="submit" class="top-submit-button">
                     ✅ TOP hinzufügen
                 </button>
             </div>

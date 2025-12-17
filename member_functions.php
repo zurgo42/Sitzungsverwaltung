@@ -62,6 +62,12 @@
  * ========================================
  */
 
+// Konfiguration für Adapter-Auswahl einbinden (nur einmal)
+// WICHTIG: Muss VOR dem Adapter geladen werden, damit MEMBER_SOURCE definiert ist
+if (!defined('MEMBER_SOURCE')) {
+    require_once __DIR__ . '/config_adapter.php';
+}
+
 // Adapter einbinden (nur einmal)
 require_once __DIR__ . '/adapters/MemberAdapter.php';
 
