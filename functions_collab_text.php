@@ -522,20 +522,30 @@ function finalizeCollabText($pdo, $text_id, $member_id, $final_name) {
  */
 function getCollabTextsByMeeting($pdo, $meeting_id) {
     try {
+        // Texte laden (OHNE JOIN auf svmembers)
         $stmt = $pdo->prepare("
             SELECT t.*,
-                   m.first_name as initiator_first_name,
-                   m.last_name as initiator_last_name,
                    COUNT(DISTINCT p.member_id) as participant_count
             FROM svcollab_texts t
-            JOIN svmembers m ON t.initiator_member_id = m.member_id
             LEFT JOIN svcollab_text_participants p ON t.text_id = p.text_id
             WHERE t.meeting_id = ?
             GROUP BY t.text_id
             ORDER BY t.created_at DESC
         ");
         $stmt->execute([$meeting_id]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $texts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Initiator-Namen über Adapter holen
+        foreach ($texts as &$text) {
+            if ($text['initiator_member_id']) {
+                $initiator = get_member_by_id($pdo, $text['initiator_member_id']);
+                $text['initiator_first_name'] = $initiator['first_name'] ?? null;
+                $text['initiator_last_name'] = $initiator['last_name'] ?? null;
+            }
+        }
+        unset($text);
+
+        return $texts;
 
     } catch (PDOException $e) {
         error_log("getCollabTextsByMeeting Error: " . $e->getMessage());
