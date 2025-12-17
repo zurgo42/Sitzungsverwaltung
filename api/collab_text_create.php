@@ -15,6 +15,7 @@ session_start();
 require_once('../config.php');
 require_once('db_connection.php');
 require_once('../functions_collab_text.php');
+require_once('../member_functions.php');
 
 header('Content-Type: application/json');
 
@@ -71,9 +72,8 @@ if ($meeting_id !== null) {
     }
 } else {
     // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz, Führungsteam
-    $stmt = $pdo->prepare("SELECT role FROM svmembers WHERE member_id = ?");
-    $stmt->execute([$member_id]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Rolle über Adapter holen
+    $user = get_member_by_id($pdo, $member_id);
 
     if (!$user || !in_array(strtolower($user['role']), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam'])) {
         http_response_code(403);

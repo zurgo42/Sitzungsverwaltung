@@ -85,6 +85,125 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 }
 
 // ============================================
+// HILFSFUNKTION: Zugriffsverweigerungs-Seite
+// ============================================
+/**
+ * Zeigt eine dezente Fehlerseite mit Zurück-Link an
+ *
+ * @param string $title Hauptüberschrift
+ * @param string $message Beschreibung des Problems
+ * @param string $details Optionale technische Details
+ */
+function show_access_denied_page($title, $message, $details = '') {
+    global $SSO_DIRECT_CONFIG;
+
+    // Zurück-URL aus Konfiguration holen
+    $back_url = $SSO_DIRECT_CONFIG['back_button_url'] ?? 'https://aktive.mensa.de/vorstand/vtool.php';
+    $back_text = $SSO_DIRECT_CONFIG['back_button_text'] ?? 'Zurück zum VTool';
+
+    ?>
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Zugriff verweigert - Sitzungsverwaltung</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+            .error-container {
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                max-width: 500px;
+                width: 100%;
+                padding: 40px;
+                text-align: center;
+            }
+            .error-icon {
+                font-size: 64px;
+                margin-bottom: 20px;
+            }
+            h1 {
+                color: #333;
+                font-size: 24px;
+                margin-bottom: 16px;
+                font-weight: 600;
+            }
+            .error-message {
+                color: #666;
+                font-size: 16px;
+                line-height: 1.6;
+                margin-bottom: 24px;
+            }
+            .error-details {
+                background: #f5f5f5;
+                border-left: 4px solid #ffc107;
+                padding: 12px 16px;
+                margin-bottom: 32px;
+                border-radius: 4px;
+                font-size: 13px;
+                color: #666;
+                text-align: left;
+            }
+            .back-button {
+                display: inline-block;
+                background: #667eea;
+                color: white;
+                padding: 14px 32px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 600;
+                font-size: 16px;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            }
+            .back-button:hover {
+                background: #5568d3;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            }
+            .footer-note {
+                margin-top: 24px;
+                font-size: 13px;
+                color: #999;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="error-container">
+            <div class="error-icon">🔒</div>
+            <h1><?php echo htmlspecialchars($title); ?></h1>
+            <div class="error-message">
+                <?php echo htmlspecialchars($message); ?>
+            </div>
+            <?php if ($details): ?>
+                <div class="error-details">
+                    ℹ️ <?php echo htmlspecialchars($details); ?>
+                </div>
+            <?php endif; ?>
+            <a href="<?php echo htmlspecialchars($back_url); ?>" class="back-button">
+                ← <?php echo htmlspecialchars($back_text); ?>
+            </a>
+            <div class="footer-note">
+                Bei Problemen wende dich bitte an den Support
+            </div>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
+// ============================================
 // SSO-MODUS (Single Sign-On) - Automatischer Login
 // ============================================
 // Wenn SSO aktiv ist (REQUIRE_LOGIN = false) und noch keine Session existiert
@@ -105,12 +224,20 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
             header('Location: index.php');
             exit;
         } else {
-            // Mitglied nicht gefunden
-            die('<h1>Zugriff verweigert</h1><p>Ihre Mitgliedsnummer wurde nicht gefunden oder ist nicht aktiv.</p><p>MNr: ' . htmlspecialchars($sso_mnr) . '</p>');
+            // Mitglied nicht gefunden - Dezente Fehlerseite anzeigen
+            show_access_denied_page(
+                'Mitgliedsnummer nicht gefunden',
+                'Deine Mitgliedsnummer wurde nicht in der Datenbank gefunden oder ist nicht aktiv.',
+                'MNr: ' . htmlspecialchars($sso_mnr)
+            );
         }
     } else {
         // Keine Mitgliedsnummer übergeben
-        die('<h1>Zugriff verweigert</h1><p>Keine Mitgliedsnummer übergeben. SSO-Konfiguration prüfen!</p>');
+        show_access_denied_page(
+            'SSO-Fehler',
+            'Es wurde keine Mitgliedsnummer übergeben. Bitte versuche es über das VTool erneut.',
+            'Technischer Hinweis: SSO_SOURCE ist auf "' . SSO_SOURCE . '" konfiguriert'
+        );
     }
 }
 
@@ -681,8 +808,11 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                     // tab_admin.php zeigt das Admin-Panel an
                     include 'tab_admin.php';
                 } else {
-                    // Fehlermeldung bei unberechtigtem Zugriff
-                    echo '<div class="error-message">Zugriff verweigert.</div>';
+                    // Dezente Fehlermeldung bei unberechtigtem Zugriff
+                    echo '<div style="max-width: 600px; margin: 40px auto; padding: 30px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
+                    echo '<h3 style="color: #856404; margin: 0 0 12px 0; font-size: 18px;">🔒 Zugriff nicht möglich</h3>';
+                    echo '<p style="color: #856404; margin: 0; line-height: 1.6;">Dieser Bereich ist nur für Administratoren zugänglich. Falls du Zugriff benötigst, wende dich bitte an einen Administrator.</p>';
+                    echo '</div>';
                 }
                 break;
             
