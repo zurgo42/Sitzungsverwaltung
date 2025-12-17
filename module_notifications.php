@@ -175,11 +175,12 @@ function render_user_notifications($pdo, $member_id) {
     $seen = [];
     $upcoming = [];
     foreach ($all_upcoming as $item) {
-        $key = $item['type'] . '_' . $item['item_id'];
-        if (!isset($seen[$key])) {
+        // Eindeutiger Key: type + item_id (als String für sicheren Vergleich)
+        $key = $item['type'] . '_' . (string)$item['item_id'];
+        if (!array_key_exists($key, $seen)) {
             $seen[$key] = true;
             $upcoming[] = $item;
-            if (count($upcoming) >= 5) break; // Max 5 Einträge
+            if (count($upcoming) >= 6) break; // Max 6 Einträge
         }
     }
 

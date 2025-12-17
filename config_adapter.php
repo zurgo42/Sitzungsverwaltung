@@ -11,8 +11,9 @@
 
 // Welche Tabelle soll für Mitgliederdaten verwendet werden?
 // Optionen: 'members' (interne Tabelle) oder 'berechtigte' (externe Tabelle)
-// WICHTIG: Im SSOdirekt-Modus wird automatisch 'berechtigte' verwendet!
-if (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt') {
+// WICHTIG: Im SSOdirekt-Modus und wenn MNr in Session → 'berechtigte' verwenden!
+if ((defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt') ||
+    (isset($_SESSION['MNr']) && !empty($_SESSION['MNr']))) {
     define('MEMBER_SOURCE', 'berechtigte');  // SSO-Modus: externe Tabelle
 } else {
     define('MEMBER_SOURCE', 'members');  // Standard: interne Tabelle
