@@ -404,17 +404,32 @@ function updateParticipantHeartbeat($pdo, $text_id, $member_id) {
  */
 function getOnlineParticipants($pdo, $text_id) {
     try {
+        // Nur die member_ids holen, dann über Adapter Namen abrufen
+        // 30 Sekunden Timeout (Heartbeat ist alle 15 Sek, also max 2 verpasste Heartbeats)
         $stmt = $pdo->prepare("
-            SELECT p.member_id, p.last_seen,
-                   m.first_name, m.last_name
+            SELECT p.member_id, p.last_seen
             FROM svcollab_text_participants p
-            JOIN svmembers m ON p.member_id = m.member_id
             WHERE p.text_id = ?
-              AND p.last_seen > DATE_SUB(NOW(), INTERVAL 60 SECOND)
-            ORDER BY m.first_name, m.last_name
+              AND p.last_seen > DATE_SUB(NOW(), INTERVAL 30 SECOND)
         ");
         $stmt->execute([$text_id]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Namen über Adapter holen
+        $result = [];
+        foreach ($participants as $p) {
+            $member = get_member_by_id($pdo, $p['member_id']);
+            if ($member) {
+                $result[] = [
+                    'member_id' => $p['member_id'],
+                    'last_seen' => $p['last_seen'],
+                    'first_name' => $member['first_name'],
+                    'last_name' => $member['last_name']
+                ];
+            }
+        }
+
+        return $result;
 
     } catch (PDOException $e) {
         error_log("getOnlineParticipants Error: " . $e->getMessage());

@@ -51,7 +51,7 @@ if (!isset($all_members)) {
             </label>
             <label style="display: block; margin-bottom: 10px;">
                 <input type="radio" name="target_type" value="list" onchange="updateTargetOptions()">
-                <strong>Meeting-Teilnehmer</strong> - Teilnehmer eines bestimmten Meetings
+                <strong>Ausgewählte registrierte Teilnehmer</strong>
             </label>
             <label style="display: block; margin-bottom: 10px;">
                 <input type="radio" name="target_type" value="public" onchange="updateTargetOptions()">

@@ -150,7 +150,7 @@ function render_user_notifications($pdo, $member_id) {
 
     // 5. ZUSAMMENFASSUNG: KOMMENDE SITZUNGEN & TERMINE
     $stmt_summary = $pdo->prepare("
-        (SELECT 'meeting' as type, m.meeting_id as item_id, m.meeting_name as title, m.meeting_date as date_time
+        (SELECT DISTINCT 'meeting' as type, m.meeting_id as item_id, m.meeting_name as title, m.meeting_date as date_time
          FROM svmeetings m
          INNER JOIN svmeeting_participants mp ON m.meeting_id = mp.meeting_id
          WHERE mp.member_id = ?
@@ -159,7 +159,7 @@ function render_user_notifications($pdo, $member_id) {
          ORDER BY m.meeting_date ASC
          LIMIT 3)
         UNION ALL
-        (SELECT 'poll' as type, p.poll_id as item_id, p.title, pd.suggested_date as date_time
+        (SELECT DISTINCT 'poll' as type, p.poll_id as item_id, p.title, pd.suggested_date as date_time
          FROM svpolls p
          INNER JOIN svpoll_participants pp ON p.poll_id = pp.poll_id
          INNER JOIN svpoll_dates pd ON p.final_date_id = pd.date_id
