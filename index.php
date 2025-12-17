@@ -321,27 +321,53 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             border-color: #444 !important;
         }
 
-        /* Buttons sofort dunkel machen */
+        /* Buttons sofort dunkel machen - ALLE Varianten */
         html.dark-mode button,
         html.dark-mode .btn,
+        html.dark-mode .btn-primary,
+        html.dark-mode .btn-secondary,
+        html.dark-mode .btn-danger,
         html.dark-mode input[type="button"],
         html.dark-mode input[type="submit"],
+        html.dark-mode .accordion-button,
         body.dark-mode button,
         body.dark-mode .btn,
+        body.dark-mode .btn-primary,
+        body.dark-mode .btn-secondary,
+        body.dark-mode .btn-danger,
         body.dark-mode input[type="button"],
-        body.dark-mode input[type="submit"] {
+        body.dark-mode input[type="submit"],
+        body.dark-mode .accordion-button {
             background-color: #2d2d2d !important;
             color: #e0e0e0 !important;
             border-color: #444 !important;
         }
 
-        /* Container und Cards sofort dunkel machen */
+        /* Container, Cards und Forms sofort dunkel machen */
         html.dark-mode .container,
         html.dark-mode .card,
         html.dark-mode .form-control,
+        html.dark-mode .form-section,
+        html.dark-mode .form-group,
+        html.dark-mode .accordion-content,
+        html.dark-mode select,
+        html.dark-mode textarea,
+        html.dark-mode input[type="text"],
+        html.dark-mode input[type="date"],
+        html.dark-mode input[type="time"],
+        html.dark-mode input[type="email"],
         body.dark-mode .container,
         body.dark-mode .card,
-        body.dark-mode .form-control {
+        body.dark-mode .form-control,
+        body.dark-mode .form-section,
+        body.dark-mode .form-group,
+        body.dark-mode .accordion-content,
+        body.dark-mode select,
+        body.dark-mode textarea,
+        body.dark-mode input[type="text"],
+        body.dark-mode input[type="date"],
+        body.dark-mode input[type="time"],
+        body.dark-mode input[type="email"] {
             background-color: #2d2d2d !important;
             color: #e0e0e0 !important;
             border-color: #444 !important;

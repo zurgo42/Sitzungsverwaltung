@@ -368,4 +368,110 @@ if (!function_exists('get_all_members_OLD')) {
     }
 }
 
+// ============================================
+// DISPLAY-FUNKTIONEN
+// ============================================
+
+/**
+ * Wandelt role-Code in lesbaren Display-Namen um
+ *
+ * @param string $role_code Der interne role-Code (lowercase, z.B. 'gf', 'vorstand')
+ * @return string Der Display-Name für die UI
+ *
+ * BEISPIEL:
+ * echo get_role_display_name('gf');  // Ausgabe: "Geschäftsführung"
+ */
+function get_role_display_name($role_code) {
+    $displayNames = [
+        'vorstand' => 'Vorstand',
+        'gf' => 'Geschäftsführung',
+        'assistenz' => 'Assistenz',
+        'fuehrungsteam' => 'Führungsteam',
+        'mitglied' => 'Mitglied'
+    ];
+
+    return $displayNames[strtolower($role_code)] ?? 'Mitglied';
+}
+
+/**
+ * Rendert eine standardisierte Teilnehmerauswahl mit Checkboxen
+ *
+ * @param array $members Liste aller verfügbaren Mitglieder
+ * @param array $selected_ids Optional: IDs der bereits ausgewählten Mitglieder
+ * @param array $member_absences Optional: Array mit Abwesenheiten (member_id => [absences])
+ * @param string $checkbox_class CSS-Klasse für die Checkboxen (default: 'participant-checkbox')
+ * @param string $checkbox_name Name-Attribut für die Checkboxen (default: 'participant_ids[]')
+ *
+ * BEISPIEL:
+ * render_participant_selector($all_members, [5, 12], $absences);
+ *
+ * Generiert:
+ * - Buttons: Alle auswählen, Alle abwählen, Führungsrollen, Vorstand+GF+Ass
+ * - Checkboxen mit data-role Attributen für JavaScript
+ * - Anzeige von Abwesenheiten falls vorhanden
+ */
+function render_participant_selector($members, $selected_ids = [], $member_absences = [], $checkbox_class = 'participant-checkbox', $checkbox_name = 'participant_ids[]') {
+    ?>
+    <div class="participant-buttons" style="margin: 10px 0;">
+        <button type="button" onclick="toggleAllParticipants_<?php echo md5($checkbox_class); ?>(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
+        <button type="button" onclick="toggleAllParticipants_<?php echo md5($checkbox_class); ?>(false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
+        <button type="button" onclick="toggleLeadershipRoles_<?php echo md5($checkbox_class); ?>()" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
+        <button type="button" onclick="toggleTopManagement_<?php echo md5($checkbox_class); ?>()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
+    </div>
+    <div class="participants-selector" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #f9f9f9;">
+        <?php foreach ($members as $member):
+            $is_selected = in_array($member['member_id'], $selected_ids);
+            $has_absence = isset($member_absences[$member['member_id']]);
+            $display_role = isset($member['role_display']) ? $member['role_display'] : get_role_display_name($member['role']);
+        ?>
+            <label class="participant-label" style="display: block; margin: 5px 0; <?php echo $has_absence ? 'background: #fff3cd; border-left: 3px solid #ffc107; padding-left: 8px;' : ''; ?>">
+                <input type="checkbox"
+                       name="<?php echo htmlspecialchars($checkbox_name); ?>"
+                       value="<?php echo $member['member_id']; ?>"
+                       class="<?php echo htmlspecialchars($checkbox_class); ?>"
+                       data-role="<?php echo htmlspecialchars($member['role']); ?>"
+                       <?php echo $is_selected ? 'checked' : ''; ?>>
+                <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $display_role . ')'); ?>
+                <?php if ($has_absence): ?>
+                    <br><small style="color: #856404;">
+                        <?php foreach ($member_absences[$member['member_id']] as $abs): ?>
+                            🏖️ <?php echo date('d.m.', strtotime($abs['start_date'])); ?> - <?php echo date('d.m.', strtotime($abs['end_date'])); ?>
+                            <?php if ($abs['substitute_member_id']): ?>
+                                (Vertr.: <?php echo htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']); ?>)
+                            <?php endif; ?>
+                            <br>
+                        <?php endforeach; ?>
+                    </small>
+                <?php endif; ?>
+            </label>
+        <?php endforeach; ?>
+    </div>
+
+    <script>
+    // JavaScript-Funktionen für Teilnehmerauswahl - eindeutig per Klasse
+    function toggleAllParticipants_<?php echo md5($checkbox_class); ?>(select) {
+        document.querySelectorAll('.<?php echo $checkbox_class; ?>').forEach(cb => cb.checked = select);
+    }
+
+    function toggleLeadershipRoles_<?php echo md5($checkbox_class); ?>() {
+        document.querySelectorAll('.<?php echo $checkbox_class; ?>').forEach(cb => {
+            const role = cb.getAttribute('data-role')?.toLowerCase();
+            if (role === 'vorstand' || role === 'gf' || role === 'assistenz' || role === 'fuehrungsteam') {
+                cb.checked = !cb.checked;
+            }
+        });
+    }
+
+    function toggleTopManagement_<?php echo md5($checkbox_class); ?>() {
+        document.querySelectorAll('.<?php echo $checkbox_class; ?>').forEach(cb => {
+            const role = cb.getAttribute('data-role')?.toLowerCase();
+            if (role === 'vorstand' || role === 'gf' || role === 'assistenz') {
+                cb.checked = !cb.checked;
+            }
+        });
+    }
+    </script>
+    <?php
+}
+
 ?>
