@@ -27,26 +27,56 @@ class StandardMemberAdapter implements MemberAdapterInterface {
         $this->pdo = $pdo;
     }
 
+    /**
+     * Normalisiert svmembers Daten
+     * - role wird lowercase normalisiert
+     * - role_display wird hinzugefügt
+     */
+    private function normalizeRow($row) {
+        if (!$row) return null;
+
+        // Role normalisieren (lowercase)
+        $role_code = strtolower($row['role'] ?? 'mitglied');
+
+        // Display-Name generieren
+        $displayNames = [
+            'vorstand' => 'Vorstand',
+            'gf' => 'Geschäftsführung',
+            'assistenz' => 'Assistenz',
+            'fuehrungsteam' => 'Führungsteam',
+            'mitglied' => 'Mitglied'
+        ];
+
+        $row['role'] = $role_code;
+        $row['role_display'] = $displayNames[$role_code] ?? 'Mitglied';
+
+        return $row;
+    }
+
     public function getMemberById($id) {
         $stmt = $this->pdo->prepare("SELECT * FROM svmembers WHERE member_id = ?");
         $stmt->execute([$id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $this->normalizeRow($row);
     }
 
     public function getAllMembers() {
-        return $this->pdo->query("SELECT * FROM svmembers ORDER BY last_name, first_name")->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $this->pdo->query("SELECT * FROM svmembers ORDER BY last_name, first_name")->fetchAll(PDO::FETCH_ASSOC);
+        return array_map([$this, 'normalizeRow'], $rows);
     }
 
     public function getMemberByEmail($email) {
         $stmt = $this->pdo->prepare("SELECT * FROM svmembers WHERE email = ?");
         $stmt->execute([$email]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $this->normalizeRow($row);
     }
 
     public function getMemberByMembershipNumber($mnr) {
         $stmt = $this->pdo->prepare("SELECT * FROM svmembers WHERE membership_number = ?");
         $stmt->execute([$mnr]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $this->normalizeRow($row);
     }
 
     public function createMember($data) {

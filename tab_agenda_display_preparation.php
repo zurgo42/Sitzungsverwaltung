@@ -205,9 +205,11 @@ if (!$submission_deadline_passed) {
                                             $absence_info .= ' [Abwesend: ' . date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date'])) . ']';
                                         }
                                     }
+                                    // Display-Name verwenden wenn vorhanden, sonst konvertieren
+                                    $display_role = isset($um['role_display']) ? $um['role_display'] : get_role_display_name($um['role']);
                                 ?>
                                     <option value="<?php echo $um['member_id']; ?>">
-                                        <?php echo htmlspecialchars($um['first_name'] . ' ' . $um['last_name'] . ' (' . $um['role'] . ')' . $absence_info); ?>
+                                        <?php echo htmlspecialchars($um['first_name'] . ' ' . $um['last_name'] . ' (' . $display_role . ')' . $absence_info); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>

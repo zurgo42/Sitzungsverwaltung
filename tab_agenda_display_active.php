@@ -145,9 +145,12 @@ $active_item_id = $stmt->fetchColumn();
                         <div style="flex: 1;">
                             <select name="new_participant_id" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                                 <option value="">-- Teilnehmer auswählen --</option>
-                                <?php foreach ($uninvited_members as $um): ?>
+                                <?php foreach ($uninvited_members as $um):
+                                    // Display-Name verwenden wenn vorhanden, sonst konvertieren
+                                    $display_role = isset($um['role_display']) ? $um['role_display'] : get_role_display_name($um['role']);
+                                ?>
                                     <option value="<?php echo $um['member_id']; ?>">
-                                        <?php echo htmlspecialchars($um['first_name'] . ' ' . $um['last_name'] . ' (' . $um['role'] . ')'); ?>
+                                        <?php echo htmlspecialchars($um['first_name'] . ' ' . $um['last_name'] . ' (' . $display_role . ')'); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>

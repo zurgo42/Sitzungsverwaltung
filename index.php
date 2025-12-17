@@ -307,18 +307,31 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             color: #e0e0e0 !important;
         }
 
-        /* Tabs und Navigation sofort dunkel machen */
+        /* Navigation und Tabs sofort dunkel machen - SPEZIFISCH */
         html.dark-mode nav,
+        html.dark-mode .navigation,
+        html.dark-mode .navigation a,
         html.dark-mode .nav-tabs,
         html.dark-mode .nav-link,
         html.dark-mode .tab-content,
         body.dark-mode nav,
+        body.dark-mode .navigation,
+        body.dark-mode .navigation a,
         body.dark-mode .nav-tabs,
         body.dark-mode .nav-link,
         body.dark-mode .tab-content {
             background-color: #1a1a1a !important;
             color: #e0e0e0 !important;
             border-color: #444 !important;
+        }
+
+        /* Navigation Links aktiv/hover States */
+        html.dark-mode .navigation a.active,
+        html.dark-mode .navigation a:hover,
+        body.dark-mode .navigation a.active,
+        body.dark-mode .navigation a:hover {
+            background-color: #2d2d2d !important;
+            color: #ffffff !important;
         }
 
         /* Buttons sofort dunkel machen - ALLE Varianten */
