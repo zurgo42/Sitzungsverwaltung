@@ -194,7 +194,7 @@ if (!$submission_deadline_passed) {
 
                 <?php if (count($uninvited_members) > 0): ?>
                     <div style="display: flex; gap: 10px; align-items: flex-end;">
-                        <div style="flex: 1;">
+                        <div style="flex: 3;">
                             <select name="new_participant_id" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                                 <option value="">-- Teilnehmer auswählen --</option>
                                 <?php foreach ($uninvited_members as $um):
@@ -214,7 +214,7 @@ if (!$submission_deadline_passed) {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <button type="submit" style="background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+                        <button type="submit" style="background: #4caf50; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
                             ➕ Hinzufügen
                         </button>
                     </div>
@@ -298,10 +298,12 @@ if (!$submission_deadline_passed) {
                     🔒 Vertraulich (nur für berechtigte Teilnehmer)
                 </label>
             </div>
-            
-            <button type="submit" style="background: #4caf50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
-                ✅ TOP hinzufügen
-            </button>
+
+            <div class="form-group">
+                <button type="submit" style="width: 100%; background: #4caf50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                    ✅ TOP hinzufügen
+                </button>
+            </div>
         </form>
     </div>
 </details>

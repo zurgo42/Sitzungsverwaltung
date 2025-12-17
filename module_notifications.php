@@ -164,6 +164,7 @@ function render_user_notifications($pdo, $member_id) {
          INNER JOIN svpoll_dates pd ON p.final_date_id = pd.date_id
          WHERE pp.member_id = ?
          AND p.status = 'finalized'
+         AND p.meeting_id IS NULL
          AND pd.suggested_date >= NOW()
          ORDER BY pd.suggested_date ASC)
         ORDER BY date_time ASC

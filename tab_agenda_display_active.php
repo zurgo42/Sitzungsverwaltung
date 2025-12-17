@@ -47,53 +47,81 @@ $active_item_id = $stmt->fetchColumn();
 
 <!-- TEILNEHMERLISTE -->
 <?php if ($is_secretary): ?>
+    <style>
+        .participant-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .participant-row {
+                flex-wrap: wrap;
+                gap: 8px;
+                font-size: 13px;
+            }
+            .participant-row .participant-name {
+                flex: 1 1 100%;
+                font-size: 13px;
+            }
+            .participant-row label {
+                font-size: 12px;
+            }
+            .participant-row label span {
+                font-size: 12px;
+            }
+        }
+    </style>
     <details open style="margin: 20px 0; padding: 15px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 8px;">
         <summary style="cursor: pointer; font-weight: 600; color: #1976d2; font-size: 16px; margin-bottom: 10px;">
             👥 Teilnehmerverwaltung (klicken zum Auf-/Zuklappen)
         </summary>
-        
+
         <form method="POST" action="">
             <input type="hidden" name="update_attendance" value="1">
-            
+
             <div style="margin-bottom: 15px;">
                 <button type="button" onclick="setAllPresent()" style="background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
                     ✅ Alle auf "Anwesend" setzen
                 </button>
             </div>
-            
+
             <div style="display: grid; gap: 10px;">
-                <?php foreach ($participants as $p): 
+                <?php foreach ($participants as $p):
                     $stmt = $pdo->prepare("SELECT attendance_status FROM svmeeting_participants WHERE meeting_id = ? AND member_id = ?");
                     $stmt->execute([$current_meeting_id, $p['member_id']]);
                     $attendance = $stmt->fetch();
                     $status = $attendance['attendance_status'] ?? 'absent';
                 ?>
-                    <div style="display: flex; align-items: center; gap: 15px; padding: 8px; background: white; border-radius: 4px;">
-                        <span style="flex: 1; font-weight: 600;">
+                    <div class="participant-row">
+                        <span class="participant-name" style="flex: 1; font-weight: 600;">
                             <?php echo htmlspecialchars($p['first_name'] . ' ' . $p['last_name']); ?>
                         </span>
-                        
+
                         <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                            <input type="radio" 
-                                   name="attendance[<?php echo $p['member_id']; ?>]" 
+                            <input type="radio"
+                                   name="attendance[<?php echo $p['member_id']; ?>]"
                                    value="present"
                                    class="attendance-radio"
                                    data-member="<?php echo $p['member_id']; ?>"
                                    <?php echo $status === 'present' ? 'checked' : ''; ?>>
                             <span>✅ Anwesend</span>
                         </label>
-                        
+
                         <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                            <input type="radio" 
-                                   name="attendance[<?php echo $p['member_id']; ?>]" 
+                            <input type="radio"
+                                   name="attendance[<?php echo $p['member_id']; ?>]"
                                    value="partial"
                                    <?php echo $status === 'partial' ? 'checked' : ''; ?>>
                             <span>⏱️ Zeitweise</span>
                         </label>
-                        
+
                         <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                            <input type="radio" 
-                                   name="attendance[<?php echo $p['member_id']; ?>]" 
+                            <input type="radio"
+                                   name="attendance[<?php echo $p['member_id']; ?>]"
                                    value="absent"
                                    <?php echo $status === 'absent' ? 'checked' : ''; ?>>
                             <span>❌ Abwesend</span>
@@ -142,7 +170,7 @@ $active_item_id = $stmt->fetchColumn();
 
                 <?php if (count($uninvited_members) > 0): ?>
                     <div style="display: flex; gap: 10px; align-items: flex-end;">
-                        <div style="flex: 1;">
+                        <div style="flex: 3;">
                             <select name="new_participant_id" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                                 <option value="">-- Teilnehmer auswählen --</option>
                                 <?php foreach ($uninvited_members as $um):
@@ -155,7 +183,7 @@ $active_item_id = $stmt->fetchColumn();
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <button type="submit" style="background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+                        <button type="submit" style="background: #4caf50; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
                             ➕ Hinzufügen
                         </button>
                     </div>
