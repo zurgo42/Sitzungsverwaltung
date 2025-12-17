@@ -550,39 +550,49 @@ function toggleAllParticipantsEdit(meetingId, checked) {
     checkboxes.forEach(cb => cb.checked = checked);
 }
 
-// Wählt nur Führungsrollen aus (alle außer "Mitglied")
+// Wählt nur Führungsrollen aus (Vorstand, GF, Assistenz, Führungsteam)
 function toggleLeadershipRoles() {
     const checkboxes = document.querySelectorAll('.participant-checkbox');
+    const leadershipRoles = ['vorstand', 'gf', 'assistenz', 'fuehrungsteam'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role');
-        cb.checked = (role !== 'Mitglied');
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (leadershipRoles.includes(role)) {
+            cb.checked = !cb.checked;
+        }
     });
 }
 
 function toggleLeadershipRolesEdit(meetingId) {
     const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
+    const leadershipRoles = ['vorstand', 'gf', 'assistenz', 'fuehrungsteam'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role');
-        cb.checked = (role !== 'Mitglied');
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (leadershipRoles.includes(role)) {
+            cb.checked = !cb.checked;
+        }
     });
 }
 
 // Wählt nur Vorstand, Geschäftsführung und Assistenz aus
 function toggleTopManagement() {
     const checkboxes = document.querySelectorAll('.participant-checkbox');
-    const topRoles = ['vorstand', 'geschäftsführung', 'gf', 'assistenz'];
+    const topRoles = ['vorstand', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role').toLowerCase();
-        cb.checked = topRoles.includes(role);
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (topRoles.includes(role)) {
+            cb.checked = !cb.checked;
+        }
     });
 }
 
 function toggleTopManagementEdit(meetingId) {
     const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
-    const topRoles = ['vorstand', 'geschäftsführung', 'gf', 'assistenz'];
+    const topRoles = ['vorstand', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role').toLowerCase();
-        cb.checked = topRoles.includes(role);
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (topRoles.includes(role)) {
+            cb.checked = !cb.checked;
+        }
     });
 }
 

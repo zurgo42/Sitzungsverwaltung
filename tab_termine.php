@@ -437,9 +437,12 @@ function toggleAllPollParticipants(checked) {
 
 function togglePollLeadershipRoles() {
     const checkboxes = document.querySelectorAll('.poll-participant-checkbox');
+    const leadershipRoles = ['vorstand', 'gf', 'assistenz', 'fuehrungsteam'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role');
-        cb.checked = (role !== 'Mitglied');
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (leadershipRoles.includes(role)) {
+            cb.checked = !cb.checked;
+        }
     });
 }
 
@@ -447,8 +450,10 @@ function togglePollTopManagement() {
     const checkboxes = document.querySelectorAll('.poll-participant-checkbox');
     const topRoles = ['vorstand', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role');
-        cb.checked = topRoles.includes(role);
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (topRoles.includes(role)) {
+            cb.checked = !cb.checked;
+        }
     });
 }
 
