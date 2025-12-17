@@ -60,18 +60,23 @@ $active_item_id = $stmt->fetchColumn();
         @media (max-width: 768px) {
             .participant-row {
                 flex-wrap: wrap;
-                gap: 8px;
-                font-size: 13px;
+                gap: 6px;
+                font-size: 12px;
+                padding: 6px;
             }
             .participant-row .participant-name {
                 flex: 1 1 100%;
-                font-size: 13px;
+                font-size: 12px;
+                margin-bottom: 4px;
             }
             .participant-row label {
-                font-size: 12px;
+                font-size: 11px;
             }
             .participant-row label span {
-                font-size: 12px;
+                font-size: 11px;
+            }
+            .participant-row input[type="radio"] {
+                transform: scale(0.9);
             }
         }
     </style>
@@ -169,9 +174,30 @@ $active_item_id = $stmt->fetchColumn();
                 ?>
 
                 <?php if (count($uninvited_members) > 0): ?>
-                    <div style="display: flex; gap: 10px; align-items: flex-end;">
+                    <style>
+                        .add-participant-container-active {
+                            display: flex;
+                            gap: 10px;
+                            align-items: flex-end;
+                        }
+                        @media (max-width: 768px) {
+                            .add-participant-container-active {
+                                flex-direction: column;
+                                align-items: stretch;
+                                gap: 8px;
+                            }
+                            .add-participant-select-active {
+                                width: 100% !important;
+                            }
+                            .add-participant-button-active {
+                                width: 100%;
+                                padding: 10px !important;
+                            }
+                        }
+                    </style>
+                    <div class="add-participant-container-active">
                         <div style="flex: 3;">
-                            <select name="new_participant_id" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                            <select name="new_participant_id" required class="add-participant-select-active" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                                 <option value="">-- Teilnehmer auswählen --</option>
                                 <?php foreach ($uninvited_members as $um):
                                     // Display-Name verwenden wenn vorhanden, sonst konvertieren
@@ -183,7 +209,7 @@ $active_item_id = $stmt->fetchColumn();
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <button type="submit" style="background: #4caf50; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+                        <button type="submit" class="add-participant-button-active" style="background: #4caf50; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
                             ➕ Hinzufügen
                         </button>
                     </div>

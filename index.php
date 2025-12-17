@@ -219,6 +219,7 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
             // Automatisch einloggen
             $_SESSION['member_id'] = $sso_user['member_id'];
             $_SESSION['role'] = $sso_user['role'];
+            $_SESSION['MNr'] = $sso_mnr;  // Für config_adapter.php - damit API-Calls den richtigen Adapter verwenden
 
             // Zur Hauptseite weiterleiten
             header('Location: index.php');

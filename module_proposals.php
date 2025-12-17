@@ -63,8 +63,19 @@ function render_voting_fields($item_id, $item) {
                 grid-template-columns: 1fr;
                 gap: 8px;
             }
-            .voting-grid input {
-                max-width: 120px;
+            .voting-grid > div {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .voting-grid label {
+                flex: 0 0 auto;
+                margin-bottom: 0 !important;
+            }
+            .voting-grid input[type="number"] {
+                flex: 0 0 80px;
+                max-width: 80px;
+                padding: 4px !important;
             }
         }
     </style>
