@@ -323,7 +323,8 @@ function get_poll_access_link($poll, $base_url) {
         return null;
     }
 
-    return rtrim($base_url, '/') . '/index.php?tab=opinion&view=participate&token=' . $poll['access_token'];
+    // Link auf standalone-Seite für externe Teilnehmer
+    return rtrim($base_url, '/') . '/opinion_standalone.php?token=' . $poll['access_token'];
 }
 
 /**

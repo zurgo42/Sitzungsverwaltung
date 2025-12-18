@@ -908,7 +908,8 @@ if (isset($_SESSION['error'])) {
         // Basispfad ermitteln (z.B. "/Sitzungsverwaltung" oder "")
         $script_path = dirname($_SERVER['SCRIPT_NAME']); // z.B. "/Sitzungsverwaltung"
         $host = defined('BASE_URL') ? BASE_URL : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
-        $poll_link = rtrim($host, '/') . $script_path . '/index.php?tab=termine&view=poll&poll_id=' . $poll_id;
+        // Link auf standalone-Seite für externe Teilnehmer
+        $poll_link = rtrim($host, '/') . $script_path . '/terminplanung_standalone.php?poll_id=' . $poll_id;
         ?>
         <div class="poll-card" style="background: #f0f8ff; border: 2px solid #4CAF50; margin-bottom: 20px;">
             <h4 style="margin: 0 0 10px 0;">🔗 Link zu dieser Umfrage</h4>
