@@ -316,6 +316,73 @@ $active_item_id = $stmt->fetchColumn();
 
 <!-- TOPS ANZEIGEN -->
 
+<style>
+    /* Globale Box-Sizing für alle Elemente */
+    .agenda-item *,
+    .agenda-item *::before,
+    .agenda-item *::after {
+        box-sizing: border-box;
+    }
+
+    .top-header-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    .top-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .top-header-right {
+        display: flex;
+        gap: 5px;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+        /* TOP-Header Smartphone-Optimierung */
+        .top-header-container {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+        .top-header-left {
+            gap: 6px;
+            font-size: 14px;
+        }
+        .top-header-left strong {
+            font-size: 14px !important;
+            flex: 1 1 100%;
+        }
+        .top-header-right {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .top-header-right button {
+            font-size: 10px !important;
+            padding: 3px 8px !important;
+        }
+
+        /* Alle Eingabefelder auf Smartphones */
+        .agenda-item textarea,
+        .agenda-item input[type="text"],
+        .agenda-item input[type="number"],
+        .agenda-item select {
+            max-width: 100%;
+            font-size: 14px !important;
+        }
+
+        /* Padding für bessere Lesbarkeit */
+        .agenda-item {
+            padding: 10px !important;
+        }
+    }
+</style>
+
 <?php 
 // Berechtigung für vertrauliche TOPs prüfen
 $can_see_confidential = (
@@ -348,8 +415,8 @@ foreach ($agenda_items as $item):
          style="background: #f9f9f9; padding: 15px; margin-bottom: 20px; border: <?php echo $border_width; ?> solid <?php echo $border_color; ?>; border-radius: 8px; <?php echo $is_active ? 'box-shadow: 0 0 15px rgba(244,67,54,0.4);' : ''; ?>">
         
         <!-- TOP-Header -->
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="top-header-container">
+            <div class="top-header-left">
                 <?php if ($is_active): ?>
                     <span style="background: #f44336; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 12px;">
                         🔴 AKTIV
@@ -363,9 +430,9 @@ foreach ($agenda_items as $item):
                     <span class="badge" style="background: #f39c12; color: white;">🔒 Vertraulich</span>
                 <?php endif; ?>
             </div>
-            
+
             <?php if ($is_secretary && $item['top_number'] != 0 && $item['top_number'] != 99 && $item['top_number'] != 999): ?>
-                <div style="display: flex; gap: 5px;">
+                <div class="top-header-right">
                     <!-- Aktiv schalten via AJAX -->
                     <?php if (!$is_active): ?>
                         <button onclick="setActiveTop(<?php echo $item['item_id']; ?>, <?php echo $current_meeting_id; ?>)" 
