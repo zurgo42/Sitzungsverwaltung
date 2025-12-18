@@ -19,6 +19,7 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/member_functions.php';
 require_once __DIR__ . '/mail_functions.php';
+require_once __DIR__ . '/external_participants_functions.php';
 
 session_start();
 
@@ -26,17 +27,20 @@ session_start();
 // AUTHENTIFIZIERUNG
 // ============================================
 
-// Prüfen ob User eingeloggt ist
-if (!isset($_SESSION['member_id'])) {
-    header('Location: index.php');
-    exit;
+// User-Daten laden (kann NULL sein bei externen Teilnehmern)
+$current_user = null;
+if (isset($_SESSION['member_id'])) {
+    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
 }
 
-// User-Daten laden (über Wrapper-Funktion)
-$current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+// Externe Teilnehmer-Session prüfen
+$external_session = get_external_participant_session();
+$is_external_participant = ($external_session !== null);
 
-if (!$current_user) {
-    session_destroy();
+// Mindestens einer muss identifiziert sein
+if (!$current_user && !$is_external_participant) {
+    // Weder eingeloggt noch als externer Teilnehmer registriert
+    $_SESSION['error'] = 'Sie müssen eingeloggt sein oder sich als Teilnehmer registrieren';
     header('Location: index.php');
     exit;
 }
@@ -213,17 +217,32 @@ try {
                 exit;
             }
 
-            // Bestehende Antworten des Users löschen
-            $stmt = $pdo->prepare("
-                DELETE FROM svpoll_responses
-                WHERE poll_id = ? AND member_id = ?
-            ");
-            $stmt->execute([$poll_id, $current_user['member_id']]);
+            // Teilnehmer ermitteln (Member oder Extern)
+            $participant = get_current_participant($current_user, $pdo, 'termine', $poll_id);
+
+            if ($participant['type'] === 'none') {
+                $_SESSION['error'] = 'Sie müssen sich registrieren um abzustimmen';
+                header('Location: terminplanung_standalone.php?poll_id=' . $poll_id);
+                exit;
+            }
+
+            // IDs je nach Teilnehmer-Typ setzen
+            $member_id = ($participant['type'] === 'member') ? $participant['id'] : null;
+            $external_id = ($participant['type'] === 'external') ? $participant['id'] : null;
+
+            // Bestehende Antworten des Teilnehmers löschen
+            if ($member_id) {
+                $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ? AND member_id = ?");
+                $stmt->execute([$poll_id, $member_id]);
+            } else {
+                $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ? AND external_participant_id = ?");
+                $stmt->execute([$poll_id, $external_id]);
+            }
 
             // Neue Antworten speichern
             $stmt = $pdo->prepare("
-                INSERT INTO svpoll_responses (poll_id, date_id, member_id, vote, created_at)
-                VALUES (?, ?, ?, ?, NOW())
+                INSERT INTO svpoll_responses (poll_id, date_id, member_id, external_participant_id, vote, created_at)
+                VALUES (?, ?, ?, ?, ?, NOW())
             ");
 
             foreach ($_POST as $key => $value) {
@@ -239,13 +258,19 @@ try {
 
                     // Nur gültige Votes speichern (-1, 0, 1)
                     if (in_array($vote, [-1, 0, 1], true)) {
-                        $stmt->execute([$poll_id, $date_id, $current_user['member_id'], $vote]);
+                        $stmt->execute([$poll_id, $date_id, $member_id, $external_id, $vote]);
                     }
                 }
             }
 
             $_SESSION['success'] = 'Deine Abstimmung wurde gespeichert!';
-            header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+
+            // Redirect je nach Teilnehmer-Typ
+            if ($current_user) {
+                header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+            } else {
+                header('Location: terminplanung_standalone.php?poll_id=' . $poll_id);
+            }
             exit;
 
         // ====== FINALEN TERMIN FESTLEGEN ======

@@ -2,6 +2,7 @@
 /**
  * terminplanung_standalone.php - Standalone Terminplanung-Wrapper
  * Erstellt: 17.11.2025
+ * Erweitert: 18.12.2025 - Externe Teilnehmer-Support
  *
  * VERWENDUNG:
  * ===========
@@ -20,10 +21,15 @@
  *   - $MNr: Mitgliedsnummer des eingeloggten Users (für berechtigte-Tabelle)
  *   - Optional: $HOST_URL_BASE für E-Mails
  *
+ * Externer Zugriff (ohne Login):
+ * - terminplanung_standalone.php?poll_id=XXX
+ * - Zeigt Registrierungsformular für externe Teilnehmer an
+ *
  * DATENBANK-KOMPATIBILITÄT:
  * =========================
  * - Erkennt automatisch ob members oder berechtigte Tabelle verwendet wird
  * - Nutzt Adapter-System für Portabilität
+ * - Unterstützt externe Teilnehmer ohne Account
  */
 
 // ============================================
@@ -36,44 +42,44 @@ $is_sitzungsverwaltung = file_exists(__DIR__ . '/member_functions.php');
 if ($is_sitzungsverwaltung) {
     // In Sitzungsverwaltung: Adapter-System nutzen
     require_once __DIR__ . '/member_functions.php';
+    require_once __DIR__ . '/external_participants_functions.php';
 
-    // User aus Session holen
-    if (!isset($_SESSION['member_id'])) {
-        die('Nicht eingeloggt');
+    // User aus Session holen (kann NULL sein bei externem Zugriff)
+    $current_user = null;
+    if (isset($_SESSION['member_id'])) {
+        $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
     }
-    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
 
 } else {
     // In anderer Anwendung: Direkter Zugriff auf berechtigte-Tabelle
+    require_once __DIR__ . '/external_participants_functions.php';
 
-    // Prüfen ob Voraussetzungen erfüllt sind
+    // Prüfen ob Voraussetzungen erfüllt sind (außer bei externem Zugriff)
     if (!isset($pdo)) {
         die('FEHLER: $pdo nicht definiert. Bitte PDO-Verbindung vor dem Include erstellen.');
     }
 
-    if (!isset($MNr)) {
-        die('FEHLER: $MNr nicht definiert. Bitte Mitgliedsnummer setzen.');
+    // User laden (kann NULL sein bei externem Zugriff)
+    $current_user = null;
+    if (isset($MNr) && $MNr) {
+        // User aus berechtigte-Tabelle holen
+        $stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE MNr = ?");
+        $stmt->execute([$MNr]);
+        $ber = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($ber) {
+            // In Standard-Format umwandeln
+            $current_user = [
+                'member_id' => $ber['ID'],
+                'membership_number' => $ber['MNr'],
+                'first_name' => $ber['Vorname'],
+                'last_name' => $ber['Name'],
+                'email' => $ber['eMail'],
+                'role' => determine_role($ber['Funktion'], $ber['aktiv']),
+                'is_admin' => is_admin_user($ber['Funktion'], $ber['MNr'])
+            ];
+        }
     }
-
-    // User aus berechtigte-Tabelle holen
-    $stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE MNr = ?");
-    $stmt->execute([$MNr]);
-    $ber = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$ber) {
-        die('FEHLER: Benutzer nicht gefunden');
-    }
-
-    // In Standard-Format umwandeln
-    $current_user = [
-        'member_id' => $ber['ID'],
-        'membership_number' => $ber['MNr'],
-        'first_name' => $ber['Vorname'],
-        'last_name' => $ber['Name'],
-        'email' => $ber['eMail'],
-        'role' => determine_role($ber['Funktion'], $ber['aktiv']),
-        'is_admin' => is_admin_user($ber['Funktion'], $ber['MNr'])
-    ];
 
     // Hilfsfunktionen für berechtigte-Mapping
     function determine_role($funktion, $aktiv) {
@@ -117,6 +123,40 @@ if ($is_sitzungsverwaltung) {
     }
 
     $all_members = get_all_members_standalone($pdo);
+}
+
+// ============================================
+// EXTERNE TEILNEHMER-PRÜFUNG
+// ============================================
+
+// Poll-ID aus URL holen
+$poll_id_param = isset($_GET['poll_id']) ? intval($_GET['poll_id']) : null;
+
+// Wenn Poll-ID vorhanden: Prüfen ob Teilnehmer identifiziert ist
+if ($poll_id_param > 0) {
+    // Poll laden um Titel etc. zu haben
+    $stmt = $pdo->prepare("SELECT * FROM svpolls WHERE poll_id = ?");
+    $stmt->execute([$poll_id_param]);
+    $poll = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($poll) {
+        // Aktuellen Teilnehmer ermitteln (Member oder Extern)
+        $participant = get_current_participant($current_user, $pdo, 'termine', $poll_id_param);
+
+        // Wenn niemand identifiziert: Registrierungsformular anzeigen
+        if ($participant['type'] === 'none') {
+            // Registrierungsformular einbinden
+            $poll_type = 'termine';
+            $poll_id = $poll_id_param;
+            require __DIR__ . '/external_participant_register.php';
+            exit; // Beende Skript hier
+        }
+
+        // Teilnehmer ist identifiziert - in Variablen speichern für spätere Verwendung
+        $current_participant_type = $participant['type']; // 'member' oder 'external'
+        $current_participant_id = $participant['id'];
+        $current_participant_data = $participant['data'];
+    }
 }
 
 // ============================================
@@ -203,14 +243,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                     break;
                 }
 
+                // Aktuellen Teilnehmer ermitteln
+                $participant = get_current_participant($current_user, $pdo, 'termine', $poll_id);
+
+                if ($participant['type'] === 'none') {
+                    $error_message = 'Sie müssen sich registrieren um abzustimmen';
+                    break;
+                }
+
+                // IDs je nach Teilnehmer-Typ setzen
+                $member_id = ($participant['type'] === 'member') ? $participant['id'] : null;
+                $external_id = ($participant['type'] === 'external') ? $participant['id'] : null;
+
                 // Bestehende Antworten löschen
-                $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ? AND member_id = ?");
-                $stmt->execute([$poll_id, $current_user['member_id']]);
+                if ($member_id) {
+                    $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ? AND member_id = ?");
+                    $stmt->execute([$poll_id, $member_id]);
+                } else {
+                    $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ? AND external_participant_id = ?");
+                    $stmt->execute([$poll_id, $external_id]);
+                }
 
                 // Neue Antworten speichern
                 $stmt = $pdo->prepare("
-                    INSERT INTO svpoll_responses (poll_id, date_id, member_id, vote, created_at)
-                    VALUES (?, ?, ?, ?, NOW())
+                    INSERT INTO svpoll_responses (poll_id, date_id, member_id, external_participant_id, vote, created_at)
+                    VALUES (?, ?, ?, ?, ?, NOW())
                 ");
 
                 foreach ($_POST as $key => $value) {
@@ -218,7 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                         $date_id = intval(str_replace('vote_', '', $key));
                         $vote = intval($value);
                         if (in_array($vote, [-1, 0, 1])) {
-                            $stmt->execute([$poll_id, $date_id, $current_user['member_id'], $vote]);
+                            $stmt->execute([$poll_id, $date_id, $member_id, $external_id, $vote]);
                         }
                     }
                 }
