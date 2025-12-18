@@ -60,23 +60,28 @@ $active_item_id = $stmt->fetchColumn();
         @media (max-width: 768px) {
             .participant-row {
                 flex-wrap: wrap;
-                gap: 6px;
+                gap: 4px;
                 font-size: 12px;
                 padding: 6px;
+                align-items: flex-start;
             }
             .participant-row .participant-name {
                 flex: 1 1 100%;
                 font-size: 12px;
-                margin-bottom: 4px;
+                margin-bottom: 6px;
+                font-weight: 600;
             }
             .participant-row label {
-                font-size: 11px;
+                font-size: 10px;
+                flex: 0 0 auto;
+                white-space: nowrap;
             }
             .participant-row label span {
-                font-size: 11px;
+                font-size: 10px;
             }
             .participant-row input[type="radio"] {
-                transform: scale(0.9);
+                transform: scale(0.85);
+                margin: 0 2px 0 0;
             }
         }
     </style>
