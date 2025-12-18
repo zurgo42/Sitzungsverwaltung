@@ -71,7 +71,7 @@ $active_item_id = $stmt->fetchColumn();
                 color: #333;
             }
             .participant-row label {
-                display: inline-flex;
+                display: inline-flex !important; /* Override inline style to keep buttons horizontal */
                 align-items: center;
                 font-size: 11px;
                 margin-right: 8px;
