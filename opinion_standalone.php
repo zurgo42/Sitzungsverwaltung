@@ -2,6 +2,7 @@
 /**
  * opinion_standalone.php - Standalone Meinungsbild-Tool-Wrapper
  * Erstellt: 18.11.2025
+ * Erweitert: 18.12.2025 - Externe Teilnehmer-Support
  *
  * VERWENDUNG:
  * ===========
@@ -26,10 +27,15 @@
  * - Für public: opinion_standalone.php?poll_id=XX
  * - Für list/authenticated: Regulärer Login erforderlich
  *
+ * Externer Zugriff (ohne Login):
+ * - opinion_standalone.php?poll_id=XXX
+ * - Zeigt Registrierungsformular für externe Teilnehmer an
+ *
  * DATENBANK-KOMPATIBILITÄT:
  * =========================
  * - Erkennt automatisch ob members oder berechtigte Tabelle verwendet wird
  * - Nutzt Adapter-System für Portabilität
+ * - Unterstützt externe Teilnehmer ohne Account
  */
 
 // ============================================
@@ -52,8 +58,9 @@ if ($is_sitzungsverwaltung) {
     // In Sitzungsverwaltung: Adapter-System nutzen
     require_once __DIR__ . '/member_functions.php';
     require_once __DIR__ . '/opinion_functions.php';
+    require_once __DIR__ . '/external_participants_functions.php';
 
-    // User aus Session holen (kann NULL sein bei public/token-Zugriff)
+    // User aus Session holen (kann NULL sein bei public/token/externem Zugriff)
     $current_user = null;
     if (isset($_SESSION['member_id'])) {
         $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
@@ -63,13 +70,14 @@ if ($is_sitzungsverwaltung) {
     // In anderer Anwendung: Direkter Zugriff auf berechtigte-Tabelle
 
     require_once __DIR__ . '/opinion_functions.php';
+    require_once __DIR__ . '/external_participants_functions.php';
 
-    // Prüfen ob Voraussetzungen erfüllt sind (außer bei Token-Zugriff)
+    // Prüfen ob Voraussetzungen erfüllt sind (außer bei Token/externem Zugriff)
     if (!$access_token && !isset($pdo)) {
         die('FEHLER: $pdo nicht definiert. Bitte PDO-Verbindung vor dem Include erstellen.');
     }
 
-    // User laden (kann NULL sein bei public/token-Zugriff)
+    // User laden (kann NULL sein bei public/token/externem Zugriff)
     $current_user = null;
     if (isset($MNr) && $MNr) {
         // User aus berechtigte-Tabelle holen
@@ -153,6 +161,37 @@ if ($access_token) {
     // Automatisch zur Teilnahme-Ansicht
     if (!isset($_GET['view'])) {
         $_GET['view'] = 'participate';
+    }
+}
+
+// ============================================
+// EXTERNE TEILNEHMER-PRÜFUNG
+// ============================================
+
+// Wenn Poll-ID vorhanden: Prüfen ob Teilnehmer identifiziert ist
+if ($poll_id_param > 0) {
+    // Poll laden um Titel etc. zu haben (falls nicht schon via Token geladen)
+    if (!isset($poll) || !$poll) {
+        $poll = get_opinion_poll_with_options($pdo, $poll_id_param);
+    }
+
+    if ($poll) {
+        // Aktuellen Teilnehmer ermitteln (Member oder Extern)
+        $participant = get_current_participant($current_user, $pdo, 'meinungsbild', $poll_id_param);
+
+        // Wenn niemand identifiziert: Registrierungsformular anzeigen
+        if ($participant['type'] === 'none') {
+            // Registrierungsformular einbinden
+            $poll_type = 'meinungsbild';
+            $poll_id = $poll_id_param;
+            require __DIR__ . '/external_participant_register.php';
+            exit; // Beende Skript hier
+        }
+
+        // Teilnehmer ist identifiziert - in Variablen speichern für spätere Verwendung
+        $current_participant_type = $participant['type']; // 'member' oder 'external'
+        $current_participant_id = $participant['id'];
+        $current_participant_data = $participant['data'];
     }
 }
 

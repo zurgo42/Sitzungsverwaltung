@@ -15,10 +15,11 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/member_functions.php';
 require_once __DIR__ . '/mail_functions.php';
+require_once __DIR__ . '/external_participants_functions.php';
 
 session_start();
 
-// Authentifizierung (für Erstellen, nicht für public Teilnahme)
+// Authentifizierung (Member ODER Externer Teilnehmer)
 $current_user = null;
 $is_authenticated = false;
 
@@ -26,6 +27,10 @@ if (isset($_SESSION['member_id'])) {
     $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
     $is_authenticated = $current_user !== false;
 }
+
+// Externe Teilnehmer-Session prüfen
+$external_session = get_external_participant_session();
+$is_external_participant = ($external_session !== null);
 
 // ============================================
 // HILFSFUNKTIONEN
@@ -229,8 +234,13 @@ try {
                 exit;
             }
 
-            $member_id = $is_authenticated ? $current_user['member_id'] : null;
-            $session_token = !$is_authenticated ? get_or_create_session_token() : null;
+            // Teilnehmer ermitteln (Member, Extern, oder alt-session_token)
+            $participant = get_current_participant($current_user, $pdo, 'meinungsbild', $poll_id);
+
+            $member_id = ($participant['type'] === 'member') ? $participant['id'] : null;
+            $external_id = ($participant['type'] === 'external') ? $participant['id'] : null;
+            $session_token = ($participant['type'] === 'none' && !$is_authenticated) ? get_or_create_session_token() : null;
+
             $selected_options = $_POST['options'] ?? [];
             $free_text = trim($_POST['free_text'] ?? '');
             $force_anonymous = !empty($_POST['force_anonymous']) ? 1 : 0;
@@ -243,14 +253,21 @@ try {
 
             // Prüfen ob bereits geantwortet
             if ($member_id !== null) {
-                // Logged-in User: Nur nach member_id suchen
+                // Logged-in Member: Nur nach member_id suchen
                 $check_stmt = $pdo->prepare("
                     SELECT response_id FROM svopinion_responses
                     WHERE poll_id = ? AND member_id = ?
                 ");
                 $check_stmt->execute([$poll_id, $member_id]);
+            } else if ($external_id !== null) {
+                // Externer Teilnehmer: Nur nach external_participant_id suchen
+                $check_stmt = $pdo->prepare("
+                    SELECT response_id FROM svopinion_responses
+                    WHERE poll_id = ? AND external_participant_id = ?
+                ");
+                $check_stmt->execute([$poll_id, $external_id]);
             } else if ($session_token !== null) {
-                // Anonymous User: Nur nach session_token suchen
+                // Anonymous User (alt): Nur nach session_token suchen
                 $check_stmt = $pdo->prepare("
                     SELECT response_id FROM svopinion_responses
                     WHERE poll_id = ? AND session_token = ?
@@ -283,10 +300,10 @@ try {
             } else {
                 // Neue Antwort erstellen
                 $stmt = $pdo->prepare("
-                    INSERT INTO svopinion_responses (poll_id, member_id, session_token, free_text, force_anonymous)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO svopinion_responses (poll_id, member_id, external_participant_id, session_token, free_text, force_anonymous)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$poll_id, $member_id, $session_token, $free_text, $force_anonymous]);
+                $stmt->execute([$poll_id, $member_id, $external_id, $session_token, $free_text, $force_anonymous]);
                 $response_id = $pdo->lastInsertId();
             }
 
@@ -300,7 +317,13 @@ try {
             }
 
             $_SESSION['success'] = 'Deine Antwort wurde gespeichert!';
-            header('Location: index.php?tab=opinion&view=results&poll_id=' . $poll_id);
+
+            // Redirect je nach Teilnehmer-Typ
+            if ($current_user) {
+                header('Location: index.php?tab=opinion&view=results&poll_id=' . $poll_id);
+            } else {
+                header('Location: opinion_standalone.php?poll_id=' . $poll_id);
+            }
             exit;
 
         // ====== UMFRAGE LÖSCHEN ======
