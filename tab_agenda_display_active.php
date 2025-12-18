@@ -238,42 +238,75 @@ $active_item_id = $stmt->fetchColumn();
 
 <!-- NEUEN TOP HINZUFÜGEN (nur Sekretär) -->
 <?php if ($is_secretary): ?>
+<style>
+    .top-add-form-footer {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-top: 15px;
+    }
+    .top-add-submit-btn {
+        background: #4caf50;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    @media (max-width: 768px) {
+        .top-add-form-footer {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+        }
+        .top-add-form-footer label {
+            margin-bottom: 0;
+        }
+        .top-add-submit-btn {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 15px;
+        }
+    }
+</style>
 <div class="form-section" style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0; border: 2px solid #4caf50;">
     <h3 style="color: #2e7d32; margin-bottom: 15px;">➕ Neuen TOP hinzufügen (während Sitzung)</h3>
-    
+
     <form method="POST" action="">
         <input type="hidden" name="add_agenda_item_active" value="1">
-        
+
         <div class="form-group">
             <label>Titel:</label>
             <input type="text" name="title" required placeholder="TOP-Titel...">
         </div>
-        
+
         <div class="form-group">
             <label>Beschreibung:</label>
             <textarea name="description" rows="2" placeholder="Kurze Beschreibung..."></textarea>
         </div>
-        
+
         <div class="form-group">
             <label>Kategorie:</label>
             <?php render_category_select('category', 'active_new_category', 'information', 'toggleProposalField(\'active_new\')'); ?>
         </div>
-        
+
         <div class="form-group" id="active_new_proposal" style="display:none;">
             <label style="font-weight: 600; color: #856404;">📄 Antragstext:</label>
-            <textarea name="proposal_text" 
-                      rows="4" 
-                      placeholder="Formulierung des Antrags..." 
+            <textarea name="proposal_text"
+                      rows="4"
+                      placeholder="Formulierung des Antrags..."
                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
         </div>
-        
-        <div style="display: flex; gap: 10px; align-items: center;">
+
+        <div class="top-add-form-footer">
             <label style="display: flex; align-items: center; gap: 5px;">
                 <input type="checkbox" name="is_confidential" value="1" style="width: auto;">
                 <span>🔒 Vertraulich</span>
             </label>
-            
-            <button type="submit" style="background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+
+            <button type="submit" class="top-add-submit-btn">
                 ➕ TOP hinzufügen
             </button>
         </div>
