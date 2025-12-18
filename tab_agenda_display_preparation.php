@@ -276,6 +276,11 @@ if (!$submission_deadline_passed) {
                 display: block;
                 margin-bottom: 5px;
             }
+            .priority-duration-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            }
             .top-submit-button {
                 width: 100%;
                 background: #4caf50;
@@ -288,6 +293,10 @@ if (!$submission_deadline_passed) {
                 font-size: 16px;
             }
             @media (max-width: 768px) {
+                .priority-duration-grid {
+                    grid-template-columns: 1fr;
+                    gap: 0;
+                }
                 .top-submit-button {
                     padding: 14px 20px;
                     font-size: 15px;
@@ -322,13 +331,13 @@ if (!$submission_deadline_passed) {
             $is_leadership = in_array(strtolower($current_user['role'] ?? ''), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam']);
             if ($is_leadership):
             ?>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div class="form-group">
+            <div class="priority-duration-grid">
+                <div class="form-group top-form-group">
                     <label style="font-weight: 600;">Priorität (1-10):</label>
                     <input type="number" name="priority" min="1" max="10" step="0.1" value="5" required>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group top-form-group">
                     <label style="font-weight: 600;">Geschätzte Dauer (Min.):</label>
                     <input type="number" name="duration" min="1" value="10" required>
                 </div>
