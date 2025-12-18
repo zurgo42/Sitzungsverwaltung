@@ -4,15 +4,18 @@
  * Erstellt: 2025-11-18
  */
 
+// Member-Functions mit Adapter-Support laden
+require_once __DIR__ . '/member_functions.php';
+
 /**
  * Lädt alle aktiven Meinungsbilder
  */
 function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) {
+    // Mitglieder über Adapter laden und zu Polls hinzufügen
     $sql = "
-        SELECT op.*, m.first_name, m.last_name,
+        SELECT op.*,
                (SELECT COUNT(*) FROM svopinion_responses WHERE poll_id = op.poll_id) as response_count
         FROM svopinion_polls op
-        LEFT JOIN svmembers m ON op.creator_member_id = m.member_id
         WHERE op.status != 'deleted'
     ";
 
@@ -36,7 +39,20 @@ function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) 
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Creator-Namen über Adapter nachladen
+    foreach ($polls as &$poll) {
+        if ($poll['creator_member_id']) {
+            $creator = get_member_by_id($pdo, $poll['creator_member_id']);
+            if ($creator) {
+                $poll['first_name'] = $creator['first_name'];
+                $poll['last_name'] = $creator['last_name'];
+            }
+        }
+    }
+
+    return $polls;
 }
 
 /**
@@ -44,9 +60,8 @@ function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) 
  */
 function get_opinion_poll_with_options($pdo, $poll_id) {
     $stmt = $pdo->prepare("
-        SELECT op.*, m.first_name, m.last_name, m.email
+        SELECT op.*
         FROM svopinion_polls op
-        LEFT JOIN svmembers m ON op.creator_member_id = m.member_id
         WHERE op.poll_id = ? AND op.status != 'deleted'
     ");
     $stmt->execute([$poll_id]);
@@ -54,6 +69,16 @@ function get_opinion_poll_with_options($pdo, $poll_id) {
 
     if (!$poll) {
         return null;
+    }
+
+    // Creator-Daten über Adapter laden
+    if ($poll['creator_member_id']) {
+        $creator = get_member_by_id($pdo, $poll['creator_member_id']);
+        if ($creator) {
+            $poll['first_name'] = $creator['first_name'];
+            $poll['last_name'] = $creator['last_name'];
+            $poll['email'] = $creator['email'];
+        }
     }
 
     // Optionen laden
@@ -213,11 +238,8 @@ function get_all_responses($pdo, $poll_id, $show_names = false) {
     $stmt = $pdo->prepare("
         SELECT
             r.*,
-            m.first_name,
-            m.last_name,
             GROUP_CONCAT(opo.option_text ORDER BY opo.sort_order SEPARATOR ', ') as selected_options_text
         FROM svopinion_responses r
-        LEFT JOIN svmembers m ON r.member_id = m.member_id
         LEFT JOIN svopinion_response_options oro ON r.response_id = oro.response_id
         LEFT JOIN svopinion_poll_options opo ON oro.option_id = opo.option_id
         WHERE r.poll_id = ?
@@ -227,9 +249,18 @@ function get_all_responses($pdo, $poll_id, $show_names = false) {
     $stmt->execute([$poll_id]);
     $responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Namen anonymisieren falls nötig
-    if (!$show_names) {
-        foreach ($responses as &$response) {
+    // Member-Daten über Adapter nachladen
+    foreach ($responses as &$response) {
+        if ($response['member_id']) {
+            $member = get_member_by_id($pdo, $response['member_id']);
+            if ($member) {
+                $response['first_name'] = $member['first_name'];
+                $response['last_name'] = $member['last_name'];
+            }
+        }
+
+        // Namen anonymisieren falls nötig
+        if (!$show_names) {
             if ($response['force_anonymous'] || !$response['member_id']) {
                 $response['first_name'] = 'Anonym';
                 $response['last_name'] = '';

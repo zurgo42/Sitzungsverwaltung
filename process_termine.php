@@ -155,10 +155,13 @@ try {
                 $time_start = $_POST["time_start_$i"] ?? '';
                 $time_end = $_POST["time_end_$i"] ?? '';
 
-                if (!empty($date) && !empty($time_start)) {
-                    $suggested_datetime = $date . ' ' . $time_start;
+                // Termin speichern wenn mindestens Datum vorhanden
+                if (!empty($date)) {
+                    // Wenn keine Startzeit angegeben, 00:00:00 verwenden
+                    $suggested_datetime = $date . ' ' . (!empty($time_start) ? $time_start : '00:00:00');
                     $suggested_end = null;
 
+                    // Ende-Zeit nur setzen wenn auch vorhanden
                     if (!empty($time_end)) {
                         $suggested_end = $date . ' ' . $time_end;
                     }

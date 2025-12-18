@@ -2,6 +2,9 @@
 
 // Benachrichtigungsmodul laden
 require_once 'module_notifications.php';
+// Member-Functions mit Adapter-Support laden
+require_once 'member_functions.php';
+
 /**
  * tab_termine.php - Terminplanung/Umfragen (Präsentation)
  * Erstellt: 17.11.2025
@@ -21,14 +24,11 @@ if ($is_admin) {
     // Admins sehen alle Umfragen
     $stmt = $pdo->prepare("
         SELECT p.*,
-               m.first_name as creator_first_name,
-               m.last_name as creator_last_name,
                COUNT(DISTINCT pd.date_id) as date_count,
                COUNT(DISTINCT pr.member_id) as response_count,
                final_pd.suggested_date as final_date,
                final_pd.suggested_end_date as final_end_date
         FROM svpolls p
-        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         LEFT JOIN svpoll_dates pd ON p.poll_id = pd.poll_id
         LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id
         LEFT JOIN svpoll_dates final_pd ON p.final_date_id = final_pd.date_id
@@ -40,14 +40,11 @@ if ($is_admin) {
     // Normale User sehen nur Umfragen, bei denen sie Teilnehmer sind
     $stmt = $pdo->prepare("
         SELECT DISTINCT p.*,
-               m.first_name as creator_first_name,
-               m.last_name as creator_last_name,
                COUNT(DISTINCT pd.date_id) as date_count,
                COUNT(DISTINCT pr.member_id) as response_count,
                final_pd.suggested_date as final_date,
                final_pd.suggested_end_date as final_end_date
         FROM svpolls p
-        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         LEFT JOIN svpoll_dates pd ON p.poll_id = pd.poll_id
         LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id
         LEFT JOIN svpoll_dates final_pd ON p.final_date_id = final_pd.date_id
@@ -59,6 +56,17 @@ if ($is_admin) {
     $stmt->execute([$current_user['member_id']]);
 }
 $all_polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Creator-Namen über Adapter nachladen
+foreach ($all_polls as &$poll) {
+    if ($poll['created_by_member_id']) {
+        $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
+        if ($creator) {
+            $poll['creator_first_name'] = $creator['first_name'];
+            $poll['creator_last_name'] = $creator['last_name'];
+        }
+    }
+}
 
 // Meetings für Dropdown laden
 $all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
@@ -749,11 +757,8 @@ if (isset($_SESSION['error'])) {
     <?php
     // Poll-Daten laden
     $stmt = $pdo->prepare("
-        SELECT p.*,
-               m.first_name as creator_first_name,
-               m.last_name as creator_last_name
+        SELECT p.*
         FROM svpolls p
-        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         WHERE p.poll_id = ?
     ");
     $stmt->execute([$poll_id]);
@@ -763,6 +768,14 @@ if (isset($_SESSION['error'])) {
         echo '<div class="error-message">Umfrage nicht gefunden</div>';
         echo '<a href="?tab=termine" class="btn-secondary">← Zurück zur Übersicht</a>';
     } else {
+        // Creator-Namen über Adapter laden
+        if ($poll['created_by_member_id']) {
+            $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
+            if ($creator) {
+                $poll['creator_first_name'] = $creator['first_name'];
+                $poll['creator_last_name'] = $creator['last_name'];
+            }
+        }
         // Terminvorschläge laden
         $stmt = $pdo->prepare("
             SELECT * FROM svpoll_dates
@@ -774,24 +787,47 @@ if (isset($_SESSION['error'])) {
 
         // Alle Antworten laden
         $stmt = $pdo->prepare("
-            SELECT pr.*, m.first_name, m.last_name
+            SELECT pr.*
             FROM svpoll_responses pr
-            LEFT JOIN svmembers m ON pr.member_id = m.member_id
             WHERE pr.poll_id = ?
         ");
         $stmt->execute([$poll_id]);
         $all_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Member-Namen über Adapter nachladen
+        foreach ($all_responses as &$response) {
+            if ($response['member_id']) {
+                $member = get_member_by_id($pdo, $response['member_id']);
+                if ($member) {
+                    $response['first_name'] = $member['first_name'];
+                    $response['last_name'] = $member['last_name'];
+                }
+            }
+        }
+
         // Alle eingeladenen Teilnehmer laden
         $stmt = $pdo->prepare("
-            SELECT pp.member_id, m.first_name, m.last_name
+            SELECT pp.member_id
             FROM svpoll_participants pp
-            LEFT JOIN svmembers m ON pp.member_id = m.member_id
             WHERE pp.poll_id = ?
-            ORDER BY m.last_name, m.first_name
         ");
         $stmt->execute([$poll_id]);
         $poll_participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Member-Namen über Adapter nachladen und sortieren
+        foreach ($poll_participants as &$participant) {
+            if ($participant['member_id']) {
+                $member = get_member_by_id($pdo, $participant['member_id']);
+                if ($member) {
+                    $participant['first_name'] = $member['first_name'];
+                    $participant['last_name'] = $member['last_name'];
+                }
+            }
+        }
+        // Nach Nachname sortieren
+        usort($poll_participants, function($a, $b) {
+            return strcmp($a['last_name'] ?? '', $b['last_name'] ?? '');
+        });
 
         // User's aktuelle Antworten laden
         $stmt = $pdo->prepare("
