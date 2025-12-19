@@ -126,18 +126,46 @@ if ($is_sitzungsverwaltung) {
 }
 
 // ============================================
+// TOKEN-BASIERTER ZUGRIFF
+// ============================================
+
+// Prüfen ob via Access-Token zugegriffen wird
+$access_token = $_GET['token'] ?? null;
+
+// Falls Access-Token übergeben: Poll laden
+if ($access_token) {
+    // Poll per Token laden
+    $stmt = $pdo->prepare("SELECT * FROM svpolls WHERE access_token = ? AND status = 'open'");
+    $stmt->execute([$access_token]);
+    $poll = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$poll) {
+        die('<div style="background:#f8d7da;padding:20px;border:1px solid #f5c6cb;color:#721c24;border-radius:5px;margin:20px;">
+            ❌ Ungültiger oder abgelaufener Zugangs-Link. Bitte prüfe den Link oder kontaktiere den Ersteller.
+        </div>');
+    }
+
+    // Poll-ID für weitere Verarbeitung
+    $poll_id_param = $poll['poll_id'];
+}
+
+// ============================================
 // EXTERNE TEILNEHMER-PRÜFUNG
 // ============================================
 
-// Poll-ID aus URL holen
-$poll_id_param = isset($_GET['poll_id']) ? intval($_GET['poll_id']) : null;
+// Poll-ID aus URL holen (falls nicht schon via Token gesetzt)
+if (!isset($poll_id_param)) {
+    $poll_id_param = isset($_GET['poll_id']) ? intval($_GET['poll_id']) : null;
+}
 
 // Wenn Poll-ID vorhanden: Prüfen ob Teilnehmer identifiziert ist
 if ($poll_id_param > 0) {
-    // Poll laden um Titel etc. zu haben
-    $stmt = $pdo->prepare("SELECT * FROM svpolls WHERE poll_id = ?");
-    $stmt->execute([$poll_id_param]);
-    $poll = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Poll laden um Titel etc. zu haben (falls nicht schon via Token geladen)
+    if (!isset($poll) || !$poll) {
+        $stmt = $pdo->prepare("SELECT * FROM svpolls WHERE poll_id = ?");
+        $stmt->execute([$poll_id_param]);
+        $poll = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 
     if ($poll) {
         // Aktuellen Teilnehmer ermitteln (Member oder Extern)
