@@ -269,12 +269,23 @@ try {
             $existing = $check_stmt ? $check_stmt->fetch() : false;
 
             if ($existing) {
-                // Editieren erlaubt wenn Ersteller und nur 1 Antwort
-                $count_stmt = $pdo->prepare("SELECT COUNT(*) as cnt FROM svopinion_responses WHERE poll_id = ?");
-                $count_stmt->execute([$poll_id]);
-                $count = $count_stmt->fetch()['cnt'];
+                // Externe Teilnehmer dürfen immer bearbeiten
+                // Ersteller dürfen bearbeiten wenn nur 1 Antwort
+                // Andere Member dürfen NICHT bearbeiten
+                $allow_edit = false;
 
-                if ($count > 1 || !is_creator($poll, $current_user)) {
+                if ($external_id !== null) {
+                    // Externe Teilnehmer: Immer erlaubt
+                    $allow_edit = true;
+                } elseif ($member_id !== null && is_creator($poll, $current_user)) {
+                    // Ersteller: Nur wenn nur 1 Antwort
+                    $count_stmt = $pdo->prepare("SELECT COUNT(*) as cnt FROM svopinion_responses WHERE poll_id = ?");
+                    $count_stmt->execute([$poll_id]);
+                    $count = $count_stmt->fetch()['cnt'];
+                    $allow_edit = ($count <= 1);
+                }
+
+                if (!$allow_edit) {
                     $_SESSION['error'] = 'Sie haben bereits geantwortet';
                     header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
                     exit;
