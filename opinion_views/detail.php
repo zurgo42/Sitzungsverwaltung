@@ -89,11 +89,12 @@ $stats = get_opinion_results($pdo, $poll_id);
 </div>
 
 <?php
-// Zugangslink für alle Typen anzeigen
-$host = defined('BASE_URL') ? BASE_URL : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
-$access_link = get_poll_access_link($poll, $host);
+// Zugangslink nur für Ersteller und Admins anzeigen
+if ($is_creator || $is_admin):
+    $host = defined('BASE_URL') ? BASE_URL : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
+    $access_link = get_poll_access_link($poll, $host);
 
-if ($access_link):
+    if ($access_link):
 ?>
     <div class="opinion-card" style="background: #f0f8ff; border: 2px solid #4CAF50;">
         <h4 style="margin: 0 0 10px 0;">🔗 Zugangslink</h4>
@@ -122,7 +123,10 @@ if ($access_link):
             </button>
         </div>
     </div>
-<?php endif; ?>
+<?php
+    endif; // end if ($access_link)
+endif; // end if ($is_creator || $is_admin)
+?>
 
 <div class="opinion-card">
     <h4>Antwortmöglichkeiten</h4>

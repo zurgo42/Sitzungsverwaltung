@@ -214,27 +214,36 @@ function validate_external_email($email) {
 
 /**
  * Generiert einen Access-Link für externe Teilnehmer
+ * ZENTRALE Funktion - verwendet STANDALONE_PATH aus config.php
  *
- * @param string $base_url
  * @param string $poll_type 'termine' oder 'meinungsbild'
- * @param int $poll_id
- * @param string $access_token Optional: Individueller Token für die Umfrage
+ * @param int|string $poll_id_or_token Poll-ID oder Access-Token
+ * @param bool $use_token Wenn true, wird $poll_id_or_token als Token behandelt
  * @return string
  */
-function generate_external_access_link($base_url, $poll_type, $poll_id, $access_token = null) {
-    $base_url = rtrim($base_url, '/');
+function generate_external_access_link($poll_type, $poll_id_or_token, $use_token = false) {
+    // Base URL ermitteln
+    if (defined('BASE_URL')) {
+        $base = BASE_URL;
+    } else {
+        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+        $base = $protocol . '://' . $_SERVER['HTTP_HOST'];
+    }
 
+    // Standalone-Pfad aus Konfiguration
+    $path = defined('STANDALONE_PATH') ? STANDALONE_PATH : '';
+
+    // Dateinamen und Parameter bestimmen
     if ($poll_type === 'termine') {
         $file = 'terminplanung_standalone.php';
     } else {
         $file = 'opinion_standalone.php';
     }
 
-    if ($access_token) {
-        return $base_url . '/' . $file . '?token=' . $access_token;
-    } else {
-        return $base_url . '/' . $file . '?poll_id=' . $poll_id;
-    }
+    $param = $use_token ? "token=$poll_id_or_token" : "poll_id=$poll_id_or_token";
+
+    // Link zusammenbauen
+    return rtrim($base, '/') . rtrim($path, '/') . '/' . $file . '?' . $param;
 }
 
 /**

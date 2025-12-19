@@ -317,14 +317,16 @@ function get_answer_templates($pdo) {
 
 /**
  * Generiert Zugriffs-Link für individual-Umfragen
+ * Verwendet zentrale Funktion aus external_participants_functions.php
  */
-function get_poll_access_link($poll, $base_url) {
-    if ($poll['target_type'] !== 'individual' || empty($poll['access_token'])) {
+function get_poll_access_link($poll, $base_url = null) {
+    if (empty($poll['access_token'])) {
         return null;
     }
 
-    // Link auf standalone-Seite für externe Teilnehmer
-    return rtrim($base_url, '/') . '/opinion_standalone.php?token=' . $poll['access_token'];
+    // Zentrale Link-Generierung verwenden
+    require_once __DIR__ . '/external_participants_functions.php';
+    return generate_external_access_link('meinungsbild', $poll['access_token'], true);
 }
 
 /**

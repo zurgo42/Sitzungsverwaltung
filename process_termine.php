@@ -122,6 +122,7 @@ try {
             $title = trim($_POST['title'] ?? '');
             $description = trim($_POST['description'] ?? '');
             $location = trim($_POST['location'] ?? '');
+            $target_type = $_POST['target_type'] ?? 'list';
             $participant_ids = $_POST['participant_ids'] ?? [];
 
             if (empty($title)) {
@@ -130,27 +131,31 @@ try {
                 exit;
             }
 
-            if (empty($participant_ids)) {
+            // Teilnehmer nur bei target_type='list' erforderlich
+            if ($target_type === 'list' && empty($participant_ids)) {
                 $_SESSION['error'] = 'Bitte wähle mindestens einen Teilnehmer aus';
                 header('Location: index.php?tab=termine');
                 exit;
             }
 
             // Umfrage erstellen (meeting_id wird später beim Finalisieren gesetzt)
+            // access_token wird automatisch via Trigger generiert wenn target_type='individual'
             $stmt = $pdo->prepare("
-                INSERT INTO svpolls (title, description, location, created_by_member_id, meeting_id, status, created_at)
-                VALUES (?, ?, ?, ?, NULL, 'open', NOW())
+                INSERT INTO svpolls (title, description, location, created_by_member_id, meeting_id, target_type, status, created_at)
+                VALUES (?, ?, ?, ?, NULL, ?, 'open', NOW())
             ");
-            $stmt->execute([$title, $description, $location, $current_user['member_id']]);
+            $stmt->execute([$title, $description, $location, $current_user['member_id'], $target_type]);
             $poll_id = $pdo->lastInsertId();
 
-            // Teilnehmer hinzufügen
-            $stmt = $pdo->prepare("
-                INSERT INTO svpoll_participants (poll_id, member_id)
-                VALUES (?, ?)
-            ");
-            foreach ($participant_ids as $member_id) {
-                $stmt->execute([$poll_id, intval($member_id)]);
+            // Teilnehmer nur bei target_type='list' hinzufügen
+            if ($target_type === 'list') {
+                $stmt = $pdo->prepare("
+                    INSERT INTO svpoll_participants (poll_id, member_id)
+                    VALUES (?, ?)
+                ");
+                foreach ($participant_ids as $member_id) {
+                    $stmt->execute([$poll_id, intval($member_id)]);
+                }
             }
 
             // Terminvorschläge hinzufügen (bis zu 20)

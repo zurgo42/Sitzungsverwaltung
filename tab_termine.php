@@ -4,6 +4,8 @@
 require_once 'module_notifications.php';
 // Member-Functions mit Adapter-Support laden
 require_once 'member_functions.php';
+// Externe Teilnehmer-Functions laden
+require_once 'external_participants_functions.php';
 
 /**
  * tab_termine.php - Terminplanung/Umfragen (Präsentation)
@@ -454,6 +456,17 @@ function togglePollLeadershipRoles() {
     });
 }
 
+function updatePollTargetOptions() {
+    const targetType = document.querySelector('input[name="target_type"]:checked').value;
+    const participantList = document.getElementById('poll-participant-list-selection');
+
+    if (targetType === 'list') {
+        participantList.style.display = 'block';
+    } else {
+        participantList.style.display = 'none';
+    }
+}
+
 function togglePollTopManagement() {
     const checkboxes = document.querySelectorAll('.poll-participant-checkbox');
     const topRoles = ['vorstand', 'gf', 'assistenz'];
@@ -595,8 +608,21 @@ if (isset($_SESSION['error'])) {
                     </small>
                 </div>
 
-                <!-- Teilnehmer auswählen -->
-                <div class="form-group">
+                <!-- Zielgruppe wählen -->
+                <div class="form-group" style="margin-top: 25px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+                    <h4 style="margin: 0 0 15px 0;">Zielgruppe wählen</h4>
+                    <label style="display: block; margin-bottom: 10px;">
+                        <input type="radio" name="target_type" value="individual" onchange="updatePollTargetOptions()">
+                        <strong>Individuell</strong> - Link, den du weitergeben kannst
+                    </label>
+                    <label style="display: block; margin-bottom: 10px;">
+                        <input type="radio" name="target_type" value="list" checked onchange="updatePollTargetOptions()">
+                        <strong>Ausgewählte registrierte Teilnehmer</strong>
+                    </label>
+                </div>
+
+                <!-- Teilnehmer auswählen (nur bei target_type='list') -->
+                <div class="form-group" id="poll-participant-list-selection">
                     <label>Teilnehmer auswählen (nur diese sehen die Umfrage):*</label>
                     <div class="participant-buttons">
                         <button type="button" onclick="toggleAllPollParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
@@ -615,6 +641,17 @@ if (isset($_SESSION['error'])) {
                                 <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')'); ?>
                             </label>
                         <?php endforeach; ?>
+                    </div>
+
+                    <!-- E-Mail-Option direkt unter Teilnehmerliste -->
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                        <label style="display: block;">
+                            <input type="checkbox" name="send_invitation_mail" value="1">
+                            <strong>Einladungsmail an ausgewählte Teilnehmer senden</strong>
+                        </label>
+                        <small style="display: block; margin-left: 24px; margin-top: 5px; color: #666;">
+                            Wenn aktiviert, werden alle ausgewählten Teilnehmer per E-Mail über die neue Umfrage benachrichtigt
+                        </small>
                     </div>
                 </div>
 
@@ -638,28 +675,19 @@ if (isset($_SESSION['error'])) {
 
                     <div id="date-suggestions-container">
                         <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <div class="date-suggestion-row" style="display: grid; grid-template-columns: 150px 100px 100px; gap: 10px; align-items: center; margin-bottom: 8px;">
+                        <div class="date-suggestion-row" style="display: grid; grid-template-columns: 150px 100px 100px auto; gap: 10px; align-items: center; margin-bottom: 8px;">
                             <input type="date" name="date_<?php echo $i; ?>" id="poll_date_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
                             <input type="time" name="time_start_<?php echo $i; ?>" id="poll_time_start_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" onchange="calculateEndTime(<?php echo $i; ?>)" style="width: 100%;">
                             <input type="time" name="time_end_<?php echo $i; ?>" id="poll_time_end_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
+                            <?php if ($i === 5): ?>
+                            <button type="button" onclick="addMorePollDates()" class="btn-secondary" style="padding: 4px 8px; font-size: 12px; white-space: nowrap;">+ Termin</button>
+                            <?php endif; ?>
                         </div>
                         <?php endfor; ?>
                     </div>
 
-                    <button type="button" onclick="addMorePollDates()" class="btn-secondary" style="margin-top: 10px;">+ Weiteren Termin hinzufügen</button>
                     <small style="display: block; margin-top: 10px; color: #666;">
                         Du kannst bis zu 20 Terminvorschläge hinzufügen. Wenn du ins nächste Datumsfeld klickst, wird automatisch der Folgetag mit gleicher Uhrzeit vorgeschlagen.
-                    </small>
-                </div>
-
-                <!-- E-Mail-Optionen -->
-                <div class="form-group" style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #ddd;">
-                    <label style="display: block; margin-bottom: 10px;">
-                        <input type="checkbox" name="send_invitation_mail" value="1" checked>
-                        <strong>Einladungsmail an ausgewählte Teilnehmer senden</strong>
-                    </label>
-                    <small style="display: block; margin-left: 24px; color: #666;">
-                        Wenn aktiviert, werden alle ausgewählten Teilnehmer per E-Mail über die neue Umfrage benachrichtigt
                     </small>
                 </div>
 
@@ -905,11 +933,13 @@ if (isset($_SESSION['error'])) {
         <!-- Link zur Umfrage (nur für Ersteller, nur wenn nicht finalisiert) -->
         <?php if ($is_creator && $poll['status'] !== 'finalized'): ?>
         <?php
-        // Basispfad ermitteln (z.B. "/Sitzungsverwaltung" oder "")
-        $script_path = dirname($_SERVER['SCRIPT_NAME']); // z.B. "/Sitzungsverwaltung"
-        $host = defined('BASE_URL') ? BASE_URL : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
-        // Link auf standalone-Seite für externe Teilnehmer
-        $poll_link = rtrim($host, '/') . $script_path . '/terminplanung_standalone.php?poll_id=' . $poll_id;
+        // Zentrale Link-Generierung verwenden
+        $use_token = ($poll['target_type'] ?? 'list') === 'individual' && !empty($poll['access_token']);
+        $poll_link = generate_external_access_link(
+            'termine',
+            $use_token ? $poll['access_token'] : $poll_id,
+            $use_token
+        );
         ?>
         <div class="poll-card" style="background: #f0f8ff; border: 2px solid #4CAF50; margin-bottom: 20px;">
             <h4 style="margin: 0 0 10px 0;">🔗 Link zu dieser Umfrage</h4>

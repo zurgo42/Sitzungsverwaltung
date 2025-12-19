@@ -165,6 +165,115 @@ if ($access_token) {
 }
 
 // ============================================
+// ÖFFENTLICHE UMFRAGEN-LISTE
+// ============================================
+
+// Wenn KEINE Token UND KEINE Poll-ID: Liste öffentlicher Umfragen anzeigen
+if (!$access_token && !$poll_id_param) {
+    $stmt = $pdo->prepare("
+        SELECT poll_id, title, created_at, ends_at, status
+        FROM svopinion_polls
+        WHERE target_type = 'public' AND status = 'active'
+        ORDER BY created_at DESC
+    ");
+    $stmt->execute();
+    $public_polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    ?>
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Öffentliche Umfragen</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                max-width: 800px;
+                margin: 40px auto;
+                padding: 20px;
+                background: #f5f5f5;
+            }
+            h1 {
+                color: #333;
+                border-bottom: 3px solid #4CAF50;
+                padding-bottom: 10px;
+            }
+            .poll-card {
+                background: white;
+                padding: 20px;
+                margin: 15px 0;
+                border-radius: 8px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                transition: transform 0.2s;
+            }
+            .poll-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            }
+            .poll-title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 10px;
+            }
+            .poll-meta {
+                font-size: 14px;
+                color: #666;
+                margin-bottom: 15px;
+            }
+            .btn-primary {
+                background: #4CAF50;
+                color: white;
+                padding: 10px 20px;
+                text-decoration: none;
+                border-radius: 5px;
+                display: inline-block;
+                transition: background 0.2s;
+            }
+            .btn-primary:hover {
+                background: #45a049;
+            }
+            .status-active {
+                color: #4CAF50;
+                font-weight: bold;
+            }
+            .no-polls {
+                text-align: center;
+                padding: 40px;
+                color: #999;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>🌐 Öffentliche Umfragen</h1>
+        <p style="color: #666; margin-bottom: 30px;">Hier findest du alle öffentlichen Umfragen, an denen du teilnehmen kannst.</p>
+
+        <?php if (empty($public_polls)): ?>
+            <div class="no-polls">
+                <p>📭 Aktuell gibt es keine aktiven öffentlichen Umfragen.</p>
+            </div>
+        <?php else: ?>
+            <?php foreach ($public_polls as $poll): ?>
+                <div class="poll-card">
+                    <div class="poll-title"><?php echo htmlspecialchars($poll['title']); ?></div>
+                    <div class="poll-meta">
+                        <span class="status-active">● Aktiv</span> •
+                        Läuft bis: <?php echo date('d.m.Y H:i', strtotime($poll['ends_at'])); ?>
+                    </div>
+                    <a href="?poll_id=<?php echo $poll['poll_id']; ?>" class="btn-primary">
+                        📝 Jetzt teilnehmen
+                    </a>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </body>
+    </html>
+    <?php
+    exit; // Beende Skript nach Anzeige der Liste
+}
+
+// ============================================
 // EXTERNE TEILNEHMER-PRÜFUNG
 // ============================================
 
