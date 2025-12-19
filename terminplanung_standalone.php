@@ -413,21 +413,232 @@ if ($poll_id > 0 && !isset($_GET['view'])) {
 
 // CSS nur ausgeben wenn nicht bereits in Sitzungsverwaltung
 if (!$is_sitzungsverwaltung) {
-    echo '<style>
-        /* Basis-Styles für Standalone-Modus */
-        .poll-card { background: white; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 20px; }
-        .poll-card.status-open { border-left: 4px solid #4CAF50; }
-        .poll-card.status-closed { border-left: 4px solid #FF9800; }
-        .poll-card.status-finalized { border-left: 4px solid #2196F3; }
-        .btn-primary { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; }
-        .btn-secondary { background: #6c757d; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; }
-        .btn-danger { background: #dc3545; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; }
-        .vote-matrix { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        .vote-matrix th, .vote-matrix td { padding: 10px; text-align: left; border: 1px solid #ddd; }
-        .vote-matrix th { background: #f5f5f5; font-weight: bold; }
-        .message { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px; border-radius: 4px; margin-bottom: 20px; }
-        .error-message { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px; border-radius: 4px; margin-bottom: 20px; }
-    </style>';
+    // Poll-Titel für Page-Title laden falls poll_id vorhanden
+    $page_title = 'Terminplanung';
+    if ($poll_id > 0) {
+        $stmt = $pdo->prepare("SELECT title FROM svpolls WHERE poll_id = ?");
+        $stmt->execute([$poll_id]);
+        $poll_data = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($poll_data) {
+            $page_title = htmlspecialchars($poll_data['title']);
+        }
+    }
+
+    echo '<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>' . $page_title . '</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+        }
+
+        h2 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+
+        .poll-meta {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .poll-description {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .date-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .date-card:hover {
+            border-color: #4CAF50;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.1);
+        }
+
+        .date-header {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .date-header .weekday {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .vote-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .vote-option {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .vote-option input[type="radio"] {
+            display: none;
+        }
+
+        .vote-option label {
+            display: block;
+            padding: 12px 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .vote-option label:hover {
+            border-color: #bbb;
+            background: #f8f9fa;
+        }
+
+        .vote-option input[type="radio"]:checked + label {
+            font-weight: bold;
+            transform: scale(1.02);
+        }
+
+        .vote-option.yes input[type="radio"]:checked + label {
+            background: #4CAF50;
+            border-color: #4CAF50;
+            color: white;
+        }
+
+        .vote-option.maybe input[type="radio"]:checked + label {
+            background: #FFC107;
+            border-color: #FFC107;
+            color: white;
+        }
+
+        .vote-option.no input[type="radio"]:checked + label {
+            background: #f44336;
+            border-color: #f44336;
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            transition: all 0.3s ease;
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-weight: 500;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h2 {
+                font-size: 22px;
+            }
+
+            .vote-options {
+                flex-direction: column;
+            }
+
+            .vote-option {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">';
 }
 
 // Success/Error Messages
@@ -481,8 +692,26 @@ if ($view === 'dashboard') {
     if (!$poll) {
         echo '<p class="error-message">Umfrage nicht gefunden</p>';
     } else {
+        // Deutsche Wochentage
+        $weekdays = [
+            'Monday' => 'Montag',
+            'Tuesday' => 'Dienstag',
+            'Wednesday' => 'Mittwoch',
+            'Thursday' => 'Donnerstag',
+            'Friday' => 'Freitag',
+            'Saturday' => 'Samstag',
+            'Sunday' => 'Sonntag'
+        ];
+
         echo '<h2>' . htmlspecialchars($poll['title']) . '</h2>';
-        echo '<p>' . nl2br(htmlspecialchars($poll['description'])) . '</p>';
+
+        if (!empty($poll['description'])) {
+            echo '<div class="poll-description">' . nl2br(htmlspecialchars($poll['description'])) . '</div>';
+        }
+
+        if (!empty($poll['location'])) {
+            echo '<div class="poll-meta">📍 Ort: ' . htmlspecialchars($poll['location']) . '</div>';
+        }
 
         // Terminvorschläge und Abstimmung
         $stmt = $pdo->prepare("SELECT * FROM svpoll_dates WHERE poll_id = ? ORDER BY suggested_date");
@@ -493,30 +722,57 @@ if ($view === 'dashboard') {
             echo '<form method="POST">';
             echo '<input type="hidden" name="terminplanung_action" value="submit_vote">';
             echo '<input type="hidden" name="poll_id" value="' . $poll_id . '">';
-            echo '<table class="vote-matrix"><thead><tr><th>Termin</th><th>Abstimmung</th></tr></thead><tbody>';
 
             foreach ($dates as $date) {
-                $date_str = date('d.m.Y H:i', strtotime($date['suggested_date']));
-                echo '<tr>';
-                echo '<td>' . $date_str . '</td>';
-                echo '<td>';
-                echo '<select name="vote_' . $date['date_id'] . '">';
-                echo '<option value="1">✅ Passt</option>';
-                echo '<option value="0" selected>🟡 Geht zur Not</option>';
-                echo '<option value="-1">❌ Passt nicht</option>';
-                echo '</select>';
-                echo '</td>';
-                echo '</tr>';
+                $datetime = new DateTime($date['suggested_date']);
+                $weekday_en = $datetime->format('l');
+                $weekday_de = $weekdays[$weekday_en] ?? $weekday_en;
+                $date_str = $datetime->format('d.m.Y');
+                $time_str = $datetime->format('H:i');
+
+                $end_time = '';
+                if (!empty($date['suggested_end_date'])) {
+                    $end_datetime = new DateTime($date['suggested_end_date']);
+                    $end_time = ' - ' . $end_datetime->format('H:i');
+                }
+
+                echo '<div class="date-card">';
+                echo '<div class="date-header">';
+                echo '<span class="weekday">' . $weekday_de . '</span>';
+                echo '<span>' . $date_str . ', ' . $time_str . $end_time . ' Uhr</span>';
+                echo '</div>';
+                echo '<div class="vote-options">';
+
+                // Radio-Buttons für Ja / Vielleicht / Nein
+                echo '<div class="vote-option yes">';
+                echo '<input type="radio" id="vote_' . $date['date_id'] . '_yes" name="vote_' . $date['date_id'] . '" value="1">';
+                echo '<label for="vote_' . $date['date_id'] . '_yes">✅ Passt gut</label>';
+                echo '</div>';
+
+                echo '<div class="vote-option maybe">';
+                echo '<input type="radio" id="vote_' . $date['date_id'] . '_maybe" name="vote_' . $date['date_id'] . '" value="0" checked>';
+                echo '<label for="vote_' . $date['date_id'] . '_maybe">🟡 Geht zur Not</label>';
+                echo '</div>';
+
+                echo '<div class="vote-option no">';
+                echo '<input type="radio" id="vote_' . $date['date_id'] . '_no" name="vote_' . $date['date_id'] . '" value="-1">';
+                echo '<label for="vote_' . $date['date_id'] . '_no">❌ Passt nicht</label>';
+                echo '</div>';
+
+                echo '</div>'; // vote-options
+                echo '</div>'; // date-card
             }
 
-            echo '</tbody></table>';
             echo '<button type="submit" class="btn-primary">Abstimmung speichern</button>';
             echo '</form>';
         } else {
-            echo '<p>Diese Umfrage ist geschlossen.</p>';
+            echo '<div class="error-message">Diese Umfrage ist bereits geschlossen.</div>';
         }
-
-        echo '<p><a href="?" class="btn-secondary">Zurück</a></p>';
     }
+}
+
+// Schließende Tags nur im Standalone-Modus
+if (!$is_sitzungsverwaltung) {
+    echo '</div></body></html>';
 }
 ?>
