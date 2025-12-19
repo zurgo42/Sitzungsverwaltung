@@ -403,8 +403,13 @@ if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_termi
 }
 
 // Ansonsten: Standalone-Rendering
-$view = $_GET['view'] ?? 'dashboard';
+// Wenn poll_id vorhanden ist, automatisch poll-View wählen (für externe Teilnehmer)
 $poll_id = intval($_GET['poll_id'] ?? 0);
+if ($poll_id > 0 && !isset($_GET['view'])) {
+    $view = 'poll';
+} else {
+    $view = $_GET['view'] ?? 'dashboard';
+}
 
 // CSS nur ausgeben wenn nicht bereits in Sitzungsverwaltung
 if (!$is_sitzungsverwaltung) {
