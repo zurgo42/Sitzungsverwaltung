@@ -206,6 +206,10 @@ if ($poll_id_param > 0) {
             // Registrierungsformular einbinden
             $poll_type = 'termine';
             $poll_id = $poll_id_param;
+
+            // Aktuelles Skript für Redirect übergeben
+            $redirect_script = basename($_SERVER['SCRIPT_NAME']);
+
             require __DIR__ . '/external_participant_register.php';
             exit; // Beende Skript hier
         }

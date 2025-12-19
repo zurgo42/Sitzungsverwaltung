@@ -78,7 +78,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
             $_SESSION['success'] = 'Willkommen! Sie können jetzt an der Umfrage teilnehmen.';
 
             // Zur Umfrage weiterleiten
-            $redirect_url = $_SERVER['PHP_SELF'] . '?poll_id=' . $poll_id;
+            // Verwende $redirect_script falls vom standalone-Skript gesetzt, sonst PHP_SELF
+            $script_name = isset($redirect_script) ? $redirect_script : basename($_SERVER['SCRIPT_NAME']);
+            $redirect_url = $script_name . '?poll_id=' . $poll_id;
             if (isset($_GET['token'])) {
                 $redirect_url .= '&token=' . urlencode($_GET['token']);
             }
