@@ -411,20 +411,20 @@ if ($poll_id > 0 && !isset($_GET['view'])) {
     $view = $_GET['view'] ?? 'dashboard';
 }
 
-// CSS nur ausgeben wenn nicht bereits in Sitzungsverwaltung
-if (!$is_sitzungsverwaltung) {
-    // Poll-Titel für Page-Title laden falls poll_id vorhanden
-    $page_title = 'Terminplanung';
-    if ($poll_id > 0) {
-        $stmt = $pdo->prepare("SELECT title FROM svpolls WHERE poll_id = ?");
-        $stmt->execute([$poll_id]);
-        $poll_data = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($poll_data) {
-            $page_title = htmlspecialchars($poll_data['title']);
-        }
+// Standalone-Rendering benötigt immer das CSS
+// (tab_termine.php hat bereits return; ausgeführt wenn es geladen wurde)
+// Poll-Titel für Page-Title laden falls poll_id vorhanden
+$page_title = 'Terminplanung';
+if ($poll_id > 0) {
+    $stmt = $pdo->prepare("SELECT title FROM svpolls WHERE poll_id = ?");
+    $stmt->execute([$poll_id]);
+    $poll_data = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($poll_data) {
+        $page_title = htmlspecialchars($poll_data['title']);
     }
+}
 
-    echo '<!DOCTYPE html>
+echo '<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -771,8 +771,7 @@ if ($view === 'dashboard') {
     }
 }
 
-// Schließende Tags nur im Standalone-Modus
-if (!$is_sitzungsverwaltung) {
-    echo '</div></body></html>';
-}
+// Schließende Tags für Standalone-Rendering
+// (tab_termine.php hat bereits return; ausgeführt wenn es geladen wurde)
+echo '</div></body></html>';
 ?>
