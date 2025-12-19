@@ -53,16 +53,6 @@ function is_creator($poll, $user) {
 }
 
 /**
- * Generiert Session-Token für anonyme Teilnehmer
- */
-function get_or_create_session_token() {
-    if (!isset($_SESSION['opinion_session_token'])) {
-        $_SESSION['opinion_session_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['opinion_session_token'];
-}
-
-/**
  * Lädt eine Umfrage
  */
 function get_opinion_poll($pdo, $poll_id) {

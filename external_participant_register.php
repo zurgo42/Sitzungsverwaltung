@@ -13,6 +13,14 @@
  * - $pdo: PDO-Datenbankverbindung
  */
 
+// Cookie-Daten laden (falls vorhanden)
+$cookie_data = get_external_participant_from_cookie();
+$from_cookie = false;
+
+if ($cookie_data && empty($_POST)) {
+    $from_cookie = true;
+}
+
 // Prüfen ob bereits registriert
 $external_session = get_external_participant_session();
 $already_registered = false;
@@ -73,6 +81,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                 $poll_id,
                 $result['external_id']
             );
+
+            // Cookie für 30 Tage speichern (zur Wiedererkennung)
+            save_external_participant_cookie($first_name, $last_name, $email);
 
             // Erfolgsmeldung und Weiterleitung
             $_SESSION['success'] = 'Willkommen! Sie können jetzt an der Umfrage teilnehmen.';
@@ -292,6 +303,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
             </div>
         <?php endif; ?>
 
+        <?php if ($from_cookie): ?>
+            <div class="success-box">
+                👋 Willkommen zurück! Ihre Daten wurden automatisch ausgefüllt. Sie können sie bei Bedarf anpassen.
+            </div>
+        <?php endif; ?>
+
         <div class="intro-text">
             <p>Um an dieser Umfrage teilzunehmen, benötigen wir einige Angaben von Ihnen. Ihre Daten werden vertraulich behandelt und ausschließlich für diese Umfrage verwendet.</p>
         </div>
@@ -305,7 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                 </label>
                 <input type="text"
                        name="first_name"
-                       value="<?php echo htmlspecialchars($_POST['first_name'] ?? ''); ?>"
+                       value="<?php echo htmlspecialchars($_POST['first_name'] ?? ($cookie_data['first_name'] ?? '')); ?>"
                        required
                        placeholder="z.B. Max">
             </div>
@@ -316,7 +333,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                 </label>
                 <input type="text"
                        name="last_name"
-                       value="<?php echo htmlspecialchars($_POST['last_name'] ?? ''); ?>"
+                       value="<?php echo htmlspecialchars($_POST['last_name'] ?? ($cookie_data['last_name'] ?? '')); ?>"
                        required
                        placeholder="z.B. Mustermann">
             </div>
@@ -327,7 +344,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                 </label>
                 <input type="email"
                        name="email"
-                       value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"
+                       value="<?php echo htmlspecialchars($_POST['email'] ?? ($cookie_data['email'] ?? '')); ?>"
                        required
                        placeholder="max.mustermann@example.com">
                 <p class="info-text">

@@ -29,6 +29,47 @@ function get_or_create_session_token() {
 }
 
 /**
+ * Speichert externen Teilnehmer in Cookie für 30 Tage
+ * Ermöglicht automatisches Wiedererkennen bei zukünftigen Umfragen
+ *
+ * @param string $first_name
+ * @param string $last_name
+ * @param string $email
+ * @return bool
+ */
+function save_external_participant_cookie($first_name, $last_name, $email) {
+    $cookie_data = json_encode([
+        'first_name' => $first_name,
+        'last_name' => $last_name,
+        'email' => $email
+    ]);
+
+    // Cookie für 30 Tage speichern
+    $expires = time() + (30 * 24 * 60 * 60);
+    return setcookie('sv_external_participant', $cookie_data, $expires, '/', '', false, true);
+}
+
+/**
+ * Lädt externe Teilnehmer-Daten aus Cookie
+ *
+ * @return array|null ['first_name', 'last_name', 'email'] oder NULL
+ */
+function get_external_participant_from_cookie() {
+    if (!isset($_COOKIE['sv_external_participant'])) {
+        return null;
+    }
+
+    $data = json_decode($_COOKIE['sv_external_participant'], true);
+
+    // Validierung
+    if (!$data || !isset($data['first_name'], $data['last_name'], $data['email'])) {
+        return null;
+    }
+
+    return $data;
+}
+
+/**
  * Erstellt oder aktualisiert einen externen Teilnehmer
  *
  * @param PDO $pdo
