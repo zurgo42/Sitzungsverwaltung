@@ -390,8 +390,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
 // VIEW RENDERING
 // ============================================
 
-// Wenn in Sitzungsverwaltung integriert, nutze die bestehenden Tab-Dateien
-if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/tab_termine.php')) {
+// Wenn in Sitzungsverwaltung integriert UND User eingeloggt, nutze die bestehenden Tab-Dateien
+// Externe Teilnehmer (ohne Login) brauchen die komplette Tab-Ansicht nicht
+if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_termine.php')) {
+    // functions.php laden für get_visible_meetings() etc.
+    if (file_exists(__DIR__ . '/functions.php')) {
+        require_once __DIR__ . '/functions.php';
+    }
+
     include __DIR__ . '/tab_termine.php';
     return; // Beende hier
 }
