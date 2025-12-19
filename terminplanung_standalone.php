@@ -2,6 +2,7 @@
 /**
  * terminplanung_standalone.php - Standalone Terminplanung-Wrapper
  * Erstellt: 17.11.2025
+ * Erweitert: 18.12.2025 - Externe Teilnehmer-Support
  *
  * VERWENDUNG:
  * ===========
@@ -20,60 +21,95 @@
  *   - $MNr: Mitgliedsnummer des eingeloggten Users (für berechtigte-Tabelle)
  *   - Optional: $HOST_URL_BASE für E-Mails
  *
+ * Externer Zugriff (ohne Login):
+ * - terminplanung_standalone.php?poll_id=XXX
+ * - Zeigt Registrierungsformular für externe Teilnehmer an
+ *
  * DATENBANK-KOMPATIBILITÄT:
  * =========================
  * - Erkennt automatisch ob members oder berechtigte Tabelle verwendet wird
  * - Nutzt Adapter-System für Portabilität
+ * - Unterstützt externe Teilnehmer ohne Account
  */
 
 // ============================================
 // UMGEBUNGS-ERKENNUNG
 // ============================================
 
+// Session starten falls noch nicht geschehen
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Prüfen ob wir in der Sitzungsverwaltung sind (dann existiert member_functions.php)
 $is_sitzungsverwaltung = file_exists(__DIR__ . '/member_functions.php');
 
 if ($is_sitzungsverwaltung) {
     // In Sitzungsverwaltung: Adapter-System nutzen
-    require_once __DIR__ . '/member_functions.php';
 
-    // User aus Session holen
-    if (!isset($_SESSION['member_id'])) {
-        die('Nicht eingeloggt');
+    // Konfiguration und Datenbank laden
+    if (!defined('DB_HOST')) {
+        require_once __DIR__ . '/config.php';
     }
-    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+
+    // PDO-Verbindung initialisieren falls noch nicht vorhanden
+    if (!isset($pdo)) {
+        try {
+            $pdo = new PDO(
+                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+                DB_USER,
+                DB_PASS,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                ]
+            );
+        } catch (PDOException $e) {
+            die('<div style="background:#f8d7da;padding:20px;border:1px solid #f5c6cb;color:#721c24;border-radius:5px;margin:20px;">
+                ❌ Datenbankverbindung fehlgeschlagen: ' . htmlspecialchars($e->getMessage()) . '
+            </div>');
+        }
+    }
+
+    require_once __DIR__ . '/member_functions.php';
+    require_once __DIR__ . '/external_participants_functions.php';
+
+    // User aus Session holen (kann NULL sein bei externem Zugriff)
+    $current_user = null;
+    if (isset($_SESSION['member_id'])) {
+        $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+    }
 
 } else {
     // In anderer Anwendung: Direkter Zugriff auf berechtigte-Tabelle
+    require_once __DIR__ . '/external_participants_functions.php';
 
-    // Prüfen ob Voraussetzungen erfüllt sind
+    // Prüfen ob Voraussetzungen erfüllt sind (außer bei externem Zugriff)
     if (!isset($pdo)) {
         die('FEHLER: $pdo nicht definiert. Bitte PDO-Verbindung vor dem Include erstellen.');
     }
 
-    if (!isset($MNr)) {
-        die('FEHLER: $MNr nicht definiert. Bitte Mitgliedsnummer setzen.');
+    // User laden (kann NULL sein bei externem Zugriff)
+    $current_user = null;
+    if (isset($MNr) && $MNr) {
+        // User aus berechtigte-Tabelle holen
+        $stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE MNr = ?");
+        $stmt->execute([$MNr]);
+        $ber = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($ber) {
+            // In Standard-Format umwandeln
+            $current_user = [
+                'member_id' => $ber['ID'],
+                'membership_number' => $ber['MNr'],
+                'first_name' => $ber['Vorname'],
+                'last_name' => $ber['Name'],
+                'email' => $ber['eMail'],
+                'role' => determine_role($ber['Funktion'], $ber['aktiv']),
+                'is_admin' => is_admin_user($ber['Funktion'], $ber['MNr'])
+            ];
+        }
     }
-
-    // User aus berechtigte-Tabelle holen
-    $stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE MNr = ?");
-    $stmt->execute([$MNr]);
-    $ber = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$ber) {
-        die('FEHLER: Benutzer nicht gefunden');
-    }
-
-    // In Standard-Format umwandeln
-    $current_user = [
-        'member_id' => $ber['ID'],
-        'membership_number' => $ber['MNr'],
-        'first_name' => $ber['Vorname'],
-        'last_name' => $ber['Name'],
-        'email' => $ber['eMail'],
-        'role' => determine_role($ber['Funktion'], $ber['aktiv']),
-        'is_admin' => is_admin_user($ber['Funktion'], $ber['MNr'])
-    ];
 
     // Hilfsfunktionen für berechtigte-Mapping
     function determine_role($funktion, $aktiv) {
@@ -120,6 +156,72 @@ if ($is_sitzungsverwaltung) {
 }
 
 // ============================================
+// TOKEN-BASIERTER ZUGRIFF
+// ============================================
+
+// Prüfen ob via Access-Token zugegriffen wird
+$access_token = $_GET['token'] ?? null;
+
+// Falls Access-Token übergeben: Poll laden
+if ($access_token) {
+    // Poll per Token laden
+    $stmt = $pdo->prepare("SELECT * FROM svpolls WHERE access_token = ? AND status = 'open'");
+    $stmt->execute([$access_token]);
+    $poll = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$poll) {
+        die('<div style="background:#f8d7da;padding:20px;border:1px solid #f5c6cb;color:#721c24;border-radius:5px;margin:20px;">
+            ❌ Ungültiger oder abgelaufener Zugangs-Link. Bitte prüfe den Link oder kontaktiere den Ersteller.
+        </div>');
+    }
+
+    // Poll-ID für weitere Verarbeitung
+    $poll_id_param = $poll['poll_id'];
+}
+
+// ============================================
+// EXTERNE TEILNEHMER-PRÜFUNG
+// ============================================
+
+// Poll-ID aus URL holen (falls nicht schon via Token gesetzt)
+if (!isset($poll_id_param)) {
+    $poll_id_param = isset($_GET['poll_id']) ? intval($_GET['poll_id']) : null;
+}
+
+// Wenn Poll-ID vorhanden: Prüfen ob Teilnehmer identifiziert ist
+if ($poll_id_param > 0) {
+    // Poll laden um Titel etc. zu haben (falls nicht schon via Token geladen)
+    if (!isset($poll) || !$poll) {
+        $stmt = $pdo->prepare("SELECT * FROM svpolls WHERE poll_id = ?");
+        $stmt->execute([$poll_id_param]);
+        $poll = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    if ($poll) {
+        // Aktuellen Teilnehmer ermitteln (Member oder Extern)
+        $participant = get_current_participant($current_user, $pdo, 'termine', $poll_id_param);
+
+        // Wenn niemand identifiziert: Registrierungsformular anzeigen
+        if ($participant['type'] === 'none') {
+            // Registrierungsformular einbinden
+            $poll_type = 'termine';
+            $poll_id = $poll_id_param;
+
+            // Aktuelles Skript für Redirect übergeben
+            $redirect_script = basename($_SERVER['SCRIPT_NAME']);
+
+            require __DIR__ . '/external_participant_register.php';
+            exit; // Beende Skript hier
+        }
+
+        // Teilnehmer ist identifiziert - in Variablen speichern für spätere Verwendung
+        $current_participant_type = $participant['type']; // 'member' oder 'external'
+        $current_participant_id = $participant['id'];
+        $current_participant_data = $participant['data'];
+    }
+}
+
+// ============================================
 // COMMON FUNCTIONS
 // ============================================
 
@@ -157,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                 $location = trim($_POST['location'] ?? '');
 
                 if (empty($title)) {
-                    $error_message = 'Bitte geben Sie einen Titel ein';
+                    $error_message = 'Bitte gib einen Titel ein';
                     break;
                 }
 
@@ -203,14 +305,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                     break;
                 }
 
+                // Aktuellen Teilnehmer ermitteln
+                $participant = get_current_participant($current_user, $pdo, 'termine', $poll_id);
+
+                if ($participant['type'] === 'none') {
+                    $error_message = 'Sie müssen sich registrieren um abzustimmen';
+                    break;
+                }
+
+                // IDs je nach Teilnehmer-Typ setzen
+                $member_id = ($participant['type'] === 'member') ? $participant['id'] : null;
+                $external_id = ($participant['type'] === 'external') ? $participant['id'] : null;
+
                 // Bestehende Antworten löschen
-                $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ? AND member_id = ?");
-                $stmt->execute([$poll_id, $current_user['member_id']]);
+                if ($member_id) {
+                    $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ? AND member_id = ?");
+                    $stmt->execute([$poll_id, $member_id]);
+                } else {
+                    $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ? AND external_participant_id = ?");
+                    $stmt->execute([$poll_id, $external_id]);
+                }
 
                 // Neue Antworten speichern
                 $stmt = $pdo->prepare("
-                    INSERT INTO svpoll_responses (poll_id, date_id, member_id, vote, created_at)
-                    VALUES (?, ?, ?, ?, NOW())
+                    INSERT INTO svpoll_responses (poll_id, date_id, member_id, external_participant_id, vote, created_at)
+                    VALUES (?, ?, ?, ?, ?, NOW())
                 ");
 
                 foreach ($_POST as $key => $value) {
@@ -218,7 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                         $date_id = intval(str_replace('vote_', '', $key));
                         $vote = intval($value);
                         if (in_array($vote, [-1, 0, 1])) {
-                            $stmt->execute([$poll_id, $date_id, $current_user['member_id'], $vote]);
+                            $stmt->execute([$poll_id, $date_id, $member_id, $external_id, $vote]);
                         }
                     }
                 }
@@ -271,33 +390,255 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
 // VIEW RENDERING
 // ============================================
 
-// Wenn in Sitzungsverwaltung integriert, nutze die bestehenden Tab-Dateien
-if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/tab_termine.php')) {
+// Wenn in Sitzungsverwaltung integriert UND User eingeloggt, nutze die bestehenden Tab-Dateien
+// Externe Teilnehmer (ohne Login) brauchen die komplette Tab-Ansicht nicht
+if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_termine.php')) {
+    // functions.php laden für get_visible_meetings() etc.
+    if (file_exists(__DIR__ . '/functions.php')) {
+        require_once __DIR__ . '/functions.php';
+    }
+
     include __DIR__ . '/tab_termine.php';
     return; // Beende hier
 }
 
 // Ansonsten: Standalone-Rendering
-$view = $_GET['view'] ?? 'dashboard';
+// Wenn poll_id vorhanden ist, automatisch poll-View wählen (für externe Teilnehmer)
 $poll_id = intval($_GET['poll_id'] ?? 0);
+if ($poll_id > 0 && !isset($_GET['view'])) {
+    $view = 'poll';
+} else {
+    $view = $_GET['view'] ?? 'dashboard';
+}
 
-// CSS nur ausgeben wenn nicht bereits in Sitzungsverwaltung
-if (!$is_sitzungsverwaltung) {
-    echo '<style>
-        /* Basis-Styles für Standalone-Modus */
-        .poll-card { background: white; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 20px; }
-        .poll-card.status-open { border-left: 4px solid #4CAF50; }
-        .poll-card.status-closed { border-left: 4px solid #FF9800; }
-        .poll-card.status-finalized { border-left: 4px solid #2196F3; }
-        .btn-primary { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; }
-        .btn-secondary { background: #6c757d; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; }
-        .btn-danger { background: #dc3545; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; }
-        .vote-matrix { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        .vote-matrix th, .vote-matrix td { padding: 10px; text-align: left; border: 1px solid #ddd; }
-        .vote-matrix th { background: #f5f5f5; font-weight: bold; }
-        .message { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px; border-radius: 4px; margin-bottom: 20px; }
-        .error-message { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px; border-radius: 4px; margin-bottom: 20px; }
-    </style>';
+// Standalone-Rendering benötigt immer das CSS
+// (tab_termine.php hat bereits return; ausgeführt wenn es geladen wurde)
+// Poll-Titel für Page-Title laden falls poll_id vorhanden
+$page_title = 'Terminplanung';
+if ($poll_id > 0) {
+    $stmt = $pdo->prepare("SELECT title FROM svpolls WHERE poll_id = ?");
+    $stmt->execute([$poll_id]);
+    $poll_data = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($poll_data) {
+        $page_title = htmlspecialchars($poll_data['title']);
+    }
+}
+
+echo '<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>' . $page_title . '</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+        }
+
+        h2 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+
+        .poll-meta {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .poll-description {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .date-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .date-card:hover {
+            border-color: #4CAF50;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.1);
+        }
+
+        .date-header {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .date-header .weekday {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .vote-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .vote-option {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .vote-option input[type="radio"] {
+            display: none;
+        }
+
+        .vote-option label {
+            display: block;
+            padding: 12px 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .vote-option label:hover {
+            border-color: #bbb;
+            background: #f8f9fa;
+        }
+
+        .vote-option input[type="radio"]:checked + label {
+            font-weight: bold;
+            transform: scale(1.02);
+        }
+
+        .vote-option.yes input[type="radio"]:checked + label {
+            background: #4CAF50;
+            border-color: #4CAF50;
+            color: white;
+        }
+
+        .vote-option.maybe input[type="radio"]:checked + label {
+            background: #FFC107;
+            border-color: #FFC107;
+            color: white;
+        }
+
+        .vote-option.no input[type="radio"]:checked + label {
+            background: #f44336;
+            border-color: #f44336;
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            transition: all 0.3s ease;
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-weight: 500;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h2 {
+                font-size: 22px;
+            }
+
+            .vote-options {
+                flex-direction: column;
+            }
+
+            .vote-option {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">';
 }
 
 // Success/Error Messages
@@ -351,8 +692,26 @@ if ($view === 'dashboard') {
     if (!$poll) {
         echo '<p class="error-message">Umfrage nicht gefunden</p>';
     } else {
+        // Deutsche Wochentage
+        $weekdays = [
+            'Monday' => 'Montag',
+            'Tuesday' => 'Dienstag',
+            'Wednesday' => 'Mittwoch',
+            'Thursday' => 'Donnerstag',
+            'Friday' => 'Freitag',
+            'Saturday' => 'Samstag',
+            'Sunday' => 'Sonntag'
+        ];
+
         echo '<h2>' . htmlspecialchars($poll['title']) . '</h2>';
-        echo '<p>' . nl2br(htmlspecialchars($poll['description'])) . '</p>';
+
+        if (!empty($poll['description'])) {
+            echo '<div class="poll-description">' . nl2br(htmlspecialchars($poll['description'])) . '</div>';
+        }
+
+        if (!empty($poll['location'])) {
+            echo '<div class="poll-meta">📍 Ort: ' . htmlspecialchars($poll['location']) . '</div>';
+        }
 
         // Terminvorschläge und Abstimmung
         $stmt = $pdo->prepare("SELECT * FROM svpoll_dates WHERE poll_id = ? ORDER BY suggested_date");
@@ -363,30 +722,56 @@ if ($view === 'dashboard') {
             echo '<form method="POST">';
             echo '<input type="hidden" name="terminplanung_action" value="submit_vote">';
             echo '<input type="hidden" name="poll_id" value="' . $poll_id . '">';
-            echo '<table class="vote-matrix"><thead><tr><th>Termin</th><th>Abstimmung</th></tr></thead><tbody>';
 
             foreach ($dates as $date) {
-                $date_str = date('d.m.Y H:i', strtotime($date['suggested_date']));
-                echo '<tr>';
-                echo '<td>' . $date_str . '</td>';
-                echo '<td>';
-                echo '<select name="vote_' . $date['date_id'] . '">';
-                echo '<option value="1">✅ Passt</option>';
-                echo '<option value="0" selected>🟡 Geht zur Not</option>';
-                echo '<option value="-1">❌ Passt nicht</option>';
-                echo '</select>';
-                echo '</td>';
-                echo '</tr>';
+                $datetime = new DateTime($date['suggested_date']);
+                $weekday_en = $datetime->format('l');
+                $weekday_de = $weekdays[$weekday_en] ?? $weekday_en;
+                $date_str = $datetime->format('d.m.Y');
+                $time_str = $datetime->format('H:i');
+
+                $end_time = '';
+                if (!empty($date['suggested_end_date'])) {
+                    $end_datetime = new DateTime($date['suggested_end_date']);
+                    $end_time = ' - ' . $end_datetime->format('H:i');
+                }
+
+                echo '<div class="date-card">';
+                echo '<div class="date-header">';
+                echo '<span class="weekday">' . $weekday_de . '</span>';
+                echo '<span>' . $date_str . ', ' . $time_str . $end_time . ' Uhr</span>';
+                echo '</div>';
+                echo '<div class="vote-options">';
+
+                // Radio-Buttons für Ja / Vielleicht / Nein
+                echo '<div class="vote-option yes">';
+                echo '<input type="radio" id="vote_' . $date['date_id'] . '_yes" name="vote_' . $date['date_id'] . '" value="1">';
+                echo '<label for="vote_' . $date['date_id'] . '_yes">✅ Passt gut</label>';
+                echo '</div>';
+
+                echo '<div class="vote-option maybe">';
+                echo '<input type="radio" id="vote_' . $date['date_id'] . '_maybe" name="vote_' . $date['date_id'] . '" value="0" checked>';
+                echo '<label for="vote_' . $date['date_id'] . '_maybe">🟡 Geht zur Not</label>';
+                echo '</div>';
+
+                echo '<div class="vote-option no">';
+                echo '<input type="radio" id="vote_' . $date['date_id'] . '_no" name="vote_' . $date['date_id'] . '" value="-1">';
+                echo '<label for="vote_' . $date['date_id'] . '_no">❌ Passt nicht</label>';
+                echo '</div>';
+
+                echo '</div>'; // vote-options
+                echo '</div>'; // date-card
             }
 
-            echo '</tbody></table>';
             echo '<button type="submit" class="btn-primary">Abstimmung speichern</button>';
             echo '</form>';
         } else {
-            echo '<p>Diese Umfrage ist geschlossen.</p>';
+            echo '<div class="error-message">Diese Umfrage ist bereits geschlossen.</div>';
         }
-
-        echo '<p><a href="?" class="btn-secondary">Zurück</a></p>';
     }
 }
+
+// Schließende Tags für Standalone-Rendering
+// (tab_termine.php hat bereits return; ausgeführt wenn es geladen wurde)
+echo '</div></body></html>';
 ?>
