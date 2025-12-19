@@ -345,8 +345,9 @@ if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $
 // VIEW RENDERING
 // ============================================
 
-// Wenn in Sitzungsverwaltung integriert, nutze die bestehenden Tab-Dateien
-if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/tab_opinion.php')) {
+// tab_opinion.php nur für eingeloggte Benutzer laden
+// (externe Teilnehmer benötigen das Standalone-Rendering weiter unten)
+if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_opinion.php')) {
     include __DIR__ . '/tab_opinion.php';
     return; // Beende hier
 }
@@ -355,12 +356,12 @@ if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/tab_opinion.php')) {
 // STANDALONE-RENDERING
 // ============================================
 
-$view = $_GET['view'] ?? 'list';
+// View bestimmen: Wenn poll_id vorhanden und kein User eingeloggt -> participate
+$view = $_GET['view'] ?? (($poll_id_param && !$current_user) ? 'participate' : 'list');
 $poll_id = $poll_id_param ?? (isset($_GET['poll_id']) ? intval($_GET['poll_id']) : null);
 
-// CSS für Standalone-Modus
-if (!$is_sitzungsverwaltung) {
-    echo '<!DOCTYPE html>
+// CSS für Standalone-Modus (immer ausgeben, da tab_opinion.php bereits return ausgeführt hat)
+echo '<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -388,7 +389,6 @@ if (!$is_sitzungsverwaltung) {
     </style>
 </head>
 <body>';
-}
 
 // Success/Error Messages aus Session
 if (isset($_SESSION['success'])) {
@@ -454,13 +454,6 @@ if ($view === 'list') {
     echo '<div class="error">Ansicht nicht verfügbar oder keine Berechtigung.</div>';
 }
 
-// HTML schließen im Standalone-Modus
-if (!$is_sitzungsverwaltung) {
-    echo '<footer class="page-footer">';
-    echo FOOTER_COPYRIGHT . ' | ';
-    echo '<a href="' . FOOTER_IMPRESSUM_URL . '" target="_blank">Impressum</a> | ';
-    echo '<a href="' . FOOTER_DATENSCHUTZ_URL . '" target="_blank">Datenschutz</a>';
-    echo '</footer>';
-    echo '</body></html>';
-}
+// HTML schließen (tab_opinion.php hat bereits return ausgeführt für eingeloggte User)
+echo '</body></html>';
 ?>
