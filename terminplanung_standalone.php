@@ -639,7 +639,6 @@ echo '<!DOCTYPE html>
 </head>
 <body>
 <div class="container">';
-}
 
 // Success/Error Messages
 if (isset($success_message)) {
