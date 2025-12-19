@@ -479,25 +479,25 @@ echo '<!DOCTYPE html>
         .date-card {
             background: white;
             border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
             transition: all 0.3s ease;
         }
 
         .date-card:hover {
             border-color: #4CAF50;
-            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.1);
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
         }
 
         .date-header {
-            font-size: 18px;
+            font-size: 15px;
             font-weight: 600;
             color: #333;
-            margin-bottom: 15px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .date-header .weekday {
@@ -507,13 +507,13 @@ echo '<!DOCTYPE html>
 
         .vote-options {
             display: flex;
-            gap: 15px;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
         .vote-option {
             flex: 1;
-            min-width: 150px;
+            min-width: 120px;
         }
 
         .vote-option input[type="radio"] {
@@ -522,14 +522,15 @@ echo '<!DOCTYPE html>
 
         .vote-option label {
             display: block;
-            padding: 12px 20px;
+            padding: 8px 12px;
             border: 2px solid #ddd;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             text-align: center;
             font-weight: 500;
             transition: all 0.2s ease;
             background: white;
+            font-size: 14px;
         }
 
         .vote-option label:hover {

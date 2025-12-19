@@ -55,6 +55,28 @@ $access_token = $_GET['token'] ?? null;
 $poll_id_param = isset($_GET['poll_id']) ? intval($_GET['poll_id']) : null;
 
 if ($is_sitzungsverwaltung) {
+    // Konfiguration und Datenbank laden
+    if (!defined('DB_HOST')) {
+        require_once __DIR__ . '/config.php';
+    }
+
+    // PDO-Verbindung initialisieren falls noch nicht vorhanden
+    if (!isset($pdo)) {
+        try {
+            $pdo = new PDO(
+                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+                DB_USER,
+                DB_PASS,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                ]
+            );
+        } catch (PDOException $e) {
+            die('❌ Datenbankverbindung fehlgeschlagen: ' . htmlspecialchars($e->getMessage()));
+        }
+    }
+
     // In Sitzungsverwaltung: Adapter-System nutzen
     require_once __DIR__ . '/member_functions.php';
     require_once __DIR__ . '/opinion_functions.php';
