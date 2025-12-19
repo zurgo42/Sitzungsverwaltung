@@ -36,11 +36,41 @@
 // UMGEBUNGS-ERKENNUNG
 // ============================================
 
+// Session starten falls noch nicht geschehen
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Prüfen ob wir in der Sitzungsverwaltung sind (dann existiert member_functions.php)
 $is_sitzungsverwaltung = file_exists(__DIR__ . '/member_functions.php');
 
 if ($is_sitzungsverwaltung) {
     // In Sitzungsverwaltung: Adapter-System nutzen
+
+    // Konfiguration und Datenbank laden
+    if (!defined('DB_HOST')) {
+        require_once __DIR__ . '/config.php';
+    }
+
+    // PDO-Verbindung initialisieren falls noch nicht vorhanden
+    if (!isset($pdo)) {
+        try {
+            $pdo = new PDO(
+                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+                DB_USER,
+                DB_PASS,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                ]
+            );
+        } catch (PDOException $e) {
+            die('<div style="background:#f8d7da;padding:20px;border:1px solid #f5c6cb;color:#721c24;border-radius:5px;margin:20px;">
+                ❌ Datenbankverbindung fehlgeschlagen: ' . htmlspecialchars($e->getMessage()) . '
+            </div>');
+        }
+    }
+
     require_once __DIR__ . '/member_functions.php';
     require_once __DIR__ . '/external_participants_functions.php';
 
