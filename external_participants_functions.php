@@ -16,6 +16,19 @@ function generate_external_token() {
 }
 
 /**
+ * Erstellt oder gibt bestehenden Opinion-Session-Token zurück
+ * Wird für externe Teilnehmer bei Meinungsbildern verwendet
+ *
+ * @return string Session-Token
+ */
+function get_or_create_session_token() {
+    if (!isset($_SESSION['opinion_session_token'])) {
+        $_SESSION['opinion_session_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['opinion_session_token'];
+}
+
+/**
  * Erstellt oder aktualisiert einen externen Teilnehmer
  *
  * @param PDO $pdo
