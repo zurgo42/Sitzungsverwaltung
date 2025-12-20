@@ -334,8 +334,18 @@ if ($poll_id_param > 0) {
 // POST REQUEST HANDLING
 // ============================================
 
+// DEBUG: POST-Anfrage erkannt?
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    error_log('POST REQUEST to opinion_standalone.php: action=' . ($_POST['action'] ?? 'NO ACTION'));
+    error_log('POST data: ' . json_encode($_POST, JSON_UNESCAPED_UNICODE));
+    error_log('is_sitzungsverwaltung: ' . ($is_sitzungsverwaltung ? 'yes' : 'no'));
+    error_log('process_opinion.php exists: ' . (file_exists(__DIR__ . '/process_opinion.php') ? 'yes' : 'no'));
+}
+
 // Falls process_opinion.php existiert, nutze das (in Sitzungsverwaltung)
 if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    error_log('ENTERING POST HANDLING BLOCK');
+
     // Beim POST muss auch poll_id aus POST-Daten gelesen werden
     if (!isset($poll_id_param) && isset($_POST['poll_id'])) {
         $poll_id_param = intval($_POST['poll_id']);
@@ -366,7 +376,9 @@ if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $
     }
 
     // Leite an process_opinion.php weiter
+    error_log('INCLUDING process_opinion.php');
     include __DIR__ . '/process_opinion.php';
+    error_log('AFTER INCLUDING process_opinion.php');
     // Nach POST-Verarbeitung wird redirected, daher Exit hier nicht nötig
 }
 
