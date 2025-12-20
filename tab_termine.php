@@ -178,15 +178,15 @@ function get_german_weekday_long($date_string) {
 .vote-matrix {
     width: 100%;
     border-collapse: collapse;
-    margin: 20px 0;
+    margin: 15px 0;
 }
 
 .vote-matrix th,
 .vote-matrix td {
-    padding: 8px 10px;
+    padding: 6px 8px;
     text-align: left;
     border: 1px solid #ddd;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .vote-matrix th {
@@ -207,12 +207,12 @@ function get_german_weekday_long($date_string) {
 .vote-btn {
     border: 2px solid #ddd;
     background: white;
-    padding: 6px 10px;
+    padding: 4px 8px;
     cursor: pointer;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 12px;
     transition: all 0.2s;
-    min-width: 90px;
+    min-width: 75px;
     text-align: center;
 }
 
@@ -822,13 +822,24 @@ if (isset($_SESSION['error'])) {
         $stmt->execute([$poll_id]);
         $all_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Member-Namen über Adapter nachladen
+        // Member- und Externe-Teilnehmer-Namen nachladen
         foreach ($all_responses as &$response) {
             if ($response['member_id']) {
                 $member = get_member_by_id($pdo, $response['member_id']);
                 if ($member) {
                     $response['first_name'] = $member['first_name'];
                     $response['last_name'] = $member['last_name'];
+                    $response['participant_key'] = 'member_' . $response['member_id'];
+                }
+            } elseif ($response['external_participant_id']) {
+                // Externen Teilnehmer laden
+                $ext_stmt = $pdo->prepare("SELECT first_name, last_name FROM svexternal_participants WHERE external_id = ?");
+                $ext_stmt->execute([$response['external_participant_id']]);
+                $ext = $ext_stmt->fetch(PDO::FETCH_ASSOC);
+                if ($ext) {
+                    $response['first_name'] = $ext['first_name'];
+                    $response['last_name'] = $ext['last_name'];
+                    $response['participant_key'] = 'external_' . $response['external_participant_id'];
                 }
             }
         }
@@ -1045,11 +1056,24 @@ if (isset($_SESSION['error'])) {
                 <tr>
                     <th style="width: 220px;">Terminvorschlag & Zusammenfassung</th>
                     <?php
-                    // Alle eingeladenen Teilnehmer anzeigen
+                    // Alle Teilnehmer sammeln (Members + Externe)
                     $participants = [];
+
+                    // Eingeladene Members
                     foreach ($poll_participants as $pp) {
-                        $participants[$pp['member_id']] = $pp['first_name'] . ' ' . substr($pp['last_name'], 0, 1) . '.';
+                        $key = 'member_' . $pp['member_id'];
+                        $participants[$key] = $pp['first_name'] . ' ' . substr($pp['last_name'], 0, 1) . '.';
                     }
+
+                    // Externe Teilnehmer (die bereits geantwortet haben)
+                    foreach ($all_responses as $resp) {
+                        if (isset($resp['participant_key']) && strpos($resp['participant_key'], 'external_') === 0) {
+                            if (!isset($participants[$resp['participant_key']])) {
+                                $participants[$resp['participant_key']] = $resp['first_name'] . ' ' . substr($resp['last_name'], 0, 1) . '. 👤';
+                            }
+                        }
+                    }
+
                     foreach ($participants as $name): ?>
                         <th style="text-align: center; font-size: 11px; padding: 6px 4px;"><?php echo htmlspecialchars($name); ?></th>
                     <?php endforeach; ?>
@@ -1068,11 +1092,13 @@ if (isset($_SESSION['error'])) {
                     $count_yes = 0;
                     $count_maybe = 0;
                     $count_no = 0;
-                    $votes_by_member = [];
+                    $votes_by_participant = [];
 
                     foreach ($all_responses as $resp) {
                         if ($resp['date_id'] == $date['date_id']) {
-                            $votes_by_member[$resp['member_id']] = (int)$resp['vote'];
+                            if (isset($resp['participant_key'])) {
+                                $votes_by_participant[$resp['participant_key']] = (int)$resp['vote'];
+                            }
                             if ($resp['vote'] == 1) $count_yes++;
                             elseif ($resp['vote'] == 0) $count_maybe++;
                             elseif ($resp['vote'] == -1) $count_no++;
@@ -1092,8 +1118,8 @@ if (isset($_SESSION['error'])) {
                                 <span class="count-no">❌<?php echo $count_no; ?></span>
                             </div>
                         </td>
-                        <?php foreach (array_keys($participants) as $member_id):
-                            $vote = $votes_by_member[$member_id] ?? null;
+                        <?php foreach (array_keys($participants) as $participant_key):
+                            $vote = $votes_by_participant[$participant_key] ?? null;
                             $vote_icon = '–';  // Strich für keine Abstimmung
                             $vote_color = '#ddd';
                             if ($vote === 1) {
