@@ -341,12 +341,28 @@ if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $
         $poll_id_param = intval($_POST['poll_id']);
     }
 
+    // DEBUG: Session-Status vor process_opinion.php
+    $debug_before_process = [
+        'file' => 'opinion_standalone.php',
+        'current_user' => $current_user ? 'logged_in' : 'null',
+        'poll_id_param' => $poll_id_param,
+        'session_exists' => isset($_SESSION['external_participant']) ? 'yes' : 'no',
+        'action' => $_POST['action'] ?? 'missing'
+    ];
+    if (isset($_SESSION['external_participant'])) {
+        $debug_before_process['session_data'] = $_SESSION['external_participant'];
+    }
+    error_log('Opinion Standalone POST: ' . json_encode($debug_before_process, JSON_UNESCAPED_UNICODE));
+
     // Für externe Teilnehmer: Sicherstellen, dass die Session korrekt erkannt wird
     if (!$current_user && $poll_id_param) {
         $participant = get_current_participant($current_user, $pdo, 'meinungsbild', $poll_id_param);
         $current_participant_type = $participant['type'];
         $current_participant_id = $participant['id'];
         $current_participant_data = $participant['data'];
+
+        // DEBUG: Teilnehmer-Erkennung
+        error_log('Participant Detection: type=' . $participant['type'] . ', id=' . ($participant['id'] ?? 'null'));
     }
 
     // Leite an process_opinion.php weiter
