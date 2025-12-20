@@ -47,6 +47,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// DEBUG: Direkter Output bei POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    file_put_contents(__DIR__ . '/debug_post.txt', date('Y-m-d H:i:s') . "\n" . print_r($_POST, true) . "\n" . print_r($_SESSION, true), FILE_APPEND);
+}
+
 // Prüfen ob wir in der Sitzungsverwaltung sind
 $is_sitzungsverwaltung = file_exists(__DIR__ . '/member_functions.php');
 
