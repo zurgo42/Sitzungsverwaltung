@@ -725,6 +725,21 @@ if ($view === 'dashboard') {
         $stmt->execute([$poll_id]);
         $dates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Bestehende Votes des aktuellen Teilnehmers laden
+        $user_votes = [];
+        if (isset($current_participant_type) && isset($current_participant_id)) {
+            if ($current_participant_type === 'member') {
+                $stmt = $pdo->prepare("SELECT date_id, vote FROM svpoll_responses WHERE poll_id = ? AND member_id = ?");
+                $stmt->execute([$poll_id, $current_participant_id]);
+            } else if ($current_participant_type === 'external') {
+                $stmt = $pdo->prepare("SELECT date_id, vote FROM svpoll_responses WHERE poll_id = ? AND external_participant_id = ?");
+                $stmt->execute([$poll_id, $current_participant_id]);
+            }
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $user_votes[$row['date_id']] = (int)$row['vote'];
+            }
+        }
+
         if ($poll['status'] === 'open') {
             echo '<p style="margin-bottom: 20px; font-size: 14px; color: #666;">';
             echo '<strong>✅ Passt</strong> – Der Termin passt mir gut<br>';
@@ -756,24 +771,26 @@ if ($view === 'dashboard') {
                     $end_time = ' - ' . $end_datetime->format('H:i');
                 }
 
+                $user_vote = $user_votes[$date['date_id']] ?? null;
+
                 echo '<tr>';
                 echo '<td style="white-space: nowrap;">';
                 echo '<strong style="font-size: 15px;">' . $weekday_de . ', ' . $date_str . '</strong><br>';
                 echo '<span style="color: #666; font-size: 13px;">' . $time_str . $end_time . ' Uhr</span>';
                 echo '</td>';
                 echo '<td>';
-                echo '<input type="hidden" name="vote_' . $date['date_id'] . '" id="vote_' . $date['date_id'] . '" value="">';
+                echo '<input type="hidden" name="vote_' . $date['date_id'] . '" id="vote_' . $date['date_id'] . '" value="' . ($user_vote !== null ? $user_vote : '') . '">';
                 echo '<div class="vote-buttons">';
 
-                echo '<button type="button" class="vote-btn vote-yes" onclick="selectVote(this, ' . $date['date_id'] . ', 1)">';
+                echo '<button type="button" class="vote-btn vote-yes' . ($user_vote === 1 ? ' selected' : '') . '" onclick="selectVote(this, ' . $date['date_id'] . ', 1)">';
                 echo '✅ Passt';
                 echo '</button>';
 
-                echo '<button type="button" class="vote-btn vote-maybe" onclick="selectVote(this, ' . $date['date_id'] . ', 0)">';
+                echo '<button type="button" class="vote-btn vote-maybe' . ($user_vote === 0 ? ' selected' : '') . '" onclick="selectVote(this, ' . $date['date_id'] . ', 0)">';
                 echo '🟡 Muss';
                 echo '</button>';
 
-                echo '<button type="button" class="vote-btn vote-no" onclick="selectVote(this, ' . $date['date_id'] . ', -1)">';
+                echo '<button type="button" class="vote-btn vote-no' . ($user_vote === -1 ? ' selected' : '') . '" onclick="selectVote(this, ' . $date['date_id'] . ', -1)">';
                 echo '❌ Passt nicht';
                 echo '</button>';
 

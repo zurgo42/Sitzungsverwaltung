@@ -1088,11 +1088,16 @@ if (isset($_SESSION['error'])) {
                         $participants[$key] = $pp['first_name'] . ' ' . substr($pp['last_name'], 0, 1) . '.';
                     }
 
-                    // Externe Teilnehmer (die bereits geantwortet haben)
+                    // Alle Teilnehmer, die bereits geantwortet haben (Members + Externe)
                     foreach ($all_responses as $resp) {
-                        if (isset($resp['participant_key']) && strpos($resp['participant_key'], 'external_') === 0) {
+                        if (isset($resp['participant_key'])) {
                             if (!isset($participants[$resp['participant_key']])) {
-                                $participants[$resp['participant_key']] = $resp['first_name'] . ' ' . substr($resp['last_name'], 0, 1) . '. 👤';
+                                $name_display = $resp['first_name'] . ' ' . substr($resp['last_name'], 0, 1) . '.';
+                                // Externe mit Icon markieren
+                                if (strpos($resp['participant_key'], 'external_') === 0) {
+                                    $name_display .= ' 👤';
+                                }
+                                $participants[$resp['participant_key']] = $name_display;
                             }
                         }
                     }

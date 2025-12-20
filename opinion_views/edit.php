@@ -121,7 +121,7 @@ if ($poll['target_type'] === 'list') {
         <p style="color: #666; font-size: 14px;">Aktuelle Antwortmöglichkeiten (Bearbeitung erfolgt durch Hinzufügen/Entfernen von Optionen):</p>
 
         <div style="margin: 15px 0; padding: 15px; background: #f9f9f9; border-radius: 6px;">
-            <?php for ($i = 1; $i <= max(10, count($poll['options'])): $i++): ?>
+            <?php for ($i = 1; $i <= max(10, count($poll['options'])); $i++): ?>
                 <?php
                 $existing_option = isset($poll['options'][$i-1]) ? $poll['options'][$i-1] : null;
                 ?>

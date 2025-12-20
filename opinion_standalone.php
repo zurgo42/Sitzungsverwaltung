@@ -336,6 +336,19 @@ if ($poll_id_param > 0) {
 
 // Falls process_opinion.php existiert, nutze das (in Sitzungsverwaltung)
 if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Beim POST muss auch poll_id aus POST-Daten gelesen werden
+    if (!isset($poll_id_param) && isset($_POST['poll_id'])) {
+        $poll_id_param = intval($_POST['poll_id']);
+    }
+
+    // Für externe Teilnehmer: Sicherstellen, dass die Session korrekt erkannt wird
+    if (!$current_user && $poll_id_param) {
+        $participant = get_current_participant($current_user, $pdo, 'meinungsbild', $poll_id_param);
+        $current_participant_type = $participant['type'];
+        $current_participant_id = $participant['id'];
+        $current_participant_data = $participant['data'];
+    }
+
     // Leite an process_opinion.php weiter
     include __DIR__ . '/process_opinion.php';
     // Nach POST-Verarbeitung wird redirected, daher Exit hier nicht nötig
