@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/opinion_functions.php';
+require_once __DIR__ . '/external_participants_functions.php';
 
 // Aktuellen User holen
 $current_user = null;
