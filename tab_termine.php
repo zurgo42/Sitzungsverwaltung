@@ -718,10 +718,10 @@ if (isset($_SESSION['error'])) {
             $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
             $can_edit = $is_creator || $is_admin;
         ?>
-            <div class="poll-card status-<?php echo $poll['status']; ?>">
-                <div class="poll-header">
-                    <h3 class="poll-title"><?php echo htmlspecialchars($poll['title']); ?></h3>
-                    <span class="poll-status-badge status-<?php echo $poll['status']; ?>">
+            <div class="poll-card status-<?php echo $poll['status']; ?>" style="display: block; overflow: visible; position: static;">
+                <div class="poll-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <h3 class="poll-title" style="flex: 1; margin: 0;"><?php echo htmlspecialchars($poll['title']); ?></h3>
+                    <span class="poll-status-badge status-<?php echo $poll['status']; ?>" style="flex-shrink: 0;">
                         <?php
                         switch ($poll['status']) {
                             case 'open': echo '🟢 Offen'; break;
@@ -732,12 +732,12 @@ if (isset($_SESSION['error'])) {
                     </span>
                 </div>
 
-                <div class="poll-meta">
+                <div class="poll-meta" style="display: block; clear: both; margin-bottom: 15px;">
                     <?php if (!empty($poll['description'])): ?>
-                        <p><?php echo nl2br(htmlspecialchars($poll['description'])); ?></p>
+                        <p style="margin: 8px 0;"><?php echo nl2br(htmlspecialchars($poll['description'])); ?></p>
                     <?php endif; ?>
 
-                    <p>
+                    <p style="margin: 8px 0;">
                         📊 <strong><?php echo $poll['date_count']; ?></strong> Terminvorschläge ·
                         👥 <strong><?php echo $poll['response_count']; ?></strong> Teilnehmer abgestimmt ·
                         👤 Erstellt von <strong><?php echo htmlspecialchars($poll['creator_first_name'] . ' ' . $poll['creator_last_name']); ?></strong> ·
@@ -750,7 +750,7 @@ if (isset($_SESSION['error'])) {
                     </p>
 
                     <?php if ($poll['status'] === 'finalized' && !empty($poll['final_date'])): ?>
-                        <p style="color: #2196F3; font-weight: bold;">
+                        <p style="color: #2196F3; font-weight: bold; margin: 8px 0;">
                             ✓ Finaler Termin festgelegt auf <?php
                                 echo get_german_weekday_long($poll['final_date']) . ', den ' . date('d.m.Y', strtotime($poll['final_date']));
                                 if (!empty($poll['final_end_date'])) {
@@ -763,8 +763,8 @@ if (isset($_SESSION['error'])) {
                     <?php endif; ?>
                 </div>
 
-                <div class="poll-actions">
-                    <a href="?tab=termine&view=poll&poll_id=<?php echo $poll['poll_id']; ?>" class="btn-primary">
+                <div class="poll-actions" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; clear: both;">
+                    <a href="?tab=termine&view=poll&poll_id=<?php echo $poll['poll_id']; ?>" class="btn-primary" style="position: static; float: none;">
                         <?php echo $poll['status'] === 'open' ? '📝 Abstimmen' : '📊 Ergebnisse ansehen'; ?>
                     </a>
 
