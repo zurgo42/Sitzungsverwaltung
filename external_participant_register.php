@@ -305,12 +305,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
 
         <?php if ($from_cookie): ?>
             <div class="success-box">
-                👋 Willkommen zurück! Ihre Daten wurden automatisch ausgefüllt. Sie können sie bei Bedarf anpassen.
+                👋 Willkommen zurück! Deine Daten wurden automatisch ausgefüllt. Du kannst sie bei Bedarf anpassen.
             </div>
         <?php endif; ?>
 
         <div class="intro-text">
-            <p>Um an dieser Umfrage teilzunehmen, benötigen wir einige Angaben von Ihnen. Ihre Daten werden vertraulich behandelt und ausschließlich für diese Umfrage verwendet.</p>
+            <p>Um an dieser Umfrage teilzunehmen, benötigen wir einige Angaben von dir. Deine Daten werden vertraulich behandelt und ausschließlich für diese Umfrage verwendet.</p>
         </div>
 
         <form method="POST" action="">
@@ -348,7 +348,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                        required
                        placeholder="max.mustermann@example.com">
                 <p class="info-text">
-                    Wir verwenden Ihre E-Mail-Adresse nur zur Identifikation für diese Umfrage.
+                    Wir verwenden deine E-Mail-Adresse nur zur Identifikation für diese Umfrage.
                 </p>
             </div>
 
@@ -361,7 +361,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                        value="<?php echo htmlspecialchars($_POST['mnr'] ?? ''); ?>"
                        placeholder="Falls vorhanden">
                 <p class="info-text">
-                    Wenn Sie Mitglied sind, können Sie hier optional Ihre Mitgliedsnummer angeben.
+                    Wenn du Mitglied bist, kannst du hier optional deine Mitgliedsnummer angeben.
                 </p>
             </div>
 
@@ -381,7 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
             </button>
 
             <div class="privacy-notice">
-                <strong>🔒 Datenschutz:</strong> Ihre Angaben werden vertraulich behandelt und nur für diese Umfrage verwendet.
+                <strong>🔒 Datenschutz:</strong> Deine Angaben werden vertraulich behandelt und nur für diese Umfrage verwendet.
                 Nach 6 Monaten werden alle Daten automatisch gelöscht.
             </div>
         </form>
