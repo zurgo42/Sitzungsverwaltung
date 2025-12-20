@@ -54,6 +54,11 @@ $is_sitzungsverwaltung = file_exists(__DIR__ . '/member_functions.php');
 $access_token = $_GET['token'] ?? null;
 $poll_id_param = isset($_GET['poll_id']) ? intval($_GET['poll_id']) : null;
 
+// Bei POST-Requests: poll_id auch aus POST-Daten lesen (wichtig für Formular-Submits!)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$poll_id_param && isset($_POST['poll_id'])) {
+    $poll_id_param = intval($_POST['poll_id']);
+}
+
 if ($is_sitzungsverwaltung) {
     // Konfiguration und Datenbank laden
     if (!defined('DB_HOST')) {
