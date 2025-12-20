@@ -232,13 +232,28 @@ try {
             $external_id = ($participant['type'] === 'external') ? $participant['id'] : null;
             $session_token = ($participant['type'] === 'none' && !$is_authenticated) ? get_or_create_session_token() : null;
 
+            // Debugging: Wenn kein Teilnehmer identifiziert werden konnte
+            if ($participant['type'] === 'none' && !$session_token) {
+                $_SESSION['error'] = 'Teilnehmer konnte nicht identifiziert werden. Bitte registriere dich erneut.';
+                if ($current_user) {
+                    header('Location: index.php?tab=opinion&view=participate&poll_id=' . $poll_id);
+                } else {
+                    header('Location: opinion_standalone.php?poll_id=' . $poll_id);
+                }
+                exit;
+            }
+
             $selected_options = $_POST['options'] ?? [];
             $free_text = trim($_POST['free_text'] ?? '');
             $force_anonymous = !empty($_POST['force_anonymous']) ? 1 : 0;
 
             if (empty($selected_options)) {
                 $_SESSION['error'] = 'Bitte wähle mindestens eine Antwort';
-                header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+                if ($current_user) {
+                    header('Location: index.php?tab=opinion&view=participate&poll_id=' . $poll_id);
+                } else {
+                    header('Location: opinion_standalone.php?poll_id=' . $poll_id);
+                }
                 exit;
             }
 
@@ -312,8 +327,8 @@ try {
             if ($current_user) {
                 header('Location: index.php?tab=opinion&view=results&poll_id=' . $poll_id);
             } else {
-                // Externe Teilnehmer: Zu Results mit poll_id
-                header('Location: opinion_standalone.php?poll_id=' . $poll_id . '&view=results');
+                // Externe Teilnehmer: Zu participate zurück (zeigt Erfolg und aktuelle Antwort)
+                header('Location: opinion_standalone.php?poll_id=' . $poll_id);
             }
             exit;
 
@@ -370,13 +385,12 @@ try {
                     allow_multiple_answers = ?,
                     is_anonymous = ?,
                     show_intermediate_after_days = ?,
-                    auto_delete_after_days = ?,
                     ends_at = ?
                 WHERE poll_id = ?
             ");
             $stmt->execute([
                 $title, $target_type, $allow_multiple, $is_anonymous,
-                $show_intermediate_after_days, $delete_after_days, $ends_at, $poll_id
+                $show_intermediate_after_days, $ends_at, $poll_id
             ]);
 
             // Access-Token aktualisieren wenn Typ geändert wurde
