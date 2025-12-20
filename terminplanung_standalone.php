@@ -631,14 +631,14 @@ echo '<!DOCTYPE html>
     <script>
     function selectVote(button, dateId, voteValue) {
         // Alle Buttons für dieses Datum deaktivieren
-        const row = button.closest('tr');
-        row.querySelectorAll('.vote-btn').forEach(btn => btn.classList.remove('selected'));
+        const row = button.closest("tr");
+        row.querySelectorAll(".vote-btn").forEach(btn => btn.classList.remove("selected"));
 
         // Aktuellen Button aktivieren
-        button.classList.add('selected');
+        button.classList.add("selected");
 
         // Hidden Input setzen
-        const input = document.getElementById('vote_' + dateId);
+        const input = document.getElementById("vote_" + dateId);
         if (input) {
             input.value = voteValue;
         }
