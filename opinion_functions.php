@@ -165,7 +165,7 @@ function has_responded($pdo, $poll_id, $member_id = null, $session_token = null)
 /**
  * Lädt die Antwort eines Users
  */
-function get_user_response($pdo, $poll_id, $member_id = null, $session_token = null) {
+function get_user_response($pdo, $poll_id, $member_id = null, $session_token = null, $external_participant_id = null) {
     // Spezielle Behandlung für NULL-Werte in der WHERE-Klausel
     if ($member_id !== null) {
         // Logged-in User: Nur nach member_id suchen
@@ -180,8 +180,21 @@ function get_user_response($pdo, $poll_id, $member_id = null, $session_token = n
             GROUP BY r.response_id
         ");
         $stmt->execute([$poll_id, $member_id]);
+    } else if ($external_participant_id !== null) {
+        // Externer Teilnehmer: Nur nach external_participant_id suchen
+        $stmt = $pdo->prepare("
+            SELECT r.*,
+                   GROUP_CONCAT(oro.option_id ORDER BY opo.sort_order) as selected_option_ids,
+                   GROUP_CONCAT(opo.option_text ORDER BY opo.sort_order SEPARATOR ', ') as selected_options_text
+            FROM svopinion_responses r
+            LEFT JOIN svopinion_response_options oro ON r.response_id = oro.response_id
+            LEFT JOIN svopinion_poll_options opo ON oro.option_id = opo.option_id
+            WHERE r.poll_id = ? AND r.external_participant_id = ?
+            GROUP BY r.response_id
+        ");
+        $stmt->execute([$poll_id, $external_participant_id]);
     } else if ($session_token !== null) {
-        // Anonymous User: Nur nach session_token suchen
+        // Anonymous User (alt): Nur nach session_token suchen
         $stmt = $pdo->prepare("
             SELECT r.*,
                    GROUP_CONCAT(oro.option_id ORDER BY opo.sort_order) as selected_option_ids,
@@ -194,7 +207,7 @@ function get_user_response($pdo, $poll_id, $member_id = null, $session_token = n
         ");
         $stmt->execute([$poll_id, $session_token]);
     } else {
-        // Weder member_id noch session_token: Keine Antwort möglich
+        // Keine Identifikation: Keine Antwort möglich
         return null;
     }
 

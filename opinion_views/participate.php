@@ -27,9 +27,18 @@ if (!can_participate($poll, $current_user ? $current_user['member_id'] : null, $
 }
 
 // Prüfen ob bereits geantwortet
-$session_token = $current_user ? null : get_or_create_session_token();
-$member_id = $current_user ? $current_user['member_id'] : null;
-$existing_response = get_user_response($pdo, $poll_id, $member_id, $session_token);
+// Teilnehmer ermitteln (Member oder Extern)
+$participant = get_current_participant($current_user, $pdo, 'meinungsbild', $poll_id);
+$member_id = ($participant['type'] === 'member') ? $participant['id'] : null;
+$external_id = ($participant['type'] === 'external') ? $participant['id'] : null;
+$session_token = ($participant['type'] === 'none') ? get_or_create_session_token() : null;
+
+// Für externe Teilnehmer: Daten speichern für Anzeige
+if ($participant['type'] === 'external' && !isset($current_participant_data)) {
+    $current_participant_data = $participant['data'];
+}
+
+$existing_response = get_user_response($pdo, $poll_id, $member_id, $session_token, $external_id);
 
 $is_creator = $current_user && ($poll['creator_member_id'] == $current_user['member_id']);
 $stats = get_opinion_results($pdo, $poll_id);
