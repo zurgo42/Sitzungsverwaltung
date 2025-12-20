@@ -113,6 +113,8 @@ function get_german_weekday_long($date_string) {
     border-radius: 5px;
     padding: 15px;
     margin-bottom: 20px;
+    position: relative;
+    clear: both;
 }
 
 .poll-card.status-open {
@@ -139,6 +141,7 @@ function get_german_weekday_long($date_string) {
     font-weight: bold;
     color: #333;
     margin: 0;
+    flex: 1;
 }
 
 .poll-status-badge {
@@ -146,6 +149,7 @@ function get_german_weekday_long($date_string) {
     border-radius: 12px;
     font-size: 12px;
     font-weight: bold;
+    flex-shrink: 0;
 }
 
 .poll-status-badge.status-open {
@@ -167,12 +171,19 @@ function get_german_weekday_long($date_string) {
     color: #666;
     font-size: 14px;
     margin-bottom: 10px;
+    line-height: 1.6;
+}
+
+.poll-meta p {
+    margin: 8px 0;
+    word-wrap: break-word;
 }
 
 .poll-actions {
     display: flex;
     gap: 10px;
     margin-top: 15px;
+    flex-wrap: wrap;
 }
 
 .vote-matrix {
