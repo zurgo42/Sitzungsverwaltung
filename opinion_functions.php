@@ -95,8 +95,11 @@ function get_opinion_poll_with_options($pdo, $poll_id) {
 
 /**
  * Prüft ob User an einer Umfrage teilnehmen darf
+ * @param array $poll Umfrage-Daten
+ * @param int|null $member_id Member-ID (NULL für externe Teilnehmer)
+ * @param bool $via_link Wurde via direktem Link/Token zugegriffen?
  */
-function can_participate($poll, $member_id = null) {
+function can_participate($poll, $member_id = null, $via_link = false) {
     // Ersteller darf IMMER teilnehmen
     if ($member_id && isset($poll['creator_member_id']) && $poll['creator_member_id'] == $member_id) {
         return true;
@@ -111,14 +114,22 @@ function can_participate($poll, $member_id = null) {
         return true;
     }
 
-    if ($poll['target_type'] === 'list' && $member_id) {
-        global $pdo;
-        $stmt = $pdo->prepare("
-            SELECT 1 FROM svopinion_poll_participants
-            WHERE poll_id = ? AND member_id = ?
-        ");
-        $stmt->execute([$poll['poll_id'], $member_id]);
-        return $stmt->fetch() !== false;
+    if ($poll['target_type'] === 'list') {
+        // Bei Link-Zugriff: Auch externe Teilnehmer dürfen teilnehmen
+        if ($via_link) {
+            return true;
+        }
+
+        // Sonst: Nur eingeladene Members
+        if ($member_id) {
+            global $pdo;
+            $stmt = $pdo->prepare("
+                SELECT 1 FROM svopinion_poll_participants
+                WHERE poll_id = ? AND member_id = ?
+            ");
+            $stmt->execute([$poll['poll_id'], $member_id]);
+            return $stmt->fetch() !== false;
+        }
     }
 
     return false;

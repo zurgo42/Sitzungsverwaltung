@@ -19,7 +19,9 @@ if (!$is_active) {
 }
 
 // Prüfen ob berechtigt
-if (!can_participate($poll, $current_user ? $current_user['member_id'] : null)) {
+// via_link = true wenn Token oder poll_id Parameter vorhanden (direkter Link-Zugriff)
+$via_link = isset($_GET['token']) || isset($_GET['poll_id']);
+if (!can_participate($poll, $current_user ? $current_user['member_id'] : null, $via_link)) {
     echo "<p>Du bist nicht berechtigt, an dieser Umfrage teilzunehmen.</p>";
     return;
 }
