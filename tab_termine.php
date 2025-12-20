@@ -930,8 +930,8 @@ if (isset($_SESSION['error'])) {
             </div>
         </div>
 
-        <!-- Link zur Umfrage (nur für Ersteller, nur wenn nicht finalisiert) -->
-        <?php if ($is_creator && $poll['status'] !== 'finalized'): ?>
+        <!-- Link zur Umfrage (für Ersteller und Admin) -->
+        <?php if (($is_creator || $is_admin) && $poll['status'] !== 'finalized'): ?>
         <?php
         // Zentrale Link-Generierung verwenden
         $use_token = ($poll['target_type'] ?? 'list') === 'individual' && !empty($poll['access_token']);
@@ -944,7 +944,15 @@ if (isset($_SESSION['error'])) {
         <div class="poll-card" style="background: #f0f8ff; border: 2px solid #4CAF50; margin-bottom: 20px;">
             <h4 style="margin: 0 0 10px 0;">🔗 Link zu dieser Umfrage</h4>
             <p style="margin: 0 0 10px 0; color: #666;">
-                Teile diesen Link mit den Teilnehmern:
+                <?php
+                if (($poll['target_type'] ?? 'list') === 'individual') {
+                    echo 'Teile diesen eindeutigen Link mit den gewünschten Teilnehmern:';
+                } elseif (($poll['target_type'] ?? 'list') === 'list') {
+                    echo 'Dieser Link kann an die eingeladenen Teilnehmer weitergegeben werden (zusätzlich zur Benachrichtigung):';
+                } else {
+                    echo 'Teile diesen Link mit den Teilnehmern:';
+                }
+                ?>
             </p>
             <div class="poll-link-container" style="display: flex; gap: 10px; align-items: center;">
                 <input type="text"

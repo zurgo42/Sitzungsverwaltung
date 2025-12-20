@@ -104,8 +104,10 @@ if ($is_creator || $is_admin):
                 echo 'Teile diesen eindeutigen Link mit den gewünschten Teilnehmern:';
             } elseif ($poll['target_type'] === 'public') {
                 echo 'Dieser Link ist öffentlich. Jeder mit diesem Link kann teilnehmen:';
+            } elseif ($poll['target_type'] === 'list') {
+                echo 'Dieser Link kann an die eingeladenen Teilnehmer weitergegeben werden (zusätzlich zur Benachrichtigung):';
             } else {
-                echo 'Link für eingeladene Mitglieder:';
+                echo 'Link zur Umfrage:';
             }
             ?>
         </p>
