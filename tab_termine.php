@@ -730,6 +730,11 @@ if (isset($_SESSION['error'])) {
                         📊 <strong><?php echo $poll['date_count']; ?></strong> Terminvorschläge ·
                         👥 <strong><?php echo $poll['response_count']; ?></strong> Teilnehmer abgestimmt ·
                         👤 Erstellt von <strong><?php echo htmlspecialchars($poll['creator_first_name'] . ' ' . $poll['creator_last_name']); ?></strong> ·
+                        Zielgruppe: <?php
+                            if ($poll['target_type'] === 'individual') echo '🔗 Individuell (Link)';
+                            elseif ($poll['target_type'] === 'list') echo '📋 Ausgewählte Teilnehmer';
+                            elseif ($poll['target_type'] === 'public') echo '🌐 Öffentlich';
+                        ?> ·
                         📅 <?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?>
                     </p>
 
@@ -910,6 +915,11 @@ if (isset($_SESSION['error'])) {
 
                 <p>
                     👤 Erstellt von <strong><?php echo htmlspecialchars($poll['creator_first_name'] . ' ' . $poll['creator_last_name']); ?></strong> ·
+                    Zielgruppe: <?php
+                        if ($poll['target_type'] === 'individual') echo '🔗 Individuell (Link)';
+                        elseif ($poll['target_type'] === 'list') echo '📋 Ausgewählte Teilnehmer';
+                        elseif ($poll['target_type'] === 'public') echo '🌐 Öffentlich';
+                    ?> ·
                     📅 <?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?>
                 </p>
 
