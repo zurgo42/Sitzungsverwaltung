@@ -1023,7 +1023,7 @@ if (isset($_SESSION['error'])) {
                     <thead>
                         <tr>
                             <th style="width: 180px;">Terminvorschlag</th>
-                            <th>Ihre Wahl</th>
+                            <th>Deine Wahl</th>
                         </tr>
                     </thead>
                     <tbody>
