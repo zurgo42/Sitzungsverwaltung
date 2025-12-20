@@ -316,6 +316,117 @@ try {
             }
             exit;
 
+        // ====== UMFRAGE BEARBEITEN ======
+        case 'update_opinion':
+            if (!$is_authenticated) {
+                $_SESSION['error'] = 'Bitte melde dich an';
+                header('Location: index.php?tab=opinion');
+                exit;
+            }
+
+            $poll_id = intval($_POST['poll_id'] ?? 0);
+            $poll = get_opinion_poll($pdo, $poll_id);
+
+            if (!$poll) {
+                $_SESSION['error'] = 'Umfrage nicht gefunden';
+                header('Location: index.php?tab=opinion');
+                exit;
+            }
+
+            // Prüfen ob Berechtigung
+            $is_creator = ($poll['creator_member_id'] == $current_user['member_id']);
+            $stats = get_opinion_results($pdo, $poll_id);
+
+            if (!$is_creator || $stats['total_responses'] > 1) {
+                $_SESSION['error'] = 'Du kannst diese Umfrage nicht mehr bearbeiten';
+                header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+                exit;
+            }
+
+            $title = trim($_POST['title'] ?? '');
+            $target_type = $_POST['target_type'] ?? 'individual';
+            $opinion_participant_ids = $_POST['opinion_participant_ids'] ?? [];
+            $allow_multiple = !empty($_POST['allow_multiple']) ? 1 : 0;
+            $is_anonymous = !empty($_POST['is_anonymous']) ? 1 : 0;
+            $duration_days = intval($_POST['duration_days'] ?? 14);
+            $show_intermediate_after_days = intval($_POST['show_intermediate_after_days'] ?? 7);
+            $delete_after_days = intval($_POST['delete_after_days'] ?? 30);
+
+            if (empty($title)) {
+                $_SESSION['error'] = 'Bitte gib eine Frage ein';
+                header('Location: index.php?tab=opinion&view=edit&poll_id=' . $poll_id);
+                exit;
+            }
+
+            // Neues Enddatum berechnen
+            $ends_at = date('Y-m-d H:i:s', strtotime("+{$duration_days} days"));
+
+            // Umfrage aktualisieren
+            $stmt = $pdo->prepare("
+                UPDATE svopinion_polls
+                SET title = ?,
+                    target_type = ?,
+                    allow_multiple_answers = ?,
+                    is_anonymous = ?,
+                    show_intermediate_after_days = ?,
+                    auto_delete_after_days = ?,
+                    ends_at = ?
+                WHERE poll_id = ?
+            ");
+            $stmt->execute([
+                $title, $target_type, $allow_multiple, $is_anonymous,
+                $show_intermediate_after_days, $delete_after_days, $ends_at, $poll_id
+            ]);
+
+            // Access-Token aktualisieren wenn Typ geändert wurde
+            if ($target_type === 'individual' && empty($poll['access_token'])) {
+                $access_token = bin2hex(random_bytes(32));
+                $pdo->prepare("UPDATE svopinion_polls SET access_token = ? WHERE poll_id = ?")
+                    ->execute([$access_token, $poll_id]);
+            }
+
+            // Bestehende Optionen löschen und neu anlegen
+            $pdo->prepare("DELETE FROM svopinion_poll_options WHERE poll_id = ?")
+                ->execute([$poll_id]);
+
+            $option_count = 0;
+            for ($i = 1; $i <= 10; $i++) {
+                $option_text = trim($_POST["custom_option_$i"] ?? '');
+                if (!empty($option_text)) {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svopinion_poll_options (poll_id, option_text, sort_order)
+                        VALUES (?, ?, ?)
+                    ");
+                    $stmt->execute([$poll_id, $option_text, $option_count++]);
+                }
+            }
+
+            // Teilnehmer aktualisieren (bei list-Typ)
+            if ($target_type === 'list') {
+                // Alte Teilnehmer löschen
+                $pdo->prepare("DELETE FROM svopinion_poll_participants WHERE poll_id = ?")
+                    ->execute([$poll_id]);
+
+                // Neue Teilnehmer hinzufügen
+                if (!empty($opinion_participant_ids)) {
+                    $invite_stmt = $pdo->prepare("
+                        INSERT INTO svopinion_poll_participants (poll_id, member_id)
+                        VALUES (?, ?)
+                    ");
+                    foreach ($opinion_participant_ids as $member_id) {
+                        $invite_stmt->execute([$poll_id, intval($member_id)]);
+                    }
+                }
+            } else {
+                // Falls Typ geändert wurde: Alte Teilnehmer löschen
+                $pdo->prepare("DELETE FROM svopinion_poll_participants WHERE poll_id = ?")
+                    ->execute([$poll_id]);
+            }
+
+            $_SESSION['success'] = 'Meinungsbild erfolgreich aktualisiert!';
+            header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+            exit;
+
         // ====== UMFRAGE LÖSCHEN ======
         case 'delete_opinion':
             $poll_id = intval($_POST['poll_id'] ?? 0);

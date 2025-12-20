@@ -360,6 +360,8 @@ if ($access_token && !$poll_id) {
         include __DIR__ . '/opinion_views/list.php';
     } elseif ($view === 'create') {
         include __DIR__ . '/opinion_views/create.php';
+    } elseif ($view === 'edit' && $poll_id) {
+        include __DIR__ . '/opinion_views/edit.php';
     } elseif ($view === 'detail' && $poll_id) {
         include __DIR__ . '/opinion_views/detail.php';
     } elseif ($view === 'participate' && $poll_id) {

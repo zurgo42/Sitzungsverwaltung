@@ -69,6 +69,12 @@ $stats = get_opinion_results($pdo, $poll_id);
                 Ergebnisse anzeigen
             </a>
 
+            <?php if ($is_creator && $stats['total_responses'] <= 1): ?>
+                <a href="?tab=opinion&view=edit&poll_id=<?php echo $poll_id; ?>" class="btn-secondary" style="text-decoration: none; background: #2196F3; color: white;">
+                    ✏️ Bearbeiten
+                </a>
+            <?php endif; ?>
+
             <?php if ($is_creator || $is_admin): ?>
                 <?php if ($is_active): ?>
                     <form method="POST" action="process_opinion.php" style="margin: 0;" onsubmit="return confirm('Umfrage jetzt beenden?')">
