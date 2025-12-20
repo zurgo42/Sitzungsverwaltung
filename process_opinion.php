@@ -225,33 +225,16 @@ try {
                 exit;
             }
 
-            // DEBUG: Session-Informationen loggen
-            $debug_info = [];
-            $debug_info['current_user'] = $current_user ? 'logged_in' : 'not_logged_in';
-            $debug_info['poll_id'] = $poll_id;
-            $debug_info['session_exists'] = isset($_SESSION['external_participant']) ? 'yes' : 'no';
-            if (isset($_SESSION['external_participant'])) {
-                $debug_info['session_poll_type'] = $_SESSION['external_participant']['poll_type'] ?? 'missing';
-                $debug_info['session_poll_id'] = $_SESSION['external_participant']['poll_id'] ?? 'missing';
-                $debug_info['session_external_id'] = $_SESSION['external_participant']['external_id'] ?? 'missing';
-                $debug_info['session_token'] = isset($_SESSION['external_participant']['session_token']) ? 'present' : 'missing';
-            }
-
             // Teilnehmer ermitteln (Member, Extern, oder alt-session_token)
             $participant = get_current_participant($current_user, $pdo, 'meinungsbild', $poll_id);
-
-            $debug_info['participant_type'] = $participant['type'];
-            $debug_info['participant_id'] = $participant['id'];
 
             $member_id = ($participant['type'] === 'member') ? $participant['id'] : null;
             $external_id = ($participant['type'] === 'external') ? $participant['id'] : null;
             $session_token = ($participant['type'] === 'none' && !$is_authenticated) ? get_or_create_session_token() : null;
 
-            // Debugging: Wenn kein Teilnehmer identifiziert werden konnte
+            // Wenn kein Teilnehmer identifiziert werden konnte
             if ($participant['type'] === 'none' && !$session_token) {
-                $debug_msg = 'Debug: ' . json_encode($debug_info, JSON_UNESCAPED_UNICODE);
-                error_log($debug_msg);
-                $_SESSION['error'] = 'Teilnehmer konnte nicht identifiziert werden. Bitte registriere dich erneut. ' . $debug_msg;
+                $_SESSION['error'] = 'Teilnehmer konnte nicht identifiziert werden. Bitte registriere dich erneut.';
                 if ($current_user) {
                     header('Location: index.php?tab=opinion&view=participate&poll_id=' . $poll_id);
                 } else {
@@ -337,17 +320,6 @@ try {
             foreach ($selected_options as $option_id) {
                 $option_stmt->execute([$response_id, intval($option_id)]);
             }
-
-            // DEBUG: Erfolgreiche Speicherung loggen
-            $debug_save_info = [
-                'response_id' => $response_id,
-                'poll_id' => $poll_id,
-                'member_id' => $member_id,
-                'external_id' => $external_id,
-                'session_token' => $session_token ? 'present' : 'null',
-                'options_count' => count($selected_options)
-            ];
-            error_log('Opinion Response Saved: ' . json_encode($debug_save_info, JSON_UNESCAPED_UNICODE));
 
             $_SESSION['success'] = 'Deine Antwort wurde gespeichert!';
 

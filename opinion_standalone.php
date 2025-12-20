@@ -47,11 +47,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// DEBUG: Direkter Output bei POST
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    file_put_contents(__DIR__ . '/debug_post.txt', date('Y-m-d H:i:s') . "\n" . print_r($_POST, true) . "\n" . print_r($_SESSION, true), FILE_APPEND);
-}
-
 // Prüfen ob wir in der Sitzungsverwaltung sind
 $is_sitzungsverwaltung = file_exists(__DIR__ . '/member_functions.php');
 
@@ -344,35 +339,12 @@ if ($poll_id_param > 0) {
 // POST REQUEST HANDLING
 // ============================================
 
-// DEBUG: POST-Anfrage erkannt?
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    error_log('POST REQUEST to opinion_standalone.php: action=' . ($_POST['action'] ?? 'NO ACTION'));
-    error_log('POST data: ' . json_encode($_POST, JSON_UNESCAPED_UNICODE));
-    error_log('is_sitzungsverwaltung: ' . ($is_sitzungsverwaltung ? 'yes' : 'no'));
-    error_log('process_opinion.php exists: ' . (file_exists(__DIR__ . '/process_opinion.php') ? 'yes' : 'no'));
-}
-
 // Falls process_opinion.php existiert, nutze das (in Sitzungsverwaltung)
 if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    error_log('ENTERING POST HANDLING BLOCK');
-
     // Beim POST muss auch poll_id aus POST-Daten gelesen werden
     if (!isset($poll_id_param) && isset($_POST['poll_id'])) {
         $poll_id_param = intval($_POST['poll_id']);
     }
-
-    // DEBUG: Session-Status vor process_opinion.php
-    $debug_before_process = [
-        'file' => 'opinion_standalone.php',
-        'current_user' => $current_user ? 'logged_in' : 'null',
-        'poll_id_param' => $poll_id_param,
-        'session_exists' => isset($_SESSION['external_participant']) ? 'yes' : 'no',
-        'action' => $_POST['action'] ?? 'missing'
-    ];
-    if (isset($_SESSION['external_participant'])) {
-        $debug_before_process['session_data'] = $_SESSION['external_participant'];
-    }
-    error_log('Opinion Standalone POST: ' . json_encode($debug_before_process, JSON_UNESCAPED_UNICODE));
 
     // Für externe Teilnehmer: Sicherstellen, dass die Session korrekt erkannt wird
     if (!$current_user && $poll_id_param) {
@@ -380,15 +352,10 @@ if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $
         $current_participant_type = $participant['type'];
         $current_participant_id = $participant['id'];
         $current_participant_data = $participant['data'];
-
-        // DEBUG: Teilnehmer-Erkennung
-        error_log('Participant Detection: type=' . $participant['type'] . ', id=' . ($participant['id'] ?? 'null'));
     }
 
     // Leite an process_opinion.php weiter
-    error_log('INCLUDING process_opinion.php');
     include __DIR__ . '/process_opinion.php';
-    error_log('AFTER INCLUDING process_opinion.php');
     // Nach POST-Verarbeitung wird redirected, daher Exit hier nicht nötig
 }
 
