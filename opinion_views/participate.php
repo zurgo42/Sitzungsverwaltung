@@ -53,6 +53,14 @@ $can_edit_poll = $is_creator && $stats['total_responses'] <= 1;
         <span style="margin-left: 15px;">📊 <?php echo $stats['total_responses']; ?> Antwort<?php echo $stats['total_responses'] != 1 ? 'en' : ''; ?></span>
     </div>
 
+    <?php if ($is_external && isset($current_participant_data)): ?>
+        <div style="background: #e7f3ff; color: #004085; padding: 12px 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #0066cc;">
+            👤 <strong>Du bist registriert als:</strong>
+            <?php echo htmlspecialchars($current_participant_data['first_name'] . ' ' . $current_participant_data['last_name']); ?>
+            (<?php echo htmlspecialchars($current_participant_data['email']); ?>)
+        </div>
+    <?php endif; ?>
+
     <?php if ($existing_response): ?>
         <div style="background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
             <strong>✏️ Du bearbeitest deine Antwort</strong><br>

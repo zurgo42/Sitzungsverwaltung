@@ -370,7 +370,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                     <input type="checkbox" name="consent" value="1" required>
                     <span>
                         Ich stimme zu, dass meine Daten für diese Umfrage gespeichert werden.
-                        Die Daten werden 6 Monate nach Abschluss der Umfrage automatisch gelöscht. <span class="required">*</span>
+                        Die Daten werden 6 Monate nach Abschluss der Umfrage automatisch gelöscht.
+                        Zur vereinfachten Wiedererkennung wird ein Cookie für 30 Tage gespeichert. <span class="required">*</span>
                     </span>
                 </label>
             </div>
