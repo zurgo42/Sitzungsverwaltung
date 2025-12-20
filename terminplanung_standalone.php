@@ -309,7 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                 $participant = get_current_participant($current_user, $pdo, 'termine', $poll_id);
 
                 if ($participant['type'] === 'none') {
-                    $error_message = 'Sie müssen sich registrieren um abzustimmen';
+                    $error_message = 'Du musst dich registrieren um abzustimmen';
                     break;
                 }
 
@@ -342,7 +342,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                     }
                 }
 
-                $success_message = 'Ihre Abstimmung wurde gespeichert!';
+                $success_message = 'Deine Abstimmung wurde gespeichert!';
                 break;
 
             case 'finalize_poll':
@@ -739,7 +739,7 @@ if ($view === 'dashboard') {
             echo '<table class="vote-matrix">';
             echo '<thead><tr>';
             echo '<th style="width: 180px;">Terminvorschlag</th>';
-            echo '<th>Ihre Wahl</th>';
+            echo '<th>Deine Wahl</th>';
             echo '</tr></thead>';
             echo '<tbody>';
 
