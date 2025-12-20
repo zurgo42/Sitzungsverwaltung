@@ -476,88 +476,71 @@ echo '<!DOCTYPE html>
             line-height: 1.6;
         }
 
-        .date-card {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 8px;
-            transition: all 0.3s ease;
+        .vote-matrix {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
         }
 
-        .date-card:hover {
-            border-color: #4CAF50;
-            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+        .vote-matrix th,
+        .vote-matrix td {
+            padding: 6px 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+            font-size: 13px;
         }
 
-        .date-header {
-            font-size: 15px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .date-header .weekday {
-            color: #4CAF50;
+        .vote-matrix th {
+            background: #f5f5f5;
             font-weight: bold;
         }
 
-        .vote-options {
+        .vote-matrix tr:hover {
+            background: #fafafa;
+        }
+
+        .vote-buttons {
             display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: flex-start;
         }
 
-        .vote-option {
-            flex: 1;
-            min-width: 120px;
-        }
-
-        .vote-option input[type="radio"] {
-            display: none;
-        }
-
-        .vote-option label {
-            display: block;
-            padding: 8px 12px;
+        .vote-btn {
             border: 2px solid #ddd;
-            border-radius: 6px;
-            cursor: pointer;
-            text-align: center;
-            font-weight: 500;
-            transition: all 0.2s ease;
             background: white;
-            font-size: 14px;
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+            transition: all 0.2s ease;
         }
 
-        .vote-option label:hover {
-            border-color: #bbb;
-            background: #f8f9fa;
+        .vote-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .vote-option input[type="radio"]:checked + label {
+        .vote-btn.selected {
+            border-width: 3px;
             font-weight: bold;
-            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
 
-        .vote-option.yes input[type="radio"]:checked + label {
+        .vote-btn.vote-yes.selected {
             background: #4CAF50;
-            border-color: #4CAF50;
+            border-color: #2E7D32;
             color: white;
         }
 
-        .vote-option.maybe input[type="radio"]:checked + label {
+        .vote-btn.vote-maybe.selected {
             background: #FFC107;
-            border-color: #FFC107;
+            border-color: #F57C00;
             color: white;
         }
 
-        .vote-option.no input[type="radio"]:checked + label {
+        .vote-btn.vote-no.selected {
             background: #f44336;
-            border-color: #f44336;
+            border-color: #C62828;
             color: white;
         }
 
@@ -628,15 +611,39 @@ echo '<!DOCTYPE html>
                 font-size: 22px;
             }
 
-            .vote-options {
-                flex-direction: column;
+            .vote-btn {
+                min-width: 65px;
+                padding: 4px 6px;
+                font-size: 12px;
             }
 
-            .vote-option {
-                min-width: 100%;
+            .vote-buttons {
+                gap: 3px;
+            }
+
+            .vote-matrix th,
+            .vote-matrix td {
+                padding: 6px 4px;
+                font-size: 12px;
             }
         }
     </style>
+    <script>
+    function selectVote(button, dateId, voteValue) {
+        // Alle Buttons für dieses Datum deaktivieren
+        const row = button.closest('tr');
+        row.querySelectorAll('.vote-btn').forEach(btn => btn.classList.remove('selected'));
+
+        // Aktuellen Button aktivieren
+        button.classList.add('selected');
+
+        // Hidden Input setzen
+        const input = document.getElementById('vote_' + dateId);
+        if (input) {
+            input.value = voteValue;
+        }
+    }
+    </script>
 </head>
 <body>
 <div class="container">';
@@ -719,9 +726,22 @@ if ($view === 'dashboard') {
         $dates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if ($poll['status'] === 'open') {
+            echo '<p style="margin-bottom: 20px; font-size: 14px; color: #666;">';
+            echo '<strong>✅ Passt</strong> – Der Termin passt mir gut<br>';
+            echo '<strong>🟡 Muss</strong> – Wenn es sein muss, kann ich<br>';
+            echo '<strong>❌ Passt nicht</strong> – Der Termin passt mir nicht';
+            echo '</p>';
+
             echo '<form method="POST">';
             echo '<input type="hidden" name="terminplanung_action" value="submit_vote">';
             echo '<input type="hidden" name="poll_id" value="' . $poll_id . '">';
+
+            echo '<table class="vote-matrix">';
+            echo '<thead><tr>';
+            echo '<th style="width: 180px;">Terminvorschlag</th>';
+            echo '<th>Ihre Wahl</th>';
+            echo '</tr></thead>';
+            echo '<tbody>';
 
             foreach ($dates as $date) {
                 $datetime = new DateTime($date['suggested_date']);
@@ -736,32 +756,34 @@ if ($view === 'dashboard') {
                     $end_time = ' - ' . $end_datetime->format('H:i');
                 }
 
-                echo '<div class="date-card">';
-                echo '<div class="date-header">';
-                echo '<span class="weekday">' . $weekday_de . '</span>';
-                echo '<span>' . $date_str . ', ' . $time_str . $end_time . ' Uhr</span>';
-                echo '</div>';
-                echo '<div class="vote-options">';
+                echo '<tr>';
+                echo '<td style="white-space: nowrap;">';
+                echo '<strong style="font-size: 15px;">' . $weekday_de . ', ' . $date_str . '</strong><br>';
+                echo '<span style="color: #666; font-size: 13px;">' . $time_str . $end_time . ' Uhr</span>';
+                echo '</td>';
+                echo '<td>';
+                echo '<input type="hidden" name="vote_' . $date['date_id'] . '" id="vote_' . $date['date_id'] . '" value="">';
+                echo '<div class="vote-buttons">';
 
-                // Radio-Buttons für Ja / Vielleicht / Nein
-                echo '<div class="vote-option yes">';
-                echo '<input type="radio" id="vote_' . $date['date_id'] . '_yes" name="vote_' . $date['date_id'] . '" value="1">';
-                echo '<label for="vote_' . $date['date_id'] . '_yes">✅ Passt gut</label>';
-                echo '</div>';
+                echo '<button type="button" class="vote-btn vote-yes" onclick="selectVote(this, ' . $date['date_id'] . ', 1)">';
+                echo '✅ Passt';
+                echo '</button>';
 
-                echo '<div class="vote-option maybe">';
-                echo '<input type="radio" id="vote_' . $date['date_id'] . '_maybe" name="vote_' . $date['date_id'] . '" value="0" checked>';
-                echo '<label for="vote_' . $date['date_id'] . '_maybe">🟡 Geht zur Not</label>';
-                echo '</div>';
+                echo '<button type="button" class="vote-btn vote-maybe" onclick="selectVote(this, ' . $date['date_id'] . ', 0)">';
+                echo '🟡 Muss';
+                echo '</button>';
 
-                echo '<div class="vote-option no">';
-                echo '<input type="radio" id="vote_' . $date['date_id'] . '_no" name="vote_' . $date['date_id'] . '" value="-1">';
-                echo '<label for="vote_' . $date['date_id'] . '_no">❌ Passt nicht</label>';
-                echo '</div>';
+                echo '<button type="button" class="vote-btn vote-no" onclick="selectVote(this, ' . $date['date_id'] . ', -1)">';
+                echo '❌ Passt nicht';
+                echo '</button>';
 
-                echo '</div>'; // vote-options
-                echo '</div>'; // date-card
+                echo '</div>'; // vote-buttons
+                echo '</td>';
+                echo '</tr>';
             }
+
+            echo '</tbody>';
+            echo '</table>';
 
             echo '<button type="submit" class="btn-primary">Abstimmung speichern</button>';
             echo '</form>';
