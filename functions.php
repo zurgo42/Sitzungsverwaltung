@@ -603,7 +603,12 @@ function get_visible_meetings($pdo, $member_id) {
         // Namen aus dem globalen members-Array hinzufügen
         foreach ($meetings as &$meeting) {
             if ($meeting['invited_by_member_id']) {
-                $inviter = get_member_from_cache($meeting['invited_by_member_id']);
+                // Verwende get_member_from_cache wenn verfügbar (index.php Kontext), sonst get_member_by_id
+                if (function_exists('get_member_from_cache')) {
+                    $inviter = get_member_from_cache($meeting['invited_by_member_id']);
+                } else {
+                    $inviter = get_member_by_id($pdo, $meeting['invited_by_member_id']);
+                }
                 $meeting['first_name'] = $inviter['first_name'] ?? null;
                 $meeting['last_name'] = $inviter['last_name'] ?? null;
             } else {
