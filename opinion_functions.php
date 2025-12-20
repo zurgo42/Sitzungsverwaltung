@@ -97,6 +97,11 @@ function get_opinion_poll_with_options($pdo, $poll_id) {
  * Prüft ob User an einer Umfrage teilnehmen darf
  */
 function can_participate($poll, $member_id = null) {
+    // Ersteller darf IMMER teilnehmen
+    if ($member_id && isset($poll['creator_member_id']) && $poll['creator_member_id'] == $member_id) {
+        return true;
+    }
+
     if ($poll['target_type'] === 'public') {
         return true;
     }

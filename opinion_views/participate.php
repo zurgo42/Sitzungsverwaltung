@@ -31,11 +31,13 @@ $existing_response = get_user_response($pdo, $poll_id, $member_id, $session_toke
 
 $is_creator = $current_user && ($poll['creator_member_id'] == $current_user['member_id']);
 $stats = get_opinion_results($pdo, $poll_id);
-$can_edit = $is_creator && $stats['total_responses'] <= 1;
 
-// Externe Teilnehmer können ihre Antwort immer bearbeiten
+// ALLE Teilnehmer können ihre ANTWORTEN bearbeiten, solange Umfrage offen ist
 $is_external = !$current_user;
-$allow_edit = $is_external || $can_edit || !$existing_response;
+$allow_edit = true; // Immer erlaubt, da bereits oben geprüft wurde ob Umfrage aktiv ist
+
+// Ersteller können FRAGEN/EINSTELLUNGEN bearbeiten, solange nur eigene Antwort vorhanden
+$can_edit_poll = $is_creator && $stats['total_responses'] <= 1;
 ?>
 
 <div style="margin-bottom: 20px;">
@@ -51,29 +53,12 @@ $allow_edit = $is_external || $can_edit || !$existing_response;
         <span style="margin-left: 15px;">📊 <?php echo $stats['total_responses']; ?> Antwort<?php echo $stats['total_responses'] != 1 ? 'en' : ''; ?></span>
     </div>
 
-    <?php if ($existing_response && !$allow_edit): ?>
-        <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-            <strong>Du hast bereits geantwortet!</strong><br>
-            Deine Antwort: <strong><?php echo htmlspecialchars($existing_response['selected_options_text'] ?? 'N/A'); ?></strong>
-            <?php if (!empty($existing_response['free_text'])): ?>
-                <br>Kommentar: "<?php echo htmlspecialchars($existing_response['free_text']); ?>"
-            <?php endif; ?>
+    <?php if ($existing_response): ?>
+        <div style="background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+            <strong>✏️ Du bearbeitest deine Antwort</strong><br>
+            Deine bisherige Antwort ist vorausgewählt. Du kannst sie jederzeit ändern, solange die Umfrage offen ist.
         </div>
-        <a href="?tab=opinion&view=results&poll_id=<?php echo $poll_id; ?>" class="btn-primary" style="text-decoration: none;">
-            Zu den Ergebnissen →
-        </a>
-    <?php else: ?>
-        <?php if ($existing_response && $is_external): ?>
-            <div style="background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                <strong>Du bearbeitest deine Antwort</strong><br>
-                Deine bisherige Antwort ist vorausgewählt. Du kannst sie ändern und erneut absenden.
-            </div>
-        <?php elseif ($existing_response && $can_edit): ?>
-            <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                <strong>Du bearbeitest deine Antwort</strong><br>
-                Als Ersteller kannst du deine Antwort ändern, solange nur du geantwortet hast.
-            </div>
-        <?php endif; ?>
+    <?php endif; ?>
 
         <form method="POST" action="process_opinion.php">
             <input type="hidden" name="action" value="submit_response">
@@ -131,5 +116,4 @@ $allow_edit = $is_external || $can_edit || !$existing_response;
                 </a>
             </div>
         </form>
-    <?php endif; ?>
 </div>
