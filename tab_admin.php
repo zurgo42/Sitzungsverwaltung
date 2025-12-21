@@ -915,6 +915,79 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
 </div>
 <?php endif; ?>
 
+<!-- Produktions-System-Funktionen (immer sichtbar) -->
+<div id="admin-production" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">⚙️ Produktions-System-Verwaltung</h3>
+
+    <div class="admin-section-content">
+        <div class="warning" style="background-color: #ffebee; border-left: 4px solid #d32f2f; padding: 15px; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #d32f2f;">⚠️ KRITISCHE SYSTEM-FUNKTIONEN</h4>
+            <p>
+                Diese Funktionen sind für die Einrichtung und Verwaltung des Produktivsystems gedacht.
+                Verwende sie mit äußerster Vorsicht!
+            </p>
+        </div>
+
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4>🗄️ Datenbank-Verwaltung</h4>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <!-- db-init.sql Download -->
+                <div style="border: 1px solid #2196F3; padding: 15px; border-radius: 5px; background-color: #e3f2fd;">
+                    <h5 style="margin-top: 0; color: #1976D2;">📄 Datenbank-Schema herunterladen</h5>
+                    <p style="font-size: 14px; color: #666;">
+                        Lädt die vollständige Datenbank-Initialisierungsdatei <code>db-init.sql</code> herunter.
+                        Enthält alle Tabellendefinitionen mit sv-Präfix.
+                    </p>
+                    <p style="font-size: 13px; color: #555;">
+                        <strong>Verwendung:</strong> Für Neuinstallationen oder Migrations auf anderen Systemen.
+                    </p>
+                    <a href="db-init.sql" class="btn" style="background-color: #2196F3; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" download>
+                        📥 db-init.sql herunterladen
+                    </a>
+                </div>
+
+                <!-- Produktions-Reset -->
+                <div style="border: 2px solid #d32f2f; padding: 15px; border-radius: 5px; background-color: #ffebee;">
+                    <h5 style="margin-top: 0; color: #d32f2f;">♻️ Produktionsdatenbank zurücksetzen</h5>
+                    <p style="font-size: 14px; color: #666;">
+                        <strong>KRITISCH:</strong> Löscht ALLE Daten aus der Produktionsdatenbank!
+                        Nur für initiale Einrichtung verwenden.
+                    </p>
+                    <p style="font-size: 13px; color: #555;">
+                        <strong>Was wird geleert:</strong> Alle Mitglieder, Sitzungen, TODOs, Umfragen, Dokumente-Metadaten
+                    </p>
+                    <p style="font-size: 13px; color: #555;">
+                        <strong>Was bleibt:</strong> Tabellenstruktur, Antwortvorlagen
+                    </p>
+                    <a href="tools/production_reset.php" class="btn btn-danger" style="background-color: #d32f2f; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px; font-weight: 600;" target="_blank" onclick="return confirm('⚠️ ACHTUNG!\n\nDies ist eine KRITISCHE Funktion!\n\nAlle Daten werden unwiderruflich gelöscht.\n\nMöchtest du wirklich fortfahren?');">
+                        🗑️ Produktions-Reset
+                    </a>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                <h4 style="margin-top: 0;">📋 Produktions-Checkliste</h4>
+                <ol style="font-size: 14px; line-height: 1.8;">
+                    <li>✅ Datenbank mit <code>db-init.sql</code> initialisiert</li>
+                    <li>✅ <code>config.php</code> auf Produktionseinstellungen geprüft (DB-Credentials, DEMO_MODE_ENABLED = false)</li>
+                    <li>✅ Ersten Admin-Benutzer angelegt</li>
+                    <li>✅ Mitgliederdaten importiert (falls vorhanden)</li>
+                    <li>✅ E-Mail-Konfiguration getestet</li>
+                    <li>✅ Backup-Strategie eingerichtet</li>
+                    <li>✅ SSL/HTTPS aktiviert</li>
+                    <li>✅ Alle Funktionen getestet</li>
+                </ol>
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 5px;">
+                <strong>💡 Tipp:</strong> Erstelle vor jeder größeren Änderung ein Backup der Datenbank!
+                Verwende dazu phpMyAdmin oder den Befehl: <code>mysqldump -u user -p dbname > backup.sql</code>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <!-- Dokumentenverwaltung -->
 <div id="admin-documents" class="admin-section">
