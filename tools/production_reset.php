@@ -42,7 +42,9 @@ $password_correct = false;
 if (isset($_POST['admin_password'])) {
     if ($_POST['admin_password'] === SYSTEM_ADMIN_PASSWORD) {
         $_SESSION['production_reset_auth'] = true;
-        $password_correct = true;
+        // Redirect um Session zu speichern
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit;
     } else {
         $password_error = "❌ Falsches Passwort!";
     }
@@ -181,7 +183,10 @@ if (!$password_correct) {
 // RESET-PROZESS
 // ============================================
 
-$confirmed = isset($_POST['final_confirmation']) && $_POST['final_confirmation'] === 'yes';
+// Beide Checkboxen müssen bestätigt sein
+$backup_confirmed = isset($_POST['backup_confirmation']) && $_POST['backup_confirmation'] === 'yes';
+$final_confirmed = isset($_POST['final_confirmation']) && $_POST['final_confirmation'] === 'yes';
+$confirmed = $backup_confirmed && $final_confirmed;
 
 ?>
 <!DOCTYPE html>
@@ -407,7 +412,7 @@ $confirmed = isset($_POST['final_confirmation']) && $_POST['final_confirmation']
 
                 <div class="checkbox-confirm">
                     <label>
-                        <input type="checkbox" required>
+                        <input type="checkbox" name="backup_confirmation" value="yes" required>
                         Ich habe ein Backup erstellt
                     </label>
                 </div>
