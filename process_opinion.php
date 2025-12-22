@@ -18,7 +18,10 @@ require_once __DIR__ . '/opinion_functions.php';
 require_once __DIR__ . '/mail_functions.php';
 require_once __DIR__ . '/external_participants_functions.php';
 
-session_start();
+// Session starten (falls noch nicht gestartet)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Authentifizierung (Member ODER Externer Teilnehmer)
 $current_user = null;

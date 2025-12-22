@@ -305,8 +305,19 @@ $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
 
 // Sicherheitscheck: Wenn User nicht gefunden wurde, Session beenden
 if (!$current_user) {
+    // Session ist ungültig (z.B. nach DB-Reset oder gelöschter User)
     session_destroy();
-    header('Location: index.php');
+
+    // Wenn SSO-Modus, neu versuchen
+    if (!REQUIRE_LOGIN) {
+        header('Location: index.php');
+        exit;
+    }
+
+    // Sonst zum Login
+    session_start();
+    $_SESSION['error'] = 'Deine Session ist abgelaufen. Bitte melde dich erneut an.';
+    header('Location: login.php');
     exit;
 }
 

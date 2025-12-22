@@ -4,8 +4,10 @@
  * Verarbeitet POST-Requests für Dokumente
  */
 
-// Session starten (muss ganz am Anfang stehen)
-session_start();
+// Session starten (falls noch nicht gestartet)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Konfiguration und Funktionen laden
 // functions.php bindet bereits config.php, member_functions.php etc. ein

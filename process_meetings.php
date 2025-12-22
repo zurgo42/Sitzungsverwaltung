@@ -18,7 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 require_once 'config.php';
 require_once 'functions.php';
 
-session_start();
+// Session starten (falls noch nicht gestartet)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // ============================================
 // AUTHENTIFIZIERUNG

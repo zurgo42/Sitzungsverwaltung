@@ -181,8 +181,7 @@ if (!$password_correct) {
 // RESET-PROZESS
 // ============================================
 
-$confirmed = isset($_POST['reset_confirmed']) && $_POST['reset_confirmed'] === 'RESET';
-$final_confirmed = isset($_POST['final_confirmation']) && $_POST['final_confirmation'] === 'yes';
+$confirmed = isset($_POST['final_confirmation']) && $_POST['final_confirmation'] === 'yes';
 
 ?>
 <!DOCTYPE html>
@@ -348,8 +347,8 @@ $final_confirmed = isset($_POST['final_confirmation']) && $_POST['final_confirma
 <body>
     <div class="container">
         <?php if (!$confirmed): ?>
-            <!-- SCHRITT 1: Erste Bestätigung -->
-            <h1>♻️ Produktions-Datenbank Reset</h1>
+            <!-- FINALE BESTÄTIGUNG -->
+            <h1>⚠️ Produktions-Datenbank Reset</h1>
 
             <div class="danger-box">
                 <h3>⚠️ KRITISCHE WARNUNG</h3>
@@ -368,30 +367,20 @@ $final_confirmed = isset($_POST['final_confirmation']) && $_POST['final_confirma
             </div>
 
             <div class="table-list">
-                <h4>📋 Folgende Tabellen werden geleert:</h4>
+                <h4>📋 Folgende 23 Tabellen werden geleert:</h4>
                 <ul>
                     <li>svmembers (Mitglieder)</li>
                     <li>svmeetings (Sitzungen)</li>
                     <li>svmeeting_participants</li>
-                    <li>svagenda_items</li>
-                    <li>svagenda_comments</li>
-                    <li>svprotocols</li>
-                    <li>svprotocol_change_requests</li>
-                    <li>svtodos</li>
-                    <li>svtodo_log</li>
+                    <li>svagenda_items, svagenda_comments</li>
+                    <li>svprotocols, svprotocol_change_requests</li>
+                    <li>svtodos, svtodo_log</li>
                     <li>svadmin_log</li>
-                    <li>svpolls (Terminumfragen)</li>
-                    <li>svpoll_dates</li>
-                    <li>svpoll_participants</li>
-                    <li>svpoll_responses</li>
-                    <li>svopinion_polls (Meinungsbilder)</li>
-                    <li>svopinion_poll_options</li>
-                    <li>svopinion_poll_participants</li>
-                    <li>svopinion_responses</li>
-                    <li>svopinion_response_options</li>
+                    <li>svpolls, svpoll_dates, svpoll_participants, svpoll_responses</li>
+                    <li>svopinion_polls, svopinion_poll_options, svopinion_poll_participants</li>
+                    <li>svopinion_responses, svopinion_response_options</li>
                     <li>svexternal_participants</li>
-                    <li>svdocuments</li>
-                    <li>svdocument_downloads</li>
+                    <li>svdocuments, svdocument_downloads</li>
                     <li>svmail_queue</li>
                 </ul>
             </div>
@@ -401,39 +390,8 @@ $final_confirmed = isset($_POST['final_confirmation']) && $_POST['final_confirma
                 <ul>
                     <li>✅ Die Tabellenstruktur bleibt erhalten</li>
                     <li>✅ Antwortvorlagen (svopinion_answer_templates) bleiben erhalten</li>
-                    <li>✅ Dokumentdateien auf dem Server bleiben physisch erhalten (müssen manuell gelöscht werden)</li>
+                    <li>✅ Dokumentdateien auf dem Server bleiben physisch erhalten</li>
                 </ul>
-            </div>
-
-            <form method="POST" onsubmit="return confirm('Bist du ABSOLUT SICHER? Dies kann nicht rückgängig gemacht werden!');">
-                <p><strong>Um fortzufahren, tippe das Wort <code>RESET</code> ein:</strong></p>
-                <input type="text"
-                       name="reset_confirmed"
-                       class="confirmation-input"
-                       placeholder="Tippe RESET"
-                       required
-                       autocomplete="off">
-                <br><br>
-                <button type="submit" class="btn btn-danger">
-                    ⚠️ Weiter zur finalen Bestätigung
-                </button>
-                <a href="../index.php?tab=admin" class="btn btn-secondary" style="margin-left: 10px;">
-                    ← Abbrechen
-                </a>
-            </form>
-
-        <?php elseif (!$final_confirmed): ?>
-            <!-- SCHRITT 2: Finale Bestätigung -->
-            <h1>⚠️ FINALE BESTÄTIGUNG</h1>
-
-            <div class="danger-box">
-                <h3>🚨 LETZTER SCHRITT VOR DEM RESET</h3>
-                <p style="font-size: 18px; font-weight: 600;">
-                    Dies ist deine letzte Chance, den Vorgang abzubrechen!
-                </p>
-                <p>
-                    Nach diesem Schritt gibt es kein Zurück mehr. Alle Daten werden unwiderruflich gelöscht.
-                </p>
             </div>
 
             <div class="info-box">
@@ -446,19 +404,11 @@ $final_confirmed = isset($_POST['final_confirmation']) && $_POST['final_confirma
             </div>
 
             <form method="POST">
-                <input type="hidden" name="reset_confirmed" value="RESET">
 
                 <div class="checkbox-confirm">
                     <label>
                         <input type="checkbox" required>
-                        Ich habe ein Backup erstellt und bin mir der Konsequenzen bewusst
-                    </label>
-                </div>
-
-                <div class="checkbox-confirm">
-                    <label>
-                        <input type="checkbox" required>
-                        Ich bestätige, dass ich ALLE Daten unwiderruflich löschen möchte
+                        Ich habe ein Backup erstellt
                     </label>
                 </div>
 
@@ -466,7 +416,7 @@ $final_confirmed = isset($_POST['final_confirmation']) && $_POST['final_confirma
                     <label>
                         <input type="checkbox" name="final_confirmation" value="yes" required>
                         <strong style="color: #d32f2f;">
-                            JA, LÖSCHE JETZT ALLE DATEN (keine Rückfrage mehr!)
+                            JA, LÖSCHE JETZT ALLE DATEN UNWIDERRUFLICH!
                         </strong>
                     </label>
                 </div>
@@ -476,7 +426,7 @@ $final_confirmed = isset($_POST['final_confirmation']) && $_POST['final_confirma
                     🗑️ DATENBANK JETZT ZURÜCKSETZEN
                 </button>
                 <a href="../index.php?tab=admin" class="btn btn-secondary" style="margin-left: 10px;">
-                    ← Doch abbrechen
+                    ← Abbrechen
                 </a>
             </form>
 
