@@ -561,6 +561,137 @@ if (isset($_POST['start_meeting'])) {
 }
 
 // ============================================
+// 5. MEETING DUPLIZIEREN
+// ============================================
+
+/**
+ * Meeting duplizieren (für regelmäßige Sitzungen)
+ *
+ * POST-Parameter:
+ * - duplicate_meeting: 1
+ * - meeting_id: Int (required)
+ *
+ * Berechtigung: Ersteller ODER Assistenz/GF
+ *
+ * Aktion:
+ * 1. Original-Meeting laden
+ * 2. Neues Meeting mit allen Einstellungen erstellen (ohne Datum)
+ * 3. Teilnehmer kopieren
+ * 4. TOP 0 und TOP 99 automatisch erstellen
+ *
+ * Redirect: index.php?tab=meetings&success=duplicated&meeting_id=X
+ */
+if (isset($_POST['duplicate_meeting'])) {
+    $original_meeting_id = intval($_POST['meeting_id'] ?? 0);
+
+    if (!$original_meeting_id) {
+        header("Location: index.php?tab=meetings&error=invalid_id");
+        exit;
+    }
+
+    // Original-Meeting laden
+    $stmt = $pdo->prepare("SELECT * FROM svmeetings WHERE meeting_id = ?");
+    $stmt->execute([$original_meeting_id]);
+    $original_meeting = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$original_meeting) {
+        header("Location: index.php?tab=meetings&error=invalid_id");
+        exit;
+    }
+
+    // Berechtigung prüfen: Ersteller ODER Admin
+    $is_creator = ($original_meeting['invited_by_member_id'] == $current_user['member_id']);
+    $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
+
+    if (!$is_creator && !$is_admin) {
+        header("Location: index.php?tab=meetings&error=permission");
+        exit;
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        // Neues Meeting mit kopierten Einstellungen erstellen
+        // Name: "Kopie von [Original-Name]"
+        $new_meeting_name = "Kopie von " . $original_meeting['meeting_name'];
+
+        // Datum wird leer gelassen - User muss es selbst setzen
+        // (als Platzhalter nehmen wir 1 Woche in der Zukunft, damit es nicht in der Vergangenheit liegt)
+        $new_meeting_date = date('Y-m-d H:i:s', strtotime('+7 days'));
+
+        // Expected end date ebenfalls +7 Tage verschieben wenn vorhanden
+        $new_expected_end_date = null;
+        if ($original_meeting['expected_end_date']) {
+            $original_start = strtotime($original_meeting['meeting_date']);
+            $original_end = strtotime($original_meeting['expected_end_date']);
+            $duration = $original_end - $original_start;
+            $new_expected_end_date = date('Y-m-d H:i:s', strtotime($new_meeting_date) + $duration);
+        }
+
+        // Submission deadline ebenfalls anpassen
+        $new_submission_deadline = date('Y-m-d H:i:s', strtotime($new_meeting_date . ' -24 hours'));
+
+        $stmt = $pdo->prepare("
+            INSERT INTO svmeetings (
+                meeting_name,
+                meeting_date,
+                expected_end_date,
+                submission_deadline,
+                location,
+                video_link,
+                chairman_member_id,
+                secretary_member_id,
+                visibility_type,
+                invited_by_member_id,
+                status,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
+        ");
+
+        $stmt->execute([
+            $new_meeting_name,
+            $new_meeting_date,
+            $new_expected_end_date,
+            $new_submission_deadline,
+            $original_meeting['location'],
+            $original_meeting['video_link'],
+            $original_meeting['chairman_member_id'],
+            $original_meeting['secretary_member_id'],
+            $original_meeting['visibility_type'] ?? 'invited_only',
+            $current_user['member_id'], // Ersteller ist der aktuelle User
+            'preparation'
+        ]);
+
+        $new_meeting_id = $pdo->lastInsertId();
+
+        // Teilnehmer kopieren
+        $stmt_participants = $pdo->prepare("
+            SELECT member_id
+            FROM svmeeting_participants
+            WHERE meeting_id = ?
+        ");
+        $stmt_participants->execute([$original_meeting_id]);
+        $original_participants = $stmt_participants->fetchAll(PDO::FETCH_COLUMN);
+
+        add_participants($pdo, $new_meeting_id, $original_participants);
+
+        // TOP 0 und TOP 99 erstellen
+        create_default_tops($pdo, $new_meeting_id);
+
+        $pdo->commit();
+
+        header("Location: index.php?tab=meetings&success=duplicated&meeting_id=$new_meeting_id");
+        exit;
+
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        error_log("Fehler beim Meeting-Duplizieren: " . $e->getMessage());
+        header("Location: index.php?tab=meetings&error=duplicate_failed&meeting_id=$original_meeting_id");
+        exit;
+    }
+}
+
+// ============================================
 // UNBEKANNTE AKTION
 // ============================================
 

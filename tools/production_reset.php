@@ -8,7 +8,7 @@
  * VERWENDUNG:
  * 1. Nur für Produktionsbetrieb gedacht (leert Tabellen, behält Struktur)
  * 2. Benötigt doppelte Bestätigung
- * 3. Benötigt System-Admin-Passwort
+ * 3. Benötigt RESET-Eingabe als Sicherheitswort
  * 4. Protokolliert den Reset im Admin-Log
  *
  * Erstellt: 2025-12-21
@@ -32,161 +32,31 @@ try {
 }
 
 // ============================================
-// SICHERHEITS-CHECKS
+// SICHERHEITS-CHECKS UND RESET-PROZESS
 // ============================================
 
-// 1. Passwort-Schutz
-session_start();
-$password_correct = false;
+$reset_confirmed = false;
+$show_final_confirmation = false;
+$error_message = '';
 
-if (isset($_POST['admin_password'])) {
-    if ($_POST['admin_password'] === SYSTEM_ADMIN_PASSWORD) {
-        $_SESSION['production_reset_auth'] = true;
-        // Redirect um Session zu speichern
-        header('Location: ' . $_SERVER['PHP_SELF']);
-        exit;
+// Schritt 1: RESET-Eingabe prüfen
+if (isset($_POST['reset_word'])) {
+    if (strtoupper(trim($_POST['reset_word'])) === 'RESET') {
+        $show_final_confirmation = true;
     } else {
-        $password_error = "❌ Falsches Passwort!";
+        $error_message = "❌ Falsche Eingabe! Bitte 'RESET' eingeben.";
     }
 }
 
-if (isset($_SESSION['production_reset_auth']) && $_SESSION['production_reset_auth'] === true) {
-    $password_correct = true;
+// Schritt 2: Finale Bestätigung mit beiden Checkboxen
+if (isset($_POST['backup_confirmation']) && isset($_POST['final_confirmation'])) {
+    $backup_confirmed = $_POST['backup_confirmation'] === 'yes';
+    $final_confirmed = $_POST['final_confirmation'] === 'yes';
+
+    if ($backup_confirmed && $final_confirmed) {
+        $reset_confirmed = true;
+    }
 }
-
-// Wenn nicht authentifiziert, Passwort-Formular anzeigen
-if (!$password_correct) {
-    ?>
-    <!DOCTYPE html>
-    <html lang="de">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>🔒 Produktions-Reset - Authentifizierung</title>
-        <style>
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0;
-                padding: 20px;
-            }
-            .login-box {
-                background: white;
-                padding: 40px;
-                border-radius: 12px;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-                max-width: 450px;
-                width: 100%;
-            }
-            h2 {
-                margin-top: 0;
-                color: #d32f2f;
-                font-size: 24px;
-            }
-            .warning {
-                background: #fff3cd;
-                border: 2px solid #ffc107;
-                color: #856404;
-                padding: 15px;
-                border-radius: 6px;
-                margin: 20px 0;
-                font-size: 14px;
-            }
-            input[type="password"] {
-                width: 100%;
-                padding: 12px;
-                margin: 10px 0;
-                border: 2px solid #ddd;
-                border-radius: 6px;
-                box-sizing: border-box;
-                font-size: 15px;
-            }
-            input[type="password"]:focus {
-                outline: none;
-                border-color: #667eea;
-            }
-            button {
-                width: 100%;
-                padding: 14px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 16px;
-                font-weight: 600;
-                transition: transform 0.2s;
-            }
-            button:hover {
-                transform: translateY(-2px);
-            }
-            .error {
-                color: #d32f2f;
-                background: #ffebee;
-                padding: 12px;
-                border-radius: 6px;
-                margin-bottom: 15px;
-                border-left: 4px solid #d32f2f;
-            }
-            .info {
-                font-size: 13px;
-                color: #666;
-                margin-top: 20px;
-                padding-top: 20px;
-                border-top: 1px solid #eee;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="login-box">
-            <h2>🔒 Produktions-Reset Zugang</h2>
-
-            <div class="warning">
-                <strong>⚠️ KRITISCHE FUNKTION</strong><br>
-                Dieser Bereich erlaubt das vollständige Zurücksetzen der Produktionsdatenbank.
-                <strong>ALLE Daten werden unwiderruflich gelöscht!</strong>
-            </div>
-
-            <?php if (isset($password_error)): ?>
-                <div class="error"><?php echo htmlspecialchars($password_error); ?></div>
-            <?php endif; ?>
-
-            <form method="POST">
-                <label for="admin_password" style="display: block; margin-bottom: 5px; font-weight: 600;">
-                    System-Admin-Passwort:
-                </label>
-                <input type="password"
-                       name="admin_password"
-                       id="admin_password"
-                       placeholder="Passwort eingeben"
-                       required
-                       autofocus>
-                <button type="submit">🔓 Anmelden</button>
-            </form>
-
-            <div class="info">
-                <strong>ℹ️ Hinweis:</strong> Das Passwort ist in der config.php unter
-                <code>SYSTEM_ADMIN_PASSWORD</code> definiert.
-            </div>
-        </div>
-    </body>
-    </html>
-    <?php
-    exit;
-}
-
-// ============================================
-// RESET-PROZESS
-// ============================================
-
-// Beide Checkboxen müssen bestätigt sein
-$backup_confirmed = isset($_POST['backup_confirmation']) && $_POST['backup_confirmation'] === 'yes';
-$final_confirmed = isset($_POST['final_confirmation']) && $_POST['final_confirmation'] === 'yes';
-$confirmed = $backup_confirmed && $final_confirmed;
 
 ?>
 <!DOCTYPE html>
@@ -291,13 +161,16 @@ $confirmed = $backup_confirmed && $final_confirmed;
         .btn-secondary:hover {
             background: #545b62;
         }
-        .confirmation-input {
+        .reset-input {
             padding: 12px;
-            font-size: 16px;
+            font-size: 18px;
             border: 2px solid #d32f2f;
             border-radius: 6px;
-            width: 300px;
+            width: 200px;
             font-family: monospace;
+            text-align: center;
+            font-weight: 600;
+            text-transform: uppercase;
         }
         .checkbox-confirm {
             margin: 20px 0;
@@ -338,105 +211,28 @@ $confirmed = $backup_confirmed && $final_confirmed;
             font-family: monospace;
             color: #d32f2f;
         }
-        .logout-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: #666;
-            text-decoration: none;
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border-left: 4px solid #d32f2f;
         }
-        .logout-link:hover {
-            color: #333;
+        .reset-word-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <?php if (!$confirmed): ?>
-            <!-- FINALE BESTÄTIGUNG -->
-            <h1>⚠️ Produktions-Datenbank Reset</h1>
-
-            <div class="danger-box">
-                <h3>⚠️ KRITISCHE WARNUNG</h3>
-                <p><strong>Diese Funktion löscht ALLE Daten aus der Produktionsdatenbank!</strong></p>
-                <ul class="warning-list">
-                    <li>❌ Alle Sitzungen und Protokolle werden gelöscht</li>
-                    <li>❌ Alle Mitgliederdaten werden entfernt</li>
-                    <li>❌ Alle TODOs und Aufgaben gehen verloren</li>
-                    <li>❌ Alle Umfragen (Termine & Meinungsbilder) werden gelöscht</li>
-                    <li>❌ Alle Dokumente-Metadaten werden entfernt</li>
-                    <li>❌ Alle Admin-Logs werden gelöscht</li>
-                </ul>
-                <p style="margin-top: 20px; font-weight: 600; color: #d32f2f;">
-                    ⚠️ DIESER VORGANG KANN NICHT RÜCKGÄNGIG GEMACHT WERDEN!
-                </p>
-            </div>
-
-            <div class="table-list">
-                <h4>📋 Folgende 23 Tabellen werden geleert:</h4>
-                <ul>
-                    <li>svmembers (Mitglieder)</li>
-                    <li>svmeetings (Sitzungen)</li>
-                    <li>svmeeting_participants</li>
-                    <li>svagenda_items, svagenda_comments</li>
-                    <li>svprotocols, svprotocol_change_requests</li>
-                    <li>svtodos, svtodo_log</li>
-                    <li>svadmin_log</li>
-                    <li>svpolls, svpoll_dates, svpoll_participants, svpoll_responses</li>
-                    <li>svopinion_polls, svopinion_poll_options, svopinion_poll_participants</li>
-                    <li>svopinion_responses, svopinion_response_options</li>
-                    <li>svexternal_participants</li>
-                    <li>svdocuments, svdocument_downloads</li>
-                    <li>svmail_queue</li>
-                </ul>
-            </div>
-
-            <div class="info-box">
-                <strong>ℹ️ Was bleibt erhalten:</strong>
-                <ul>
-                    <li>✅ Die Tabellenstruktur bleibt erhalten</li>
-                    <li>✅ Antwortvorlagen (svopinion_answer_templates) bleiben erhalten</li>
-                    <li>✅ Dokumentdateien auf dem Server bleiben physisch erhalten</li>
-                </ul>
-            </div>
-
-            <div class="info-box">
-                <strong>💡 Empfehlung vor dem Reset:</strong>
-                <ol>
-                    <li>Erstelle ein Backup der Datenbank (z.B. mit phpMyAdmin oder mysqldump)</li>
-                    <li>Stelle sicher, dass alle wichtigen Daten exportiert wurden</li>
-                    <li>Informiere alle Benutzer über die bevorstehende Löschung</li>
-                </ol>
-            </div>
-
-            <form method="POST">
-
-                <div class="checkbox-confirm">
-                    <label>
-                        <input type="checkbox" name="backup_confirmation" value="yes" required>
-                        Ich habe ein Backup erstellt
-                    </label>
-                </div>
-
-                <div class="checkbox-confirm">
-                    <label>
-                        <input type="checkbox" name="final_confirmation" value="yes" required>
-                        <strong style="color: #d32f2f;">
-                            JA, LÖSCHE JETZT ALLE DATEN UNWIDERRUFLICH!
-                        </strong>
-                    </label>
-                </div>
-
-                <br>
-                <button type="submit" class="btn btn-danger" style="font-size: 18px; padding: 16px 32px;">
-                    🗑️ DATENBANK JETZT ZURÜCKSETZEN
-                </button>
-                <a href="../index.php?tab=admin" class="btn btn-secondary" style="margin-left: 10px;">
-                    ← Abbrechen
-                </a>
-            </form>
-
-        <?php else: ?>
-            <!-- SCHRITT 3: Reset durchführen -->
+        <?php if ($reset_confirmed): ?>
+            <!-- Reset durchführen -->
             <h1>♻️ Reset wird durchgeführt...</h1>
 
             <div class="progress">
@@ -558,25 +354,126 @@ $confirmed = $backup_confirmed && $final_confirmed;
                 🏠 Zur Startseite
             </a>
 
-            <?php
-            // Session löschen
-            unset($_SESSION['production_reset_auth']);
-            ?>
-        <?php endif; ?>
+        <?php elseif ($show_final_confirmation): ?>
+            <!-- Schritt 2: Finale Bestätigung mit beiden Checkboxen -->
+            <h1>⚠️ Produktions-Datenbank Reset - Finale Bestätigung</h1>
 
-        <?php if (!$final_confirmed): ?>
-            <a href="?logout=1" class="logout-link" onclick="<?php unset($_SESSION['production_reset_auth']); ?>">
-                🔒 Abmelden
-            </a>
+            <div class="danger-box">
+                <h3>⚠️ LETZTE WARNUNG</h3>
+                <p><strong>Du bist nur noch einen Klick von der unwiderruflichen Löschung aller Daten entfernt!</strong></p>
+                <ul class="warning-list">
+                    <li>❌ Alle Sitzungen und Protokolle werden gelöscht</li>
+                    <li>❌ Alle Mitgliederdaten werden entfernt</li>
+                    <li>❌ Alle TODOs und Aufgaben gehen verloren</li>
+                    <li>❌ Alle Umfragen (Termine & Meinungsbilder) werden gelöscht</li>
+                    <li>❌ Alle Dokumente-Metadaten werden entfernt</li>
+                    <li>❌ Alle Admin-Logs werden gelöscht</li>
+                </ul>
+                <p style="margin-top: 20px; font-weight: 600; color: #d32f2f;">
+                    ⚠️ DIESER VORGANG KANN NICHT RÜCKGÄNGIG GEMACHT WERDEN!
+                </p>
+            </div>
+
+            <div class="table-list">
+                <h4>📋 Folgende 23 Tabellen werden geleert:</h4>
+                <ul>
+                    <li>svmembers (Mitglieder)</li>
+                    <li>svmeetings (Sitzungen)</li>
+                    <li>svmeeting_participants</li>
+                    <li>svagenda_items, svagenda_comments</li>
+                    <li>svprotocols, svprotocol_change_requests</li>
+                    <li>svtodos, svtodo_log</li>
+                    <li>svadmin_log</li>
+                    <li>svpolls, svpoll_dates, svpoll_participants, svpoll_responses</li>
+                    <li>svopinion_polls, svopinion_poll_options, svopinion_poll_participants</li>
+                    <li>svopinion_responses, svopinion_response_options</li>
+                    <li>svexternal_participants</li>
+                    <li>svdocuments, svdocument_downloads</li>
+                    <li>svmail_queue</li>
+                </ul>
+            </div>
+
+            <div class="info-box">
+                <strong>ℹ️ Was bleibt erhalten:</strong>
+                <ul>
+                    <li>✅ Die Tabellenstruktur bleibt erhalten</li>
+                    <li>✅ Antwortvorlagen (svopinion_answer_templates) bleiben erhalten</li>
+                    <li>✅ Dokumentdateien auf dem Server bleiben physisch erhalten</li>
+                </ul>
+            </div>
+
+            <form method="POST">
+                <div class="checkbox-confirm">
+                    <label>
+                        <input type="checkbox" name="backup_confirmation" value="yes" required>
+                        ✅ Ich habe ein Backup erstellt und bin mir der Konsequenzen bewusst
+                    </label>
+                </div>
+
+                <div class="checkbox-confirm">
+                    <label>
+                        <input type="checkbox" name="final_confirmation" value="yes" required>
+                        <strong style="color: #d32f2f;">
+                            ✅ JA, LÖSCHE JETZT ALLE DATEN UNWIDERRUFLICH!
+                        </strong>
+                    </label>
+                </div>
+
+                <br>
+                <button type="submit" class="btn btn-danger" style="font-size: 18px; padding: 16px 32px;">
+                    🗑️ DATENBANK JETZT ZURÜCKSETZEN
+                </button>
+                <a href="../index.php?tab=admin" class="btn btn-secondary" style="margin-left: 10px;">
+                    ← Abbrechen
+                </a>
+            </form>
+
+        <?php else: ?>
+            <!-- Schritt 1: RESET-Eingabe -->
+            <h1>⚠️ Produktions-Datenbank Reset</h1>
+
+            <div class="danger-box">
+                <h3>⚠️ KRITISCHE FUNKTION</h3>
+                <p><strong>Diese Funktion löscht ALLE Daten aus der Produktionsdatenbank!</strong></p>
+                <p>Dieser Vorgang kann nicht rückgängig gemacht werden.</p>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 Empfehlung vor dem Reset:</strong>
+                <ol>
+                    <li>Erstelle ein Backup der Datenbank (z.B. mit phpMyAdmin oder mysqldump)</li>
+                    <li>Stelle sicher, dass alle wichtigen Daten exportiert wurden</li>
+                    <li>Informiere alle Benutzer über die bevorstehende Löschung</li>
+                </ol>
+            </div>
+
+            <?php if ($error_message): ?>
+                <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
+            <?php endif; ?>
+
+            <form method="POST">
+                <div class="reset-word-box">
+                    <p style="margin-top: 0; font-size: 16px; font-weight: 600;">
+                        Um fortzufahren, gib das Wort <code style="font-size: 20px; background: white; padding: 4px 12px;">RESET</code> ein:
+                    </p>
+                    <input type="text"
+                           name="reset_word"
+                           class="reset-input"
+                           placeholder="RESET"
+                           autocomplete="off"
+                           required
+                           autofocus>
+                </div>
+
+                <br>
+                <button type="submit" class="btn btn-danger">
+                    ⚠️ Weiter zur Bestätigung
+                </button>
+                <a href="../index.php?tab=admin" class="btn btn-secondary" style="margin-left: 10px;">
+                    ← Abbrechen
+                </a>
+            </form>
         <?php endif; ?>
     </div>
 </body>
 </html>
-<?php
-// Logout-Funktionalität
-if (isset($_GET['logout'])) {
-    unset($_SESSION['production_reset_auth']);
-    header('Location: ' . $_SERVER['PHP_SELF']);
-    exit;
-}
-?>

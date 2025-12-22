@@ -71,6 +71,7 @@ require_once 'module_notifications.php';
             case 'created': echo '✅ Sitzung erfolgreich erstellt!'; break;
             case 'deleted': echo '✅ Sitzung erfolgreich gelöscht!'; break;
             case 'updated': echo '✅ Sitzung erfolgreich aktualisiert!'; break;
+            case 'duplicated': echo '✅ Sitzung erfolgreich dupliziert! Bitte Datum anpassen.'; break;
             default: echo '✅ Aktion erfolgreich durchgeführt!';
         }
         ?>
@@ -86,6 +87,7 @@ require_once 'module_notifications.php';
             case 'update_failed': echo '❌ Fehler beim Aktualisieren der Sitzung.'; break;
             case 'start_failed': echo '❌ Fehler beim Starten der Sitzung.'; break;
             case 'create_failed': echo '❌ Fehler beim Erstellen der Sitzung.'; break;
+            case 'duplicate_failed': echo '❌ Fehler beim Duplizieren der Sitzung.'; break;
             case 'missing_data': echo '❌ Pflichtfelder fehlen.'; break;
             case 'invalid_id': echo '❌ Ungültige Sitzungs-ID.'; break;
             default: echo '❌ Ein Fehler ist aufgetreten.';
@@ -336,6 +338,7 @@ require_once 'module_notifications.php';
                 <div class="meeting-card-actions">
                     <?php if ($can_edit): ?>
                         <button type="button" onclick="toggleEditMeeting(<?php echo $m['meeting_id']; ?>)" class="btn-view">✏️ Bearbeiten</button>
+                        <button type="button" onclick="duplicateMeeting(<?php echo $m['meeting_id']; ?>)" class="btn-secondary" style="background: #2196F3; color: white;">📋 Duplizieren</button>
                         <button type="button" onclick="if(confirm('Meeting wirklich löschen?')) deleteMeeting(<?php echo $m['meeting_id']; ?>)" class="btn-delete">🗑️ Löschen</button>
                         <button type="button" onclick="toggleStartMeeting(<?php echo $m['meeting_id']; ?>)" style="background: #4caf50; color: white;">▶️ Starten</button>
                     <?php endif; ?>
@@ -651,21 +654,44 @@ function updateEndDateTime() {
     }
 }
 
+function duplicateMeeting(meetingId) {
+    if (confirm('Diese Sitzung duplizieren? Alle Einstellungen werden übernommen, aber du musst das Datum noch anpassen.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'process_meetings.php';
+
+        const input1 = document.createElement('input');
+        input1.type = 'hidden';
+        input1.name = 'duplicate_meeting';
+        input1.value = '1';
+
+        const input2 = document.createElement('input');
+        input2.type = 'hidden';
+        input2.name = 'meeting_id';
+        input2.value = meetingId;
+
+        form.appendChild(input1);
+        form.appendChild(input2);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
 function deleteMeeting(meetingId) {
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = 'process_meetings.php';
-    
+
     const input1 = document.createElement('input');
     input1.type = 'hidden';
     input1.name = 'delete_meeting';
     input1.value = '1';
-    
+
     const input2 = document.createElement('input');
     input2.type = 'hidden';
     input2.name = 'meeting_id';
     input2.value = meetingId;
-    
+
     form.appendChild(input1);
     form.appendChild(input2);
     document.body.appendChild(form);
