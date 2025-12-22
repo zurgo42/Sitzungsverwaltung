@@ -34,6 +34,14 @@ if (session_status() === PHP_SESSION_NONE) {
 $current_user = null;
 if (isset($_SESSION['member_id'])) {
     $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+
+    // Session ist ungültig (z.B. nach DB-Reset)
+    if (!$current_user) {
+        session_destroy();
+        $_SESSION['error'] = 'Deine Session ist abgelaufen. Bitte melde dich erneut an.';
+        header('Location: index.php');
+        exit;
+    }
 }
 
 // Externe Teilnehmer-Session prüfen
@@ -43,7 +51,7 @@ $is_external_participant = ($external_session !== null);
 // Mindestens einer muss identifiziert sein
 if (!$current_user && !$is_external_participant) {
     // Weder eingeloggt noch als externer Teilnehmer registriert
-    $_SESSION['error'] = 'Sie müssen eingeloggt sein oder sich als Teilnehmer registrieren';
+    $_SESSION['error'] = 'Du musst eingeloggt sein um Termine zu erstellen';
     header('Location: index.php');
     exit;
 }

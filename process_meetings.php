@@ -36,8 +36,11 @@ if (!isset($_SESSION['member_id'])) {
 // User-Daten laden (über Wrapper-Funktion)
 $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
 
+// Session ist ungültig (z.B. nach DB-Reset oder gelöschter User)
 if (!$current_user) {
     session_destroy();
+    session_start();
+    $_SESSION['error'] = 'Deine Session ist abgelaufen. Bitte melde dich erneut an.';
     header('Location: index.php');
     exit;
 }
