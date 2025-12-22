@@ -676,7 +676,7 @@ if (isset($_POST['duplicate_meeting'])) {
         add_participants($pdo, $new_meeting_id, $original_participants);
 
         // TOP 0 und TOP 99 erstellen
-        create_default_tops($pdo, $new_meeting_id);
+        create_default_tops($pdo, $new_meeting_id, $current_user['member_id']);
 
         $pdo->commit();
 
