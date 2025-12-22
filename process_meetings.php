@@ -645,7 +645,7 @@ if (isset($_POST['duplicate_meeting'])) {
                 invited_by_member_id,
                 status,
                 created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ");
 
         $stmt->execute([
