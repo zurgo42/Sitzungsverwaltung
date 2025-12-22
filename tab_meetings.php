@@ -71,7 +71,7 @@ require_once 'module_notifications.php';
             case 'created': echo '✅ Sitzung erfolgreich erstellt!'; break;
             case 'deleted': echo '✅ Sitzung erfolgreich gelöscht!'; break;
             case 'updated': echo '✅ Sitzung erfolgreich aktualisiert!'; break;
-            case 'duplicated': echo '✅ Sitzung erfolgreich dupliziert! Bitte Datum anpassen.'; break;
+            case 'duplicated': echo '✅ Sitzung erfolgreich dupliziert! Termin wurde 7 Tage später gesetzt.'; break;
             default: echo '✅ Aktion erfolgreich durchgeführt!';
         }
         ?>
@@ -655,7 +655,7 @@ function updateEndDateTime() {
 }
 
 function duplicateMeeting(meetingId) {
-    if (confirm('Diese Sitzung duplizieren? Alle Einstellungen werden übernommen, aber du musst das Datum noch anpassen.')) {
+    if (confirm('Diese Sitzung duplizieren? Alle Einstellungen und Teilnehmer werden übernommen, der Termin wird 7 Tage später gesetzt.')) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = 'process_meetings.php';

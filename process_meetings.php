@@ -612,24 +612,23 @@ if (isset($_POST['duplicate_meeting'])) {
         $pdo->beginTransaction();
 
         // Neues Meeting mit kopierten Einstellungen erstellen
-        // Name: "Kopie von [Original-Name]"
-        $new_meeting_name = "Kopie von " . $original_meeting['meeting_name'];
+        // Name: Exakt gleicher Name (nicht "Kopie von")
+        $new_meeting_name = $original_meeting['meeting_name'];
 
-        // Datum wird leer gelassen - User muss es selbst setzen
-        // (als Platzhalter nehmen wir 1 Woche in der Zukunft, damit es nicht in der Vergangenheit liegt)
-        $new_meeting_date = date('Y-m-d H:i:s', strtotime('+7 days'));
+        // Datum: Exakt 7 Tage später, gleiche Uhrzeit
+        $new_meeting_date = date('Y-m-d H:i:s', strtotime($original_meeting['meeting_date'] . ' +7 days'));
 
-        // Expected end date ebenfalls +7 Tage verschieben wenn vorhanden
+        // Expected end date: Exakt 7 Tage später wenn vorhanden
         $new_expected_end_date = null;
         if ($original_meeting['expected_end_date']) {
-            $original_start = strtotime($original_meeting['meeting_date']);
-            $original_end = strtotime($original_meeting['expected_end_date']);
-            $duration = $original_end - $original_start;
-            $new_expected_end_date = date('Y-m-d H:i:s', strtotime($new_meeting_date) + $duration);
+            $new_expected_end_date = date('Y-m-d H:i:s', strtotime($original_meeting['expected_end_date'] . ' +7 days'));
         }
 
-        // Submission deadline ebenfalls anpassen
-        $new_submission_deadline = date('Y-m-d H:i:s', strtotime($new_meeting_date . ' -24 hours'));
+        // Submission deadline: Exakt 7 Tage später wenn vorhanden
+        $new_submission_deadline = null;
+        if ($original_meeting['submission_deadline']) {
+            $new_submission_deadline = date('Y-m-d H:i:s', strtotime($original_meeting['submission_deadline'] . ' +7 days'));
+        }
 
         $stmt = $pdo->prepare("
             INSERT INTO svmeetings (
