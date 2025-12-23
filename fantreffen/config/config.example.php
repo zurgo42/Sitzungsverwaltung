@@ -1,0 +1,27 @@
+<?php
+/**
+ * Konfigurationsdatei
+ * Diese Datei als config.php kopieren und Zugangsdaten eintragen
+ */
+
+// Datenbank
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'dein_datenbankname');
+define('DB_USER', 'dein_username');
+define('DB_PASS', 'dein_passwort');
+
+// Mail-Server (SMTP)
+define('MAIL_HOST', 'mail.example.com');
+define('MAIL_PORT', 587);
+define('MAIL_USER', 'info@example.de');
+define('MAIL_PASS', 'dein_mail_passwort');
+define('MAIL_FROM_ADDRESS', 'info@example.de');
+define('MAIL_FROM_NAME', 'Aida Fantreffen');
+
+// Anwendung
+define('APP_NAME', 'Aida Fantreffen');
+define('APP_URL', 'https://aidafantreffen.de');
+define('APP_DEBUG', false);
+
+// Session
+define('SESSION_LIFETIME', 3600 * 24 * 7); // 1 Woche
