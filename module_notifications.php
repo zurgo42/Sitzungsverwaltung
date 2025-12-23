@@ -19,10 +19,9 @@
  * @return void (gibt direkt HTML aus)
  */
 function render_user_notifications($pdo, $member_id) {
-    // Mitglied-Rolle ermitteln
-    $stmt_role = $pdo->prepare("SELECT role FROM svmembers WHERE member_id = ?");
-    $stmt_role->execute([$member_id]);
-    $member_role = $stmt_role->fetch()['role'] ?? '';
+    // Mitglied-Rolle ermitteln - über Adapter!
+    $member = get_member_by_id($pdo, $member_id);
+    $member_role = $member['role'] ?? '';
 
     // Für "Mitglied" keine Benachrichtigungen anzeigen
     if (strtolower($member_role) === 'mitglied') {

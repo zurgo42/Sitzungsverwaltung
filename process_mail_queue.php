@@ -33,21 +33,27 @@ if (PHP_SAPI === 'cli') {
     require_once __DIR__ . '/config.php';
     require_once __DIR__ . '/functions.php';
 
+    // Basis-Requirements laden (für get_member_by_id)
+    require_once __DIR__ . '/config.php';
+    require_once __DIR__ . '/member_functions.php';
+
     if (!isset($_SESSION['member_id'])) {
         die('Nicht autorisiert');
     }
 
-    $stmt = $pdo->prepare("SELECT role FROM svmembers WHERE member_id = ?");
-    $stmt->execute([$_SESSION['member_id']]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    // User-Rolle über Adapter holen
+    $user = get_member_by_id($pdo, $_SESSION['member_id']);
 
     if (!$user || !in_array($user['role'], ['assistenz', 'gf'])) {
         die('Nur für Admins');
     }
 }
 
-// Basis-Requirements
-require_once __DIR__ . '/config.php';
+// Basis-Requirements (wenn nicht via Browser aufgerufen)
+if (!defined('DB_HOST')) {
+    require_once __DIR__ . '/config.php';
+    require_once __DIR__ . '/member_functions.php';
+}
 require_once __DIR__ . '/mail_functions.php';
 
 // Konfiguration
