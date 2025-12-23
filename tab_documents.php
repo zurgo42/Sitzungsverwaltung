@@ -276,6 +276,11 @@ if ($view === 'list') {
 
                 <div class="d-flex justify-content-between align-items-center mb-3 documents-header">
                     <h2>📁 Dokumentenverwaltung</h2>
+                    <?php if ($is_admin): ?>
+                        <a href="?tab=documents&view=upload" class="btn btn-primary">
+                            ➕ Dokument hinzufügen
+                        </a>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Info-Box -->
