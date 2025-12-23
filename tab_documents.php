@@ -443,6 +443,20 @@ if ($view === 'list') {
                                                         🔗 Kurzlink
                                                     </a>
                                                 <?php endif; ?>
+
+                                                <!-- Admin-Buttons: Bearbeiten & Löschen -->
+                                                <?php if ($is_admin): ?>
+                                                    <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn-secondary" style="font-size: 0.85em; background: #ff9800;">
+                                                        ✏️ Bearbeiten
+                                                    </a>
+                                                    <form method="POST" action="process_documents.php" style="display: inline;" onsubmit="return confirm('Dokument wirklich löschen?');">
+                                                        <input type="hidden" name="action" value="delete">
+                                                        <input type="hidden" name="document_id" value="<?= $doc['document_id'] ?>">
+                                                        <button type="submit" class="btn-secondary" style="font-size: 0.85em; background: #f44336; border: none; cursor: pointer;">
+                                                            🗑️ Löschen
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
@@ -507,6 +521,20 @@ if ($view === 'list') {
                                         <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-secondary" target="_blank">
                                             🔗 Kurzlink
                                         </a>
+                                    <?php endif; ?>
+
+                                    <!-- Admin-Buttons: Bearbeiten & Löschen -->
+                                    <?php if ($is_admin): ?>
+                                        <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn-secondary" style="background: #ff9800;">
+                                            ✏️ Bearbeiten
+                                        </a>
+                                        <form method="POST" action="process_documents.php" style="display: inline;" onsubmit="return confirm('Dokument wirklich löschen?');">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="document_id" value="<?= $doc['document_id'] ?>">
+                                            <button type="submit" class="btn-secondary" style="background: #f44336; border: none; cursor: pointer;">
+                                                🗑️ Löschen
+                                            </button>
+                                        </form>
                                     <?php endif; ?>
                                 </div>
                             </div>
