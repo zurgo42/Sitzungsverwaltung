@@ -447,7 +447,7 @@ function create_external_document_link($pdo, $data, $member_id) {
                 external_url,
                 title, description, keywords, version, short_url,
                 category, access_level, status,
-                uploaded_by_member_id, uploaded_at
+                uploaded_by_member_id, created_at
             ) VALUES (
                 ?, ?, '', 0, ?,
                 ?,
