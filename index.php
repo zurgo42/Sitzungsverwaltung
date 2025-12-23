@@ -225,12 +225,59 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
             header('Location: index.php');
             exit;
         } else {
-            // Mitglied nicht gefunden - Dezente Fehlerseite anzeigen
-            show_access_denied_page(
-                'Mitgliedsnummer nicht gefunden',
-                'Deine Mitgliedsnummer wurde nicht in der Datenbank gefunden oder ist nicht aktiv.',
-                'MNr: ' . htmlspecialchars($sso_mnr)
-            );
+            // Mitglied nicht gefunden - Prüfen ob DB leer ist (nach Reset)
+            $stmt = $pdo->query("SELECT COUNT(*) FROM svmembers");
+            $member_count = $stmt->fetchColumn();
+
+            if ($member_count == 0) {
+                // Datenbank ist leer - Ersten User als Admin anlegen
+                // Versuche Daten vom Adapter zu holen
+                $member_data = get_member_data_from_adapter($sso_mnr);
+
+                if ($member_data) {
+                    // Mit Adapter-Daten anlegen
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svmembers (
+                            membership_number, first_name, last_name, email, phone,
+                            role, status, joined_date, created_at
+                        ) VALUES (?, ?, ?, ?, ?, 'gf', 'active', NOW(), NOW())
+                    ");
+                    $stmt->execute([
+                        $sso_mnr,
+                        $member_data['first_name'] ?? 'Admin',
+                        $member_data['last_name'] ?? 'User',
+                        $member_data['email'] ?? '',
+                        $member_data['phone'] ?? ''
+                    ]);
+                } else {
+                    // Ohne Adapter-Daten - Platzhalter anlegen
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svmembers (
+                            membership_number, first_name, last_name, email,
+                            role, status, joined_date, created_at
+                        ) VALUES (?, 'Admin', 'User', '', 'gf', 'active', NOW(), NOW())
+                    ");
+                    $stmt->execute([$sso_mnr]);
+                }
+
+                // Neu angelegten User laden und einloggen
+                $sso_user = get_member_by_membership_number($pdo, $sso_mnr);
+                $_SESSION['member_id'] = $sso_user['member_id'];
+                $_SESSION['role'] = $sso_user['role'];
+                $_SESSION['MNr'] = $sso_mnr;
+
+                // Zur Hauptseite weiterleiten mit Hinweis
+                $_SESSION['success'] = 'Erste Anmeldung nach DB-Reset: Admin-Account wurde automatisch angelegt.';
+                header('Location: index.php');
+                exit;
+            } else {
+                // DB ist nicht leer, aber User nicht gefunden
+                show_access_denied_page(
+                    'Mitgliedsnummer nicht gefunden',
+                    'Deine Mitgliedsnummer wurde nicht in der Datenbank gefunden oder ist nicht aktiv.',
+                    'MNr: ' . htmlspecialchars($sso_mnr)
+                );
+            }
         }
     } else {
         // Keine Mitgliedsnummer übergeben

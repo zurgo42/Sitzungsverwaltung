@@ -142,7 +142,7 @@ require_once 'module_notifications.php';
             
             <div class="form-group">
                 <label>Videokonferenz-Link:</label>
-                <input type="url" name="video_link" value="<?php echo htmlspecialchars(DEFAULT_VIDEO_LINK); ?>">
+                <input type="url" name="video_link" value="<?php echo htmlspecialchars(DEFAULT_VIDEO_LINK); ?>" style="width: 100%; min-width: 400px;">
             </div>
             
             <div class="meeting-form-grid-equal">
@@ -396,7 +396,7 @@ require_once 'module_notifications.php';
                         
                         <div class="form-group">
                             <label>Videokonferenz-Link:</label>
-                            <input type="url" name="video_link" value="<?php echo htmlspecialchars($m['video_link']); ?>">
+                            <input type="url" name="video_link" value="<?php echo htmlspecialchars($m['video_link']); ?>" style="width: 100%; min-width: 400px;">
                         </div>
                         
                         <div class="meeting-form-grid-equal">
