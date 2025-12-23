@@ -420,19 +420,27 @@ if ($view === 'list') {
                                         <td><span class="badge bg-info"><?= htmlspecialchars($cat_label) ?></span></td>
                                         <td><?= $doc['version'] ? '<span class="badge bg-secondary">v' . htmlspecialchars($doc['version']) . '</span>' : '-' ?></td>
                                         <td><?= strtoupper($doc['filetype']) ?></td>
-                                        <td><?= format_filesize($doc['filesize']) ?></td>
+                                        <td><?= !empty($doc['external_url']) ? '<span class="badge bg-info">Extern</span>' : format_filesize($doc['filesize']) ?></td>
                                         <td><?= date('d.m.Y', strtotime($doc['created_at'])) ?></td>
                                         <td>
                                             <div class="d-flex gap-1 flex-wrap">
-                                                <!-- Download-Button (immer anzeigen) -->
-                                                <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
-                                                    📥 Download
-                                                </a>
+                                                <!-- Download/Öffnen Button (abhängig vom Typ) -->
+                                                <?php if (!empty($doc['external_url'])): ?>
+                                                    <!-- Externer Link -->
+                                                    <a href="<?= htmlspecialchars($doc['external_url']) ?>" class="btn-view" target="_blank" rel="noopener noreferrer">
+                                                        🔗 Extern öffnen
+                                                    </a>
+                                                <?php else: ?>
+                                                    <!-- Lokaler Download -->
+                                                    <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
+                                                        📥 Download
+                                                    </a>
+                                                <?php endif; ?>
 
                                                 <!-- Kurz-URL Button (nur wenn vorhanden) -->
                                                 <?php if (!empty($doc['short_url'])): ?>
-                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-view" target="_blank">
-                                                        🔗 Öffnen
+                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-secondary" target="_blank" style="font-size: 0.85em;">
+                                                        🔗 Kurzlink
                                                     </a>
                                                 <?php endif; ?>
                                             </div>
@@ -470,7 +478,7 @@ if ($view === 'list') {
                                         <span class="badge bg-secondary">v<?= htmlspecialchars($doc['version']) ?></span>
                                     <?php endif; ?>
                                     <span><?= strtoupper($doc['filetype']) ?></span>
-                                    <span><?= format_filesize($doc['filesize']) ?></span>
+                                    <span><?= !empty($doc['external_url']) ? '<span class="badge bg-info">Extern</span>' : format_filesize($doc['filesize']) ?></span>
                                     <span><?= date('d.m.Y', strtotime($doc['created_at'])) ?></span>
                                 </p>
 
@@ -482,13 +490,22 @@ if ($view === 'list') {
                                 <?php endif; ?>
 
                                 <div class="document-filecard-actions">
-                                    <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
-                                        📥 Herunterladen
-                                    </a>
+                                    <!-- Download/Öffnen Button (abhängig vom Typ) -->
+                                    <?php if (!empty($doc['external_url'])): ?>
+                                        <!-- Externer Link -->
+                                        <a href="<?= htmlspecialchars($doc['external_url']) ?>" class="btn-view" target="_blank" rel="noopener noreferrer">
+                                            🔗 Extern öffnen
+                                        </a>
+                                    <?php else: ?>
+                                        <!-- Lokaler Download -->
+                                        <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
+                                            📥 Herunterladen
+                                        </a>
+                                    <?php endif; ?>
 
                                     <?php if (!empty($doc['short_url'])): ?>
-                                        <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-view" target="_blank">
-                                            🔗 Öffnen
+                                        <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-secondary" target="_blank">
+                                            🔗 Kurzlink
                                         </a>
                                     <?php endif; ?>
                                 </div>
@@ -611,15 +628,48 @@ elseif ($view === 'upload' && $is_admin) {
                         <h3>📤 Dokument hochladen</h3>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="process_documents.php" enctype="multipart/form-data">
+                        <form method="POST" action="process_documents.php" enctype="multipart/form-data" id="uploadForm">
                             <input type="hidden" name="action" value="upload">
 
-                            <div class="mb-3">
+                            <!-- Dokumenttyp wählen: Datei oder Link -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Dokumenttyp *</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="document_source" id="source_file" value="file" checked onchange="toggleDocumentSource()">
+                                        <label class="form-check-label" for="source_file">
+                                            📁 Datei hochladen
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="document_source" id="source_link" value="link" onchange="toggleDocumentSource()">
+                                        <label class="form-check-label" for="source_link">
+                                            🔗 Externer Link
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    Wähle "Datei hochladen" für lokale Dateien oder "Externer Link" um auf ein externes Dokument zu verlinken.
+                                </div>
+                            </div>
+
+                            <!-- Datei-Upload (Standard) -->
+                            <div class="mb-3" id="file_upload_section">
                                 <label class="form-label">Datei auswählen *</label>
-                                <input type="file" name="document_file" class="form-control" required
+                                <input type="file" name="document_file" id="document_file" class="form-control"
                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.rtf,.txt,.jpg,.jpeg,.png">
                                 <div class="form-text">
                                     Erlaubte Dateitypen: PDF, DOC, DOCX, XLS, XLSX, RTF, TXT, JPG, PNG
+                                </div>
+                            </div>
+
+                            <!-- Externer Link (versteckt) -->
+                            <div class="mb-3" id="external_link_section" style="display: none;">
+                                <label class="form-label">Externe URL *</label>
+                                <input type="url" name="external_url" id="external_url" class="form-control"
+                                       placeholder="https://example.com/dokument.pdf">
+                                <div class="form-text">
+                                    Gib die vollständige URL zum Dokument ein (z.B. zu einem Cloud-Speicher, SharePoint, etc.)
                                 </div>
                             </div>
 
@@ -694,6 +744,39 @@ elseif ($view === 'upload' && $is_admin) {
             </div>
         </div>
     </div>
+
+    <script>
+    // Toggle zwischen Datei-Upload und externem Link
+    function toggleDocumentSource() {
+        const sourceFile = document.getElementById('source_file');
+        const sourceLink = document.getElementById('source_link');
+        const fileSection = document.getElementById('file_upload_section');
+        const linkSection = document.getElementById('external_link_section');
+        const fileInput = document.getElementById('document_file');
+        const urlInput = document.getElementById('external_url');
+
+        if (sourceFile.checked) {
+            // Datei-Upload aktivieren
+            fileSection.style.display = 'block';
+            linkSection.style.display = 'none';
+            fileInput.required = true;
+            urlInput.required = false;
+            urlInput.value = ''; // Leeren um Konflikte zu vermeiden
+        } else if (sourceLink.checked) {
+            // Externer Link aktivieren
+            fileSection.style.display = 'none';
+            linkSection.style.display = 'block';
+            fileInput.required = false;
+            urlInput.required = true;
+        }
+    }
+
+    // Beim Laden initialisieren
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleDocumentSource();
+    });
+    </script>
+
     <?php
 } // Ende Upload-View
 

@@ -417,4 +417,73 @@ function has_document_access($document, $member) {
     $member_level = get_member_access_level($member);
     return $member_level >= $document['access_level'];
 }
+
+/**
+ * Erstellt einen Link zu einem externen Dokument
+ *
+ * Statt eine Datei hochzuladen, wird nur ein Link zur externen Quelle gespeichert
+ * (z.B. Cloud-Speicher, SharePoint, etc.) - vermeidet doppelte Datenhaltung
+ *
+ * @param PDO $pdo Datenbankverbindung
+ * @param array $data Dokument-Metadaten (inkl. external_url)
+ * @param int $member_id Hochladender User
+ * @return array ['success' => bool, 'message' => string]
+ */
+function create_external_document_link($pdo, $data, $member_id) {
+    try {
+        // Dateiname aus URL extrahieren (oder "Externes Dokument" als Fallback)
+        $url_parts = parse_url($data['external_url']);
+        $filename = basename($url_parts['path'] ?? 'external-document');
+
+        // Dateityp aus URL erraten
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+        if (empty($extension)) {
+            $extension = 'link'; // Fallback
+        }
+
+        $stmt = $pdo->prepare("
+            INSERT INTO svdocuments (
+                filename, original_filename, filepath, filesize, filetype,
+                external_url,
+                title, description, keywords, version, short_url,
+                category, access_level, status,
+                uploaded_by_member_id, uploaded_at
+            ) VALUES (
+                ?, ?, '', 0, ?,
+                ?,
+                ?, ?, ?, ?, ?,
+                ?, ?, 'active',
+                ?, NOW()
+            )
+        ");
+
+        $stmt->execute([
+            $filename,                          // filename
+            $filename,                          // original_filename
+            strtolower($extension),             // filetype
+            $data['external_url'],              // external_url (NEU!)
+            $data['title'],
+            $data['description'] ?? '',
+            $data['keywords'] ?? '',
+            $data['version'] ?? '',
+            $data['short_url'] ?? '',
+            $data['category'] ?? 'sonstige',
+            $data['access_level'] ?? 0,
+            $member_id
+        ]);
+
+        return [
+            'success' => true,
+            'message' => 'Externer Link erfolgreich hinzugefügt',
+            'document_id' => $pdo->lastInsertId()
+        ];
+
+    } catch (Exception $e) {
+        error_log("Fehler beim Erstellen des externen Links: " . $e->getMessage());
+        return [
+            'success' => false,
+            'message' => 'Fehler beim Speichern: ' . $e->getMessage()
+        ];
+    }
+}
 ?>

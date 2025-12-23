@@ -247,9 +247,10 @@ CREATE TABLE IF NOT EXISTS svdocuments (
     document_id INT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    file_path VARCHAR(500) NOT NULL,
-    file_name VARCHAR(255) NOT NULL,
-    file_size INT NOT NULL,
+    file_path VARCHAR(500) DEFAULT NULL COMMENT 'Pfad zur Datei (bei Upload) - NULL bei externen Links',
+    file_name VARCHAR(255) DEFAULT NULL COMMENT 'Dateiname (bei Upload) - NULL bei externen Links',
+    file_size INT DEFAULT NULL COMMENT 'Dateigröße (bei Upload) - NULL bei externen Links',
+    external_url VARCHAR(1000) DEFAULT NULL COMMENT 'URL zu externer Datei (statt Upload)',
     mime_type VARCHAR(100),
     document_type ENUM('protocol', 'agenda', 'attachment', 'general') DEFAULT 'general',
     meeting_id INT DEFAULT NULL,
@@ -264,7 +265,8 @@ CREATE TABLE IF NOT EXISTS svdocuments (
     INDEX idx_meeting (meeting_id),
     INDEX idx_type (document_type),
     INDEX idx_access (access_level),
-    INDEX idx_uploader (uploaded_by_member_id)
+    INDEX idx_uploader (uploaded_by_member_id),
+    INDEX idx_external_url (external_url(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =========================================================
