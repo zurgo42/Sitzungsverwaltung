@@ -27,10 +27,11 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 
 **Schnelle Umfragen und Stimmungsbilder erfassen:**
 
-- **3 Zielgruppen:**
+- **4 Zielgruppen:**
   - **Individual (Link):** Generieren Sie einen einzigartigen Link zum Teilen
   - **Meeting-Teilnehmer:** Umfrage nur für eingeladene Personen eines Meetings
   - **Öffentlich:** Jeder Besucher kann teilnehmen
+  - **🆕 Externe Teilnehmer:** Token-basierter Zugang für Gäste ohne Login (z.B. Beiratsmitglieder, Partner)
 
 - **13 vorgefertigte Antwort-Templates:**
   - Ja/Nein/Enthaltung
@@ -67,6 +68,7 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
    - Einladen von Teilnehmern
    - Sichtbarkeits-Einstellungen (🔒 Nur Eingeladene, 👔 Führungsteam, 🌐 Öffentlich)
    - Sichtbarkeitsstatus wird überall angezeigt (Meetings, Tagesordnung, Protokolle)
+   - 🆕 **Meeting duplizieren:** Für regelmäßige Sitzungen - kopiert alle Einstellungen mit +7 Tage
 
 2. **Tagesordnung erstellen:**
    - Strukturierte TOPs mit Nummerierung
@@ -113,7 +115,8 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 
 - **Upload-Funktionen:**
   - Unterstützte Formate: PDF, DOC, DOCX, XLS, XLSX, RTF, TXT, Bilder
-  - Drag & Drop Upload (geplant)
+  - 🆕 **Externe Links:** Verlinke auf Cloud-Dokumente (SharePoint, Google Drive, etc.) statt Upload
+  - Vermeidet doppelte Datenhaltung
   - Metadaten: Titel, Beschreibung, Version, Stichworte
 
 - **Kategorisierung:**
