@@ -485,10 +485,8 @@ function can_user_access_meeting($pdo, $meeting_id, $member_id) {
             return false;
         }
 
-        // User-Details laden (mit Rolle)
-        $stmt = $pdo->prepare("SELECT email, role FROM svmembers WHERE member_id = ?");
-        $stmt->execute([$member_id]);
-        $user = $stmt->fetch();
+        // User-Details laden (mit Rolle) - über Adapter!
+        $user = get_member_by_id($pdo, $member_id);
 
         if (!$user) {
             return false;
@@ -533,10 +531,8 @@ function can_user_access_meeting($pdo, $meeting_id, $member_id) {
  */
 function get_visible_meetings($pdo, $member_id) {
     try {
-        // User-Details laden (mit Rolle)
-        $stmt = $pdo->prepare("SELECT email, role FROM svmembers WHERE member_id = ?");
-        $stmt->execute([$member_id]);
-        $user = $stmt->fetch();
+        // User-Details laden (mit Rolle) - über Adapter!
+        $user = get_member_by_id($pdo, $member_id);
 
         if (!$user) {
             return [];
