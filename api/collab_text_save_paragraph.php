@@ -7,6 +7,7 @@ session_start();
 require_once('../config.php');
 require_once('db_connection.php');
 require_once('../functions_collab_text.php');
+require_once('../member_functions.php');
 
 header('Content-Type: application/json');
 
@@ -33,16 +34,14 @@ if ($paragraph_id <= 0) {
 $success = saveParagraph($pdo, $paragraph_id, $member_id, $content);
 
 if ($success) {
-    // Editor-Namen holen für sofortige Anzeige
-    $stmt = $pdo->prepare("SELECT first_name, last_name FROM svmembers WHERE member_id = ?");
-    $stmt->execute([$member_id]);
-    $editor = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Editor-Namen über Adapter holen für sofortige Anzeige
+    $editor = get_member_by_id($pdo, $member_id);
 
     echo json_encode([
         'success' => true,
         'message' => 'Paragraph saved',
         'timestamp' => date('Y-m-d H:i:s'),
-        'editor_name' => $editor['first_name'] . ' ' . $editor['last_name']
+        'editor_name' => $editor ? ($editor['first_name'] . ' ' . $editor['last_name']) : 'Unbekannt'
     ]);
 } else {
     http_response_code(403);

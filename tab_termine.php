@@ -2,6 +2,11 @@
 
 // Benachrichtigungsmodul laden
 require_once 'module_notifications.php';
+// Member-Functions mit Adapter-Support laden
+require_once 'member_functions.php';
+// Externe Teilnehmer-Functions laden
+require_once 'external_participants_functions.php';
+
 /**
  * tab_termine.php - Terminplanung/Umfragen (Präsentation)
  * Erstellt: 17.11.2025
@@ -21,14 +26,11 @@ if ($is_admin) {
     // Admins sehen alle Umfragen
     $stmt = $pdo->prepare("
         SELECT p.*,
-               m.first_name as creator_first_name,
-               m.last_name as creator_last_name,
                COUNT(DISTINCT pd.date_id) as date_count,
                COUNT(DISTINCT pr.member_id) as response_count,
                final_pd.suggested_date as final_date,
                final_pd.suggested_end_date as final_end_date
         FROM svpolls p
-        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         LEFT JOIN svpoll_dates pd ON p.poll_id = pd.poll_id
         LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id
         LEFT JOIN svpoll_dates final_pd ON p.final_date_id = final_pd.date_id
@@ -37,28 +39,38 @@ if ($is_admin) {
     ");
     $stmt->execute();
 } else {
-    // Normale User sehen nur Umfragen, bei denen sie Teilnehmer sind
+    // Normale User sehen:
+    // 1. Umfragen, bei denen sie Teilnehmer sind
+    // 2. Umfragen, die sie selbst erstellt haben
     $stmt = $pdo->prepare("
         SELECT DISTINCT p.*,
-               m.first_name as creator_first_name,
-               m.last_name as creator_last_name,
                COUNT(DISTINCT pd.date_id) as date_count,
                COUNT(DISTINCT pr.member_id) as response_count,
                final_pd.suggested_date as final_date,
                final_pd.suggested_end_date as final_end_date
         FROM svpolls p
-        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         LEFT JOIN svpoll_dates pd ON p.poll_id = pd.poll_id
         LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id
         LEFT JOIN svpoll_dates final_pd ON p.final_date_id = final_pd.date_id
-        INNER JOIN svpoll_participants pp ON p.poll_id = pp.poll_id
-        WHERE pp.member_id = ?
+        LEFT JOIN svpoll_participants pp ON p.poll_id = pp.poll_id AND pp.member_id = ?
+        WHERE pp.member_id = ? OR p.created_by_member_id = ?
         GROUP BY p.poll_id
         ORDER BY p.created_at DESC
     ");
-    $stmt->execute([$current_user['member_id']]);
+    $stmt->execute([$current_user['member_id'], $current_user['member_id'], $current_user['member_id']]);
 }
 $all_polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Creator-Namen über Adapter nachladen
+foreach ($all_polls as &$poll) {
+    if ($poll['created_by_member_id']) {
+        $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
+        if ($creator) {
+            $poll['creator_first_name'] = $creator['first_name'];
+            $poll['creator_last_name'] = $creator['last_name'];
+        }
+    }
+}
 
 // Meetings für Dropdown laden
 $all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
@@ -103,6 +115,8 @@ function get_german_weekday_long($date_string) {
     border-radius: 5px;
     padding: 15px;
     margin-bottom: 20px;
+    position: relative;
+    clear: both;
 }
 
 .poll-card.status-open {
@@ -129,6 +143,7 @@ function get_german_weekday_long($date_string) {
     font-weight: bold;
     color: #333;
     margin: 0;
+    flex: 1;
 }
 
 .poll-status-badge {
@@ -136,6 +151,7 @@ function get_german_weekday_long($date_string) {
     border-radius: 12px;
     font-size: 12px;
     font-weight: bold;
+    flex-shrink: 0;
 }
 
 .poll-status-badge.status-open {
@@ -157,26 +173,33 @@ function get_german_weekday_long($date_string) {
     color: #666;
     font-size: 14px;
     margin-bottom: 10px;
+    line-height: 1.6;
+}
+
+.poll-meta p {
+    margin: 8px 0;
+    word-wrap: break-word;
 }
 
 .poll-actions {
     display: flex;
     gap: 10px;
     margin-top: 15px;
+    flex-wrap: wrap;
 }
 
 .vote-matrix {
     width: 100%;
     border-collapse: collapse;
-    margin: 20px 0;
+    margin: 15px 0;
 }
 
 .vote-matrix th,
 .vote-matrix td {
-    padding: 8px 10px;
+    padding: 6px 8px;
     text-align: left;
     border: 1px solid #ddd;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .vote-matrix th {
@@ -197,12 +220,12 @@ function get_german_weekday_long($date_string) {
 .vote-btn {
     border: 2px solid #ddd;
     background: white;
-    padding: 6px 10px;
+    padding: 4px 8px;
     cursor: pointer;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 12px;
     transition: all 0.2s;
-    min-width: 90px;
+    min-width: 75px;
     text-align: center;
 }
 
@@ -437,18 +460,34 @@ function toggleAllPollParticipants(checked) {
 
 function togglePollLeadershipRoles() {
     const checkboxes = document.querySelectorAll('.poll-participant-checkbox');
+    const leadershipRoles = ['vorstand', 'gf', 'assistenz', 'fuehrungsteam'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role');
-        cb.checked = (role !== 'Mitglied');
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (leadershipRoles.includes(role)) {
+            cb.checked = !cb.checked;
+        }
     });
+}
+
+function updatePollTargetOptions() {
+    const targetType = document.querySelector('input[name="target_type"]:checked').value;
+    const participantList = document.getElementById('poll-participant-list-selection');
+
+    if (targetType === 'list') {
+        participantList.style.display = 'block';
+    } else {
+        participantList.style.display = 'none';
+    }
 }
 
 function togglePollTopManagement() {
     const checkboxes = document.querySelectorAll('.poll-participant-checkbox');
     const topRoles = ['vorstand', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role');
-        cb.checked = topRoles.includes(role);
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (topRoles.includes(role)) {
+            cb.checked = !cb.checked;
+        }
     });
 }
 
@@ -582,8 +621,21 @@ if (isset($_SESSION['error'])) {
                     </small>
                 </div>
 
-                <!-- Teilnehmer auswählen -->
-                <div class="form-group">
+                <!-- Zielgruppe wählen -->
+                <div class="form-group" style="margin-top: 25px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+                    <h4 style="margin: 0 0 15px 0;">Zielgruppe wählen</h4>
+                    <label style="display: block; margin-bottom: 10px;">
+                        <input type="radio" name="target_type" value="individual" onchange="updatePollTargetOptions()">
+                        <strong>Individuell</strong> - Link, den du weitergeben kannst
+                    </label>
+                    <label style="display: block; margin-bottom: 10px;">
+                        <input type="radio" name="target_type" value="list" checked onchange="updatePollTargetOptions()">
+                        <strong>Ausgewählte registrierte Teilnehmer</strong>
+                    </label>
+                </div>
+
+                <!-- Teilnehmer auswählen (nur bei target_type='list') -->
+                <div class="form-group" id="poll-participant-list-selection">
                     <label>Teilnehmer auswählen (nur diese sehen die Umfrage):*</label>
                     <div class="participant-buttons">
                         <button type="button" onclick="toggleAllPollParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
@@ -602,6 +654,17 @@ if (isset($_SESSION['error'])) {
                                 <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')'); ?>
                             </label>
                         <?php endforeach; ?>
+                    </div>
+
+                    <!-- E-Mail-Option direkt unter Teilnehmerliste -->
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                        <label style="display: block;">
+                            <input type="checkbox" name="send_invitation_mail" value="1">
+                            <strong>Einladungsmail an ausgewählte Teilnehmer senden</strong>
+                        </label>
+                        <small style="display: block; margin-left: 24px; margin-top: 5px; color: #666;">
+                            Wenn aktiviert, werden alle ausgewählten Teilnehmer per E-Mail über die neue Umfrage benachrichtigt
+                        </small>
                     </div>
                 </div>
 
@@ -625,28 +688,19 @@ if (isset($_SESSION['error'])) {
 
                     <div id="date-suggestions-container">
                         <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <div class="date-suggestion-row" style="display: grid; grid-template-columns: 150px 100px 100px; gap: 10px; align-items: center; margin-bottom: 8px;">
+                        <div class="date-suggestion-row" style="display: grid; grid-template-columns: 150px 100px 100px auto; gap: 10px; align-items: center; margin-bottom: 8px;">
                             <input type="date" name="date_<?php echo $i; ?>" id="poll_date_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
                             <input type="time" name="time_start_<?php echo $i; ?>" id="poll_time_start_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" onchange="calculateEndTime(<?php echo $i; ?>)" style="width: 100%;">
                             <input type="time" name="time_end_<?php echo $i; ?>" id="poll_time_end_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
+                            <?php if ($i === 5): ?>
+                            <button type="button" onclick="addMorePollDates()" class="btn-secondary" style="padding: 4px 8px; font-size: 12px; white-space: nowrap;">+ Termin</button>
+                            <?php endif; ?>
                         </div>
                         <?php endfor; ?>
                     </div>
 
-                    <button type="button" onclick="addMorePollDates()" class="btn-secondary" style="margin-top: 10px;">+ Weiteren Termin hinzufügen</button>
                     <small style="display: block; margin-top: 10px; color: #666;">
                         Du kannst bis zu 20 Terminvorschläge hinzufügen. Wenn du ins nächste Datumsfeld klickst, wird automatisch der Folgetag mit gleicher Uhrzeit vorgeschlagen.
-                    </small>
-                </div>
-
-                <!-- E-Mail-Optionen -->
-                <div class="form-group" style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #ddd;">
-                    <label style="display: block; margin-bottom: 10px;">
-                        <input type="checkbox" name="send_invitation_mail" value="1" checked>
-                        <strong>Einladungsmail an ausgewählte Teilnehmer senden</strong>
-                    </label>
-                    <small style="display: block; margin-left: 24px; color: #666;">
-                        Wenn aktiviert, werden alle ausgewählten Teilnehmer per E-Mail über die neue Umfrage benachrichtigt
                     </small>
                 </div>
 
@@ -666,10 +720,10 @@ if (isset($_SESSION['error'])) {
             $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
             $can_edit = $is_creator || $is_admin;
         ?>
-            <div class="poll-card status-<?php echo $poll['status']; ?>">
-                <div class="poll-header">
-                    <h3 class="poll-title"><?php echo htmlspecialchars($poll['title']); ?></h3>
-                    <span class="poll-status-badge status-<?php echo $poll['status']; ?>">
+            <div class="poll-card status-<?php echo $poll['status']; ?>" style="display: block; overflow: visible; position: static;">
+                <div class="poll-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <h3 class="poll-title" style="flex: 1; margin: 0;"><?php echo htmlspecialchars($poll['title']); ?></h3>
+                    <span class="poll-status-badge status-<?php echo $poll['status']; ?>" style="flex-shrink: 0;">
                         <?php
                         switch ($poll['status']) {
                             case 'open': echo '🟢 Offen'; break;
@@ -680,20 +734,25 @@ if (isset($_SESSION['error'])) {
                     </span>
                 </div>
 
-                <div class="poll-meta">
+                <div class="poll-meta" style="display: block; clear: both; margin-bottom: 15px;">
                     <?php if (!empty($poll['description'])): ?>
-                        <p><?php echo nl2br(htmlspecialchars($poll['description'])); ?></p>
+                        <p style="margin: 8px 0;"><?php echo nl2br(htmlspecialchars($poll['description'])); ?></p>
                     <?php endif; ?>
 
-                    <p>
+                    <p style="margin: 8px 0;">
                         📊 <strong><?php echo $poll['date_count']; ?></strong> Terminvorschläge ·
                         👥 <strong><?php echo $poll['response_count']; ?></strong> Teilnehmer abgestimmt ·
                         👤 Erstellt von <strong><?php echo htmlspecialchars($poll['creator_first_name'] . ' ' . $poll['creator_last_name']); ?></strong> ·
+                        Zielgruppe: <?php
+                            if ($poll['target_type'] === 'individual') echo '🔗 Individuell (Link)';
+                            elseif ($poll['target_type'] === 'list') echo '📋 Ausgewählte Teilnehmer';
+                            elseif ($poll['target_type'] === 'public') echo '🌐 Öffentlich';
+                        ?> ·
                         📅 <?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?>
                     </p>
 
                     <?php if ($poll['status'] === 'finalized' && !empty($poll['final_date'])): ?>
-                        <p style="color: #2196F3; font-weight: bold;">
+                        <p style="color: #2196F3; font-weight: bold; margin: 8px 0;">
                             ✓ Finaler Termin festgelegt auf <?php
                                 echo get_german_weekday_long($poll['final_date']) . ', den ' . date('d.m.Y', strtotime($poll['final_date']));
                                 if (!empty($poll['final_end_date'])) {
@@ -706,8 +765,8 @@ if (isset($_SESSION['error'])) {
                     <?php endif; ?>
                 </div>
 
-                <div class="poll-actions">
-                    <a href="?tab=termine&view=poll&poll_id=<?php echo $poll['poll_id']; ?>" class="btn-primary">
+                <div class="poll-actions" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; clear: both;">
+                    <a href="?tab=termine&view=poll&poll_id=<?php echo $poll['poll_id']; ?>" class="btn-primary" style="position: static; float: none;">
                         <?php echo $poll['status'] === 'open' ? '📝 Abstimmen' : '📊 Ergebnisse ansehen'; ?>
                     </a>
 
@@ -744,11 +803,8 @@ if (isset($_SESSION['error'])) {
     <?php
     // Poll-Daten laden
     $stmt = $pdo->prepare("
-        SELECT p.*,
-               m.first_name as creator_first_name,
-               m.last_name as creator_last_name
+        SELECT p.*
         FROM svpolls p
-        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         WHERE p.poll_id = ?
     ");
     $stmt->execute([$poll_id]);
@@ -758,6 +814,14 @@ if (isset($_SESSION['error'])) {
         echo '<div class="error-message">Umfrage nicht gefunden</div>';
         echo '<a href="?tab=termine" class="btn-secondary">← Zurück zur Übersicht</a>';
     } else {
+        // Creator-Namen über Adapter laden
+        if ($poll['created_by_member_id']) {
+            $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
+            if ($creator) {
+                $poll['creator_first_name'] = $creator['first_name'];
+                $poll['creator_last_name'] = $creator['last_name'];
+            }
+        }
         // Terminvorschläge laden
         $stmt = $pdo->prepare("
             SELECT * FROM svpoll_dates
@@ -769,24 +833,58 @@ if (isset($_SESSION['error'])) {
 
         // Alle Antworten laden
         $stmt = $pdo->prepare("
-            SELECT pr.*, m.first_name, m.last_name
+            SELECT pr.*
             FROM svpoll_responses pr
-            LEFT JOIN svmembers m ON pr.member_id = m.member_id
             WHERE pr.poll_id = ?
         ");
         $stmt->execute([$poll_id]);
         $all_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Member- und Externe-Teilnehmer-Namen nachladen
+        foreach ($all_responses as &$response) {
+            if ($response['member_id']) {
+                $member = get_member_by_id($pdo, $response['member_id']);
+                if ($member) {
+                    $response['first_name'] = $member['first_name'];
+                    $response['last_name'] = $member['last_name'];
+                    $response['participant_key'] = 'member_' . $response['member_id'];
+                }
+            } elseif ($response['external_participant_id']) {
+                // Externen Teilnehmer laden
+                $ext_stmt = $pdo->prepare("SELECT first_name, last_name FROM svexternal_participants WHERE external_id = ?");
+                $ext_stmt->execute([$response['external_participant_id']]);
+                $ext = $ext_stmt->fetch(PDO::FETCH_ASSOC);
+                if ($ext) {
+                    $response['first_name'] = $ext['first_name'];
+                    $response['last_name'] = $ext['last_name'];
+                    $response['participant_key'] = 'external_' . $response['external_participant_id'];
+                }
+            }
+        }
+
         // Alle eingeladenen Teilnehmer laden
         $stmt = $pdo->prepare("
-            SELECT pp.member_id, m.first_name, m.last_name
+            SELECT pp.member_id
             FROM svpoll_participants pp
-            LEFT JOIN svmembers m ON pp.member_id = m.member_id
             WHERE pp.poll_id = ?
-            ORDER BY m.last_name, m.first_name
         ");
         $stmt->execute([$poll_id]);
         $poll_participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Member-Namen über Adapter nachladen und sortieren
+        foreach ($poll_participants as &$participant) {
+            if ($participant['member_id']) {
+                $member = get_member_by_id($pdo, $participant['member_id']);
+                if ($member) {
+                    $participant['first_name'] = $member['first_name'];
+                    $participant['last_name'] = $member['last_name'];
+                }
+            }
+        }
+        // Nach Nachname sortieren
+        usort($poll_participants, function($a, $b) {
+            return strcmp($a['last_name'] ?? '', $b['last_name'] ?? '');
+        });
 
         // User's aktuelle Antworten laden
         $stmt = $pdo->prepare("
@@ -830,6 +928,11 @@ if (isset($_SESSION['error'])) {
 
                 <p>
                     👤 Erstellt von <strong><?php echo htmlspecialchars($poll['creator_first_name'] . ' ' . $poll['creator_last_name']); ?></strong> ·
+                    Zielgruppe: <?php
+                        if ($poll['target_type'] === 'individual') echo '🔗 Individuell (Link)';
+                        elseif ($poll['target_type'] === 'list') echo '📋 Ausgewählte Teilnehmer';
+                        elseif ($poll['target_type'] === 'public') echo '🌐 Öffentlich';
+                    ?> ·
                     📅 <?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?>
                 </p>
 
@@ -861,18 +964,29 @@ if (isset($_SESSION['error'])) {
             </div>
         </div>
 
-        <!-- Link zur Umfrage (nur für Ersteller, nur wenn nicht finalisiert) -->
-        <?php if ($is_creator && $poll['status'] !== 'finalized'): ?>
+        <!-- Link zur Umfrage (für Ersteller und Admin) -->
+        <?php if (($is_creator || $is_admin) && $poll['status'] !== 'finalized'): ?>
         <?php
-        // Basispfad ermitteln (z.B. "/Sitzungsverwaltung" oder "")
-        $script_path = dirname($_SERVER['SCRIPT_NAME']); // z.B. "/Sitzungsverwaltung"
-        $host = defined('BASE_URL') ? BASE_URL : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
-        $poll_link = rtrim($host, '/') . $script_path . '/index.php?tab=termine&view=poll&poll_id=' . $poll_id;
+        // Zentrale Link-Generierung verwenden
+        $use_token = ($poll['target_type'] ?? 'list') === 'individual' && !empty($poll['access_token']);
+        $poll_link = generate_external_access_link(
+            'termine',
+            $use_token ? $poll['access_token'] : $poll_id,
+            $use_token
+        );
         ?>
         <div class="poll-card" style="background: #f0f8ff; border: 2px solid #4CAF50; margin-bottom: 20px;">
             <h4 style="margin: 0 0 10px 0;">🔗 Link zu dieser Umfrage</h4>
             <p style="margin: 0 0 10px 0; color: #666;">
-                Teile diesen Link mit den Teilnehmern:
+                <?php
+                if (($poll['target_type'] ?? 'list') === 'individual') {
+                    echo 'Teile diesen eindeutigen Link mit den gewünschten Teilnehmern:';
+                } elseif (($poll['target_type'] ?? 'list') === 'list') {
+                    echo 'Dieser Link kann an die eingeladenen Teilnehmer weitergegeben werden (zusätzlich zur Benachrichtigung):';
+                } else {
+                    echo 'Teile diesen Link mit den Teilnehmern:';
+                }
+                ?>
             </p>
             <div class="poll-link-container" style="display: flex; gap: 10px; align-items: center;">
                 <input type="text"
@@ -909,7 +1023,7 @@ if (isset($_SESSION['error'])) {
                     <thead>
                         <tr>
                             <th style="width: 180px;">Terminvorschlag</th>
-                            <th>Ihre Wahl</th>
+                            <th>Deine Wahl</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -965,11 +1079,29 @@ if (isset($_SESSION['error'])) {
                 <tr>
                     <th style="width: 220px;">Terminvorschlag & Zusammenfassung</th>
                     <?php
-                    // Alle eingeladenen Teilnehmer anzeigen
+                    // Alle Teilnehmer sammeln (Members + Externe)
                     $participants = [];
+
+                    // Eingeladene Members
                     foreach ($poll_participants as $pp) {
-                        $participants[$pp['member_id']] = $pp['first_name'] . ' ' . substr($pp['last_name'], 0, 1) . '.';
+                        $key = 'member_' . $pp['member_id'];
+                        $participants[$key] = $pp['first_name'] . ' ' . substr($pp['last_name'], 0, 1) . '.';
                     }
+
+                    // Alle Teilnehmer, die bereits geantwortet haben (Members + Externe)
+                    foreach ($all_responses as $resp) {
+                        if (isset($resp['participant_key'])) {
+                            if (!isset($participants[$resp['participant_key']])) {
+                                $name_display = $resp['first_name'] . ' ' . substr($resp['last_name'], 0, 1) . '.';
+                                // Externe mit Icon markieren
+                                if (strpos($resp['participant_key'], 'external_') === 0) {
+                                    $name_display .= ' 👤';
+                                }
+                                $participants[$resp['participant_key']] = $name_display;
+                            }
+                        }
+                    }
+
                     foreach ($participants as $name): ?>
                         <th style="text-align: center; font-size: 11px; padding: 6px 4px;"><?php echo htmlspecialchars($name); ?></th>
                     <?php endforeach; ?>
@@ -988,11 +1120,13 @@ if (isset($_SESSION['error'])) {
                     $count_yes = 0;
                     $count_maybe = 0;
                     $count_no = 0;
-                    $votes_by_member = [];
+                    $votes_by_participant = [];
 
                     foreach ($all_responses as $resp) {
                         if ($resp['date_id'] == $date['date_id']) {
-                            $votes_by_member[$resp['member_id']] = (int)$resp['vote'];
+                            if (isset($resp['participant_key'])) {
+                                $votes_by_participant[$resp['participant_key']] = (int)$resp['vote'];
+                            }
                             if ($resp['vote'] == 1) $count_yes++;
                             elseif ($resp['vote'] == 0) $count_maybe++;
                             elseif ($resp['vote'] == -1) $count_no++;
@@ -1012,8 +1146,8 @@ if (isset($_SESSION['error'])) {
                                 <span class="count-no">❌<?php echo $count_no; ?></span>
                             </div>
                         </td>
-                        <?php foreach (array_keys($participants) as $member_id):
-                            $vote = $votes_by_member[$member_id] ?? null;
+                        <?php foreach (array_keys($participants) as $participant_key):
+                            $vote = $votes_by_participant[$participant_key] ?? null;
                             $vote_icon = '–';  // Strich für keine Abstimmung
                             $vote_color = '#ddd';
                             if ($vote === 1) {

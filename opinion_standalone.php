@@ -2,6 +2,7 @@
 /**
  * opinion_standalone.php - Standalone Meinungsbild-Tool-Wrapper
  * Erstellt: 18.11.2025
+ * Erweitert: 18.12.2025 - Externe Teilnehmer-Support
  *
  * VERWENDUNG:
  * ===========
@@ -26,10 +27,15 @@
  * - Für public: opinion_standalone.php?poll_id=XX
  * - Für list/authenticated: Regulärer Login erforderlich
  *
+ * Externer Zugriff (ohne Login):
+ * - opinion_standalone.php?poll_id=XXX
+ * - Zeigt Registrierungsformular für externe Teilnehmer an
+ *
  * DATENBANK-KOMPATIBILITÄT:
  * =========================
  * - Erkennt automatisch ob members oder berechtigte Tabelle verwendet wird
  * - Nutzt Adapter-System für Portabilität
+ * - Unterstützt externe Teilnehmer ohne Account
  */
 
 // ============================================
@@ -48,12 +54,40 @@ $is_sitzungsverwaltung = file_exists(__DIR__ . '/member_functions.php');
 $access_token = $_GET['token'] ?? null;
 $poll_id_param = isset($_GET['poll_id']) ? intval($_GET['poll_id']) : null;
 
+// Bei POST-Requests: poll_id auch aus POST-Daten lesen (wichtig für Formular-Submits!)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$poll_id_param && isset($_POST['poll_id'])) {
+    $poll_id_param = intval($_POST['poll_id']);
+}
+
 if ($is_sitzungsverwaltung) {
+    // Konfiguration und Datenbank laden
+    if (!defined('DB_HOST')) {
+        require_once __DIR__ . '/config.php';
+    }
+
+    // PDO-Verbindung initialisieren falls noch nicht vorhanden
+    if (!isset($pdo)) {
+        try {
+            $pdo = new PDO(
+                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+                DB_USER,
+                DB_PASS,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                ]
+            );
+        } catch (PDOException $e) {
+            die('❌ Datenbankverbindung fehlgeschlagen: ' . htmlspecialchars($e->getMessage()));
+        }
+    }
+
     // In Sitzungsverwaltung: Adapter-System nutzen
     require_once __DIR__ . '/member_functions.php';
     require_once __DIR__ . '/opinion_functions.php';
+    require_once __DIR__ . '/external_participants_functions.php';
 
-    // User aus Session holen (kann NULL sein bei public/token-Zugriff)
+    // User aus Session holen (kann NULL sein bei public/token/externem Zugriff)
     $current_user = null;
     if (isset($_SESSION['member_id'])) {
         $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
@@ -63,13 +97,14 @@ if ($is_sitzungsverwaltung) {
     // In anderer Anwendung: Direkter Zugriff auf berechtigte-Tabelle
 
     require_once __DIR__ . '/opinion_functions.php';
+    require_once __DIR__ . '/external_participants_functions.php';
 
-    // Prüfen ob Voraussetzungen erfüllt sind (außer bei Token-Zugriff)
+    // Prüfen ob Voraussetzungen erfüllt sind (außer bei Token/externem Zugriff)
     if (!$access_token && !isset($pdo)) {
         die('FEHLER: $pdo nicht definiert. Bitte PDO-Verbindung vor dem Include erstellen.');
     }
 
-    // User laden (kann NULL sein bei public/token-Zugriff)
+    // User laden (kann NULL sein bei public/token/externem Zugriff)
     $current_user = null;
     if (isset($MNr) && $MNr) {
         // User aus berechtigte-Tabelle holen
@@ -157,11 +192,168 @@ if ($access_token) {
 }
 
 // ============================================
+// ÖFFENTLICHE UMFRAGEN-LISTE
+// ============================================
+
+// Wenn KEINE Token UND KEINE Poll-ID: Liste öffentlicher Umfragen anzeigen
+if (!$access_token && !$poll_id_param) {
+    $stmt = $pdo->prepare("
+        SELECT poll_id, title, created_at, ends_at, status
+        FROM svopinion_polls
+        WHERE target_type = 'public' AND status = 'active'
+        ORDER BY created_at DESC
+    ");
+    $stmt->execute();
+    $public_polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    ?>
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Öffentliche Umfragen</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                max-width: 800px;
+                margin: 40px auto;
+                padding: 20px;
+                background: #f5f5f5;
+            }
+            h1 {
+                color: #333;
+                border-bottom: 3px solid #4CAF50;
+                padding-bottom: 10px;
+            }
+            .poll-card {
+                background: white;
+                padding: 20px;
+                margin: 15px 0;
+                border-radius: 8px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                transition: transform 0.2s;
+            }
+            .poll-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            }
+            .poll-title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 10px;
+            }
+            .poll-meta {
+                font-size: 14px;
+                color: #666;
+                margin-bottom: 15px;
+            }
+            .btn-primary {
+                background: #4CAF50;
+                color: white;
+                padding: 10px 20px;
+                text-decoration: none;
+                border-radius: 5px;
+                display: inline-block;
+                transition: background 0.2s;
+            }
+            .btn-primary:hover {
+                background: #45a049;
+            }
+            .status-active {
+                color: #4CAF50;
+                font-weight: bold;
+            }
+            .no-polls {
+                text-align: center;
+                padding: 40px;
+                color: #999;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>🌐 Öffentliche Umfragen</h1>
+        <p style="color: #666; margin-bottom: 30px;">Hier findest du alle öffentlichen Umfragen, an denen du teilnehmen kannst.</p>
+
+        <?php if (empty($public_polls)): ?>
+            <div class="no-polls">
+                <p>📭 Aktuell gibt es keine aktiven öffentlichen Umfragen.</p>
+            </div>
+        <?php else: ?>
+            <?php foreach ($public_polls as $poll): ?>
+                <div class="poll-card">
+                    <div class="poll-title"><?php echo htmlspecialchars($poll['title']); ?></div>
+                    <div class="poll-meta">
+                        <span class="status-active">● Aktiv</span> •
+                        Läuft bis: <?php echo date('d.m.Y H:i', strtotime($poll['ends_at'])); ?>
+                    </div>
+                    <a href="?poll_id=<?php echo $poll['poll_id']; ?>" class="btn-primary">
+                        📝 Jetzt teilnehmen
+                    </a>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </body>
+    </html>
+    <?php
+    exit; // Beende Skript nach Anzeige der Liste
+}
+
+// ============================================
+// EXTERNE TEILNEHMER-PRÜFUNG
+// ============================================
+
+// Wenn Poll-ID vorhanden: Prüfen ob Teilnehmer identifiziert ist
+if ($poll_id_param > 0) {
+    // Poll laden um Titel etc. zu haben (falls nicht schon via Token geladen)
+    if (!isset($poll) || !$poll) {
+        $poll = get_opinion_poll_with_options($pdo, $poll_id_param);
+    }
+
+    if ($poll) {
+        // Aktuellen Teilnehmer ermitteln (Member oder Extern)
+        $participant = get_current_participant($current_user, $pdo, 'meinungsbild', $poll_id_param);
+
+        // Wenn niemand identifiziert: Registrierungsformular anzeigen
+        if ($participant['type'] === 'none') {
+            // Registrierungsformular einbinden
+            $poll_type = 'meinungsbild';
+            $poll_id = $poll_id_param;
+
+            // Aktuelles Skript für Redirect übergeben
+            $redirect_script = basename($_SERVER['SCRIPT_NAME']);
+
+            require __DIR__ . '/external_participant_register.php';
+            exit; // Beende Skript hier
+        }
+
+        // Teilnehmer ist identifiziert - in Variablen speichern für spätere Verwendung
+        $current_participant_type = $participant['type']; // 'member' oder 'external'
+        $current_participant_id = $participant['id'];
+        $current_participant_data = $participant['data'];
+    }
+}
+
+// ============================================
 // POST REQUEST HANDLING
 // ============================================
 
 // Falls process_opinion.php existiert, nutze das (in Sitzungsverwaltung)
 if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Beim POST muss auch poll_id aus POST-Daten gelesen werden
+    if (!isset($poll_id_param) && isset($_POST['poll_id'])) {
+        $poll_id_param = intval($_POST['poll_id']);
+    }
+
+    // Für externe Teilnehmer: Sicherstellen, dass die Session korrekt erkannt wird
+    if (!$current_user && $poll_id_param) {
+        $participant = get_current_participant($current_user, $pdo, 'meinungsbild', $poll_id_param);
+        $current_participant_type = $participant['type'];
+        $current_participant_id = $participant['id'];
+        $current_participant_data = $participant['data'];
+    }
+
     // Leite an process_opinion.php weiter
     include __DIR__ . '/process_opinion.php';
     // Nach POST-Verarbeitung wird redirected, daher Exit hier nicht nötig
@@ -171,8 +363,9 @@ if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $
 // VIEW RENDERING
 // ============================================
 
-// Wenn in Sitzungsverwaltung integriert, nutze die bestehenden Tab-Dateien
-if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/tab_opinion.php')) {
+// tab_opinion.php nur für eingeloggte Benutzer laden
+// (externe Teilnehmer benötigen das Standalone-Rendering weiter unten)
+if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_opinion.php')) {
     include __DIR__ . '/tab_opinion.php';
     return; // Beende hier
 }
@@ -181,12 +374,12 @@ if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/tab_opinion.php')) {
 // STANDALONE-RENDERING
 // ============================================
 
-$view = $_GET['view'] ?? 'list';
+// View bestimmen: Wenn poll_id vorhanden und kein User eingeloggt -> participate
+$view = $_GET['view'] ?? (($poll_id_param && !$current_user) ? 'participate' : 'list');
 $poll_id = $poll_id_param ?? (isset($_GET['poll_id']) ? intval($_GET['poll_id']) : null);
 
-// CSS für Standalone-Modus
-if (!$is_sitzungsverwaltung) {
-    echo '<!DOCTYPE html>
+// CSS für Standalone-Modus (immer ausgeben, da tab_opinion.php bereits return ausgeführt hat)
+echo '<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -214,7 +407,6 @@ if (!$is_sitzungsverwaltung) {
     </style>
 </head>
 <body>';
-}
 
 // Success/Error Messages aus Session
 if (isset($_SESSION['success'])) {
@@ -280,13 +472,6 @@ if ($view === 'list') {
     echo '<div class="error">Ansicht nicht verfügbar oder keine Berechtigung.</div>';
 }
 
-// HTML schließen im Standalone-Modus
-if (!$is_sitzungsverwaltung) {
-    echo '<footer class="page-footer">';
-    echo FOOTER_COPYRIGHT . ' | ';
-    echo '<a href="' . FOOTER_IMPRESSUM_URL . '" target="_blank">Impressum</a> | ';
-    echo '<a href="' . FOOTER_DATENSCHUTZ_URL . '" target="_blank">Datenschutz</a>';
-    echo '</footer>';
-    echo '</body></html>';
-}
+// HTML schließen (tab_opinion.php hat bereits return ausgeführt für eingeloggte User)
+echo '</body></html>';
 ?>

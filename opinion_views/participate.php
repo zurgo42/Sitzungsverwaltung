@@ -19,19 +19,36 @@ if (!$is_active) {
 }
 
 // Prüfen ob berechtigt
-if (!can_participate($poll, $current_user ? $current_user['member_id'] : null)) {
+// via_link = true wenn Token oder poll_id Parameter vorhanden (direkter Link-Zugriff)
+$via_link = isset($_GET['token']) || isset($_GET['poll_id']);
+if (!can_participate($poll, $current_user ? $current_user['member_id'] : null, $via_link)) {
     echo "<p>Du bist nicht berechtigt, an dieser Umfrage teilzunehmen.</p>";
     return;
 }
 
 // Prüfen ob bereits geantwortet
-$session_token = $current_user ? null : get_or_create_session_token();
-$member_id = $current_user ? $current_user['member_id'] : null;
-$existing_response = get_user_response($pdo, $poll_id, $member_id, $session_token);
+// Teilnehmer ermitteln (Member oder Extern)
+$participant = get_current_participant($current_user, $pdo, 'meinungsbild', $poll_id);
+$member_id = ($participant['type'] === 'member') ? $participant['id'] : null;
+$external_id = ($participant['type'] === 'external') ? $participant['id'] : null;
+$session_token = ($participant['type'] === 'none') ? get_or_create_session_token() : null;
+
+// Für externe Teilnehmer: Daten speichern für Anzeige
+if ($participant['type'] === 'external' && !isset($current_participant_data)) {
+    $current_participant_data = $participant['data'];
+}
+
+$existing_response = get_user_response($pdo, $poll_id, $member_id, $session_token, $external_id);
 
 $is_creator = $current_user && ($poll['creator_member_id'] == $current_user['member_id']);
 $stats = get_opinion_results($pdo, $poll_id);
-$can_edit = $is_creator && $stats['total_responses'] <= 1;
+
+// ALLE Teilnehmer können ihre ANTWORTEN bearbeiten, solange Umfrage offen ist
+$is_external = !$current_user;
+$allow_edit = true; // Immer erlaubt, da bereits oben geprüft wurde ob Umfrage aktiv ist
+
+// Ersteller können FRAGEN/EINSTELLUNGEN bearbeiten, solange nur eigene Antwort vorhanden
+$can_edit_poll = $is_creator && $stats['total_responses'] <= 1;
 ?>
 
 <div style="margin-bottom: 20px;">
@@ -47,26 +64,22 @@ $can_edit = $is_creator && $stats['total_responses'] <= 1;
         <span style="margin-left: 15px;">📊 <?php echo $stats['total_responses']; ?> Antwort<?php echo $stats['total_responses'] != 1 ? 'en' : ''; ?></span>
     </div>
 
-    <?php if ($existing_response && !$can_edit): ?>
-        <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-            <strong>Du hast bereits geantwortet!</strong><br>
-            Deine Antwort: <strong><?php echo htmlspecialchars($existing_response['selected_options_text'] ?? 'N/A'); ?></strong>
-            <?php if (!empty($existing_response['free_text'])): ?>
-                <br>Kommentar: "<?php echo htmlspecialchars($existing_response['free_text']); ?>"
-            <?php endif; ?>
+    <?php if ($is_external && isset($current_participant_data)): ?>
+        <div style="background: #e7f3ff; color: #004085; padding: 12px 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #0066cc;">
+            👤 <strong>Du bist registriert als:</strong>
+            <?php echo htmlspecialchars($current_participant_data['first_name'] . ' ' . $current_participant_data['last_name']); ?>
+            (<?php echo htmlspecialchars($current_participant_data['email']); ?>)
         </div>
-        <a href="?tab=opinion&view=results&poll_id=<?php echo $poll_id; ?>" class="btn-primary" style="text-decoration: none;">
-            Zu den Ergebnissen →
-        </a>
-    <?php else: ?>
-        <?php if ($existing_response && $can_edit): ?>
-            <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                <strong>Du bearbeitest deine Antwort</strong><br>
-                Als Ersteller kannst du deine Antwort ändern, solange nur du geantwortet hast.
-            </div>
-        <?php endif; ?>
+    <?php endif; ?>
 
-        <form method="POST" action="process_opinion.php">
+    <?php if ($existing_response): ?>
+        <div style="background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+            <strong>✏️ Du bearbeitest deine Antwort</strong><br>
+            Deine bisherige Antwort ist vorausgewählt. Du kannst sie jederzeit ändern, solange die Umfrage offen ist.
+        </div>
+    <?php endif; ?>
+
+        <form method="POST" action="<?php echo $current_user ? 'process_opinion.php' : 'opinion_standalone.php'; ?>">
             <input type="hidden" name="action" value="submit_response">
             <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
 
@@ -122,5 +135,4 @@ $can_edit = $is_creator && $stats['total_responses'] <= 1;
                 </a>
             </div>
         </form>
-    <?php endif; ?>
 </div>

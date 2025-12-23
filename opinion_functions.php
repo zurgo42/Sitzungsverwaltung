@@ -4,15 +4,18 @@
  * Erstellt: 2025-11-18
  */
 
+// Member-Functions mit Adapter-Support laden
+require_once __DIR__ . '/member_functions.php';
+
 /**
  * Lädt alle aktiven Meinungsbilder
  */
 function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) {
+    // Mitglieder über Adapter laden und zu Polls hinzufügen
     $sql = "
-        SELECT op.*, m.first_name, m.last_name,
+        SELECT op.*,
                (SELECT COUNT(*) FROM svopinion_responses WHERE poll_id = op.poll_id) as response_count
         FROM svopinion_polls op
-        LEFT JOIN svmembers m ON op.creator_member_id = m.member_id
         WHERE op.status != 'deleted'
     ";
 
@@ -36,7 +39,20 @@ function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) 
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Creator-Namen über Adapter nachladen
+    foreach ($polls as &$poll) {
+        if ($poll['creator_member_id']) {
+            $creator = get_member_by_id($pdo, $poll['creator_member_id']);
+            if ($creator) {
+                $poll['first_name'] = $creator['first_name'];
+                $poll['last_name'] = $creator['last_name'];
+            }
+        }
+    }
+
+    return $polls;
 }
 
 /**
@@ -44,9 +60,8 @@ function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) 
  */
 function get_opinion_poll_with_options($pdo, $poll_id) {
     $stmt = $pdo->prepare("
-        SELECT op.*, m.first_name, m.last_name, m.email
+        SELECT op.*
         FROM svopinion_polls op
-        LEFT JOIN svmembers m ON op.creator_member_id = m.member_id
         WHERE op.poll_id = ? AND op.status != 'deleted'
     ");
     $stmt->execute([$poll_id]);
@@ -54,6 +69,16 @@ function get_opinion_poll_with_options($pdo, $poll_id) {
 
     if (!$poll) {
         return null;
+    }
+
+    // Creator-Daten über Adapter laden
+    if ($poll['creator_member_id']) {
+        $creator = get_member_by_id($pdo, $poll['creator_member_id']);
+        if ($creator) {
+            $poll['first_name'] = $creator['first_name'];
+            $poll['last_name'] = $creator['last_name'];
+            $poll['email'] = $creator['email'];
+        }
     }
 
     // Optionen laden
@@ -70,8 +95,16 @@ function get_opinion_poll_with_options($pdo, $poll_id) {
 
 /**
  * Prüft ob User an einer Umfrage teilnehmen darf
+ * @param array $poll Umfrage-Daten
+ * @param int|null $member_id Member-ID (NULL für externe Teilnehmer)
+ * @param bool $via_link Wurde via direktem Link/Token zugegriffen?
  */
-function can_participate($poll, $member_id = null) {
+function can_participate($poll, $member_id = null, $via_link = false) {
+    // Ersteller darf IMMER teilnehmen
+    if ($member_id && isset($poll['creator_member_id']) && $poll['creator_member_id'] == $member_id) {
+        return true;
+    }
+
     if ($poll['target_type'] === 'public') {
         return true;
     }
@@ -81,14 +114,22 @@ function can_participate($poll, $member_id = null) {
         return true;
     }
 
-    if ($poll['target_type'] === 'list' && $member_id) {
-        global $pdo;
-        $stmt = $pdo->prepare("
-            SELECT 1 FROM svopinion_poll_participants
-            WHERE poll_id = ? AND member_id = ?
-        ");
-        $stmt->execute([$poll['poll_id'], $member_id]);
-        return $stmt->fetch() !== false;
+    if ($poll['target_type'] === 'list') {
+        // Bei Link-Zugriff: Auch externe Teilnehmer dürfen teilnehmen
+        if ($via_link) {
+            return true;
+        }
+
+        // Sonst: Nur eingeladene Members
+        if ($member_id) {
+            global $pdo;
+            $stmt = $pdo->prepare("
+                SELECT 1 FROM svopinion_poll_participants
+                WHERE poll_id = ? AND member_id = ?
+            ");
+            $stmt->execute([$poll['poll_id'], $member_id]);
+            return $stmt->fetch() !== false;
+        }
     }
 
     return false;
@@ -124,7 +165,7 @@ function has_responded($pdo, $poll_id, $member_id = null, $session_token = null)
 /**
  * Lädt die Antwort eines Users
  */
-function get_user_response($pdo, $poll_id, $member_id = null, $session_token = null) {
+function get_user_response($pdo, $poll_id, $member_id = null, $session_token = null, $external_participant_id = null) {
     // Spezielle Behandlung für NULL-Werte in der WHERE-Klausel
     if ($member_id !== null) {
         // Logged-in User: Nur nach member_id suchen
@@ -139,8 +180,21 @@ function get_user_response($pdo, $poll_id, $member_id = null, $session_token = n
             GROUP BY r.response_id
         ");
         $stmt->execute([$poll_id, $member_id]);
+    } else if ($external_participant_id !== null) {
+        // Externer Teilnehmer: Nur nach external_participant_id suchen
+        $stmt = $pdo->prepare("
+            SELECT r.*,
+                   GROUP_CONCAT(oro.option_id ORDER BY opo.sort_order) as selected_option_ids,
+                   GROUP_CONCAT(opo.option_text ORDER BY opo.sort_order SEPARATOR ', ') as selected_options_text
+            FROM svopinion_responses r
+            LEFT JOIN svopinion_response_options oro ON r.response_id = oro.response_id
+            LEFT JOIN svopinion_poll_options opo ON oro.option_id = opo.option_id
+            WHERE r.poll_id = ? AND r.external_participant_id = ?
+            GROUP BY r.response_id
+        ");
+        $stmt->execute([$poll_id, $external_participant_id]);
     } else if ($session_token !== null) {
-        // Anonymous User: Nur nach session_token suchen
+        // Anonymous User (alt): Nur nach session_token suchen
         $stmt = $pdo->prepare("
             SELECT r.*,
                    GROUP_CONCAT(oro.option_id ORDER BY opo.sort_order) as selected_option_ids,
@@ -153,7 +207,7 @@ function get_user_response($pdo, $poll_id, $member_id = null, $session_token = n
         ");
         $stmt->execute([$poll_id, $session_token]);
     } else {
-        // Weder member_id noch session_token: Keine Antwort möglich
+        // Keine Identifikation: Keine Antwort möglich
         return null;
     }
 
@@ -213,11 +267,8 @@ function get_all_responses($pdo, $poll_id, $show_names = false) {
     $stmt = $pdo->prepare("
         SELECT
             r.*,
-            m.first_name,
-            m.last_name,
             GROUP_CONCAT(opo.option_text ORDER BY opo.sort_order SEPARATOR ', ') as selected_options_text
         FROM svopinion_responses r
-        LEFT JOIN svmembers m ON r.member_id = m.member_id
         LEFT JOIN svopinion_response_options oro ON r.response_id = oro.response_id
         LEFT JOIN svopinion_poll_options opo ON oro.option_id = opo.option_id
         WHERE r.poll_id = ?
@@ -227,9 +278,18 @@ function get_all_responses($pdo, $poll_id, $show_names = false) {
     $stmt->execute([$poll_id]);
     $responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Namen anonymisieren falls nötig
-    if (!$show_names) {
-        foreach ($responses as &$response) {
+    // Member-Daten über Adapter nachladen
+    foreach ($responses as &$response) {
+        if ($response['member_id']) {
+            $member = get_member_by_id($pdo, $response['member_id']);
+            if ($member) {
+                $response['first_name'] = $member['first_name'];
+                $response['last_name'] = $member['last_name'];
+            }
+        }
+
+        // Namen anonymisieren falls nötig
+        if (!$show_names) {
             if ($response['force_anonymous'] || !$response['member_id']) {
                 $response['first_name'] = 'Anonym';
                 $response['last_name'] = '';
@@ -286,13 +346,16 @@ function get_answer_templates($pdo) {
 
 /**
  * Generiert Zugriffs-Link für individual-Umfragen
+ * Verwendet zentrale Funktion aus external_participants_functions.php
  */
-function get_poll_access_link($poll, $base_url) {
-    if ($poll['target_type'] !== 'individual' || empty($poll['access_token'])) {
+function get_poll_access_link($poll, $base_url = null) {
+    if (empty($poll['access_token'])) {
         return null;
     }
 
-    return rtrim($base_url, '/') . '/index.php?tab=opinion&view=participate&token=' . $poll['access_token'];
+    // Zentrale Link-Generierung verwenden
+    require_once __DIR__ . '/external_participants_functions.php';
+    return generate_external_access_link('meinungsbild', $poll['access_token'], true);
 }
 
 /**

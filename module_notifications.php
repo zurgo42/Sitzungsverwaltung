@@ -19,10 +19,9 @@
  * @return void (gibt direkt HTML aus)
  */
 function render_user_notifications($pdo, $member_id) {
-    // Mitglied-Rolle ermitteln
-    $stmt_role = $pdo->prepare("SELECT role FROM svmembers WHERE member_id = ?");
-    $stmt_role->execute([$member_id]);
-    $member_role = $stmt_role->fetch()['role'] ?? '';
+    // Mitglied-Rolle ermitteln - über Adapter!
+    $member = get_member_by_id($pdo, $member_id);
+    $member_role = $member['role'] ?? '';
 
     // Für "Mitglied" keine Benachrichtigungen anzeigen
     if (strtolower($member_role) === 'mitglied') {
@@ -156,8 +155,7 @@ function render_user_notifications($pdo, $member_id) {
          WHERE mp.member_id = ?
          AND m.meeting_date >= NOW()
          AND m.status IN ('preparation', 'active')
-         ORDER BY m.meeting_date ASC
-         LIMIT 3)
+         ORDER BY m.meeting_date ASC)
         UNION ALL
         (SELECT 'poll' as type, p.poll_id as item_id, p.title, pd.suggested_date as date_time
          FROM svpolls p
@@ -165,14 +163,26 @@ function render_user_notifications($pdo, $member_id) {
          INNER JOIN svpoll_dates pd ON p.final_date_id = pd.date_id
          WHERE pp.member_id = ?
          AND p.status = 'finalized'
+         AND p.meeting_id IS NULL
          AND pd.suggested_date >= NOW()
-         ORDER BY pd.suggested_date ASC
-         LIMIT 3)
+         ORDER BY pd.suggested_date ASC)
         ORDER BY date_time ASC
-        LIMIT 5
     ");
     $stmt_summary->execute([$member_id, $member_id]);
-    $upcoming = $stmt_summary->fetchAll();
+    $all_upcoming = $stmt_summary->fetchAll();
+
+    // Duplikate entfernen (gleicher Typ + gleiche ID)
+    $seen = [];
+    $upcoming = [];
+    foreach ($all_upcoming as $item) {
+        // Eindeutiger Key: type + item_id (als String für sicheren Vergleich)
+        $key = $item['type'] . '_' . (string)$item['item_id'];
+        if (!array_key_exists($key, $seen)) {
+            $seen[$key] = true;
+            $upcoming[] = $item;
+            if (count($upcoming) >= 6) break; // Max 6 Einträge
+        }
+    }
 
     if (!empty($upcoming)) {
         $items = [];

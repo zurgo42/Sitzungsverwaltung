@@ -19,24 +19,39 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/member_functions.php';
 require_once __DIR__ . '/mail_functions.php';
+require_once __DIR__ . '/external_participants_functions.php';
 
-session_start();
+// Session starten (falls noch nicht gestartet)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // ============================================
 // AUTHENTIFIZIERUNG
 // ============================================
 
-// Prüfen ob User eingeloggt ist
-if (!isset($_SESSION['member_id'])) {
-    header('Location: index.php');
-    exit;
+// User-Daten laden (kann NULL sein bei externen Teilnehmern)
+$current_user = null;
+if (isset($_SESSION['member_id'])) {
+    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+
+    // Session ist ungültig (z.B. nach DB-Reset)
+    if (!$current_user) {
+        session_destroy();
+        $_SESSION['error'] = 'Deine Session ist abgelaufen. Bitte melde dich erneut an.';
+        header('Location: index.php');
+        exit;
+    }
 }
 
-// User-Daten laden (über Wrapper-Funktion)
-$current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+// Externe Teilnehmer-Session prüfen
+$external_session = get_external_participant_session();
+$is_external_participant = ($external_session !== null);
 
-if (!$current_user) {
-    session_destroy();
+// Mindestens einer muss identifiziert sein
+if (!$current_user && !$is_external_participant) {
+    // Weder eingeloggt noch als externer Teilnehmer registriert
+    $_SESSION['error'] = 'Du musst eingeloggt sein um Termine zu erstellen';
     header('Location: index.php');
     exit;
 }
@@ -118,6 +133,7 @@ try {
             $title = trim($_POST['title'] ?? '');
             $description = trim($_POST['description'] ?? '');
             $location = trim($_POST['location'] ?? '');
+            $target_type = $_POST['target_type'] ?? 'list';
             $participant_ids = $_POST['participant_ids'] ?? [];
 
             if (empty($title)) {
@@ -126,27 +142,31 @@ try {
                 exit;
             }
 
-            if (empty($participant_ids)) {
+            // Teilnehmer nur bei target_type='list' erforderlich
+            if ($target_type === 'list' && empty($participant_ids)) {
                 $_SESSION['error'] = 'Bitte wähle mindestens einen Teilnehmer aus';
                 header('Location: index.php?tab=termine');
                 exit;
             }
 
             // Umfrage erstellen (meeting_id wird später beim Finalisieren gesetzt)
+            // access_token wird automatisch via Trigger generiert wenn target_type='individual'
             $stmt = $pdo->prepare("
-                INSERT INTO svpolls (title, description, location, created_by_member_id, meeting_id, status, created_at)
-                VALUES (?, ?, ?, ?, NULL, 'open', NOW())
+                INSERT INTO svpolls (title, description, location, created_by_member_id, meeting_id, target_type, status, created_at)
+                VALUES (?, ?, ?, ?, NULL, ?, 'open', NOW())
             ");
-            $stmt->execute([$title, $description, $location, $current_user['member_id']]);
+            $stmt->execute([$title, $description, $location, $current_user['member_id'], $target_type]);
             $poll_id = $pdo->lastInsertId();
 
-            // Teilnehmer hinzufügen
-            $stmt = $pdo->prepare("
-                INSERT INTO svpoll_participants (poll_id, member_id)
-                VALUES (?, ?)
-            ");
-            foreach ($participant_ids as $member_id) {
-                $stmt->execute([$poll_id, intval($member_id)]);
+            // Teilnehmer nur bei target_type='list' hinzufügen
+            if ($target_type === 'list') {
+                $stmt = $pdo->prepare("
+                    INSERT INTO svpoll_participants (poll_id, member_id)
+                    VALUES (?, ?)
+                ");
+                foreach ($participant_ids as $member_id) {
+                    $stmt->execute([$poll_id, intval($member_id)]);
+                }
             }
 
             // Terminvorschläge hinzufügen (bis zu 20)
@@ -155,10 +175,13 @@ try {
                 $time_start = $_POST["time_start_$i"] ?? '';
                 $time_end = $_POST["time_end_$i"] ?? '';
 
-                if (!empty($date) && !empty($time_start)) {
-                    $suggested_datetime = $date . ' ' . $time_start;
+                // Termin speichern wenn mindestens Datum vorhanden
+                if (!empty($date)) {
+                    // Wenn keine Startzeit angegeben, 00:00:00 verwenden
+                    $suggested_datetime = $date . ' ' . (!empty($time_start) ? $time_start : '00:00:00');
                     $suggested_end = null;
 
+                    // Ende-Zeit nur setzen wenn auch vorhanden
                     if (!empty($time_end)) {
                         $suggested_end = $date . ' ' . $time_end;
                     }
@@ -210,17 +233,32 @@ try {
                 exit;
             }
 
-            // Bestehende Antworten des Users löschen
-            $stmt = $pdo->prepare("
-                DELETE FROM svpoll_responses
-                WHERE poll_id = ? AND member_id = ?
-            ");
-            $stmt->execute([$poll_id, $current_user['member_id']]);
+            // Teilnehmer ermitteln (Member oder Extern)
+            $participant = get_current_participant($current_user, $pdo, 'termine', $poll_id);
+
+            if ($participant['type'] === 'none') {
+                $_SESSION['error'] = 'Sie müssen sich registrieren um abzustimmen';
+                header('Location: terminplanung_standalone.php?poll_id=' . $poll_id);
+                exit;
+            }
+
+            // IDs je nach Teilnehmer-Typ setzen
+            $member_id = ($participant['type'] === 'member') ? $participant['id'] : null;
+            $external_id = ($participant['type'] === 'external') ? $participant['id'] : null;
+
+            // Bestehende Antworten des Teilnehmers löschen
+            if ($member_id) {
+                $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ? AND member_id = ?");
+                $stmt->execute([$poll_id, $member_id]);
+            } else {
+                $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ? AND external_participant_id = ?");
+                $stmt->execute([$poll_id, $external_id]);
+            }
 
             // Neue Antworten speichern
             $stmt = $pdo->prepare("
-                INSERT INTO svpoll_responses (poll_id, date_id, member_id, vote, created_at)
-                VALUES (?, ?, ?, ?, NOW())
+                INSERT INTO svpoll_responses (poll_id, date_id, member_id, external_participant_id, vote, created_at)
+                VALUES (?, ?, ?, ?, ?, NOW())
             ");
 
             foreach ($_POST as $key => $value) {
@@ -236,13 +274,19 @@ try {
 
                     // Nur gültige Votes speichern (-1, 0, 1)
                     if (in_array($vote, [-1, 0, 1], true)) {
-                        $stmt->execute([$poll_id, $date_id, $current_user['member_id'], $vote]);
+                        $stmt->execute([$poll_id, $date_id, $member_id, $external_id, $vote]);
                     }
                 }
             }
 
             $_SESSION['success'] = 'Deine Abstimmung wurde gespeichert!';
-            header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+
+            // Redirect je nach Teilnehmer-Typ
+            if ($current_user) {
+                header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+            } else {
+                header('Location: terminplanung_standalone.php?poll_id=' . $poll_id);
+            }
             exit;
 
         // ====== FINALEN TERMIN FESTLEGEN ======

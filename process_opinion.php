@@ -14,18 +14,37 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/member_functions.php';
+require_once __DIR__ . '/opinion_functions.php';
 require_once __DIR__ . '/mail_functions.php';
+require_once __DIR__ . '/external_participants_functions.php';
 
-session_start();
+// Session starten (falls noch nicht gestartet)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Authentifizierung (für Erstellen, nicht für public Teilnahme)
+// Authentifizierung (Member ODER Externer Teilnehmer)
 $current_user = null;
 $is_authenticated = false;
 
 if (isset($_SESSION['member_id'])) {
     $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
-    $is_authenticated = $current_user !== false;
+
+    // Session ist ungültig (z.B. nach DB-Reset)
+    if (!$current_user) {
+        session_destroy();
+        session_start();
+        $_SESSION['error'] = 'Deine Session ist abgelaufen. Bitte melde dich erneut an.';
+        header('Location: index.php');
+        exit;
+    }
+
+    $is_authenticated = true;
 }
+
+// Externe Teilnehmer-Session prüfen
+$external_session = get_external_participant_session();
+$is_external_participant = ($external_session !== null);
 
 // ============================================
 // HILFSFUNKTIONEN
@@ -45,16 +64,6 @@ function is_admin($user) {
 function is_creator($poll, $user) {
     if (!$poll || !$user) return false;
     return $poll['creator_member_id'] == $user['member_id'];
-}
-
-/**
- * Generiert Session-Token für anonyme Teilnehmer
- */
-function get_or_create_session_token() {
-    if (!isset($_SESSION['opinion_session_token'])) {
-        $_SESSION['opinion_session_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['opinion_session_token'];
 }
 
 /**
@@ -229,28 +238,55 @@ try {
                 exit;
             }
 
-            $member_id = $is_authenticated ? $current_user['member_id'] : null;
-            $session_token = !$is_authenticated ? get_or_create_session_token() : null;
+            // Teilnehmer ermitteln (Member, Extern, oder alt-session_token)
+            $participant = get_current_participant($current_user, $pdo, 'meinungsbild', $poll_id);
+
+            $member_id = ($participant['type'] === 'member') ? $participant['id'] : null;
+            $external_id = ($participant['type'] === 'external') ? $participant['id'] : null;
+            $session_token = ($participant['type'] === 'none' && !$is_authenticated) ? get_or_create_session_token() : null;
+
+            // Wenn kein Teilnehmer identifiziert werden konnte
+            if ($participant['type'] === 'none' && !$session_token) {
+                $_SESSION['error'] = 'Teilnehmer konnte nicht identifiziert werden. Bitte registriere dich erneut.';
+                if ($current_user) {
+                    header('Location: index.php?tab=opinion&view=participate&poll_id=' . $poll_id);
+                } else {
+                    header('Location: opinion_standalone.php?poll_id=' . $poll_id);
+                }
+                exit;
+            }
+
             $selected_options = $_POST['options'] ?? [];
             $free_text = trim($_POST['free_text'] ?? '');
             $force_anonymous = !empty($_POST['force_anonymous']) ? 1 : 0;
 
             if (empty($selected_options)) {
                 $_SESSION['error'] = 'Bitte wähle mindestens eine Antwort';
-                header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+                if ($current_user) {
+                    header('Location: index.php?tab=opinion&view=participate&poll_id=' . $poll_id);
+                } else {
+                    header('Location: opinion_standalone.php?poll_id=' . $poll_id);
+                }
                 exit;
             }
 
             // Prüfen ob bereits geantwortet
             if ($member_id !== null) {
-                // Logged-in User: Nur nach member_id suchen
+                // Logged-in Member: Nur nach member_id suchen
                 $check_stmt = $pdo->prepare("
                     SELECT response_id FROM svopinion_responses
                     WHERE poll_id = ? AND member_id = ?
                 ");
                 $check_stmt->execute([$poll_id, $member_id]);
+            } else if ($external_id !== null) {
+                // Externer Teilnehmer: Nur nach external_participant_id suchen
+                $check_stmt = $pdo->prepare("
+                    SELECT response_id FROM svopinion_responses
+                    WHERE poll_id = ? AND external_participant_id = ?
+                ");
+                $check_stmt->execute([$poll_id, $external_id]);
             } else if ($session_token !== null) {
-                // Anonymous User: Nur nach session_token suchen
+                // Anonymous User (alt): Nur nach session_token suchen
                 $check_stmt = $pdo->prepare("
                     SELECT response_id FROM svopinion_responses
                     WHERE poll_id = ? AND session_token = ?
@@ -262,12 +298,11 @@ try {
             $existing = $check_stmt ? $check_stmt->fetch() : false;
 
             if ($existing) {
-                // Editieren erlaubt wenn Ersteller und nur 1 Antwort
-                $count_stmt = $pdo->prepare("SELECT COUNT(*) as cnt FROM svopinion_responses WHERE poll_id = ?");
-                $count_stmt->execute([$poll_id]);
-                $count = $count_stmt->fetch()['cnt'];
+                // ALLE Teilnehmer dürfen ihre ANTWORTEN bearbeiten, solange Umfrage offen ist
+                // (Prüfung ob aktiv erfolgte bereits oben)
+                $allow_edit = true;
 
-                if ($count > 1 || !is_creator($poll, $current_user)) {
+                if (!$allow_edit) {
                     $_SESSION['error'] = 'Sie haben bereits geantwortet';
                     header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
                     exit;
@@ -283,10 +318,10 @@ try {
             } else {
                 // Neue Antwort erstellen
                 $stmt = $pdo->prepare("
-                    INSERT INTO svopinion_responses (poll_id, member_id, session_token, free_text, force_anonymous)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO svopinion_responses (poll_id, member_id, external_participant_id, session_token, free_text, force_anonymous)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$poll_id, $member_id, $session_token, $free_text, $force_anonymous]);
+                $stmt->execute([$poll_id, $member_id, $external_id, $session_token, $free_text, $force_anonymous]);
                 $response_id = $pdo->lastInsertId();
             }
 
@@ -300,7 +335,124 @@ try {
             }
 
             $_SESSION['success'] = 'Deine Antwort wurde gespeichert!';
-            header('Location: index.php?tab=opinion&view=results&poll_id=' . $poll_id);
+
+            // Redirect je nach Teilnehmer-Typ
+            if ($current_user) {
+                header('Location: index.php?tab=opinion&view=results&poll_id=' . $poll_id);
+            } else {
+                // Externe Teilnehmer: Zu participate zurück (zeigt Erfolg und aktuelle Antwort)
+                header('Location: opinion_standalone.php?poll_id=' . $poll_id);
+            }
+            exit;
+
+        // ====== UMFRAGE BEARBEITEN ======
+        case 'update_opinion':
+            if (!$is_authenticated) {
+                $_SESSION['error'] = 'Bitte melde dich an';
+                header('Location: index.php?tab=opinion');
+                exit;
+            }
+
+            $poll_id = intval($_POST['poll_id'] ?? 0);
+            $poll = get_opinion_poll($pdo, $poll_id);
+
+            if (!$poll) {
+                $_SESSION['error'] = 'Umfrage nicht gefunden';
+                header('Location: index.php?tab=opinion');
+                exit;
+            }
+
+            // Prüfen ob Berechtigung
+            $is_creator = ($poll['creator_member_id'] == $current_user['member_id']);
+            $stats = get_opinion_results($pdo, $poll_id);
+
+            if (!$is_creator || $stats['total_responses'] > 1) {
+                $_SESSION['error'] = 'Du kannst diese Umfrage nicht mehr bearbeiten';
+                header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+                exit;
+            }
+
+            $title = trim($_POST['title'] ?? '');
+            $target_type = $_POST['target_type'] ?? 'individual';
+            $opinion_participant_ids = $_POST['opinion_participant_ids'] ?? [];
+            $allow_multiple = !empty($_POST['allow_multiple']) ? 1 : 0;
+            $is_anonymous = !empty($_POST['is_anonymous']) ? 1 : 0;
+            $duration_days = intval($_POST['duration_days'] ?? 14);
+            $show_intermediate_after_days = intval($_POST['show_intermediate_after_days'] ?? 7);
+            $delete_after_days = intval($_POST['delete_after_days'] ?? 30);
+
+            if (empty($title)) {
+                $_SESSION['error'] = 'Bitte gib eine Frage ein';
+                header('Location: index.php?tab=opinion&view=edit&poll_id=' . $poll_id);
+                exit;
+            }
+
+            // Neues Enddatum berechnen
+            $ends_at = date('Y-m-d H:i:s', strtotime("+{$duration_days} days"));
+
+            // Umfrage aktualisieren
+            $stmt = $pdo->prepare("
+                UPDATE svopinion_polls
+                SET title = ?,
+                    target_type = ?,
+                    allow_multiple_answers = ?,
+                    is_anonymous = ?,
+                    show_intermediate_after_days = ?,
+                    ends_at = ?
+                WHERE poll_id = ?
+            ");
+            $stmt->execute([
+                $title, $target_type, $allow_multiple, $is_anonymous,
+                $show_intermediate_after_days, $ends_at, $poll_id
+            ]);
+
+            // Access-Token aktualisieren wenn Typ geändert wurde
+            if ($target_type === 'individual' && empty($poll['access_token'])) {
+                $access_token = bin2hex(random_bytes(32));
+                $pdo->prepare("UPDATE svopinion_polls SET access_token = ? WHERE poll_id = ?")
+                    ->execute([$access_token, $poll_id]);
+            }
+
+            // Bestehende Optionen löschen und neu anlegen
+            $pdo->prepare("DELETE FROM svopinion_poll_options WHERE poll_id = ?")
+                ->execute([$poll_id]);
+
+            $option_count = 0;
+            for ($i = 1; $i <= 10; $i++) {
+                $option_text = trim($_POST["custom_option_$i"] ?? '');
+                if (!empty($option_text)) {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svopinion_poll_options (poll_id, option_text, sort_order)
+                        VALUES (?, ?, ?)
+                    ");
+                    $stmt->execute([$poll_id, $option_text, $option_count++]);
+                }
+            }
+
+            // Teilnehmer aktualisieren (bei list-Typ)
+            if ($target_type === 'list') {
+                // Alte Teilnehmer löschen
+                $pdo->prepare("DELETE FROM svopinion_poll_participants WHERE poll_id = ?")
+                    ->execute([$poll_id]);
+
+                // Neue Teilnehmer hinzufügen
+                if (!empty($opinion_participant_ids)) {
+                    $invite_stmt = $pdo->prepare("
+                        INSERT INTO svopinion_poll_participants (poll_id, member_id)
+                        VALUES (?, ?)
+                    ");
+                    foreach ($opinion_participant_ids as $member_id) {
+                        $invite_stmt->execute([$poll_id, intval($member_id)]);
+                    }
+                }
+            } else {
+                // Falls Typ geändert wurde: Alte Teilnehmer löschen
+                $pdo->prepare("DELETE FROM svopinion_poll_participants WHERE poll_id = ?")
+                    ->execute([$poll_id]);
+            }
+
+            $_SESSION['success'] = 'Meinungsbild erfolgreich aktualisiert!';
+            header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
             exit;
 
         // ====== UMFRAGE LÖSCHEN ======

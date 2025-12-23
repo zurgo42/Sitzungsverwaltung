@@ -4,8 +4,10 @@
  * Verarbeitet POST-Requests für Dokumente
  */
 
-// Session starten (muss ganz am Anfang stehen)
-session_start();
+// Session starten (falls noch nicht gestartet)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Konfiguration und Funktionen laden
 // functions.php bindet bereits config.php, member_functions.php etc. ein
@@ -44,12 +46,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'upload') {
         exit;
     }
 
-    if (!isset($_FILES['document_file']) || $_FILES['document_file']['error'] === UPLOAD_ERR_NO_FILE) {
-        $_SESSION['error'] = 'Bitte wähle eine Datei aus';
-        header('Location: index.php?tab=documents&view=upload');
-        exit;
-    }
+    $document_source = $_POST['document_source'] ?? 'file';
 
+    // Basis-Daten (für beide Typen)
     $data = [
         'title' => $_POST['title'] ?? '',
         'description' => $_POST['description'] ?? '',
@@ -60,14 +59,44 @@ if (isset($_POST['action']) && $_POST['action'] === 'upload') {
         'access_level' => intval($_POST['access_level'] ?? 0)
     ];
 
-    // Validierung
+    // Validierung: Titel erforderlich
     if (empty($data['title'])) {
         $_SESSION['error'] = 'Titel ist erforderlich';
         header('Location: index.php?tab=documents&view=upload');
         exit;
     }
 
-    $result = upload_document($pdo, $_FILES['document_file'], $data, $_SESSION['member_id']);
+    // Unterscheidung: Datei-Upload oder externer Link?
+    if ($document_source === 'link') {
+        // Externer Link
+        $external_url = trim($_POST['external_url'] ?? '');
+
+        if (empty($external_url)) {
+            $_SESSION['error'] = 'Bitte gib eine URL ein';
+            header('Location: index.php?tab=documents&view=upload');
+            exit;
+        }
+
+        // URL validieren
+        if (!filter_var($external_url, FILTER_VALIDATE_URL)) {
+            $_SESSION['error'] = 'Ungültige URL';
+            header('Location: index.php?tab=documents&view=upload');
+            exit;
+        }
+
+        $data['external_url'] = $external_url;
+        $result = create_external_document_link($pdo, $data, $_SESSION['member_id']);
+
+    } else {
+        // Datei-Upload (Standard)
+        if (!isset($_FILES['document_file']) || $_FILES['document_file']['error'] === UPLOAD_ERR_NO_FILE) {
+            $_SESSION['error'] = 'Bitte wähle eine Datei aus';
+            header('Location: index.php?tab=documents&view=upload');
+            exit;
+        }
+
+        $result = upload_document($pdo, $_FILES['document_file'], $data, $_SESSION['member_id']);
+    }
 
     if ($result['success']) {
         $_SESSION['success'] = $result['message'];
@@ -97,6 +126,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'update') {
         exit;
     }
 
+    $document_source = $_POST['document_source'] ?? 'file';
+
     $data = [
         'title' => $_POST['title'] ?? '',
         'description' => $_POST['description'] ?? '',
@@ -107,6 +138,25 @@ if (isset($_POST['action']) && $_POST['action'] === 'update') {
         'access_level' => intval($_POST['access_level'] ?? 0),
         'admin_notes' => $_POST['admin_notes'] ?? ''
     ];
+
+    // Externe URL nur setzen, wenn document_source=link
+    if ($document_source === 'link') {
+        $external_url = trim($_POST['external_url'] ?? '');
+        if (empty($external_url)) {
+            $_SESSION['error'] = 'Bitte gib eine externe URL ein';
+            header('Location: index.php?tab=documents&view=edit&id=' . $document_id);
+            exit;
+        }
+        if (!filter_var($external_url, FILTER_VALIDATE_URL)) {
+            $_SESSION['error'] = 'Ungültige URL';
+            header('Location: index.php?tab=documents&view=edit&id=' . $document_id);
+            exit;
+        }
+        $data['external_url'] = $external_url;
+    } else {
+        // Wenn zu lokalem Dokument gewechselt wird, externe URL leeren
+        $data['external_url'] = null;
+    }
 
     $result = update_document($pdo, $document_id, $data, $_SESSION['member_id']);
 

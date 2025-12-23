@@ -7,6 +7,7 @@ session_start();
 require_once('../config.php');
 require_once('db_connection.php');
 require_once('../functions_collab_text.php');
+require_once('../member_functions.php');
 
 header('Content-Type: application/json');
 
@@ -62,19 +63,27 @@ $success = lockParagraph($pdo, $paragraph_id, $member_id);
 if ($success) {
     echo json_encode(['success' => true, 'message' => 'Paragraph locked']);
 } else {
-    // Wer hat den Lock?
+    // Wer hat den Lock? (OHNE JOIN auf svmembers)
     $stmt = $pdo->prepare("
-        SELECT l.member_id, m.first_name, m.last_name
+        SELECT l.member_id
         FROM svcollab_text_locks l
-        JOIN svmembers m ON l.member_id = m.member_id
         WHERE l.paragraph_id = ?
     ");
     $stmt->execute([$paragraph_id]);
     $lock_owner = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    // Namen über Adapter holen
+    $locked_by_name = 'Unknown';
+    if ($lock_owner && $lock_owner['member_id']) {
+        $member = get_member_by_id($pdo, $lock_owner['member_id']);
+        if ($member) {
+            $locked_by_name = $member['first_name'] . ' ' . $member['last_name'];
+        }
+    }
+
     echo json_encode([
         'success' => false,
         'message' => 'Paragraph is locked by another user',
-        'locked_by' => $lock_owner ? $lock_owner['first_name'] . ' ' . $lock_owner['last_name'] : 'Unknown'
+        'locked_by' => $locked_by_name
     ]);
 }

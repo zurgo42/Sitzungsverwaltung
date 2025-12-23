@@ -96,6 +96,12 @@ define('MAIL_QUEUE_MAX_ATTEMPTS', 3);   // Max. Zustellversuche pro Mail
 define('TOP_CONFIDENTIAL_START', 101);  // Ab welcher TOP-Nummer ist es vertraulich
 define('DEBUG_MODE', IS_LOCAL);  // Automatisch aktiviert in lokaler Umgebung
 
+// ============= STANDALONE-SKRIPTE =============
+// Pfad zu standalone-Skripten (für externe Teilnehmer ohne Login)
+// Kann sein: '/' (root), '/Sitzungsverwaltung', '/public' etc.
+// Wichtig: Dieses Verzeichnis darf NICHT durch .htaccess passwortgeschützt sein!
+define('STANDALONE_PATH', '/Sitzungsverwaltung');
+
 // ============= DEMO-MODUS =============
 // WICHTIG: Auf dem echten Produktivserver auf false setzen!
 // true  = Demo-Funktionen sind verfügbar (Datenbank-Reset-Button, Demo-Daten-Import)

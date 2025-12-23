@@ -71,6 +71,7 @@ require_once 'module_notifications.php';
             case 'created': echo '✅ Sitzung erfolgreich erstellt!'; break;
             case 'deleted': echo '✅ Sitzung erfolgreich gelöscht!'; break;
             case 'updated': echo '✅ Sitzung erfolgreich aktualisiert!'; break;
+            case 'duplicated': echo '✅ Sitzung erfolgreich dupliziert! Termin wurde 7 Tage später gesetzt.'; break;
             default: echo '✅ Aktion erfolgreich durchgeführt!';
         }
         ?>
@@ -86,6 +87,7 @@ require_once 'module_notifications.php';
             case 'update_failed': echo '❌ Fehler beim Aktualisieren der Sitzung.'; break;
             case 'start_failed': echo '❌ Fehler beim Starten der Sitzung.'; break;
             case 'create_failed': echo '❌ Fehler beim Erstellen der Sitzung.'; break;
+            case 'duplicate_failed': echo '❌ Fehler beim Duplizieren der Sitzung.'; break;
             case 'missing_data': echo '❌ Pflichtfelder fehlen.'; break;
             case 'invalid_id': echo '❌ Ungültige Sitzungs-ID.'; break;
             default: echo '❌ Ein Fehler ist aufgetreten.';
@@ -140,7 +142,7 @@ require_once 'module_notifications.php';
             
             <div class="form-group">
                 <label>Videokonferenz-Link:</label>
-                <input type="url" name="video_link" value="<?php echo htmlspecialchars(DEFAULT_VIDEO_LINK); ?>">
+                <input type="url" name="video_link" value="<?php echo htmlspecialchars(DEFAULT_VIDEO_LINK); ?>" style="width: 100%; min-width: 400px;">
             </div>
             
             <div class="meeting-form-grid-equal">
@@ -336,6 +338,7 @@ require_once 'module_notifications.php';
                 <div class="meeting-card-actions">
                     <?php if ($can_edit): ?>
                         <button type="button" onclick="toggleEditMeeting(<?php echo $m['meeting_id']; ?>)" class="btn-view">✏️ Bearbeiten</button>
+                        <button type="button" onclick="duplicateMeeting(<?php echo $m['meeting_id']; ?>)" class="btn-secondary" style="background: #2196F3; color: white;">📋 Duplizieren</button>
                         <button type="button" onclick="if(confirm('Meeting wirklich löschen?')) deleteMeeting(<?php echo $m['meeting_id']; ?>)" class="btn-delete">🗑️ Löschen</button>
                         <button type="button" onclick="toggleStartMeeting(<?php echo $m['meeting_id']; ?>)" style="background: #4caf50; color: white;">▶️ Starten</button>
                     <?php endif; ?>
@@ -393,7 +396,7 @@ require_once 'module_notifications.php';
                         
                         <div class="form-group">
                             <label>Videokonferenz-Link:</label>
-                            <input type="url" name="video_link" value="<?php echo htmlspecialchars($m['video_link']); ?>">
+                            <input type="url" name="video_link" value="<?php echo htmlspecialchars($m['video_link']); ?>" style="width: 100%; min-width: 400px;">
                         </div>
                         
                         <div class="meeting-form-grid-equal">
@@ -550,39 +553,49 @@ function toggleAllParticipantsEdit(meetingId, checked) {
     checkboxes.forEach(cb => cb.checked = checked);
 }
 
-// Wählt nur Führungsrollen aus (alle außer "Mitglied")
+// Wählt nur Führungsrollen aus (Vorstand, GF, Assistenz, Führungsteam)
 function toggleLeadershipRoles() {
     const checkboxes = document.querySelectorAll('.participant-checkbox');
+    const leadershipRoles = ['vorstand', 'gf', 'assistenz', 'fuehrungsteam'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role');
-        cb.checked = (role !== 'Mitglied');
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (leadershipRoles.includes(role)) {
+            cb.checked = !cb.checked;
+        }
     });
 }
 
 function toggleLeadershipRolesEdit(meetingId) {
     const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
+    const leadershipRoles = ['vorstand', 'gf', 'assistenz', 'fuehrungsteam'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role');
-        cb.checked = (role !== 'Mitglied');
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (leadershipRoles.includes(role)) {
+            cb.checked = !cb.checked;
+        }
     });
 }
 
 // Wählt nur Vorstand, Geschäftsführung und Assistenz aus
 function toggleTopManagement() {
     const checkboxes = document.querySelectorAll('.participant-checkbox');
-    const topRoles = ['vorstand', 'geschäftsführung', 'gf', 'assistenz'];
+    const topRoles = ['vorstand', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role').toLowerCase();
-        cb.checked = topRoles.includes(role);
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (topRoles.includes(role)) {
+            cb.checked = !cb.checked;
+        }
     });
 }
 
 function toggleTopManagementEdit(meetingId) {
     const checkboxes = document.querySelectorAll('.participant-checkbox-' + meetingId);
-    const topRoles = ['vorstand', 'geschäftsführung', 'gf', 'assistenz'];
+    const topRoles = ['vorstand', 'gf', 'assistenz'];
     checkboxes.forEach(cb => {
-        const role = cb.getAttribute('data-role').toLowerCase();
-        cb.checked = topRoles.includes(role);
+        const role = cb.getAttribute('data-role')?.toLowerCase();
+        if (topRoles.includes(role)) {
+            cb.checked = !cb.checked;
+        }
     });
 }
 
@@ -641,21 +654,44 @@ function updateEndDateTime() {
     }
 }
 
+function duplicateMeeting(meetingId) {
+    if (confirm('Diese Sitzung duplizieren? Alle Einstellungen und Teilnehmer werden übernommen, der Termin wird 7 Tage später gesetzt.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'process_meetings.php';
+
+        const input1 = document.createElement('input');
+        input1.type = 'hidden';
+        input1.name = 'duplicate_meeting';
+        input1.value = '1';
+
+        const input2 = document.createElement('input');
+        input2.type = 'hidden';
+        input2.name = 'meeting_id';
+        input2.value = meetingId;
+
+        form.appendChild(input1);
+        form.appendChild(input2);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
 function deleteMeeting(meetingId) {
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = 'process_meetings.php';
-    
+
     const input1 = document.createElement('input');
     input1.type = 'hidden';
     input1.name = 'delete_meeting';
     input1.value = '1';
-    
+
     const input2 = document.createElement('input');
     input2.type = 'hidden';
     input2.name = 'meeting_id';
     input2.value = meetingId;
-    
+
     form.appendChild(input1);
     form.appendChild(input2);
     document.body.appendChild(form);

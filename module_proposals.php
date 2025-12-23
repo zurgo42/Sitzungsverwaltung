@@ -50,10 +50,39 @@ function render_proposal_display($proposal_text) {
  */
 function render_voting_fields($item_id, $item) {
     ?>
+    <style>
+        .voting-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .voting-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            .voting-grid > div {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .voting-grid label {
+                flex: 0 0 auto;
+                margin-bottom: 0 !important;
+            }
+            .voting-grid input[type="number"] {
+                flex: 0 0 80px;
+                max-width: 80px;
+                padding: 4px !important;
+            }
+        }
+    </style>
     <div style="margin-top: 15px; padding: 12px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 6px;">
         <h5 style="margin: 0 0 10px 0; color: #1976d2; font-size: 14px;">🗳️ Abstimmung erfassen</h5>
-        
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+
+        <div class="voting-grid">
             <div>
                 <label style="font-size: 12px; font-weight: 600; color: #666; display: block; margin-bottom: 4px;">
                     ✅ Ja-Stimmen:

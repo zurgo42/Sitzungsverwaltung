@@ -27,26 +27,56 @@ class StandardMemberAdapter implements MemberAdapterInterface {
         $this->pdo = $pdo;
     }
 
+    /**
+     * Normalisiert svmembers Daten
+     * - role wird lowercase normalisiert
+     * - role_display wird hinzugefügt
+     */
+    private function normalizeRow($row) {
+        if (!$row) return null;
+
+        // Role normalisieren (lowercase)
+        $role_code = strtolower($row['role'] ?? 'mitglied');
+
+        // Display-Name generieren
+        $displayNames = [
+            'vorstand' => 'Vorstand',
+            'gf' => 'Geschäftsführung',
+            'assistenz' => 'Assistenz',
+            'fuehrungsteam' => 'Führungsteam',
+            'mitglied' => 'Mitglied'
+        ];
+
+        $row['role'] = $role_code;
+        $row['role_display'] = $displayNames[$role_code] ?? 'Mitglied';
+
+        return $row;
+    }
+
     public function getMemberById($id) {
         $stmt = $this->pdo->prepare("SELECT * FROM svmembers WHERE member_id = ?");
         $stmt->execute([$id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $this->normalizeRow($row);
     }
 
     public function getAllMembers() {
-        return $this->pdo->query("SELECT * FROM svmembers ORDER BY last_name, first_name")->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $this->pdo->query("SELECT * FROM svmembers ORDER BY last_name, first_name")->fetchAll(PDO::FETCH_ASSOC);
+        return array_map([$this, 'normalizeRow'], $rows);
     }
 
     public function getMemberByEmail($email) {
         $stmt = $this->pdo->prepare("SELECT * FROM svmembers WHERE email = ?");
         $stmt->execute([$email]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $this->normalizeRow($row);
     }
 
     public function getMemberByMembershipNumber($mnr) {
         $stmt = $this->pdo->prepare("SELECT * FROM svmembers WHERE membership_number = ?");
         $stmt->execute([$mnr]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $this->normalizeRow($row);
     }
 
     public function createMember($data) {
@@ -136,6 +166,7 @@ class BerechtigteAdapter implements MemberAdapterInterface {
 
         $funktion = $row['Funktion'] ?? '';
         $aktiv = $row['aktiv'] ?? 0;
+        $role_code = $this->mapRole($funktion, $aktiv);
 
         return [
             'member_id' => $row['ID'],
@@ -143,9 +174,11 @@ class BerechtigteAdapter implements MemberAdapterInterface {
             'first_name' => $row['Vorname'],
             'last_name' => $row['Name'],
             'email' => $row['eMail'],
-            'role' => $this->mapRole($funktion, $aktiv),
+            'role' => $role_code,  // Interner Code (lowercase): 'gf', 'vorstand', etc.
+            'role_display' => $this->getRoleDisplayName($role_code),  // Display-Name: 'Geschäftsführung', etc.
             'is_admin' => $this->isAdmin($funktion, $row['MNr']),
             'is_confidential' => $this->isConfidential($funktion, $aktiv),
+            'is_active' => ($aktiv > 17) ? 1 : 0, // Aktiv wenn shouldInclude() true zurückgibt
             'password_hash' => '', // Kein Passwort bei SSO
             'created_at' => $row['angelegt'] ?? null,
             'role_priority' => $this->getRolePriority($funktion, $aktiv) // Für Sortierung
@@ -155,30 +188,51 @@ class BerechtigteAdapter implements MemberAdapterInterface {
     /**
      * Mappt Funktion und aktiv auf Rollenbeschreibung
      *
+     * WICHTIG: Gibt die gleichen Werte wie svmembers zurück (lowercase, Kurzformen)
+     * damit JavaScript-Funktionen für Teilnehmerauswahl konsistent funktionieren
+     *
      * Regeln:
-     * - aktiv=19 → Vorstand
-     * - Funktion=GF → Geschäftsführung
-     * - Funktion=SV → Assistenz
-     * - Funktion=RL → Führungsteam
-     * - Funktion=AD → Mitglied
-     * - Funktion=FP → Mitglied
+     * - aktiv=19 → vorstand
+     * - Funktion=GF → gf
+     * - Funktion=SV → assistenz
+     * - Funktion=RL → fuehrungsteam (OHNE Umlaut!)
+     * - Funktion=AD → mitglied
+     * - Funktion=FP → mitglied
      */
     private function mapRole($funktion, $aktiv) {
         // Vorstand hat höchste Priorität
         if ($aktiv == 19) {
-            return 'Vorstand';
+            return 'vorstand';
         }
 
-        // Dann Funktions-basierte Rollen
+        // Dann Funktions-basierte Rollen (lowercase, Kurzformen wie in svmembers)
         $roleMapping = [
-            'GF' => 'Geschäftsführung',
-            'SV' => 'Assistenz',
-            'RL' => 'Führungsteam',
-            'AD' => 'Mitglied',
-            'FP' => 'Mitglied'
+            'GF' => 'gf',
+            'SV' => 'assistenz',
+            'RL' => 'fuehrungsteam',  // OHNE Umlaut!
+            'AD' => 'mitglied',
+            'FP' => 'mitglied'
         ];
 
-        return $roleMapping[$funktion] ?? 'Mitglied';
+        return $roleMapping[$funktion] ?? 'mitglied';
+    }
+
+    /**
+     * Gibt Display-Namen für role-Code zurück
+     *
+     * @param string $role_code Interner Code (lowercase): 'gf', 'vorstand', etc.
+     * @return string Display-Name für UI: 'Geschäftsführung', 'Vorstand', etc.
+     */
+    private function getRoleDisplayName($role_code) {
+        $displayNames = [
+            'vorstand' => 'Vorstand',
+            'gf' => 'Geschäftsführung',
+            'assistenz' => 'Assistenz',
+            'fuehrungsteam' => 'Führungsteam',
+            'mitglied' => 'Mitglied'
+        ];
+
+        return $displayNames[$role_code] ?? 'Mitglied';
     }
 
     /**
@@ -346,13 +400,13 @@ class BerechtigteAdapter implements MemberAdapterInterface {
     // Hilfs-Mapping-Funktionen
     private function mapFunktionFromRole($role) {
         $mapping = [
-            'vorstand' => 'Vorstand',
-            'gf' => 'Geschäftsführung',
-            'assistenz' => 'Assistenz',
-            'fuehrungsteam' => 'Führungsteam',
-            'Mitglied' => 'Mitglied'
+            'vorstand' => 'Vorstand',  // Wird via aktiv=19 gesetzt
+            'gf' => 'GF',
+            'assistenz' => 'SV',
+            'fuehrungsteam' => 'RL',
+            'mitglied' => 'AD'
         ];
-        return $mapping[$role] ?? 'Mitglied';
+        return $mapping[$role] ?? 'AD';
     }
 
     private function mapAktivFromConfidential($is_confidential) {

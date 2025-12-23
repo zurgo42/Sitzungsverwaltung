@@ -73,9 +73,10 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
                     <?php endif; ?>
 
                     <?php
-                    // Zugangslink anzeigen
-                    $access_link = get_poll_access_link($poll, defined('BASE_URL') ? BASE_URL : 'http://' . $_SERVER['HTTP_HOST']);
-                    if ($access_link):
+                    // Zugangslink anzeigen (nur für Ersteller und Admins)
+                    if ($is_creator || $is_admin):
+                        $access_link = get_poll_access_link($poll, defined('BASE_URL') ? BASE_URL : 'http://' . $_SERVER['HTTP_HOST']);
+                        if ($access_link):
                     ?>
                         <div style="margin-top: 10px; padding: 10px; background: #f0f8ff; border: 1px solid #4CAF50; border-radius: 4px;">
                             <strong>🔗 Zugangslink:</strong>
@@ -103,7 +104,10 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
                                 ?>
                             </small>
                         </div>
-                    <?php endif; ?>
+                    <?php
+                        endif; // end if ($access_link)
+                    endif; // end if ($is_creator || $is_admin)
+                    ?>
                 </div>
 
                 <div style="display: flex; gap: 10px;">

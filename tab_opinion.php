@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/opinion_functions.php';
+require_once __DIR__ . '/external_participants_functions.php';
 
 // Aktuellen User holen
 $current_user = null;
@@ -360,6 +361,8 @@ if ($access_token && !$poll_id) {
         include __DIR__ . '/opinion_views/list.php';
     } elseif ($view === 'create') {
         include __DIR__ . '/opinion_views/create.php';
+    } elseif ($view === 'edit' && $poll_id) {
+        include __DIR__ . '/opinion_views/edit.php';
     } elseif ($view === 'detail' && $poll_id) {
         include __DIR__ . '/opinion_views/detail.php';
     } elseif ($view === 'participate' && $poll_id) {

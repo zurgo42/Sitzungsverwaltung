@@ -104,15 +104,32 @@ if (!$submission_deadline_passed) {
             <h4 style="margin: 0 0 10px 0; color: #1976d2;">Eingeladene Teilnehmer</h4>
             <div style="margin-bottom: 20px; padding: 10px; background: white; border-radius: 4px;">
                 <?php
+                // Teilnehmer aus DB laden (ohne JOIN svmembers)
                 $stmt_participants = $pdo->prepare("
-                    SELECT m.member_id, m.first_name, m.last_name, m.role
-                    FROM svmeeting_participants mp
-                    JOIN svmembers m ON mp.member_id = m.member_id
-                    WHERE mp.meeting_id = ?
-                    ORDER BY m.last_name, m.first_name
+                    SELECT member_id
+                    FROM svmeeting_participants
+                    WHERE meeting_id = ?
                 ");
                 $stmt_participants->execute([$current_meeting_id]);
-                $current_participants = $stmt_participants->fetchAll();
+                $participant_ids = $stmt_participants->fetchAll(PDO::FETCH_COLUMN);
+
+                // Member-Daten aus globalem Array holen und sortieren
+                $current_participants = [];
+                foreach ($participant_ids as $pid) {
+                    // Verwende get_member_from_cache wenn verfügbar (index.php Kontext), sonst get_member_by_id
+                    if (function_exists('get_member_from_cache')) {
+                        $member = get_member_from_cache($pid);
+                    } else {
+                        $member = get_member_by_id($pdo, $pid);
+                    }
+                    if ($member) {
+                        $current_participants[] = $member;
+                    }
+                }
+                // Nach Nachname sortieren
+                usort($current_participants, function($a, $b) {
+                    return strcmp($a['last_name'], $b['last_name']);
+                });
                 ?>
 
                 <?php if (count($current_participants) > 0): ?>
@@ -149,23 +166,57 @@ if (!$submission_deadline_passed) {
 
                 <?php
                 // Alle Members laden, die NICHT eingeladen sind
-                $stmt_uninvited = $pdo->prepare("
-                    SELECT m.member_id, m.first_name, m.last_name, m.role
-                    FROM svmembers m
-                    WHERE m.member_id NOT IN (
-                        SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?
-                    )
-                    AND m.is_active = 1
-                    ORDER BY m.last_name, m.first_name
-                ");
-                $stmt_uninvited->execute([$current_meeting_id]);
-                $uninvited_members = $stmt_uninvited->fetchAll();
+                // Eingeladene IDs holen
+                $stmt_invited = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
+                $stmt_invited->execute([$current_meeting_id]);
+                $invited_ids = $stmt_invited->fetchAll(PDO::FETCH_COLUMN);
+
+                // Aus Members-Array filtern (verwendet $all_members aus tab_agenda.php)
+                $uninvited_members = [];
+                if (isset($all_members) && is_array($all_members)) {
+                    foreach ($all_members as $member) {
+                        if (!in_array($member['member_id'], $invited_ids) && $member['is_active']) {
+                            $uninvited_members[] = $member;
+                        }
+                    }
+                } else {
+                    // Fallback: Direkt aus DB laden
+                    $uninvited_members = get_all_members($pdo);
+                    $uninvited_members = array_filter($uninvited_members, function($m) use ($invited_ids) {
+                        return !in_array($m['member_id'], $invited_ids) && $m['is_active'];
+                    });
+                }
+                // Nach Nachname sortieren
+                usort($uninvited_members, function($a, $b) {
+                    return strcmp($a['last_name'], $b['last_name']);
+                });
                 ?>
 
                 <?php if (count($uninvited_members) > 0): ?>
-                    <div style="display: flex; gap: 10px; align-items: flex-end;">
-                        <div style="flex: 1;">
-                            <select name="new_participant_id" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <style>
+                        .add-participant-container {
+                            display: flex;
+                            gap: 10px;
+                            align-items: flex-end;
+                        }
+                        @media (max-width: 768px) {
+                            .add-participant-container {
+                                flex-direction: column;
+                                align-items: stretch;
+                                gap: 8px;
+                            }
+                            .add-participant-select {
+                                width: 100% !important;
+                            }
+                            .add-participant-button {
+                                width: 100%;
+                                padding: 10px !important;
+                            }
+                        }
+                    </style>
+                    <div class="add-participant-container">
+                        <div style="flex: 3;">
+                            <select name="new_participant_id" required class="add-participant-select" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                                 <option value="">-- Teilnehmer auswählen --</option>
                                 <?php foreach ($uninvited_members as $um):
                                     $has_absence_um = isset($member_absences[$um['member_id']]);
@@ -175,14 +226,16 @@ if (!$submission_deadline_passed) {
                                             $absence_info .= ' [Abwesend: ' . date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date'])) . ']';
                                         }
                                     }
+                                    // Display-Name verwenden wenn vorhanden, sonst konvertieren
+                                    $display_role = isset($um['role_display']) ? $um['role_display'] : get_role_display_name($um['role']);
                                 ?>
                                     <option value="<?php echo $um['member_id']; ?>">
-                                        <?php echo htmlspecialchars($um['first_name'] . ' ' . $um['last_name'] . ' (' . $um['role'] . ')' . $absence_info); ?>
+                                        <?php echo htmlspecialchars($um['first_name'] . ' ' . $um['last_name'] . ' (' . $display_role . ')' . $absence_info); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <button type="submit" style="background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+                        <button type="submit" class="add-participant-button" style="background: #4caf50; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
                             ➕ Hinzufügen
                         </button>
                     </div>
@@ -215,10 +268,45 @@ if (!$submission_deadline_passed) {
         </summary>
     
     <div style="padding: 15px; background: #f1f8e9;">
+        <style>
+            .top-form-group {
+                margin-bottom: 15px;
+            }
+            .top-form-group label {
+                display: block;
+                margin-bottom: 5px;
+            }
+            .priority-duration-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            }
+            .top-submit-button {
+                width: 100%;
+                background: #4caf50;
+                color: white;
+                padding: 12px 20px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 16px;
+            }
+            @media (max-width: 768px) {
+                .priority-duration-grid {
+                    grid-template-columns: 1fr;
+                    gap: 0;
+                }
+                .top-submit-button {
+                    padding: 14px 20px;
+                    font-size: 15px;
+                }
+            }
+        </style>
         <form method="POST" action="">
             <input type="hidden" name="add_agenda_item" value="1">
-            
-            <div class="form-group">
+
+            <div class="form-group top-form-group">
                 <label style="font-weight: 600;">Titel:</label>
                 <input type="text" name="title" required>
             </div>
@@ -243,13 +331,13 @@ if (!$submission_deadline_passed) {
             $is_leadership = in_array(strtolower($current_user['role'] ?? ''), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam']);
             if ($is_leadership):
             ?>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div class="form-group">
+            <div class="priority-duration-grid">
+                <div class="form-group top-form-group">
                     <label style="font-weight: 600;">Priorität (1-10):</label>
                     <input type="number" name="priority" min="1" max="10" step="0.1" value="5" required>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group top-form-group">
                     <label style="font-weight: 600;">Geschätzte Dauer (Min.):</label>
                     <input type="number" name="duration" min="1" value="10" required>
                 </div>
@@ -260,16 +348,18 @@ if (!$submission_deadline_passed) {
             <input type="hidden" name="duration" value="10">
             <?php endif; ?>
             
-            <div class="form-group">
+            <div class="form-group top-form-group">
                 <label style="display: flex; align-items: center; cursor: pointer;">
                     <input type="checkbox" name="is_confidential" value="1" style="margin-right: 8px;">
                     🔒 Vertraulich (nur für berechtigte Teilnehmer)
                 </label>
             </div>
-            
-            <button type="submit" style="background: #4caf50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
-                ✅ TOP hinzufügen
-            </button>
+
+            <div class="form-group top-form-group">
+                <button type="submit" class="top-submit-button">
+                    ✅ TOP hinzufügen
+                </button>
+            </div>
         </form>
     </div>
 </details>
@@ -332,16 +422,23 @@ foreach ($agenda_items as $item):
     $stmt->execute([$item['item_id'], $current_user['member_id']]);
     $own_comment = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Alle Kommentare laden
+    // Alle Kommentare laden (ohne JOIN auf svmembers)
     $stmt = $pdo->prepare("
-        SELECT ac.*, m.first_name, m.last_name, m.member_id
+        SELECT ac.*
         FROM svagenda_comments ac
-        JOIN svmembers m ON ac.member_id = m.member_id
         WHERE ac.item_id = ? AND ac.comment_text != ''
         ORDER BY ac.created_at ASC
     ");
     $stmt->execute([$item['item_id']]);
     $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Member-Namen aus Array hinzufügen
+    foreach ($comments as &$comment) {
+        $member = get_member_from_array($comment['member_id']);
+        $comment['first_name'] = $member['first_name'] ?? 'Unbekannt';
+        $comment['last_name'] = $member['last_name'] ?? '';
+    }
+    unset($comment);
     
     // Prüfen ob User der Ersteller ist
     $is_creator = ($item['created_by_member_id'] == $current_user['member_id']);

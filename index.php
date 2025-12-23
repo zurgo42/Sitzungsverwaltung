@@ -12,13 +12,40 @@
  */
 
 // Session starten (muss ganz am Anfang stehen, vor jeder Ausgabe)
-session_start();
+// Prüfen ob Session bereits gestartet wurde (z.B. durch sso_direct.php)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Konfiguration und Hilfsfunktionen laden
 require_once 'config.php';           // Datenbankverbindung und Konstanten
 require_once 'config_adapter.php';   // Konfiguration für Mitgliederquelle
 require_once 'member_functions.php'; // Prozedurale Wrapper-Funktionen für Mitglieder
 require_once 'functions.php';        // Wiederverwendbare Funktionen
+
+// ============================================
+// GLOBALES MEMBERS-ARRAY (für SSO und Standard-Modus)
+// ============================================
+// Alle Mitglieder EINMAL laden und als assoziatives Array bereitstellen
+// Verhindert wiederholte DB-Queries und ermöglicht schnellen Zugriff nach member_id
+$GLOBALS['all_members'] = get_all_members($pdo);
+$GLOBALS['members_by_id'] = [];
+foreach ($GLOBALS['all_members'] as $member) {
+    $GLOBALS['members_by_id'][$member['member_id']] = $member;
+}
+
+/**
+ * Hilfsfunktion: Holt Member-Daten nach ID aus dem globalen Array
+ * @param int $member_id
+ * @return array|null Member-Daten oder null wenn nicht gefunden
+ *
+ * HINWEIS: Diese Funktion existiert nur in index.php Kontext!
+ * In anderen Kontexten (process_*, module_*) wird get_member_name($pdo, $id) aus module_helpers.php verwendet.
+ */
+function get_member_from_cache($member_id) {
+    if (!$member_id) return null;
+    return $GLOBALS['members_by_id'][$member_id] ?? null;
+}
 
 // ============================================
 // LOGOUT-VERARBEITUNG
@@ -58,6 +85,125 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 }
 
 // ============================================
+// HILFSFUNKTION: Zugriffsverweigerungs-Seite
+// ============================================
+/**
+ * Zeigt eine dezente Fehlerseite mit Zurück-Link an
+ *
+ * @param string $title Hauptüberschrift
+ * @param string $message Beschreibung des Problems
+ * @param string $details Optionale technische Details
+ */
+function show_access_denied_page($title, $message, $details = '') {
+    global $SSO_DIRECT_CONFIG;
+
+    // Zurück-URL aus Konfiguration holen
+    $back_url = $SSO_DIRECT_CONFIG['back_button_url'] ?? 'https://aktive.mensa.de/vorstand/vtool.php';
+    $back_text = $SSO_DIRECT_CONFIG['back_button_text'] ?? 'Zurück zum VTool';
+
+    ?>
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Zugriff verweigert - Sitzungsverwaltung</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+            .error-container {
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                max-width: 500px;
+                width: 100%;
+                padding: 40px;
+                text-align: center;
+            }
+            .error-icon {
+                font-size: 64px;
+                margin-bottom: 20px;
+            }
+            h1 {
+                color: #333;
+                font-size: 24px;
+                margin-bottom: 16px;
+                font-weight: 600;
+            }
+            .error-message {
+                color: #666;
+                font-size: 16px;
+                line-height: 1.6;
+                margin-bottom: 24px;
+            }
+            .error-details {
+                background: #f5f5f5;
+                border-left: 4px solid #ffc107;
+                padding: 12px 16px;
+                margin-bottom: 32px;
+                border-radius: 4px;
+                font-size: 13px;
+                color: #666;
+                text-align: left;
+            }
+            .back-button {
+                display: inline-block;
+                background: #667eea;
+                color: white;
+                padding: 14px 32px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 600;
+                font-size: 16px;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            }
+            .back-button:hover {
+                background: #5568d3;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            }
+            .footer-note {
+                margin-top: 24px;
+                font-size: 13px;
+                color: #999;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="error-container">
+            <div class="error-icon">🔒</div>
+            <h1><?php echo htmlspecialchars($title); ?></h1>
+            <div class="error-message">
+                <?php echo htmlspecialchars($message); ?>
+            </div>
+            <?php if ($details): ?>
+                <div class="error-details">
+                    ℹ️ <?php echo htmlspecialchars($details); ?>
+                </div>
+            <?php endif; ?>
+            <a href="<?php echo htmlspecialchars($back_url); ?>" class="back-button">
+                ← <?php echo htmlspecialchars($back_text); ?>
+            </a>
+            <div class="footer-note">
+                Bei Problemen wende dich bitte an den Support
+            </div>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
+// ============================================
 // SSO-MODUS (Single Sign-On) - Automatischer Login
 // ============================================
 // Wenn SSO aktiv ist (REQUIRE_LOGIN = false) und noch keine Session existiert
@@ -73,17 +219,73 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
             // Automatisch einloggen
             $_SESSION['member_id'] = $sso_user['member_id'];
             $_SESSION['role'] = $sso_user['role'];
+            $_SESSION['MNr'] = $sso_mnr;  // Für config_adapter.php - damit API-Calls den richtigen Adapter verwenden
 
             // Zur Hauptseite weiterleiten
             header('Location: index.php');
             exit;
         } else {
-            // Mitglied nicht gefunden
-            die('<h1>Zugriff verweigert</h1><p>Ihre Mitgliedsnummer wurde nicht gefunden oder ist nicht aktiv.</p><p>MNr: ' . htmlspecialchars($sso_mnr) . '</p>');
+            // Mitglied nicht gefunden - Prüfen ob DB leer ist (nach Reset)
+            $stmt = $pdo->query("SELECT COUNT(*) FROM svmembers");
+            $member_count = $stmt->fetchColumn();
+
+            if ($member_count == 0) {
+                // Datenbank ist leer - Ersten User als Admin anlegen
+                // Versuche Daten vom Adapter zu holen
+                $member_data = get_member_data_from_adapter($sso_mnr);
+
+                if ($member_data) {
+                    // Mit Adapter-Daten anlegen
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svmembers (
+                            membership_number, first_name, last_name, email, phone,
+                            role, status, joined_date, created_at
+                        ) VALUES (?, ?, ?, ?, ?, 'gf', 'active', NOW(), NOW())
+                    ");
+                    $stmt->execute([
+                        $sso_mnr,
+                        $member_data['first_name'] ?? 'Admin',
+                        $member_data['last_name'] ?? 'User',
+                        $member_data['email'] ?? '',
+                        $member_data['phone'] ?? ''
+                    ]);
+                } else {
+                    // Ohne Adapter-Daten - Platzhalter anlegen
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svmembers (
+                            membership_number, first_name, last_name, email,
+                            role, status, joined_date, created_at
+                        ) VALUES (?, 'Admin', 'User', '', 'gf', 'active', NOW(), NOW())
+                    ");
+                    $stmt->execute([$sso_mnr]);
+                }
+
+                // Neu angelegten User laden und einloggen
+                $sso_user = get_member_by_membership_number($pdo, $sso_mnr);
+                $_SESSION['member_id'] = $sso_user['member_id'];
+                $_SESSION['role'] = $sso_user['role'];
+                $_SESSION['MNr'] = $sso_mnr;
+
+                // Zur Hauptseite weiterleiten mit Hinweis
+                $_SESSION['success'] = 'Erste Anmeldung nach DB-Reset: Admin-Account wurde automatisch angelegt.';
+                header('Location: index.php');
+                exit;
+            } else {
+                // DB ist nicht leer, aber User nicht gefunden
+                show_access_denied_page(
+                    'Mitgliedsnummer nicht gefunden',
+                    'Deine Mitgliedsnummer wurde nicht in der Datenbank gefunden oder ist nicht aktiv.',
+                    'MNr: ' . htmlspecialchars($sso_mnr)
+                );
+            }
         }
     } else {
         // Keine Mitgliedsnummer übergeben
-        die('<h1>Zugriff verweigert</h1><p>Keine Mitgliedsnummer übergeben. SSO-Konfiguration prüfen!</p>');
+        show_access_denied_page(
+            'SSO-Fehler',
+            'Es wurde keine Mitgliedsnummer übergeben. Bitte versuche es über das VTool erneut.',
+            'Technischer Hinweis: SSO_SOURCE ist auf "' . SSO_SOURCE . '" konfiguriert'
+        );
     }
 }
 
@@ -150,8 +352,19 @@ $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
 
 // Sicherheitscheck: Wenn User nicht gefunden wurde, Session beenden
 if (!$current_user) {
+    // Session ist ungültig (z.B. nach DB-Reset oder gelöschter User)
     session_destroy();
-    header('Location: index.php');
+
+    // Wenn SSO-Modus, neu versuchen
+    if (!REQUIRE_LOGIN) {
+        header('Location: index.php');
+        exit;
+    }
+
+    // Sonst zum Login
+    session_start();
+    $_SESSION['error'] = 'Deine Session ist abgelaufen. Bitte melde dich erneut an.';
+    header('Location: login.php');
     exit;
 }
 
@@ -229,25 +442,222 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
 }
 
 // ============================================
+// DARK MODE: Serverseitige Erkennung (verhindert Flash)
+// ============================================
+// Dark Mode Cookie auslesen - Cookie wird von JavaScript gesetzt
+// FALLBACK: Wenn kein Cookie existiert, aus localStorage lesen (client-side)
+$dark_mode_enabled = isset($_COOKIE['darkMode']) && $_COOKIE['darkMode'] === 'enabled';
+
+// Wenn kein Cookie, aber localStorage vorhanden sein könnte: Client-seitiges Script
+$check_localstorage = !isset($_COOKIE['darkMode']);
+
+// ============================================
 // HTML-AUSGABE BEGINNT HIER
 // ============================================
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" <?php echo $dark_mode_enabled ? 'class="dark-mode"' : ''; ?> id="root-html">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $sso_config ? $sso_config['page_title'] : 'Sitzungsverwaltung'; ?></title>
+
+    <!-- KRITISCH: Dark Mode Flash Prevention - MUSS VOR allem anderen kommen! -->
+
+    <!-- Schritt 1: Sofortiges inline CSS (greift bevor irgendwas geladen wird) -->
+    <script>
+        // SEHR WICHTIG: Vor CSS! Setzt dark-mode Klasse auf body wenn nötig
+        (function() {
+            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
+            if (!hasCookie) {
+                const savedDarkMode = localStorage.getItem('darkMode');
+                if (savedDarkMode === 'enabled') {
+                    // Setze auf <body> weil style.css body.dark-mode verwendet!
+                    document.documentElement.className = 'dark-mode';
+                    document.body.className = 'dark-mode';
+                    // Cookie für nächstes Mal
+                    document.cookie = 'darkMode=enabled;path=/;max-age=31536000';
+                }
+            } else if (document.cookie.includes('darkMode=enabled')) {
+                // Cookie vorhanden, Klasse auch auf body setzen
+                document.body.className = 'dark-mode';
+            }
+        })();
+    </script>
+    <style id="dark-mode-flash-prevention">
+        /* Inline CSS für SOFORTIGE Dark Mode Anwendung - verhindert Flash */
+        html.dark-mode,
+        html.dark-mode body,
+        body.dark-mode {
+            background-color: #1a1a1a !important;
+            color: #e0e0e0 !important;
+        }
+
+        /* Navigation und Tabs sofort dunkel machen - SPEZIFISCH */
+        html.dark-mode nav,
+        html.dark-mode .navigation,
+        html.dark-mode .navigation a,
+        html.dark-mode .nav-tabs,
+        html.dark-mode .nav-link,
+        html.dark-mode .tab-content,
+        body.dark-mode nav,
+        body.dark-mode .navigation,
+        body.dark-mode .navigation a,
+        body.dark-mode .nav-tabs,
+        body.dark-mode .nav-link,
+        body.dark-mode .tab-content {
+            background-color: #1a1a1a !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+
+        /* Navigation Links aktiv/hover States */
+        html.dark-mode .navigation a.active,
+        html.dark-mode .navigation a:hover,
+        body.dark-mode .navigation a.active,
+        body.dark-mode .navigation a:hover {
+            background-color: #2d2d2d !important;
+            color: #ffffff !important;
+        }
+
+        /* Buttons sofort dunkel machen - ALLE Varianten */
+        html.dark-mode button,
+        html.dark-mode .btn,
+        html.dark-mode .btn-primary,
+        html.dark-mode .btn-secondary,
+        html.dark-mode .btn-danger,
+        html.dark-mode input[type="button"],
+        html.dark-mode input[type="submit"],
+        html.dark-mode .accordion-button,
+        body.dark-mode button,
+        body.dark-mode .btn,
+        body.dark-mode .btn-primary,
+        body.dark-mode .btn-secondary,
+        body.dark-mode .btn-danger,
+        body.dark-mode input[type="button"],
+        body.dark-mode input[type="submit"],
+        body.dark-mode .accordion-button {
+            background-color: #2d2d2d !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+
+        /* Container, Cards und Forms sofort dunkel machen */
+        html.dark-mode .container,
+        html.dark-mode .card,
+        html.dark-mode .form-control,
+        html.dark-mode .form-section,
+        html.dark-mode .form-group,
+        html.dark-mode .accordion-content,
+        html.dark-mode select,
+        html.dark-mode textarea,
+        html.dark-mode input[type="text"],
+        html.dark-mode input[type="date"],
+        html.dark-mode input[type="time"],
+        html.dark-mode input[type="email"],
+        body.dark-mode .container,
+        body.dark-mode .card,
+        body.dark-mode .form-control,
+        body.dark-mode .form-section,
+        body.dark-mode .form-group,
+        body.dark-mode .accordion-content,
+        body.dark-mode select,
+        body.dark-mode textarea,
+        body.dark-mode input[type="text"],
+        body.dark-mode input[type="date"],
+        body.dark-mode input[type="time"],
+        body.dark-mode input[type="email"] {
+            background-color: #2d2d2d !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+    </style>
+
     <link rel="stylesheet" href="style.css">
 
     <?php if ($sso_config): ?>
-    <!-- Custom Styling für SSOdirekt-Modus -->
+    <!-- Custom Styling für SSOdirekt-Modus (Version 2.0 - Light/Dark Mode Support) -->
     <style>
+        <?php
+        // Prüfen ob neues Format (light/dark) vorhanden ist
+        $has_new_format = isset($sso_config['light']) && isset($sso_config['dark']);
+
+        if ($has_new_format):
+            // Neues Format: Separate Farben für Light und Dark Mode
+            $light = $sso_config['light'];
+            $dark = $sso_config['dark'];
+        ?>
+        /* Light Mode Farben (Standard) */
         :root {
-            --primary: <?php echo $sso_config['primary_color']; ?>;
-            --primary-dark: <?php echo $sso_config['border_color']; ?>;
-            --header-text: <?php echo $sso_config['header_text_color']; ?>;
-            --footer-text: <?php echo $sso_config['footer_text_color']; ?>;
+            --sso-header-bg: <?php echo $light['header']['background']; ?>;
+            --sso-header-text: <?php echo $light['header']['text']; ?>;
+            --sso-header-border: <?php echo $light['header']['border']; ?>;
+            --sso-footer-bg: <?php echo $light['footer']['background']; ?>;
+            --sso-footer-text: <?php echo $light['footer']['text']; ?>;
+            --sso-footer-border: <?php echo $light['footer']['border']; ?>;
+            --sso-back-btn-bg: <?php echo $light['back_button']['background']; ?>;
+            --sso-back-btn-text: <?php echo $light['back_button']['text']; ?>;
+        }
+
+        /* Dark Mode Farben - sowohl html.dark-mode als auch body.dark-mode */
+        html.dark-mode,
+        body.dark-mode {
+            --sso-header-bg: <?php echo $dark['header']['background']; ?>;
+            --sso-header-text: <?php echo $dark['header']['text']; ?>;
+            --sso-header-border: <?php echo $dark['header']['border']; ?>;
+            --sso-footer-bg: <?php echo $dark['footer']['background']; ?>;
+            --sso-footer-text: <?php echo $dark['footer']['text']; ?>;
+            --sso-footer-border: <?php echo $dark['footer']['border']; ?>;
+            --sso-back-btn-bg: <?php echo $dark['back_button']['background']; ?>;
+            --sso-back-btn-text: <?php echo $dark['back_button']['text']; ?>;
+        }
+
+        /* Header Styling */
+        .header {
+            background: var(--sso-header-bg) !important;
+            border-bottom: 3px solid var(--sso-header-border) !important;
+        }
+        .header h1,
+        .header .user-info,
+        .header .user-info span,
+        .header .user-info .logout-btn,
+        .header .header-left a {
+            color: var(--sso-header-text) !important;
+        }
+
+        /* Footer Styling */
+        .page-footer {
+            background: var(--sso-footer-bg) !important;
+            border-top: 3px solid var(--sso-footer-border) !important;
+            color: var(--sso-footer-text) !important;
+        }
+        .page-footer a {
+            color: var(--sso-footer-text) !important;
+        }
+
+        /* Back Button Styling - Höhere Spezifität für Überschreibung */
+        .header .user-info .sso-back-button,
+        .header .user-info a.sso-back-button {
+            background: var(--sso-back-btn-bg) !important;
+            color: var(--sso-back-btn-text) !important;
+            border: 1px solid var(--sso-back-btn-text) !important;
+            /* Überschreibe alle logout-btn Styles */
+            background-color: var(--sso-back-btn-bg) !important;
+        }
+        .header .user-info .sso-back-button:hover,
+        .header .user-info a.sso-back-button:hover {
+            opacity: 0.85;
+            background: var(--sso-back-btn-bg) !important;
+            color: var(--sso-back-btn-text) !important;
+        }
+
+        <?php else: ?>
+        /* Altes Format: Rückwärtskompatibilität */
+        :root {
+            --primary: <?php echo $sso_config['primary_color'] ?? '#1976d2'; ?>;
+            --primary-dark: <?php echo $sso_config['border_color'] ?? '#0d47a1'; ?>;
+            --header-text: <?php echo $sso_config['header_text_color'] ?? '#ffffff'; ?>;
+            --footer-text: <?php echo $sso_config['footer_text_color'] ?? '#ffffff'; ?>;
         }
         .header {
             background: var(--primary);
@@ -266,6 +676,7 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
         .page-footer a {
             color: var(--footer-text);
         }
+        <?php endif; ?>
     </style>
     <?php endif; ?>
 </head>
@@ -301,7 +712,7 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
 
                 <?php if ($display_mode === 'SSOdirekt' && $sso_config): ?>
                     <!-- Zurück-Button für SSOdirekt-Modus -->
-                    <a href="<?php echo $sso_config['back_button_url']; ?>" class="logout-btn">
+                    <a href="<?php echo $sso_config['back_button_url']; ?>" class="logout-btn sso-back-button">
                         <?php echo $sso_config['back_button_text']; ?>
                     </a>
                 <?php else: ?>
@@ -456,8 +867,11 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
                     // tab_admin.php zeigt das Admin-Panel an
                     include 'tab_admin.php';
                 } else {
-                    // Fehlermeldung bei unberechtigtem Zugriff
-                    echo '<div class="error-message">Zugriff verweigert.</div>';
+                    // Dezente Fehlermeldung bei unberechtigtem Zugriff
+                    echo '<div style="max-width: 600px; margin: 40px auto; padding: 30px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
+                    echo '<h3 style="color: #856404; margin: 0 0 12px 0; font-size: 18px;">🔒 Zugriff nicht möglich</h3>';
+                    echo '<p style="color: #856404; margin: 0; line-height: 1.6;">Dieser Bereich ist nur für Administratoren zugänglich. Falls du Zugriff benötigst, wende dich bitte an einen Administrator.</p>';
+                    echo '</div>';
                 }
                 break;
             
@@ -537,20 +951,30 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
     }
 
     /**
+     * Hilfsfunktion zum Setzen von Cookies
+     */
+    function setCookie(name, value, days = 365) {
+        const expires = new Date();
+        expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+        document.cookie = name + '=' + value + ';expires=' + expires.toUTCString() + ';path=/';
+    }
+
+    /**
      * Dark Mode Toggle
      * Schaltet zwischen hellem und dunklem Modus um
-     * Speichert Präferenz im localStorage
+     * Speichert Präferenz in Cookie UND localStorage (Cookie für PHP, localStorage als Fallback)
      */
     function initDarkMode() {
         const darkModeToggle = document.getElementById('darkModeToggle');
         const body = document.body;
+        const html = document.documentElement;
         const icon = darkModeToggle?.querySelector('.icon');
 
-        // Lade gespeicherte Präferenz
-        const savedDarkMode = localStorage.getItem('darkMode');
+        // HTML hat bereits die dark-mode Klasse vom Server (Cookie)
+        // Wir müssen nur noch body synchronisieren und Icon setzen
+        const isDarkMode = html.classList.contains('dark-mode');
 
-        // Setze initialen Dark Mode basierend auf gespeicherter Präferenz
-        if (savedDarkMode === 'enabled') {
+        if (isDarkMode) {
             body.classList.add('dark-mode');
             if (icon) icon.textContent = '☀️';
         }
@@ -558,14 +982,18 @@ if ($display_mode === 'SSOdirekt' && isset($SSO_DIRECT_CONFIG)) {
         // Toggle-Funktion
         if (darkModeToggle) {
             darkModeToggle.addEventListener('click', function() {
+                // Toggle auf beiden Elementen
                 body.classList.toggle('dark-mode');
+                html.classList.toggle('dark-mode');
 
-                // Icon wechseln
+                // Icon wechseln und Präferenz speichern
                 if (body.classList.contains('dark-mode')) {
                     if (icon) icon.textContent = '☀️';
+                    setCookie('darkMode', 'enabled');
                     localStorage.setItem('darkMode', 'enabled');
                 } else {
                     if (icon) icon.textContent = '🌙';
+                    setCookie('darkMode', 'disabled');
                     localStorage.setItem('darkMode', 'disabled');
                 }
             });

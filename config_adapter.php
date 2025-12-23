@@ -6,18 +6,6 @@
  */
 
 // ============================================
-// MITGLIEDER-DATENQUELLE
-// ============================================
-
-// Welche Tabelle soll für Mitgliederdaten verwendet werden?
-// Optionen: 'members' (interne Tabelle) oder 'berechtigte' (externe Tabelle)
-define('MEMBER_SOURCE', 'members');  // Standard: interne Tabelle verwenden
-
-// Alternative: Umgebungsvariable oder automatische Erkennung
-// define('MEMBER_SOURCE', getenv('MEMBER_SOURCE') ?: 'members');
-
-
-// ============================================
 // LOGIN-MODUS KONFIGURATION
 // ============================================
 
@@ -25,6 +13,24 @@ define('MEMBER_SOURCE', 'members');  // Standard: interne Tabelle verwenden
 // true  = Normaler Modus mit Login-Formular (Email/Passwort)
 // false = SSO-Modus (Single Sign-On) - Benutzer ist bereits extern authentifiziert
 define('REQUIRE_LOGIN', true);  // Standard: Normaler Login-Modus
+
+// ============================================
+// MITGLIEDER-DATENQUELLE
+// ============================================
+
+// Welche Tabelle soll für Mitgliederdaten verwendet werden?
+// Optionen: 'members' (interne Tabelle) oder 'berechtigte' (externe Tabelle)
+// WICHTIG: Im SSO-Modus (REQUIRE_LOGIN = false) IMMER 'berechtigte' verwenden!
+if (!REQUIRE_LOGIN ||  // SSO-Modus aktiv
+    (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt') ||
+    (isset($_SESSION['MNr']) && !empty($_SESSION['MNr']))) {
+    define('MEMBER_SOURCE', 'berechtigte');  // SSO-Modus: externe Tabelle
+} else {
+    define('MEMBER_SOURCE', 'members');  // Standard: interne Tabelle
+}
+
+// Alternative: Umgebungsvariable oder automatische Erkennung
+// define('MEMBER_SOURCE', getenv('MEMBER_SOURCE') ?: 'members')
 
 // SSO-Modus: Woher kommt die Mitgliedsnummer?
 // 'hardcoded' = Aus TEST_MEMBERSHIP_NUMBER (nur für Tests!)
@@ -54,15 +60,52 @@ define('DISPLAY_MODE', 'standalone');  // Standard-Modus
 // ============================================
 
 /**
- * Konfiguration für SSOdirekt-Modus
+ * Konfiguration für SSOdirekt-Modus (Version 2.0)
  * Wird nur verwendet wenn DISPLAY_MODE = 'SSOdirekt'
+ *
+ * NEU: Separate Farben für Light und Dark Mode!
+ * - Header und Footer können unabhängig gestyled werden
+ * - Jedes Element hat background, text und border Farben
+ * - Back-Button hat eigene Farben
  */
 $SSO_DIRECT_CONFIG = [
-    // === STYLING ===
-    'primary_color' => '#1976d2',          // Hauptfarbe (Header/Footer Hintergrund)
-    'border_color' => '#0d47a1',           // Border-Farbe
-    'header_text_color' => '#ffffff',      // Text-Farbe im Header
-    'footer_text_color' => '#ffffff',      // Text-Farbe im Footer
+    // === STYLING - LIGHT MODE ===
+    'light' => [
+        'header' => [
+            'background' => '#1976d2',  // Header Hintergrundfarbe
+            'text' => '#ffffff',        // Header Textfarbe
+            'border' => '#0d47a1'       // Header Border-Farbe (unten)
+        ],
+        'footer' => [
+            'background' => '#1976d2',  // Footer Hintergrundfarbe
+            'text' => '#ffffff',        // Footer Textfarbe
+            'border' => '#0d47a1'       // Footer Border-Farbe (oben)
+        ],
+        'back_button' => [
+            'background' => '#ffffff',  // Button Hintergrundfarbe
+            'text' => '#1976d2'         // Button Textfarbe
+        ]
+    ],
+
+    // === STYLING - DARK MODE ===
+    'dark' => [
+        'header' => [
+            'background' => '#1e1e1e',  // Dunkler Header
+            'text' => '#e0e0e0',        // Heller Text
+            'border' => '#2d2d2d'       // Subtile Border
+        ],
+        'footer' => [
+            'background' => '#1e1e1e',  // Dunkler Footer
+            'text' => '#e0e0e0',        // Heller Text
+            'border' => '#2d2d2d'       // Subtile Border
+        ],
+        'back_button' => [
+            'background' => '#2d2d2d',  // Dunkler Button
+            'text' => '#e0e0e0'         // Heller Text
+        ]
+    ],
+
+    // === GEMEINSAME EINSTELLUNGEN ===
     'logo_path' => '/img/logo.png',        // Pfad zum Logo (relativ oder absolut)
     'logo_height' => '40px',               // Logo-Höhe
 
@@ -75,6 +118,15 @@ $SSO_DIRECT_CONFIG = [
 
     // === SEITEN-TITEL ===
     'page_title' => 'Sitzungsverwaltung - Mensa in Deutschland e.V.',
+
+    // ============================================
+    // RÜCKWÄRTSKOMPATIBILITÄT (wird ignoriert wenn light/dark vorhanden)
+    // ============================================
+    // Falls alte Konfiguration noch verwendet wird, werden diese Werte genutzt:
+    'primary_color' => '#1976d2',          // Wird für Light Mode verwendet
+    'border_color' => '#0d47a1',           // Wird für Light Mode verwendet
+    'header_text_color' => '#ffffff',      // Wird für Light Mode verwendet
+    'footer_text_color' => '#ffffff',      // Wird für Light Mode verwendet
 ];
 
 

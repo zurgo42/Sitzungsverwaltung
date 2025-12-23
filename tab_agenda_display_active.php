@@ -47,53 +47,91 @@ $active_item_id = $stmt->fetchColumn();
 
 <!-- TEILNEHMERLISTE -->
 <?php if ($is_secretary): ?>
+    <style>
+        .participant-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .participant-row {
+                display: block;
+                padding: 8px;
+                font-size: 12px;
+            }
+            .participant-row .participant-name {
+                display: block;
+                font-size: 13px;
+                margin-bottom: 8px;
+                font-weight: 600;
+                color: #333;
+            }
+            .participant-row label {
+                display: inline-flex !important; /* Override inline style to keep buttons horizontal */
+                align-items: center;
+                font-size: 11px;
+                margin-right: 8px;
+                gap: 4px;
+            }
+            .participant-row label span {
+                font-size: 11px;
+            }
+            .participant-row input[type="radio"] {
+                transform: scale(0.9);
+            }
+        }
+    </style>
     <details open style="margin: 20px 0; padding: 15px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 8px;">
         <summary style="cursor: pointer; font-weight: 600; color: #1976d2; font-size: 16px; margin-bottom: 10px;">
             👥 Teilnehmerverwaltung (klicken zum Auf-/Zuklappen)
         </summary>
-        
+
         <form method="POST" action="">
             <input type="hidden" name="update_attendance" value="1">
-            
+
             <div style="margin-bottom: 15px;">
                 <button type="button" onclick="setAllPresent()" style="background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
                     ✅ Alle auf "Anwesend" setzen
                 </button>
             </div>
-            
+
             <div style="display: grid; gap: 10px;">
-                <?php foreach ($participants as $p): 
+                <?php foreach ($participants as $p):
                     $stmt = $pdo->prepare("SELECT attendance_status FROM svmeeting_participants WHERE meeting_id = ? AND member_id = ?");
                     $stmt->execute([$current_meeting_id, $p['member_id']]);
                     $attendance = $stmt->fetch();
                     $status = $attendance['attendance_status'] ?? 'absent';
                 ?>
-                    <div style="display: flex; align-items: center; gap: 15px; padding: 8px; background: white; border-radius: 4px;">
-                        <span style="flex: 1; font-weight: 600;">
+                    <div class="participant-row">
+                        <span class="participant-name" style="flex: 1; font-weight: 600;">
                             <?php echo htmlspecialchars($p['first_name'] . ' ' . $p['last_name']); ?>
                         </span>
-                        
+
                         <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                            <input type="radio" 
-                                   name="attendance[<?php echo $p['member_id']; ?>]" 
+                            <input type="radio"
+                                   name="attendance[<?php echo $p['member_id']; ?>]"
                                    value="present"
                                    class="attendance-radio"
                                    data-member="<?php echo $p['member_id']; ?>"
                                    <?php echo $status === 'present' ? 'checked' : ''; ?>>
                             <span>✅ Anwesend</span>
                         </label>
-                        
+
                         <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                            <input type="radio" 
-                                   name="attendance[<?php echo $p['member_id']; ?>]" 
+                            <input type="radio"
+                                   name="attendance[<?php echo $p['member_id']; ?>]"
                                    value="partial"
                                    <?php echo $status === 'partial' ? 'checked' : ''; ?>>
                             <span>⏱️ Zeitweise</span>
                         </label>
-                        
+
                         <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                            <input type="radio" 
-                                   name="attendance[<?php echo $p['member_id']; ?>]" 
+                            <input type="radio"
+                                   name="attendance[<?php echo $p['member_id']; ?>]"
                                    value="absent"
                                    <?php echo $status === 'absent' ? 'checked' : ''; ?>>
                             <span>❌ Abwesend</span>
@@ -115,32 +153,68 @@ $active_item_id = $stmt->fetchColumn();
 
                 <?php
                 // Alle Members laden, die NICHT eingeladen sind
-                $stmt_uninvited = $pdo->prepare("
-                    SELECT m.member_id, m.first_name, m.last_name, m.role
-                    FROM svmembers m
-                    WHERE m.member_id NOT IN (
-                        SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?
-                    )
-                    AND m.is_active = 1
-                    ORDER BY m.last_name, m.first_name
-                ");
-                $stmt_uninvited->execute([$current_meeting_id]);
-                $uninvited_members = $stmt_uninvited->fetchAll();
+                $stmt_invited = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
+                $stmt_invited->execute([$current_meeting_id]);
+                $invited_ids = $stmt_invited->fetchAll(PDO::FETCH_COLUMN);
+
+                // Aus $all_members Array filtern
+                $uninvited_members = [];
+                if (isset($all_members)) {
+                    foreach ($all_members as $member) {
+                        if (!in_array($member['member_id'], $invited_ids) && $member['is_active']) {
+                            $uninvited_members[] = $member;
+                        }
+                    }
+                } else {
+                    // Fallback
+                    $uninvited_members = get_all_members($pdo);
+                    $uninvited_members = array_filter($uninvited_members, function($m) use ($invited_ids) {
+                        return !in_array($m['member_id'], $invited_ids) && $m['is_active'];
+                    });
+                }
+                // Sortieren
+                usort($uninvited_members, function($a, $b) {
+                    return strcmp($a['last_name'], $b['last_name']);
+                });
                 ?>
 
                 <?php if (count($uninvited_members) > 0): ?>
-                    <div style="display: flex; gap: 10px; align-items: flex-end;">
-                        <div style="flex: 1;">
-                            <select name="new_participant_id" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <style>
+                        .add-participant-container-active {
+                            display: flex;
+                            gap: 10px;
+                            align-items: flex-end;
+                        }
+                        @media (max-width: 768px) {
+                            .add-participant-container-active {
+                                flex-direction: column;
+                                align-items: stretch;
+                                gap: 8px;
+                            }
+                            .add-participant-select-active {
+                                width: 100% !important;
+                            }
+                            .add-participant-button-active {
+                                width: 100%;
+                                padding: 10px !important;
+                            }
+                        }
+                    </style>
+                    <div class="add-participant-container-active">
+                        <div style="flex: 3;">
+                            <select name="new_participant_id" required class="add-participant-select-active" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                                 <option value="">-- Teilnehmer auswählen --</option>
-                                <?php foreach ($uninvited_members as $um): ?>
+                                <?php foreach ($uninvited_members as $um):
+                                    // Display-Name verwenden wenn vorhanden, sonst konvertieren
+                                    $display_role = isset($um['role_display']) ? $um['role_display'] : get_role_display_name($um['role']);
+                                ?>
                                     <option value="<?php echo $um['member_id']; ?>">
-                                        <?php echo htmlspecialchars($um['first_name'] . ' ' . $um['last_name'] . ' (' . $um['role'] . ')'); ?>
+                                        <?php echo htmlspecialchars($um['first_name'] . ' ' . $um['last_name'] . ' (' . $display_role . ')'); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <button type="submit" style="background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+                        <button type="submit" class="add-participant-button-active" style="background: #4caf50; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
                             ➕ Hinzufügen
                         </button>
                     </div>
@@ -169,42 +243,75 @@ $active_item_id = $stmt->fetchColumn();
 
 <!-- NEUEN TOP HINZUFÜGEN (nur Sekretär) -->
 <?php if ($is_secretary): ?>
+<style>
+    .top-add-form-footer {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-top: 15px;
+    }
+    .top-add-submit-btn {
+        background: #4caf50;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    @media (max-width: 768px) {
+        .top-add-form-footer {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+        }
+        .top-add-form-footer label {
+            margin-bottom: 0;
+        }
+        .top-add-submit-btn {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 15px;
+        }
+    }
+</style>
 <div class="form-section" style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0; border: 2px solid #4caf50;">
     <h3 style="color: #2e7d32; margin-bottom: 15px;">➕ Neuen TOP hinzufügen (während Sitzung)</h3>
-    
+
     <form method="POST" action="">
         <input type="hidden" name="add_agenda_item_active" value="1">
-        
+
         <div class="form-group">
             <label>Titel:</label>
             <input type="text" name="title" required placeholder="TOP-Titel...">
         </div>
-        
+
         <div class="form-group">
             <label>Beschreibung:</label>
             <textarea name="description" rows="2" placeholder="Kurze Beschreibung..."></textarea>
         </div>
-        
+
         <div class="form-group">
             <label>Kategorie:</label>
             <?php render_category_select('category', 'active_new_category', 'information', 'toggleProposalField(\'active_new\')'); ?>
         </div>
-        
+
         <div class="form-group" id="active_new_proposal" style="display:none;">
             <label style="font-weight: 600; color: #856404;">📄 Antragstext:</label>
-            <textarea name="proposal_text" 
-                      rows="4" 
-                      placeholder="Formulierung des Antrags..." 
+            <textarea name="proposal_text"
+                      rows="4"
+                      placeholder="Formulierung des Antrags..."
                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
         </div>
-        
-        <div style="display: flex; gap: 10px; align-items: center;">
+
+        <div class="top-add-form-footer">
             <label style="display: flex; align-items: center; gap: 5px;">
                 <input type="checkbox" name="is_confidential" value="1" style="width: auto;">
                 <span>🔒 Vertraulich</span>
             </label>
-            
-            <button type="submit" style="background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+
+            <button type="submit" class="top-add-submit-btn">
                 ➕ TOP hinzufügen
             </button>
         </div>
@@ -213,6 +320,73 @@ $active_item_id = $stmt->fetchColumn();
 <?php endif; ?>
 
 <!-- TOPS ANZEIGEN -->
+
+<style>
+    /* Globale Box-Sizing für alle Elemente */
+    .agenda-item *,
+    .agenda-item *::before,
+    .agenda-item *::after {
+        box-sizing: border-box;
+    }
+
+    .top-header-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    .top-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .top-header-right {
+        display: flex;
+        gap: 5px;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+        /* TOP-Header Smartphone-Optimierung */
+        .top-header-container {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+        .top-header-left {
+            gap: 6px;
+            font-size: 14px;
+        }
+        .top-header-left strong {
+            font-size: 14px !important;
+            flex: 1 1 100%;
+        }
+        .top-header-right {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .top-header-right button {
+            font-size: 10px !important;
+            padding: 3px 8px !important;
+        }
+
+        /* Alle Eingabefelder auf Smartphones */
+        .agenda-item textarea,
+        .agenda-item input[type="text"],
+        .agenda-item input[type="number"],
+        .agenda-item select {
+            max-width: 100%;
+            font-size: 14px !important;
+        }
+
+        /* Padding für bessere Lesbarkeit */
+        .agenda-item {
+            padding: 10px !important;
+        }
+    }
+</style>
 
 <?php 
 // Berechtigung für vertrauliche TOPs prüfen
@@ -246,8 +420,8 @@ foreach ($agenda_items as $item):
          style="background: #f9f9f9; padding: 15px; margin-bottom: 20px; border: <?php echo $border_width; ?> solid <?php echo $border_color; ?>; border-radius: 8px; <?php echo $is_active ? 'box-shadow: 0 0 15px rgba(244,67,54,0.4);' : ''; ?>">
         
         <!-- TOP-Header -->
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="top-header-container">
+            <div class="top-header-left">
                 <?php if ($is_active): ?>
                     <span style="background: #f44336; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 12px;">
                         🔴 AKTIV
@@ -261,9 +435,9 @@ foreach ($agenda_items as $item):
                     <span class="badge" style="background: #f39c12; color: white;">🔒 Vertraulich</span>
                 <?php endif; ?>
             </div>
-            
+
             <?php if ($is_secretary && $item['top_number'] != 0 && $item['top_number'] != 99 && $item['top_number'] != 999): ?>
-                <div style="display: flex; gap: 5px;">
+                <div class="top-header-right">
                     <!-- Aktiv schalten via AJAX -->
                     <?php if (!$is_active): ?>
                         <button onclick="setActiveTop(<?php echo $item['item_id']; ?>, <?php echo $current_meeting_id; ?>)" 

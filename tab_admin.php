@@ -12,12 +12,6 @@ require_once 'module_notifications.php';
 
 // Logik einbinden
 require_once 'process_admin.php';
-
-// Dokumente-Funktionen einbinden
-require_once __DIR__ . '/documents_functions.php';
-
-// Alle Dokumente laden (Admin-Zugriff: Zugriffslevel 99)
-$all_documents = get_documents($pdo, ['status' => 'active'], 99);
 ?>
 
 <style>
@@ -915,140 +909,80 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
 </div>
 <?php endif; ?>
 
-
-<!-- Dokumentenverwaltung -->
-<div id="admin-documents" class="admin-section">
-    <h3 class="admin-section-header" onclick="toggleSection(this)">📁 Dokumente in der Dokumentensammlung verwalten</h3>
+<!-- Produktions-System-Funktionen (immer sichtbar) -->
+<div id="admin-production" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">⚙️ Produktions-System-Verwaltung</h3>
 
     <div class="admin-section-content">
-        <!-- Dokument hochladen -->
-        <details style="margin-bottom: 20px;">
-            <summary style="padding: 10px 15px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 14px;">
-                ➕ Neues Dokument hochladen
-            </summary>
-            <div style="border: 1px solid #ddd; border-top: none; padding: 15px; border-radius: 0 0 5px 5px; background: white;">
-                <form method="POST" action="process_documents.php" enctype="multipart/form-data">
-                    <input type="hidden" name="action" value="upload">
-                    <input type="hidden" name="redirect_to" value="admin">
+        <div class="warning" style="background-color: #ffebee; border-left: 4px solid #d32f2f; padding: 15px; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #d32f2f;">⚠️ KRITISCHE SYSTEM-FUNKTIONEN</h4>
+            <p>
+                Diese Funktionen sind für die Einrichtung und Verwaltung des Produktivsystems gedacht.
+                Verwende sie mit äußerster Vorsicht!
+            </p>
+        </div>
 
-                    <div class="form-group">
-                        <label>Datei auswählen *</label>
-                        <input type="file" name="document_file" required accept=".pdf,.doc,.docx,.xls,.xlsx,.rtf,.txt,.jpg,.jpeg,.png" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        <small style="display: block; margin-top: 5px; color: #666;">
-                            Erlaubte Dateitypen: PDF, DOC, DOCX, XLS, XLSX, RTF, TXT, JPG, PNG
-                        </small>
-                    </div>
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4>🗄️ Datenbank-Verwaltung</h4>
 
-                    <div class="form-group">
-                        <label>Titel *</label>
-                        <input type="text" name="title" required placeholder="Aussagekräftiger Titel" style="width: 100%;">
-                    </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <!-- db-init.sql Download -->
+                <div style="border: 1px solid #2196F3; padding: 15px; border-radius: 5px; background-color: #e3f2fd;">
+                    <h5 style="margin-top: 0; color: #1976D2;">📄 Datenbank-Schema herunterladen</h5>
+                    <p style="font-size: 14px; color: #666;">
+                        Lädt die vollständige Datenbank-Initialisierungsdatei <code>db-init.sql</code> herunter.
+                        Enthält alle Tabellendefinitionen mit sv-Präfix.
+                    </p>
+                    <p style="font-size: 13px; color: #555;">
+                        <strong>Verwendung:</strong> Für Neuinstallationen oder Migrations auf anderen Systemen.
+                    </p>
+                    <a href="db-init.sql" class="btn" style="background-color: #2196F3; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" download>
+                        📥 db-init.sql herunterladen
+                    </a>
+                </div>
 
-                    <div class="form-group">
-                        <label>Kategorie *</label>
-                        <select name="category" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                            <?php foreach (get_document_categories() as $key => $label): ?>
-                                <option value="<?= $key ?>"><?= htmlspecialchars($label) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Beschreibung</label>
-                        <textarea name="description" rows="3" placeholder="Ausführliche Beschreibung des Dokuments" style="width: 100%;"></textarea>
-                    </div>
-
-                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div class="form-group">
-                            <label>Version</label>
-                            <input type="text" name="version" placeholder="z.B. 2025, v1.2" style="width: 100%;">
-                        </div>
-
-                        <div class="form-group">
-                            <label>Zugriffslevel</label>
-                            <select name="access_level" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                                <option value="0">Alle Mitglieder</option>
-                                <option value="12">Ab Projektleitung</option>
-                                <option value="15">Ab Ressortleitung</option>
-                                <option value="18">Ab Assistenz</option>
-                                <option value="19">Nur Vorstand</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Stichworte</label>
-                        <input type="text" name="keywords" placeholder="Komma-getrennte Stichworte für die Suche" style="width: 100%;">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Kurz-URL</label>
-                        <input type="text" name="short_url" placeholder="https://link.mensa.de/xyz" style="width: 100%;">
-                        <small style="display: block; margin-top: 5px; color: #666;">
-                            Optional: Eine kurze, einprägsame URL für dieses Dokument
-                        </small>
-                    </div>
-
-                    <button type="submit" class="btn-primary">📤 Hochladen</button>
-                </form>
+                <!-- Produktions-Reset -->
+                <div style="border: 2px solid #d32f2f; padding: 15px; border-radius: 5px; background-color: #ffebee;">
+                    <h5 style="margin-top: 0; color: #d32f2f;">♻️ Produktionsdatenbank zurücksetzen</h5>
+                    <p style="font-size: 14px; color: #666;">
+                        <strong>KRITISCH:</strong> Löscht ALLE Daten aus der Produktionsdatenbank!
+                        Nur für initiale Einrichtung verwenden.
+                    </p>
+                    <p style="font-size: 13px; color: #555;">
+                        <strong>Was wird geleert:</strong> Alle Mitglieder, Sitzungen, TODOs, Umfragen, Dokumente-Metadaten
+                    </p>
+                    <p style="font-size: 13px; color: #555;">
+                        <strong>Was bleibt:</strong> Tabellenstruktur, Antwortvorlagen
+                    </p>
+                    <a href="tools/production_reset.php" class="btn btn-danger" style="background-color: #d32f2f; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px; font-weight: 600;" target="_blank" onclick="return confirm('⚠️ ACHTUNG!\n\nDies ist eine KRITISCHE Funktion!\n\nAlle Daten werden unwiderruflich gelöscht.\n\nMöchtest du wirklich fortfahren?');">
+                        🗑️ Produktions-Reset
+                    </a>
+                </div>
             </div>
-        </details>
 
-        <!-- Dokumentenliste -->
-        <h4 style="margin-top: 25px; margin-bottom: 15px; font-size: 16px;">Vorhandene Dokumente</h4>
-
-        <?php if (empty($all_documents)): ?>
-            <div class="info-box">Keine Dokumente vorhanden.</div>
-        <?php else: ?>
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>Titel</th>
-                        <th>Kategorie</th>
-                        <th>Version</th>
-                        <th>Dateityp</th>
-                        <th>Größe</th>
-                        <th>Hochgeladen</th>
-                        <th>Aktionen</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($all_documents as $doc):
-                        $categories = get_document_categories();
-                        $cat_label = $categories[$doc['category']] ?? $doc['category'];
-                    ?>
-                        <tr>
-                            <td>
-                                <strong><?= htmlspecialchars($doc['title']) ?></strong>
-                                <?php if ($doc['description']): ?>
-                                    <br><small style="color: #666;"><?= htmlspecialchars(substr($doc['description'], 0, 100)) ?><?= strlen($doc['description']) > 100 ? '...' : '' ?></small>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= htmlspecialchars($cat_label) ?></td>
-                            <td><?= $doc['version'] ? htmlspecialchars($doc['version']) : '-' ?></td>
-                            <td><?= strtoupper($doc['filetype']) ?></td>
-                            <td><?= format_filesize($doc['filesize']) ?></td>
-                            <td><?= date('d.m.Y', strtotime($doc['created_at'])) ?></td>
-                            <td class="action-buttons">
-                                <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn-view">✏️</a>
-                                <form method="POST" action="process_documents.php" style="display: inline;" onsubmit="return confirm('Dokument wirklich löschen?');">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="document_id" value="<?= $doc['document_id'] ?>">
-                                    <input type="hidden" name="redirect_to" value="admin">
-                                    <button type="submit" class="btn-delete">🗑️</button>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-            <div class="info-box" style="margin-top: 15px;">
-                <strong>ℹ️ Hinweis:</strong> Insgesamt <?= count($all_documents) ?> Dokumente in der Sammlung
+            <div style="margin-top: 30px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                <h4 style="margin-top: 0;">📋 Produktions-Checkliste</h4>
+                <ol style="font-size: 14px; line-height: 1.8;">
+                    <li>✅ Datenbank mit <code>db-init.sql</code> initialisiert</li>
+                    <li>✅ <code>config.php</code> auf Produktionseinstellungen geprüft (DB-Credentials, DEMO_MODE_ENABLED = false)</li>
+                    <li>✅ Ersten Admin-Benutzer angelegt</li>
+                    <li>✅ Mitgliederdaten importiert (falls vorhanden)</li>
+                    <li>✅ E-Mail-Konfiguration getestet</li>
+                    <li>✅ Backup-Strategie eingerichtet</li>
+                    <li>✅ SSL/HTTPS aktiviert</li>
+                    <li>✅ Alle Funktionen getestet</li>
+                </ol>
             </div>
-        <?php endif; ?>
+
+            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 5px;">
+                <strong>💡 Tipp:</strong> Erstelle vor jeder größeren Änderung ein Backup der Datenbank!
+                Verwende dazu phpMyAdmin oder den Befehl: <code>mysqldump -u user -p dbname > backup.sql</code>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Dokumentenverwaltung wurde in den Dokumente-Tab verschoben -->
 <!-- Datenbank-Wartung -->
 <div id="admin-database" class="admin-section">
     <h3 class="admin-section-header" onclick="toggleSection(this)">🔧 Datenbank-Wartung</h3>

@@ -69,6 +69,12 @@ $stats = get_opinion_results($pdo, $poll_id);
                 Ergebnisse anzeigen
             </a>
 
+            <?php if ($is_creator && $stats['total_responses'] <= 1): ?>
+                <a href="?tab=opinion&view=edit&poll_id=<?php echo $poll_id; ?>" class="btn-secondary" style="text-decoration: none; background: #2196F3; color: white;">
+                    ✏️ Bearbeiten
+                </a>
+            <?php endif; ?>
+
             <?php if ($is_creator || $is_admin): ?>
                 <?php if ($is_active): ?>
                     <form method="POST" action="process_opinion.php" style="margin: 0;" onsubmit="return confirm('Umfrage jetzt beenden?')">
@@ -89,11 +95,12 @@ $stats = get_opinion_results($pdo, $poll_id);
 </div>
 
 <?php
-// Zugangslink für alle Typen anzeigen
-$host = defined('BASE_URL') ? BASE_URL : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
-$access_link = get_poll_access_link($poll, $host);
+// Zugangslink nur für Ersteller und Admins anzeigen
+if ($is_creator || $is_admin):
+    $host = defined('BASE_URL') ? BASE_URL : (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
+    $access_link = get_poll_access_link($poll, $host);
 
-if ($access_link):
+    if ($access_link):
 ?>
     <div class="opinion-card" style="background: #f0f8ff; border: 2px solid #4CAF50;">
         <h4 style="margin: 0 0 10px 0;">🔗 Zugangslink</h4>
@@ -103,8 +110,10 @@ if ($access_link):
                 echo 'Teile diesen eindeutigen Link mit den gewünschten Teilnehmern:';
             } elseif ($poll['target_type'] === 'public') {
                 echo 'Dieser Link ist öffentlich. Jeder mit diesem Link kann teilnehmen:';
+            } elseif ($poll['target_type'] === 'list') {
+                echo 'Dieser Link kann an die eingeladenen Teilnehmer weitergegeben werden (zusätzlich zur Benachrichtigung):';
             } else {
-                echo 'Link für eingeladene Mitglieder:';
+                echo 'Link zur Umfrage:';
             }
             ?>
         </p>
@@ -122,7 +131,10 @@ if ($access_link):
             </button>
         </div>
     </div>
-<?php endif; ?>
+<?php
+    endif; // end if ($access_link)
+endif; // end if ($is_creator || $is_admin)
+?>
 
 <div class="opinion-card">
     <h4>Antwortmöglichkeiten</h4>

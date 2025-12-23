@@ -420,20 +420,42 @@ if ($view === 'list') {
                                         <td><span class="badge bg-info"><?= htmlspecialchars($cat_label) ?></span></td>
                                         <td><?= $doc['version'] ? '<span class="badge bg-secondary">v' . htmlspecialchars($doc['version']) . '</span>' : '-' ?></td>
                                         <td><?= strtoupper($doc['filetype']) ?></td>
-                                        <td><?= format_filesize($doc['filesize']) ?></td>
+                                        <td><?= !empty($doc['external_url']) ? '<span class="badge bg-info">Extern</span>' : format_filesize($doc['filesize']) ?></td>
                                         <td><?= date('d.m.Y', strtotime($doc['created_at'])) ?></td>
                                         <td>
                                             <div class="d-flex gap-1 flex-wrap">
-                                                <!-- Download-Button (immer anzeigen) -->
-                                                <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
-                                                    📥 Download
-                                                </a>
+                                                <!-- Download/Öffnen Button (abhängig vom Typ) -->
+                                                <?php if (!empty($doc['external_url'])): ?>
+                                                    <!-- Externer Link -->
+                                                    <a href="<?= htmlspecialchars($doc['external_url']) ?>" class="btn-view" target="_blank" rel="noopener noreferrer">
+                                                        🔗 Extern öffnen
+                                                    </a>
+                                                <?php else: ?>
+                                                    <!-- Lokaler Download -->
+                                                    <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
+                                                        📥 Download
+                                                    </a>
+                                                <?php endif; ?>
 
                                                 <!-- Kurz-URL Button (nur wenn vorhanden) -->
                                                 <?php if (!empty($doc['short_url'])): ?>
-                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-view" target="_blank">
-                                                        🔗 Öffnen
+                                                    <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-secondary" target="_blank" style="font-size: 0.85em;">
+                                                        🔗 Kurzlink
                                                     </a>
+                                                <?php endif; ?>
+
+                                                <!-- Admin-Buttons: Bearbeiten & Löschen -->
+                                                <?php if ($is_admin): ?>
+                                                    <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn-secondary" style="font-size: 0.85em; background: #ff9800;">
+                                                        ✏️ Bearbeiten
+                                                    </a>
+                                                    <form method="POST" action="process_documents.php" style="display: inline;" onsubmit="return confirm('Dokument wirklich löschen?');">
+                                                        <input type="hidden" name="action" value="delete">
+                                                        <input type="hidden" name="document_id" value="<?= $doc['document_id'] ?>">
+                                                        <button type="submit" class="btn-secondary" style="font-size: 0.85em; background: #f44336; border: none; cursor: pointer;">
+                                                            🗑️ Löschen
+                                                        </button>
+                                                    </form>
                                                 <?php endif; ?>
                                             </div>
                                         </td>
@@ -470,7 +492,7 @@ if ($view === 'list') {
                                         <span class="badge bg-secondary">v<?= htmlspecialchars($doc['version']) ?></span>
                                     <?php endif; ?>
                                     <span><?= strtoupper($doc['filetype']) ?></span>
-                                    <span><?= format_filesize($doc['filesize']) ?></span>
+                                    <span><?= !empty($doc['external_url']) ? '<span class="badge bg-info">Extern</span>' : format_filesize($doc['filesize']) ?></span>
                                     <span><?= date('d.m.Y', strtotime($doc['created_at'])) ?></span>
                                 </p>
 
@@ -482,14 +504,37 @@ if ($view === 'list') {
                                 <?php endif; ?>
 
                                 <div class="document-filecard-actions">
-                                    <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
-                                        📥 Herunterladen
-                                    </a>
+                                    <!-- Download/Öffnen Button (abhängig vom Typ) -->
+                                    <?php if (!empty($doc['external_url'])): ?>
+                                        <!-- Externer Link -->
+                                        <a href="<?= htmlspecialchars($doc['external_url']) ?>" class="btn-view" target="_blank" rel="noopener noreferrer">
+                                            🔗 Extern öffnen
+                                        </a>
+                                    <?php else: ?>
+                                        <!-- Lokaler Download -->
+                                        <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn-view" target="_blank">
+                                            📥 Herunterladen
+                                        </a>
+                                    <?php endif; ?>
 
                                     <?php if (!empty($doc['short_url'])): ?>
-                                        <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-view" target="_blank">
-                                            🔗 Öffnen
+                                        <a href="<?= htmlspecialchars($doc['short_url']) ?>" class="btn-secondary" target="_blank">
+                                            🔗 Kurzlink
                                         </a>
+                                    <?php endif; ?>
+
+                                    <!-- Admin-Buttons: Bearbeiten & Löschen -->
+                                    <?php if ($is_admin): ?>
+                                        <a href="?tab=documents&view=edit&id=<?= $doc['document_id'] ?>" class="btn-secondary" style="background: #ff9800;">
+                                            ✏️ Bearbeiten
+                                        </a>
+                                        <form method="POST" action="process_documents.php" style="display: inline;" onsubmit="return confirm('Dokument wirklich löschen?');">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="document_id" value="<?= $doc['document_id'] ?>">
+                                            <button type="submit" class="btn-secondary" style="background: #f44336; border: none; cursor: pointer;">
+                                                🗑️ Löschen
+                                            </button>
+                                        </form>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -500,6 +545,15 @@ if ($view === 'list') {
                     <?php
                 }
                 ?>
+
+                <!-- Dokument hinzufügen Button (nur für Admins) -->
+                <?php if ($is_admin): ?>
+                    <div style="margin-top: 30px; text-align: center;">
+                        <a href="?tab=documents&view=upload" class="btn btn-primary" style="display: inline-block; padding: 10px 20px; font-size: 14px; text-decoration: none;">
+                            ➕ Dokument hinzufügen
+                        </a>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -611,15 +665,49 @@ elseif ($view === 'upload' && $is_admin) {
                         <h3>📤 Dokument hochladen</h3>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="process_documents.php" enctype="multipart/form-data">
+                        <form method="POST" action="process_documents.php" enctype="multipart/form-data" id="uploadForm">
                             <input type="hidden" name="action" value="upload">
 
-                            <div class="mb-3">
+                            <!-- Dokumenttyp wählen: Datei oder Link -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Dokumenttyp *</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="document_source" id="source_file" value="file" checked onchange="toggleDocumentSource()">
+                                        <label class="form-check-label" for="source_file">
+                                            📁 Datei hochladen
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="document_source" id="source_link" value="link" onchange="toggleDocumentSource()">
+                                        <label class="form-check-label" for="source_link">
+                                            🔗 Externer Link
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="form-text">
+                                    Wähle "Datei hochladen" für lokale Dateien oder "Externer Link" um auf ein externes Dokument zu verlinken.
+                                </div>
+                            </div>
+
+                            <!-- Datei-Upload (Standard) -->
+                            <div class="mb-3" id="file_upload_section">
                                 <label class="form-label">Datei auswählen *</label>
-                                <input type="file" name="document_file" class="form-control" required
+                                <input type="file" name="document_file" id="document_file" class="form-control"
                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.rtf,.txt,.jpg,.jpeg,.png">
                                 <div class="form-text">
                                     Erlaubte Dateitypen: PDF, DOC, DOCX, XLS, XLSX, RTF, TXT, JPG, PNG
+                                </div>
+                            </div>
+
+                            <!-- Externer Link (versteckt) -->
+                            <div class="mb-3" id="external_link_section" style="display: none;">
+                                <label class="form-label">Externe URL *</label>
+                                <input type="url" name="external_url" id="external_url" class="form-control"
+                                       placeholder="https://example.com/dokument.pdf"
+                                       style="width: 100%; min-width: 500px;">
+                                <div class="form-text">
+                                    Gib die vollständige URL zum Dokument ein (z.B. zu einem Cloud-Speicher, SharePoint, etc.)
                                 </div>
                             </div>
 
@@ -657,10 +745,8 @@ elseif ($view === 'upload' && $is_admin) {
                                     <label class="form-label">Zugriffslevel</label>
                                     <select name="access_level" class="form-select">
                                         <option value="0">Alle Mitglieder</option>
-                                        <option value="12">Ab Projektleitung</option>
-                                        <option value="15">Ab Ressortleitung</option>
-                                        <option value="18">Ab Assistenz</option>
-                                        <option value="19">Nur Vorstand</option>
+                                        <option value="15">Führungsrollen (Vorstand, GF, Assistenz, Führungsteam)</option>
+                                        <option value="18">Vorstand + GF + Assistenz</option>
                                     </select>
                                 </div>
                             </div>
@@ -694,6 +780,39 @@ elseif ($view === 'upload' && $is_admin) {
             </div>
         </div>
     </div>
+
+    <script>
+    // Toggle zwischen Datei-Upload und externem Link
+    function toggleDocumentSource() {
+        const sourceFile = document.getElementById('source_file');
+        const sourceLink = document.getElementById('source_link');
+        const fileSection = document.getElementById('file_upload_section');
+        const linkSection = document.getElementById('external_link_section');
+        const fileInput = document.getElementById('document_file');
+        const urlInput = document.getElementById('external_url');
+
+        if (sourceFile.checked) {
+            // Datei-Upload aktivieren
+            fileSection.style.display = 'block';
+            linkSection.style.display = 'none';
+            fileInput.required = true;
+            urlInput.required = false;
+            urlInput.value = ''; // Leeren um Konflikte zu vermeiden
+        } else if (sourceLink.checked) {
+            // Externer Link aktivieren
+            fileSection.style.display = 'none';
+            linkSection.style.display = 'block';
+            fileInput.required = false;
+            urlInput.required = true;
+        }
+    }
+
+    // Beim Laden initialisieren
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleDocumentSource();
+    });
+    </script>
+
     <?php
 } // Ende Upload-View
 
@@ -744,6 +863,39 @@ elseif ($view === 'edit' && $is_admin && $document_id) {
                                     <textarea name="description" class="form-control" rows="3"><?= htmlspecialchars($doc['description']) ?></textarea>
                                 </div>
 
+                                <!-- Dokumenttyp: Datei oder Externer Link -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Dokumenttyp</label>
+                                    <div class="d-flex gap-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="document_source" id="edit_source_file" value="file"
+                                                   <?= empty($doc['external_url']) ? 'checked' : '' ?> onchange="toggleEditDocumentSource()">
+                                            <label class="form-check-label" for="edit_source_file">
+                                                📁 Lokale Datei
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="document_source" id="edit_source_link" value="link"
+                                                   <?= !empty($doc['external_url']) ? 'checked' : '' ?> onchange="toggleEditDocumentSource()">
+                                            <label class="form-check-label" for="edit_source_link">
+                                                🔗 Externer Link
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Externe URL (nur bei externen Links) -->
+                                <div class="mb-3" id="edit_external_link_section" style="display: <?= !empty($doc['external_url']) ? 'block' : 'none' ?>;">
+                                    <label class="form-label">Externe URL *</label>
+                                    <input type="url" name="external_url" id="edit_external_url" class="form-control"
+                                           placeholder="https://example.com/dokument.pdf"
+                                           style="width: 100%; min-width: 500px;"
+                                           value="<?= htmlspecialchars($doc['external_url'] ?? '') ?>">
+                                    <div class="form-text">
+                                        Gib die vollständige URL zum Dokument ein (z.B. zu einem Cloud-Speicher, SharePoint, etc.)
+                                    </div>
+                                </div>
+
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Version</label>
@@ -755,10 +907,8 @@ elseif ($view === 'edit' && $is_admin && $document_id) {
                                         <label class="form-label">Zugriffslevel</label>
                                         <select name="access_level" class="form-select">
                                             <option value="0" <?= $doc['access_level'] == 0 ? 'selected' : '' ?>>Alle Mitglieder</option>
-                                            <option value="12" <?= $doc['access_level'] == 12 ? 'selected' : '' ?>>Ab Projektleitung</option>
-                                            <option value="15" <?= $doc['access_level'] == 15 ? 'selected' : '' ?>>Ab Ressortleitung</option>
-                                            <option value="18" <?= $doc['access_level'] == 18 ? 'selected' : '' ?>>Ab Assistenz</option>
-                                            <option value="19" <?= $doc['access_level'] == 19 ? 'selected' : '' ?>>Nur Vorstand</option>
+                                            <option value="15" <?= $doc['access_level'] == 15 ? 'selected' : '' ?>>Führungsrollen (Vorstand, GF, Assistenz, Führungsteam)</option>
+                                            <option value="18" <?= $doc['access_level'] == 18 ? 'selected' : '' ?>>Vorstand + GF + Assistenz</option>
                                         </select>
                                     </div>
                                 </div>
@@ -813,26 +963,43 @@ elseif ($view === 'edit' && $is_admin && $document_id) {
                     <!-- Datei-Info -->
                     <div class="card mt-3">
                         <div class="card-header">
-                            <h5>📊 Datei-Informationen</h5>
+                            <h5>📊 <?= !empty($doc['external_url']) ? 'Link-Informationen' : 'Datei-Informationen' ?></h5>
                         </div>
                         <div class="card-body">
                             <dl class="row">
-                                <dt class="col-sm-4">Dateiname:</dt>
-                                <dd class="col-sm-8"><code><?= htmlspecialchars($doc['filename']) ?></code></dd>
+                                <?php if (!empty($doc['external_url'])): ?>
+                                    <!-- Externe URL -->
+                                    <dt class="col-sm-4">Dokumenttyp:</dt>
+                                    <dd class="col-sm-8"><span class="badge bg-info">Externer Link</span></dd>
 
-                                <dt class="col-sm-4">Originaldatei:</dt>
-                                <dd class="col-sm-8"><?= htmlspecialchars($doc['original_filename']) ?></dd>
+                                    <dt class="col-sm-4">Externe URL:</dt>
+                                    <dd class="col-sm-8">
+                                        <a href="<?= htmlspecialchars($doc['external_url']) ?>" target="_blank" rel="noopener noreferrer">
+                                            <?= htmlspecialchars($doc['external_url']) ?>
+                                        </a>
+                                    </dd>
+                                <?php else: ?>
+                                    <!-- Lokale Datei -->
+                                    <dt class="col-sm-4">Dokumenttyp:</dt>
+                                    <dd class="col-sm-8"><span class="badge bg-success">Lokale Datei</span></dd>
 
-                                <dt class="col-sm-4">Dateigröße:</dt>
-                                <dd class="col-sm-8"><?= format_filesize($doc['filesize']) ?></dd>
+                                    <dt class="col-sm-4">Dateiname:</dt>
+                                    <dd class="col-sm-8"><code><?= htmlspecialchars($doc['filename']) ?></code></dd>
 
-                                <dt class="col-sm-4">Dateityp:</dt>
-                                <dd class="col-sm-8"><?= strtoupper($doc['filetype']) ?></dd>
+                                    <dt class="col-sm-4">Originaldatei:</dt>
+                                    <dd class="col-sm-8"><?= htmlspecialchars($doc['original_filename']) ?></dd>
 
-                                <dt class="col-sm-4">Hochgeladen von:</dt>
+                                    <dt class="col-sm-4">Dateigröße:</dt>
+                                    <dd class="col-sm-8"><?= format_filesize($doc['filesize']) ?></dd>
+
+                                    <dt class="col-sm-4">Dateityp:</dt>
+                                    <dd class="col-sm-8"><?= strtoupper($doc['filetype']) ?></dd>
+                                <?php endif; ?>
+
+                                <dt class="col-sm-4">Erstellt von:</dt>
                                 <dd class="col-sm-8"><?= htmlspecialchars($doc['first_name'] . ' ' . $doc['last_name']) ?></dd>
 
-                                <dt class="col-sm-4">Hochgeladen am:</dt>
+                                <dt class="col-sm-4">Erstellt am:</dt>
                                 <dd class="col-sm-8"><?= date('d.m.Y H:i', strtotime($doc['created_at'])) ?> Uhr</dd>
 
                                 <?php if ($doc['updated_at']): ?>
@@ -840,13 +1007,21 @@ elseif ($view === 'edit' && $is_admin && $document_id) {
                                 <dd class="col-sm-8"><?= date('d.m.Y H:i', strtotime($doc['updated_at'])) ?> Uhr</dd>
                                 <?php endif; ?>
 
+                                <?php if (empty($doc['external_url'])): ?>
                                 <dt class="col-sm-4">Downloads:</dt>
                                 <dd class="col-sm-8"><?= get_document_download_stats($pdo, $doc['document_id']) ?></dd>
+                                <?php endif; ?>
                             </dl>
 
-                            <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary" target="_blank">
-                                <i class="bi bi-download"></i> Dokument herunterladen
-                            </a>
+                            <?php if (!empty($doc['external_url'])): ?>
+                                <a href="<?= htmlspecialchars($doc['external_url']) ?>" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                                    🔗 Extern öffnen
+                                </a>
+                            <?php else: ?>
+                                <a href="download_document.php?id=<?= $doc['document_id'] ?>" class="btn btn-primary" target="_blank">
+                                    <i class="bi bi-download"></i> Dokument herunterladen
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -894,6 +1069,30 @@ elseif ($view === 'edit' && $is_admin && $document_id) {
         </div>
 
         <script>
+        // Toggle zwischen lokalem Dokument und externem Link
+        function toggleEditDocumentSource() {
+            const sourceFile = document.getElementById('edit_source_file');
+            const sourceLink = document.getElementById('edit_source_link');
+            const linkSection = document.getElementById('edit_external_link_section');
+            const urlInput = document.getElementById('edit_external_url');
+
+            if (sourceFile.checked) {
+                // Lokale Datei - URL-Feld ausblenden
+                linkSection.style.display = 'none';
+                urlInput.required = false;
+            } else if (sourceLink.checked) {
+                // Externer Link - URL-Feld anzeigen
+                linkSection.style.display = 'block';
+                urlInput.required = true;
+            }
+        }
+
+        // Beim Laden initialisieren
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleEditDocumentSource();
+        });
+
+        // Delete-Modal Bestätigungsfeld
         document.getElementById('permanentDelete').addEventListener('change', function() {
             document.getElementById('confirmArea').style.display = this.checked ? 'block' : 'none';
         });

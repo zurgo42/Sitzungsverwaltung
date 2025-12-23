@@ -100,14 +100,10 @@ function createCollabText($pdo, $meeting_id, $initiator_member_id, $title, $init
  */
 function getCollabText($pdo, $text_id) {
     try {
-        // Text-Metadaten laden
+        // Text-Metadaten laden (OHNE JOIN auf svmembers)
         $stmt = $pdo->prepare("
-            SELECT t.*,
-                   m.first_name as initiator_first_name,
-                   m.last_name as initiator_last_name,
-                   mt.meeting_name
+            SELECT t.*, mt.meeting_name
             FROM svcollab_texts t
-            JOIN svmembers m ON t.initiator_member_id = m.member_id
             LEFT JOIN svmeetings mt ON t.meeting_id = mt.meeting_id
             WHERE t.text_id = ?
         ");
@@ -118,24 +114,51 @@ function getCollabText($pdo, $text_id) {
             return false;
         }
 
-        // Absätze laden (nur aktive Locks berücksichtigen - nicht älter als 5 Minuten)
+        // Initiator-Namen über Adapter holen
+        if ($text['initiator_member_id']) {
+            $initiator = get_member_by_id($pdo, $text['initiator_member_id']);
+            $text['initiator_first_name'] = $initiator['first_name'] ?? null;
+            $text['initiator_last_name'] = $initiator['last_name'] ?? null;
+        }
+
+        // Absätze laden (OHNE JOINs auf svmembers)
         $stmt = $pdo->prepare("
             SELECT p.*,
-                   m.first_name as editor_first_name,
-                   m.last_name as editor_last_name,
-                   l.member_id as locked_by_member_id,
-                   lm.first_name as locked_by_first_name,
-                   lm.last_name as locked_by_last_name
+                   l.member_id as locked_by_member_id
             FROM svcollab_text_paragraphs p
-            LEFT JOIN svmembers m ON p.last_edited_by = m.member_id
             LEFT JOIN svcollab_text_locks l ON p.paragraph_id = l.paragraph_id
                 AND l.last_activity > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
-            LEFT JOIN svmembers lm ON l.member_id = lm.member_id
             WHERE p.text_id = ?
             ORDER BY p.paragraph_order ASC
         ");
         $stmt->execute([$text_id]);
-        $text['paragraphs'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $paragraphs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Namen über Adapter holen
+        foreach ($paragraphs as &$para) {
+            // Editor-Namen
+            if ($para['last_edited_by']) {
+                $editor = get_member_by_id($pdo, $para['last_edited_by']);
+                $para['editor_first_name'] = $editor['first_name'] ?? null;
+                $para['editor_last_name'] = $editor['last_name'] ?? null;
+            } else {
+                $para['editor_first_name'] = null;
+                $para['editor_last_name'] = null;
+            }
+
+            // Lock-Inhaber-Namen
+            if ($para['locked_by_member_id']) {
+                $locker = get_member_by_id($pdo, $para['locked_by_member_id']);
+                $para['locked_by_first_name'] = $locker['first_name'] ?? null;
+                $para['locked_by_last_name'] = $locker['last_name'] ?? null;
+            } else {
+                $para['locked_by_first_name'] = null;
+                $para['locked_by_last_name'] = null;
+            }
+        }
+        unset($para);
+
+        $text['paragraphs'] = $paragraphs;
 
         return $text;
 
@@ -161,17 +184,20 @@ function lockParagraph($pdo, $paragraph_id, $member_id) {
             WHERE last_activity < DATE_SUB(NOW(), INTERVAL 5 MINUTE)
         ");
 
-        // Prüfen ob schon ein Lock existiert
+        // Prüfen ob schon ein Lock existiert (OHNE JOIN auf svmembers)
         $stmt = $pdo->prepare("
-            SELECT l.member_id, m.first_name, m.last_name
+            SELECT l.member_id
             FROM svcollab_text_locks l
-            JOIN svmembers m ON l.member_id = m.member_id
             WHERE l.paragraph_id = ?
         ");
         $stmt->execute([$paragraph_id]);
         $existing_lock = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($existing_lock) {
+            // Namen über Adapter holen
+            $locker = get_member_by_id($pdo, $existing_lock['member_id']);
+            $existing_lock['first_name'] = $locker['first_name'] ?? null;
+            $existing_lock['last_name'] = $locker['last_name'] ?? null;
             // Wenn eigener Lock → OK, Activity-Zeit aktualisieren
             if ($existing_lock['member_id'] == $member_id) {
                 $stmt = $pdo->prepare("
@@ -404,17 +430,32 @@ function updateParticipantHeartbeat($pdo, $text_id, $member_id) {
  */
 function getOnlineParticipants($pdo, $text_id) {
     try {
+        // Nur die member_ids holen, dann über Adapter Namen abrufen
+        // 30 Sekunden Timeout (Heartbeat ist alle 15 Sek, also max 2 verpasste Heartbeats)
         $stmt = $pdo->prepare("
-            SELECT p.member_id, p.last_seen,
-                   m.first_name, m.last_name
+            SELECT p.member_id, p.last_seen
             FROM svcollab_text_participants p
-            JOIN svmembers m ON p.member_id = m.member_id
             WHERE p.text_id = ?
-              AND p.last_seen > DATE_SUB(NOW(), INTERVAL 60 SECOND)
-            ORDER BY m.first_name, m.last_name
+              AND p.last_seen > DATE_SUB(NOW(), INTERVAL 30 SECOND)
         ");
         $stmt->execute([$text_id]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Namen über Adapter holen
+        $result = [];
+        foreach ($participants as $p) {
+            $member = get_member_by_id($pdo, $p['member_id']);
+            if ($member) {
+                $result[] = [
+                    'member_id' => $p['member_id'],
+                    'last_seen' => $p['last_seen'],
+                    'first_name' => $member['first_name'],
+                    'last_name' => $member['last_name']
+                ];
+            }
+        }
+
+        return $result;
 
     } catch (PDOException $e) {
         error_log("getOnlineParticipants Error: " . $e->getMessage());
@@ -481,20 +522,30 @@ function finalizeCollabText($pdo, $text_id, $member_id, $final_name) {
  */
 function getCollabTextsByMeeting($pdo, $meeting_id) {
     try {
+        // Texte laden (OHNE JOIN auf svmembers)
         $stmt = $pdo->prepare("
             SELECT t.*,
-                   m.first_name as initiator_first_name,
-                   m.last_name as initiator_last_name,
                    COUNT(DISTINCT p.member_id) as participant_count
             FROM svcollab_texts t
-            JOIN svmembers m ON t.initiator_member_id = m.member_id
             LEFT JOIN svcollab_text_participants p ON t.text_id = p.text_id
             WHERE t.meeting_id = ?
             GROUP BY t.text_id
             ORDER BY t.created_at DESC
         ");
         $stmt->execute([$meeting_id]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $texts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Initiator-Namen über Adapter holen
+        foreach ($texts as &$text) {
+            if ($text['initiator_member_id']) {
+                $initiator = get_member_by_id($pdo, $text['initiator_member_id']);
+                $text['initiator_first_name'] = $initiator['first_name'] ?? null;
+                $text['initiator_last_name'] = $initiator['last_name'] ?? null;
+            }
+        }
+        unset($text);
+
+        return $texts;
 
     } catch (PDOException $e) {
         error_log("getCollabTextsByMeeting Error: " . $e->getMessage());
@@ -532,10 +583,8 @@ function hasCollabTextAccess($pdo, $text_id, $member_id) {
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             return $result['has_access'] > 0;
         } else {
-            // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz, Führungsteam
-            $stmt = $pdo->prepare("SELECT role FROM svmembers WHERE member_id = ?");
-            $stmt->execute([$member_id]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            // ALLGEMEIN-MODUS: Nur Vorstand, GF, Assistenz, Führungsteam - über Adapter!
+            $user = get_member_by_id($pdo, $member_id);
             return $user && in_array(strtolower($user['role']), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam']);
         }
 

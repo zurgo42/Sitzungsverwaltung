@@ -11,6 +11,7 @@
 session_start();
 require_once('../config.php');
 require_once('db_connection.php');
+require_once('../member_functions.php');
 
 header('Content-Type: application/json');
 
@@ -51,7 +52,7 @@ try {
         exit;
     }
 
-    // Protokolltext und Status holen
+    // Protokolltext und Status holen (OHNE JOIN auf svmembers)
     $stmt = $pdo->prepare("
         SELECT
             ai.protocol_notes,
@@ -62,15 +63,22 @@ try {
             ai.vote_result,
             m.status as meeting_status,
             m.active_item_id,
-            sec.first_name as secretary_first_name,
-            sec.last_name as secretary_last_name
+            m.secretary_member_id
         FROM svagenda_items ai
         JOIN svmeetings m ON ai.meeting_id = m.meeting_id
-        LEFT JOIN svmembers sec ON m.secretary_member_id = sec.member_id
         WHERE ai.item_id = ?
     ");
     $stmt->execute([$item_id]);
     $data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Secretary-Namen über Adapter holen
+    $secretary_name = null;
+    if ($data && $data['secretary_member_id']) {
+        $secretary = get_member_by_id($pdo, $data['secretary_member_id']);
+        if ($secretary) {
+            $secretary_name = $secretary['first_name'] . ' ' . $secretary['last_name'];
+        }
+    }
 
     if (!$data) {
         http_response_code(404);
@@ -82,17 +90,27 @@ try {
     $is_active = ($data['active_item_id'] == $item_id);
 
     // Live-Kommentare holen (nur wenn dieser TOP aktiv ist)
+    // OHNE JOIN auf svmembers - Namen werden über Adapter geholt
     $live_comments = [];
     if ($is_active) {
         $stmt = $pdo->prepare("
-            SELECT alc.*, m.first_name, m.last_name
+            SELECT alc.*
             FROM svagenda_live_comments alc
-            JOIN svmembers m ON alc.member_id = m.member_id
             WHERE alc.item_id = ?
             ORDER BY alc.created_at ASC
         ");
         $stmt->execute([$item_id]);
-        $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Namen über Adapter holen
+        foreach ($comments as $comment) {
+            $member = get_member_by_id($pdo, $comment['member_id']);
+            if ($member) {
+                $comment['first_name'] = $member['first_name'];
+                $comment['last_name'] = $member['last_name'];
+                $live_comments[] = $comment;
+            }
+        }
     }
 
     // Erfolgreich: Daten zurückgeben
@@ -107,9 +125,7 @@ try {
         'meeting_status' => $data['meeting_status'],
         'is_active' => $is_active,
         'live_comments' => $live_comments,
-        'secretary_name' => $data['secretary_first_name'] && $data['secretary_last_name']
-            ? $data['secretary_first_name'] . ' ' . $data['secretary_last_name']
-            : null,
+        'secretary_name' => $secretary_name,
         'server_time' => date('Y-m-d H:i:s')
     ]);
 
