@@ -276,11 +276,6 @@ if ($view === 'list') {
 
                 <div class="d-flex justify-content-between align-items-center mb-3 documents-header">
                     <h2>📁 Dokumentenverwaltung</h2>
-                    <?php if ($is_admin): ?>
-                        <a href="?tab=documents&view=upload" class="btn btn-primary">
-                            ➕ Dokument hinzufügen
-                        </a>
-                    <?php endif; ?>
                 </div>
 
                 <!-- Info-Box -->
@@ -522,6 +517,15 @@ if ($view === 'list') {
                     <?php
                 }
                 ?>
+
+                <!-- Dokument hinzufügen Button (nur für Admins) -->
+                <?php if ($is_admin): ?>
+                    <div style="margin-top: 30px; text-align: center;">
+                        <a href="?tab=documents&view=upload" class="btn btn-primary" style="display: inline-block; padding: 10px 20px; font-size: 14px; text-decoration: none;">
+                            ➕ Dokument hinzufügen
+                        </a>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -672,7 +676,8 @@ elseif ($view === 'upload' && $is_admin) {
                             <div class="mb-3" id="external_link_section" style="display: none;">
                                 <label class="form-label">Externe URL *</label>
                                 <input type="url" name="external_url" id="external_url" class="form-control"
-                                       placeholder="https://example.com/dokument.pdf">
+                                       placeholder="https://example.com/dokument.pdf"
+                                       style="width: 100%; min-width: 500px;">
                                 <div class="form-text">
                                     Gib die vollständige URL zum Dokument ein (z.B. zu einem Cloud-Speicher, SharePoint, etc.)
                                 </div>
@@ -712,10 +717,8 @@ elseif ($view === 'upload' && $is_admin) {
                                     <label class="form-label">Zugriffslevel</label>
                                     <select name="access_level" class="form-select">
                                         <option value="0">Alle Mitglieder</option>
-                                        <option value="12">Ab Projektleitung</option>
-                                        <option value="15">Ab Ressortleitung</option>
-                                        <option value="18">Ab Assistenz</option>
-                                        <option value="19">Nur Vorstand</option>
+                                        <option value="15">Führungsrollen (Vorstand, GF, Assistenz, Führungsteam)</option>
+                                        <option value="18">Vorstand + GF + Assistenz</option>
                                     </select>
                                 </div>
                             </div>
@@ -843,10 +846,8 @@ elseif ($view === 'edit' && $is_admin && $document_id) {
                                         <label class="form-label">Zugriffslevel</label>
                                         <select name="access_level" class="form-select">
                                             <option value="0" <?= $doc['access_level'] == 0 ? 'selected' : '' ?>>Alle Mitglieder</option>
-                                            <option value="12" <?= $doc['access_level'] == 12 ? 'selected' : '' ?>>Ab Projektleitung</option>
-                                            <option value="15" <?= $doc['access_level'] == 15 ? 'selected' : '' ?>>Ab Ressortleitung</option>
-                                            <option value="18" <?= $doc['access_level'] == 18 ? 'selected' : '' ?>>Ab Assistenz</option>
-                                            <option value="19" <?= $doc['access_level'] == 19 ? 'selected' : '' ?>>Nur Vorstand</option>
+                                            <option value="15" <?= $doc['access_level'] == 15 ? 'selected' : '' ?>>Führungsrollen (Vorstand, GF, Assistenz, Führungsteam)</option>
+                                            <option value="18" <?= $doc['access_level'] == 18 ? 'selected' : '' ?>>Vorstand + GF + Assistenz</option>
                                         </select>
                                     </div>
                                 </div>
