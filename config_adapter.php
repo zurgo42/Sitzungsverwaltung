@@ -6,6 +6,15 @@
  */
 
 // ============================================
+// LOGIN-MODUS KONFIGURATION
+// ============================================
+
+// Soll ein Login-Formular angezeigt werden?
+// true  = Normaler Modus mit Login-Formular (Email/Passwort)
+// false = SSO-Modus (Single Sign-On) - Benutzer ist bereits extern authentifiziert
+define('REQUIRE_LOGIN', true);  // Standard: Normaler Login-Modus
+
+// ============================================
 // MITGLIEDER-DATENQUELLE
 // ============================================
 
@@ -21,17 +30,7 @@ if (!REQUIRE_LOGIN ||  // SSO-Modus aktiv
 }
 
 // Alternative: Umgebungsvariable oder automatische Erkennung
-// define('MEMBER_SOURCE', getenv('MEMBER_SOURCE') ?: 'members');
-
-
-// ============================================
-// LOGIN-MODUS KONFIGURATION
-// ============================================
-
-// Soll ein Login-Formular angezeigt werden?
-// true  = Normaler Modus mit Login-Formular (Email/Passwort)
-// false = SSO-Modus (Single Sign-On) - Benutzer ist bereits extern authentifiziert
-define('REQUIRE_LOGIN', true);  // Standard: Normaler Login-Modus
+// define('MEMBER_SOURCE', getenv('MEMBER_SOURCE') ?: 'members')
 
 // SSO-Modus: Woher kommt die Mitgliedsnummer?
 // 'hardcoded' = Aus TEST_MEMBERSHIP_NUMBER (nur für Tests!)
