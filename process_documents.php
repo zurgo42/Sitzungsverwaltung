@@ -126,6 +126,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'update') {
         exit;
     }
 
+    $document_source = $_POST['document_source'] ?? 'file';
+
     $data = [
         'title' => $_POST['title'] ?? '',
         'description' => $_POST['description'] ?? '',
@@ -136,6 +138,25 @@ if (isset($_POST['action']) && $_POST['action'] === 'update') {
         'access_level' => intval($_POST['access_level'] ?? 0),
         'admin_notes' => $_POST['admin_notes'] ?? ''
     ];
+
+    // Externe URL nur setzen, wenn document_source=link
+    if ($document_source === 'link') {
+        $external_url = trim($_POST['external_url'] ?? '');
+        if (empty($external_url)) {
+            $_SESSION['error'] = 'Bitte gib eine externe URL ein';
+            header('Location: index.php?tab=documents&view=edit&id=' . $document_id);
+            exit;
+        }
+        if (!filter_var($external_url, FILTER_VALIDATE_URL)) {
+            $_SESSION['error'] = 'Ungültige URL';
+            header('Location: index.php?tab=documents&view=edit&id=' . $document_id);
+            exit;
+        }
+        $data['external_url'] = $external_url;
+    } else {
+        // Wenn zu lokalem Dokument gewechselt wird, externe URL leeren
+        $data['external_url'] = null;
+    }
 
     $result = update_document($pdo, $document_id, $data, $_SESSION['member_id']);
 

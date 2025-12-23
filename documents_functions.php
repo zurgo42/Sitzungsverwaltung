@@ -301,6 +301,12 @@ function update_document($pdo, $document_id, $data, $member_id = null) {
         $params[] = $data['admin_notes'];
     }
 
+    // Externe URL (kann auch NULL sein zum Zurücksetzen)
+    if (array_key_exists('external_url', $data)) {
+        $fields[] = 'external_url = ?';
+        $params[] = $data['external_url'];
+    }
+
     if (empty($fields)) {
         return ['success' => false, 'message' => 'Keine Änderungen'];
     }
