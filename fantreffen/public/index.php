@@ -35,7 +35,7 @@ require_once __DIR__ . '/../templates/header.php';
     <div class="row align-items-center">
         <div class="col-md-8">
             <div class="d-flex align-items-center mb-3">
-                <img src="images/Logo_ws_klein_transparent.png" alt="AIDA Fantreffen" class="me-3" style="max-height: 80px;">
+                <img src="Logo_ws_klein_transparent.png" alt="AIDA Fantreffen" class="me-3" style="max-height: 80px;">
                 <h1 class="display-5 fw-bold mb-0">AIDA Fantreffen</h1>
             </div>
             <p class="lead">

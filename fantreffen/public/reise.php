@@ -178,12 +178,24 @@ include __DIR__ . '/../templates/header.php';
 
 <div class="row">
     <div class="col-12">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="reisen.php">Reisen</a></li>
-                <li class="breadcrumb-item active"><?= htmlspecialchars($reise['schiff']) ?></li>
-            </ol>
-        </nav>
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="reisen.php">Reisen</a></li>
+                    <li class="breadcrumb-item active"><?= htmlspecialchars($reise['schiff']) ?></li>
+                </ol>
+            </nav>
+            <?php if ($isReiseAdmin): ?>
+                <div class="btn-group">
+                    <a href="admin/reise-bearbeiten.php?id=<?= $reiseId ?>" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-pencil"></i> Bearbeiten
+                    </a>
+                    <a href="admin/teilnehmerliste.php?id=<?= $reiseId ?>" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-people"></i> Teilnehmerliste
+                    </a>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 

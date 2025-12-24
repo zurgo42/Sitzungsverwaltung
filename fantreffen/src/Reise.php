@@ -210,9 +210,8 @@ class Reise {
      * Gibt Schiffsbild-URL zurück
      */
     public function getSchiffBild(string $schiff): string {
-        // Schiffsname zu Dateiname
-        $name = strtolower(str_replace([' ', 'AIDAcosma'], ['', 'aidacosma'], $schiff));
-        $name = preg_replace('/[^a-z]/', '', $name);
+        // Schiffsname zu Dateiname (z.B. "AIDAprima" -> "aidaprima")
+        $name = strtolower($schiff);
 
         $bildPfad = "images/$name.jpg";
 
@@ -222,5 +221,28 @@ class Reise {
         }
 
         return $bildPfad;
+    }
+
+    /**
+     * Prüft ob ein User Admin einer bestimmten Reise ist
+     */
+    public function isReiseAdmin(int $reiseId, int $userId): bool {
+        $result = $this->db->fetchOne(
+            "SELECT 1 FROM fan_reise_admins WHERE reise_id = ? AND user_id = ?",
+            [$reiseId, $userId]
+        );
+        return $result !== null;
+    }
+
+    /**
+     * Gibt alle Reisen zurück, bei denen der User Admin ist
+     */
+    public function getAdminReisen(int $userId): array {
+        return $this->db->fetchAll(
+            "SELECT r.reise_id FROM fan_reise_admins ra
+             JOIN fan_reisen r ON ra.reise_id = r.reise_id
+             WHERE ra.user_id = ?",
+            [$userId]
+        );
     }
 }
