@@ -20,7 +20,13 @@ $currentUser = $session->getUser();
 $meineAnmeldungen = $reise->getAnmeldungenByUser($currentUser['user_id']);
 $aktiveReisen = $reise->getAktiveReisen();
 
-$pageTitle = 'Dashboard';
+// Map für schnelle Prüfung ob angemeldet
+$angemeldeteReisen = [];
+foreach ($meineAnmeldungen as $a) {
+    $angemeldeteReisen[$a['reise_id']] = true;
+}
+
+$pageTitle = 'Übersicht';
 include __DIR__ . '/../templates/header.php';
 ?>
 
@@ -149,9 +155,17 @@ include __DIR__ . '/../templates/header.php';
                     <p class="text-muted">Derzeit sind keine aktiven Reisen geplant.</p>
                 <?php else: ?>
                     <div class="row">
-                        <?php foreach ($aktiveReisen as $r): ?>
+                        <?php foreach ($aktiveReisen as $r):
+                            $istAngemeldet = isset($angemeldeteReisen[$r['reise_id']]);
+                            $cardClass = $istAngemeldet ? 'border-success border-2' : '';
+                        ?>
                             <div class="col-md-6 col-lg-4 mb-3">
-                                <div class="card h-100">
+                                <div class="card h-100 <?= $cardClass ?>">
+                                    <?php if ($istAngemeldet): ?>
+                                        <div class="bg-success text-white py-1 text-center small">
+                                            <i class="bi bi-check-circle"></i> Du bist angemeldet
+                                        </div>
+                                    <?php endif; ?>
                                     <div class="card-body">
                                         <h5 class="card-title"><?= htmlspecialchars($r['schiff']) ?></h5>
                                         <p class="card-text">

@@ -50,7 +50,7 @@ require_once __DIR__ . '/../templates/header.php';
                 </a>
             <?php else: ?>
                 <a href="dashboard.php" class="btn btn-primary btn-lg me-2">
-                    <i class="bi bi-speedometer2"></i> Mein Dashboard
+                    <i class="bi bi-speedometer2"></i> Meine Übersicht
                 </a>
                 <a href="reisen.php" class="btn btn-outline-primary btn-lg">
                     <i class="bi bi-ship"></i> Alle Reisen

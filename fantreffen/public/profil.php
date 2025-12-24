@@ -184,7 +184,7 @@ include __DIR__ . '/../templates/header.php';
 
 <div class="row mt-3">
     <div class="col-12">
-        <a href="dashboard.php" class="btn btn-secondary">Zurück zum Dashboard</a>
+        <a href="dashboard.php" class="btn btn-secondary">Zurück zur Übersicht</a>
         <a href="passwort.php" class="btn btn-outline-secondary">Passwort ändern</a>
     </div>
 </div>
@@ -217,7 +217,7 @@ include __DIR__ . '/../templates/header.php';
                     <div class="mb-3">
                         <label for="add-mobil" class="form-label">Mobilnummer (optional)</label>
                         <input type="tel" class="form-control" id="add-mobil" name="mobil">
-                        <div class="form-text">Für Kontakt beim Fantreffen</div>
+                        <div class="form-text">Für Kontakt beim Fantreffen. <strong>Wird nicht veröffentlicht</strong>, nur für die Organisatoren sichtbar.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -257,6 +257,7 @@ include __DIR__ . '/../templates/header.php';
                     <div class="mb-3">
                         <label for="edit-mobil" class="form-label">Mobilnummer (optional)</label>
                         <input type="tel" class="form-control" id="edit-mobil" name="mobil">
+                        <div class="form-text"><strong>Wird nicht veröffentlicht</strong>, nur für die Organisatoren sichtbar.</div>
                     </div>
                 </div>
                 <div class="modal-footer">

@@ -39,7 +39,7 @@ $userRolle = $_SESSION['rolle'] ?? '';
                     </li>
                     <?php if ($isLoggedIn): ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../dashboard.php' : 'dashboard.php' ?>">Dashboard</a>
+                            <a class="nav-link" href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../dashboard.php' : 'dashboard.php' ?>">Übersicht</a>
                         </li>
                         <?php if ($userRolle === 'superuser'): ?>
                             <li class="nav-item dropdown">

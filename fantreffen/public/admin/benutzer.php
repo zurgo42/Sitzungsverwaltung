@@ -74,7 +74,7 @@ include __DIR__ . '/../../templates/header.php';
     <div class="col-12">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="../dashboard.php">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="../dashboard.php">Übersicht</a></li>
                 <li class="breadcrumb-item active">Benutzerverwaltung</li>
             </ol>
         </nav>
@@ -182,7 +182,7 @@ include __DIR__ . '/../../templates/header.php';
 </div>
 
 <div class="mt-3">
-    <a href="../dashboard.php" class="btn btn-secondary">Zurück zum Dashboard</a>
+    <a href="../dashboard.php" class="btn btn-secondary">Zurück zur Übersicht</a>
 </div>
 
 <?php include __DIR__ . '/../../templates/footer.php'; ?>

@@ -1,36 +1,23 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-dark text-light py-4 mt-auto">
+    <?php
+    $basePath = strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../' : '';
+    ?>
+    <footer class="bg-primary text-light py-2 mt-auto">
         <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>Aida Fantreffen</h5>
-                    <p class="text-muted small">
-                        Organisation von Fantreffen auf AIDA-Kreuzfahrten.<br>
-                        Ein privates, nicht-kommerzielles Projekt.
-                    </p>
+            <div class="row align-items-center">
+                <div class="col-md-4 text-center text-md-start small">
+                    &copy; <?= date('Y') ?> AIDA Fantreffen
                 </div>
-                <div class="col-md-3">
-                    <h6>Links</h6>
-                    <ul class="list-unstyled small">
-                        <li><a href="datenschutz.php" class="text-muted">Datenschutz</a></li>
-                        <li><a href="impressum.php" class="text-muted">Impressum</a></li>
-                    </ul>
+                <div class="col-md-4 text-center small">
+                    <a href="<?= $basePath ?>datenschutz.php" class="text-light text-decoration-none me-3">Datenschutz</a>
+                    <a href="<?= $basePath ?>impressum.php" class="text-light text-decoration-none">Impressum</a>
                 </div>
-                <div class="col-md-3">
-                    <h6>Kontakt</h6>
-                    <p class="text-muted small">
-                        <a href="mailto:info@aidafantreffen.de" class="text-muted">
-                            <i class="bi bi-envelope"></i> info@aidafantreffen.de
-                        </a>
-                    </p>
-                </div>
-            </div>
-            <hr class="my-3">
-            <div class="row">
-                <div class="col text-center text-muted small">
-                    &copy; <?= date('Y') ?> Aida Fantreffen
+                <div class="col-md-4 text-center text-md-end small">
+                    <a href="mailto:info@aidafantreffen.de" class="text-light text-decoration-none">
+                        <i class="bi bi-envelope"></i> Kontakt
+                    </a>
                 </div>
             </div>
         </div>

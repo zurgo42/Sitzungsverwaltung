@@ -90,7 +90,7 @@ include __DIR__ . '/../../templates/header.php';
     <div class="col-12">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="../dashboard.php">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="../dashboard.php">Übersicht</a></li>
                 <li class="breadcrumb-item"><a href="reise-bearbeiten.php?id=<?= $reiseId ?>">
                     <?= htmlspecialchars($reise['schiff']) ?>
                 </a></li>

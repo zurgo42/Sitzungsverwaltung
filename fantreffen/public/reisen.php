@@ -15,6 +15,16 @@ $reiseModel = new Reise($db);
 $aktiveReisen = $reiseModel->getAktive();
 $vergangeneReisen = $reiseModel->getVergangene(5);
 
+// Anmeldungen des aktuellen Users laden
+$meineAnmeldungen = [];
+if ($session->isLoggedIn()) {
+    $currentUser = $session->getUser();
+    $anmeldungen = $reiseModel->getAnmeldungenByUser($currentUser['user_id']);
+    foreach ($anmeldungen as $a) {
+        $meineAnmeldungen[$a['reise_id']] = true;
+    }
+}
+
 $pageTitle = 'Fantreffen-Reisen';
 include __DIR__ . '/../templates/header.php';
 ?>
@@ -36,9 +46,17 @@ include __DIR__ . '/../templates/header.php';
             </div>
         <?php else: ?>
             <div class="row">
-                <?php foreach ($aktiveReisen as $reise): ?>
+                <?php foreach ($aktiveReisen as $reise):
+                    $istAngemeldet = isset($meineAnmeldungen[$reise['reise_id']]);
+                    $cardClass = $istAngemeldet ? 'border-success border-2' : '';
+                ?>
                     <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="card h-100">
+                        <div class="card h-100 <?= $cardClass ?>">
+                            <?php if ($istAngemeldet): ?>
+                                <div class="card-header bg-success text-white py-1 text-center small">
+                                    <i class="bi bi-check-circle"></i> Du bist angemeldet
+                                </div>
+                            <?php endif; ?>
                             <div class="card-header">
                                 <?php
                                 $statusClass = [
@@ -133,7 +151,7 @@ include __DIR__ . '/../templates/header.php';
 <?php if ($session->isLoggedIn()): ?>
     <div class="row mt-4">
         <div class="col-12">
-            <a href="dashboard.php" class="btn btn-secondary">Zum Dashboard</a>
+            <a href="dashboard.php" class="btn btn-secondary">Zur Übersicht</a>
         </div>
     </div>
 <?php endif; ?>
