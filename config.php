@@ -44,10 +44,10 @@ if (IS_LOCAL) {
     define('DB_NAME', 'k126904_div');  // Lokale Datenbank
 } else {
     // Produktivserver
-    define('DB_HOST', '91.204.46.74');
-    define('DB_USER', 'k126904_hm');
-    define('DB_PASS', '1Pkigg!n');
-    define('DB_NAME', 'k126904_div');
+    define('DB_HOST', '...');
+    define('DB_USER', '...');
+    define('DB_PASS', '...');
+    define('DB_NAME', '...');
 }
 
 // ============= SYSTEM-EINSTELLUNGEN =============
@@ -137,5 +137,6 @@ if (DEBUG_MODE) {
 define('FOOTER_COPYRIGHT', '&copy; Dr. Hermann Meier, Horstmannsmühle 1a, 42781 Haan Tel. 02129 379 2870 eMail meier@zurgo.de');
 define('FOOTER_IMPRESSUM_URL', 'https://geschäftsordnung.com/?page_id=53');
 define('FOOTER_DATENSCHUTZ_URL', 'https://geschäftsordnung.com/?page_id=54');
+
 
 ?>
