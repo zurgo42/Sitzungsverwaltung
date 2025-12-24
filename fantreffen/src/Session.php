@@ -158,4 +158,51 @@ class Session {
             self::redirect($redirectTo);
         }
     }
+
+    // =========================================================================
+    // Instanz-Wrapper für Kompatibilität mit OOP-Stil
+    // =========================================================================
+
+    public function __construct() {
+        self::start();
+    }
+
+    /**
+     * Gibt User-Daten zurück
+     */
+    public function getUser(): ?array {
+        if (!self::isLoggedIn()) {
+            return null;
+        }
+        return [
+            'user_id' => $_SESSION['user_id'],
+            'email' => $_SESSION['email'],
+            'rolle' => $_SESSION['rolle']
+        ];
+    }
+
+    /**
+     * Prüft ob eingeloggt (Instanz-Methode)
+     */
+    public function isAdmin(): bool {
+        $rolle = self::getRolle();
+        return $rolle === 'admin' || $rolle === 'superuser';
+    }
+
+    /**
+     * Gibt CSRF-Token zurück
+     */
+    public function getCsrfToken(): string {
+        if (!isset($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+
+    /**
+     * Validiert CSRF-Token
+     */
+    public function validateCsrfToken(string $token): bool {
+        return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+    }
 }

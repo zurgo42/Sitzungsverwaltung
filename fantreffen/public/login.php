@@ -10,7 +10,7 @@ Session::start();
 
 // Bereits eingeloggt?
 if (Session::isLoggedIn()) {
-    Session::redirect('index.php');
+    Session::redirect('dashboard.php');
 }
 
 $error = '';
@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($user) {
                 Session::login($user);
                 Session::success('Willkommen zurück!');
-                Session::redirect($_GET['redirect'] ?? 'index.php');
+                Session::redirect($_GET['redirect'] ?? 'dashboard.php');
             } else {
                 $error = 'E-Mail oder Passwort ist falsch.';
             }
