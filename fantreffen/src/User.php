@@ -8,8 +8,8 @@ require_once __DIR__ . '/Database.php';
 class User {
     private Database $db;
 
-    public function __construct() {
-        $this->db = Database::getInstance();
+    public function __construct(?Database $db = null) {
+        $this->db = $db ?? Database::getInstance();
     }
 
     /**
@@ -69,9 +69,13 @@ class User {
     /**
      * Findet Benutzer anhand der E-Mail
      */
-    public function findByEmail(string $email): ?array {
+    public function findByEmail(string $email, bool $includeHash = false): ?array {
+        $fields = $includeHash
+            ? "user_id, email, passwort_hash, rolle, erstellt, letzter_login"
+            : "user_id, email, rolle, erstellt, letzter_login";
+
         return $this->db->fetchOne(
-            "SELECT user_id, email, rolle, erstellt, letzter_login FROM fan_users WHERE email = ?",
+            "SELECT $fields FROM fan_users WHERE email = ?",
             [strtolower(trim($email))]
         );
     }
@@ -112,6 +116,13 @@ class User {
             "UPDATE fan_users SET rolle = ? WHERE user_id = ?",
             [$rolle, $userId]
         ) > 0;
+    }
+
+    /**
+     * Alias für updateRolle
+     */
+    public function updateRole(int $userId, string $rolle): bool {
+        return $this->updateRolle($userId, $rolle);
     }
 
     /**

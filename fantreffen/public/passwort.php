@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fehler = 'Das neue Passwort muss mindestens 8 Zeichen lang sein.';
         } else {
             // Aktuelles Passwort prüfen
-            $user = $userModel->findByEmail($currentUser['email']);
+            $user = $userModel->findByEmail($currentUser['email'], true);
             if (!$user || !password_verify($aktuellesPasswort, $user['passwort_hash'])) {
                 $fehler = 'Das aktuelle Passwort ist nicht korrekt.';
             } else {
