@@ -47,8 +47,8 @@ require_once __DIR__ . '/../templates/header.php';
                     <i class="bi bi-box-arrow-in-right"></i> Anmelden
                 </a>
             <?php else: ?>
-                <a href="meine-reisen.php" class="btn btn-primary btn-lg">
-                    <i class="bi bi-ship"></i> Meine Reisen
+                <a href="dashboard.php" class="btn btn-primary btn-lg">
+                    <i class="bi bi-ship"></i> Mein Dashboard
                 </a>
             <?php endif; ?>
         </div>

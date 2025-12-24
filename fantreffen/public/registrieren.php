@@ -54,8 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $userManager->findById($userId);
             Session::login($user);
 
-            Session::success('Willkommen! Dein Konto wurde erstellt.');
-            Session::redirect('teilnehmer.php');
+            Session::success('Willkommen! Bitte lege jetzt deine Teilnehmer an.');
+            Session::redirect('profil.php');
         } catch (Exception $e) {
             if (strpos($e->getMessage(), 'bereits registriert') !== false) {
                 $errors[] = 'Diese E-Mail-Adresse ist bereits registriert.';

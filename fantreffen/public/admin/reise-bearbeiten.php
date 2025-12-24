@@ -266,6 +266,21 @@ include __DIR__ . '/../../templates/header.php';
     </div>
 
     <div class="col-lg-4">
+        <!-- Teilnehmerliste -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Teilnehmer</h5>
+            </div>
+            <div class="card-body">
+                <a href="teilnehmerliste.php?id=<?= $reiseId ?>" class="btn btn-primary w-100 mb-2">
+                    Teilnehmerliste anzeigen
+                </a>
+                <a href="namensschilder.php?id=<?= $reiseId ?>" class="btn btn-outline-secondary w-100">
+                    Namensschilder drucken
+                </a>
+            </div>
+        </div>
+
         <!-- Admins verwalten -->
         <?php if ($session->isSuperuser()): ?>
             <div class="card mb-4">
