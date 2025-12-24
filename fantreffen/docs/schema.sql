@@ -139,6 +139,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Passwort: 'admin123' (bcrypt-Hash)
 -- =============================================================================
 INSERT INTO `fan_users` (`email`, `passwort_hash`, `rolle`, `erstellt`) VALUES
-('admin@aidafantreffen.de', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'superuser', NOW());
+('admin@aidafantreffen.de', '$2y$12$tDTXfo2PrPNF6ItPacrdTuzzlFsaFt4yQy3893gE/iYQjXs/LkZiu', 'superuser', NOW());
 
 -- Hinweis: Das Passwort 'admin123' sollte sofort nach dem ersten Login geändert werden!
