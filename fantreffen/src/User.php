@@ -26,7 +26,7 @@ class User {
         // Passwort hashen (bcrypt)
         $hash = password_hash($passwort, PASSWORD_DEFAULT);
 
-        return $this->db->insert('users', [
+        return $this->db->insert('fan_users', [
             'email'         => $email,
             'passwort_hash' => $hash,
             'rolle'         => $rolle,
@@ -41,7 +41,7 @@ class User {
         $email = strtolower(trim($email));
 
         $user = $this->db->fetchOne(
-            "SELECT * FROM users WHERE email = ?",
+            "SELECT * FROM fan_users WHERE email = ?",
             [$email]
         );
 
@@ -56,7 +56,7 @@ class User {
 
         // Letzten Login aktualisieren
         $this->db->execute(
-            "UPDATE users SET letzter_login = NOW() WHERE user_id = ?",
+            "UPDATE fan_users SET letzter_login = NOW() WHERE user_id = ?",
             [$user['user_id']]
         );
 
@@ -71,7 +71,7 @@ class User {
      */
     public function findByEmail(string $email): ?array {
         return $this->db->fetchOne(
-            "SELECT user_id, email, rolle, erstellt, letzter_login FROM users WHERE email = ?",
+            "SELECT user_id, email, rolle, erstellt, letzter_login FROM fan_users WHERE email = ?",
             [strtolower(trim($email))]
         );
     }
@@ -81,7 +81,7 @@ class User {
      */
     public function findById(int $userId): ?array {
         return $this->db->fetchOne(
-            "SELECT user_id, email, rolle, erstellt, letzter_login FROM users WHERE user_id = ?",
+            "SELECT user_id, email, rolle, erstellt, letzter_login FROM fan_users WHERE user_id = ?",
             [$userId]
         );
     }
@@ -93,7 +93,7 @@ class User {
         $hash = password_hash($neuesPasswort, PASSWORD_DEFAULT);
 
         return $this->db->execute(
-            "UPDATE users SET passwort_hash = ? WHERE user_id = ?",
+            "UPDATE fan_users SET passwort_hash = ? WHERE user_id = ?",
             [$hash, $userId]
         ) > 0;
     }
@@ -109,7 +109,7 @@ class User {
         }
 
         return $this->db->execute(
-            "UPDATE users SET rolle = ? WHERE user_id = ?",
+            "UPDATE fan_users SET rolle = ? WHERE user_id = ?",
             [$rolle, $userId]
         ) > 0;
     }
@@ -119,7 +119,7 @@ class User {
      */
     public function isAdminForReise(int $userId, int $reiseId): bool {
         $result = $this->db->fetchOne(
-            "SELECT 1 FROM reise_admins WHERE user_id = ? AND reise_id = ?",
+            "SELECT 1 FROM fan_reise_admins WHERE user_id = ? AND reise_id = ?",
             [$userId, $reiseId]
         );
 
@@ -140,7 +140,7 @@ class User {
     public function getAll(): array {
         return $this->db->fetchAll(
             "SELECT user_id, email, rolle, erstellt, letzter_login
-             FROM users
+             FROM fan_users
              ORDER BY erstellt DESC"
         );
     }
@@ -149,7 +149,7 @@ class User {
      * Löscht einen Benutzer
      */
     public function delete(int $userId): bool {
-        return $this->db->delete('users', 'user_id = ?', [$userId]) > 0;
+        return $this->db->delete('fan_users', 'user_id = ?', [$userId]) > 0;
     }
 
     /**
@@ -166,7 +166,7 @@ class User {
         $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
         $this->db->execute(
-            "UPDATE users SET reset_token = ?, reset_expires = ? WHERE user_id = ?",
+            "UPDATE fan_users SET reset_token = ?, reset_expires = ? WHERE user_id = ?",
             [$token, $expires, $user['user_id']]
         );
 
@@ -190,7 +190,7 @@ class User {
         $hash = password_hash($neuesPasswort, PASSWORD_DEFAULT);
 
         return $this->db->execute(
-            "UPDATE users SET passwort_hash = ?, reset_token = NULL, reset_expires = NULL WHERE user_id = ?",
+            "UPDATE fan_users SET passwort_hash = ?, reset_token = NULL, reset_expires = NULL WHERE user_id = ?",
             [$hash, $user['user_id']]
         ) > 0;
     }

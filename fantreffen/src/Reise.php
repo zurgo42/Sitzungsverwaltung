@@ -16,7 +16,7 @@ class Reise {
      * Erstellt eine neue Reise
      */
     public function create(array $data): int {
-        return $this->db->insert('reisen', [
+        return $this->db->insert('fan_reisen', [
             'schiff'           => $data['schiff'],
             'bahnhof'          => $data['bahnhof'] ?? null,
             'anfang'           => $data['anfang'],
@@ -37,7 +37,7 @@ class Reise {
      */
     public function findById(int $reiseId): ?array {
         return $this->db->fetchOne(
-            "SELECT * FROM reisen WHERE reise_id = ?",
+            "SELECT * FROM fan_reisen WHERE reise_id = ?",
             [$reiseId]
         );
     }
@@ -48,8 +48,8 @@ class Reise {
     public function getAktive(): array {
         return $this->db->fetchAll(
             "SELECT r.*, COUNT(a.anmeldung_id) AS anzahl_anmeldungen
-             FROM reisen r
-             LEFT JOIN anmeldungen a ON r.reise_id = a.reise_id
+             FROM fan_reisen r
+             LEFT JOIN fan_anmeldungen a ON r.reise_id = a.reise_id
              WHERE r.ende >= CURDATE()
              GROUP BY r.reise_id
              ORDER BY r.anfang ASC"
@@ -62,8 +62,8 @@ class Reise {
     public function getVergangene(int $limit = 10): array {
         return $this->db->fetchAll(
             "SELECT r.*, COUNT(a.anmeldung_id) AS anzahl_anmeldungen
-             FROM reisen r
-             LEFT JOIN anmeldungen a ON r.reise_id = a.reise_id
+             FROM fan_reisen r
+             LEFT JOIN fan_anmeldungen a ON r.reise_id = a.reise_id
              WHERE r.ende < CURDATE()
              GROUP BY r.reise_id
              ORDER BY r.anfang DESC
@@ -79,9 +79,9 @@ class Reise {
         return $this->db->fetchAll(
             "SELECT r.*, COUNT(a.anmeldung_id) AS anzahl_anmeldungen,
                     u.email AS ersteller_email
-             FROM reisen r
-             LEFT JOIN anmeldungen a ON r.reise_id = a.reise_id
-             LEFT JOIN users u ON r.erstellt_von = u.user_id
+             FROM fan_reisen r
+             LEFT JOIN fan_anmeldungen a ON r.reise_id = a.reise_id
+             LEFT JOIN fan_users u ON r.erstellt_von = u.user_id
              GROUP BY r.reise_id
              ORDER BY r.anfang DESC"
         );
@@ -91,7 +91,7 @@ class Reise {
      * Aktualisiert eine Reise
      */
     public function update(int $reiseId, array $data): bool {
-        return $this->db->update('reisen', $data, 'reise_id = ?', [$reiseId]) > 0;
+        return $this->db->update('fan_reisen', $data, 'reise_id = ?', [$reiseId]) > 0;
     }
 
     /**
@@ -111,7 +111,7 @@ class Reise {
      * Löscht eine Reise
      */
     public function delete(int $reiseId): bool {
-        return $this->db->delete('reisen', 'reise_id = ?', [$reiseId]) > 0;
+        return $this->db->delete('fan_reisen', 'reise_id = ?', [$reiseId]) > 0;
     }
 
     /**
@@ -119,7 +119,7 @@ class Reise {
      */
     public function addAdmin(int $reiseId, int $userId): bool {
         try {
-            $this->db->insert('reise_admins', [
+            $this->db->insert('fan_reise_admins', [
                 'reise_id' => $reiseId,
                 'user_id'  => $userId
             ]);
@@ -134,7 +134,7 @@ class Reise {
      */
     public function removeAdmin(int $reiseId, int $userId): bool {
         return $this->db->delete(
-            'reise_admins',
+            'fan_reise_admins',
             'reise_id = ? AND user_id = ?',
             [$reiseId, $userId]
         ) > 0;
@@ -146,8 +146,8 @@ class Reise {
     public function getAdmins(int $reiseId): array {
         return $this->db->fetchAll(
             "SELECT u.user_id, u.email
-             FROM reise_admins ra
-             JOIN users u ON ra.user_id = u.user_id
+             FROM fan_reise_admins ra
+             JOIN fan_users u ON ra.user_id = u.user_id
              WHERE ra.reise_id = ?",
             [$reiseId]
         );
@@ -159,7 +159,7 @@ class Reise {
     public function getTeilnehmerAnzahl(int $reiseId): int {
         return (int) $this->db->fetchColumn(
             "SELECT COUNT(*)
-             FROM anmeldungen a
+             FROM fan_anmeldungen a
              JOIN JSON_TABLE(a.teilnehmer_ids, '$[*]' COLUMNS(tid INT PATH '$')) AS t
              WHERE a.reise_id = ?",
             [$reiseId]

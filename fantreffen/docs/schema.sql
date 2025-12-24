@@ -9,10 +9,10 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- -----------------------------------------------------------------------------
--- Tabelle: users
+-- Tabelle: fan_users
 -- Zentrale Benutzerverwaltung (nicht mehr reisebezogen)
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `users` (
+CREATE TABLE IF NOT EXISTS `fan_users` (
     `user_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `email` VARCHAR(255) NOT NULL,
     `passwort_hash` VARCHAR(255) NOT NULL,
@@ -27,10 +27,10 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- Tabelle: teilnehmer
+-- Tabelle: fan_teilnehmer
 -- Bis zu 4 Teilnehmer pro User (wiederverwendbar für mehrere Reisen)
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `teilnehmer` (
+CREATE TABLE IF NOT EXISTS `fan_teilnehmer` (
     `teilnehmer_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `user_id` INT UNSIGNED NOT NULL,
     `name` VARCHAR(100) NOT NULL,
@@ -42,15 +42,15 @@ CREATE TABLE IF NOT EXISTS `teilnehmer` (
     `aktualisiert` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`teilnehmer_id`),
     KEY `idx_user` (`user_id`),
-    CONSTRAINT `fk_teilnehmer_user` FOREIGN KEY (`user_id`)
-        REFERENCES `users` (`user_id`) ON DELETE CASCADE
+    CONSTRAINT `fk_fan_teilnehmer_user` FOREIGN KEY (`user_id`)
+        REFERENCES `fan_users` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- Tabelle: reisen
+-- Tabelle: fan_reisen
 -- Alle Fantreffen-Reisen
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `reisen` (
+CREATE TABLE IF NOT EXISTS `fan_reisen` (
     `reise_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `schiff` VARCHAR(100) NOT NULL,
     `bahnhof` VARCHAR(100) DEFAULT NULL,
@@ -69,30 +69,30 @@ CREATE TABLE IF NOT EXISTS `reisen` (
     PRIMARY KEY (`reise_id`),
     KEY `idx_anfang` (`anfang`),
     KEY `idx_status` (`treffen_status`),
-    CONSTRAINT `fk_reisen_ersteller` FOREIGN KEY (`erstellt_von`)
-        REFERENCES `users` (`user_id`) ON DELETE SET NULL
+    CONSTRAINT `fk_fan_reisen_ersteller` FOREIGN KEY (`erstellt_von`)
+        REFERENCES `fan_users` (`user_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- Tabelle: reise_admins
+-- Tabelle: fan_reise_admins
 -- Verknüpfung: Welche User sind Admin für welche Reise
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `reise_admins` (
+CREATE TABLE IF NOT EXISTS `fan_reise_admins` (
     `reise_id` INT UNSIGNED NOT NULL,
     `user_id` INT UNSIGNED NOT NULL,
     `erstellt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`reise_id`, `user_id`),
-    CONSTRAINT `fk_reise_admins_reise` FOREIGN KEY (`reise_id`)
-        REFERENCES `reisen` (`reise_id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_reise_admins_user` FOREIGN KEY (`user_id`)
-        REFERENCES `users` (`user_id`) ON DELETE CASCADE
+    CONSTRAINT `fk_fan_reise_admins_reise` FOREIGN KEY (`reise_id`)
+        REFERENCES `fan_reisen` (`reise_id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_fan_reise_admins_user` FOREIGN KEY (`user_id`)
+        REFERENCES `fan_users` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- Tabelle: anmeldungen
+-- Tabelle: fan_anmeldungen
 -- Anmeldungen von Usern zu Reisen
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `anmeldungen` (
+CREATE TABLE IF NOT EXISTS `fan_anmeldungen` (
     `anmeldung_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `user_id` INT UNSIGNED NOT NULL,
     `reise_id` INT UNSIGNED NOT NULL,
@@ -105,17 +105,17 @@ CREATE TABLE IF NOT EXISTS `anmeldungen` (
     PRIMARY KEY (`anmeldung_id`),
     UNIQUE KEY `user_reise` (`user_id`, `reise_id`),
     KEY `idx_reise` (`reise_id`),
-    CONSTRAINT `fk_anmeldungen_user` FOREIGN KEY (`user_id`)
-        REFERENCES `users` (`user_id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_anmeldungen_reise` FOREIGN KEY (`reise_id`)
-        REFERENCES `reisen` (`reise_id`) ON DELETE CASCADE
+    CONSTRAINT `fk_fan_anmeldungen_user` FOREIGN KEY (`user_id`)
+        REFERENCES `fan_users` (`user_id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_fan_anmeldungen_reise` FOREIGN KEY (`reise_id`)
+        REFERENCES `fan_reisen` (`reise_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
--- Tabelle: mail_queue
+-- Tabelle: fan_mail_queue
 -- Warteschlange für zu versendende Mails
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mail_queue` (
+CREATE TABLE IF NOT EXISTS `fan_mail_queue` (
     `mail_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `empfaenger` VARCHAR(255) NOT NULL,
     `betreff` VARCHAR(255) NOT NULL,
@@ -138,7 +138,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Initialer Superuser (Passwort nach dem ersten Login ändern!)
 -- Passwort: 'admin123' (bcrypt-Hash)
 -- =============================================================================
-INSERT INTO `users` (`email`, `passwort_hash`, `rolle`, `erstellt`) VALUES
+INSERT INTO `fan_users` (`email`, `passwort_hash`, `rolle`, `erstellt`) VALUES
 ('admin@aidafantreffen.de', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'superuser', NOW());
 
 -- Hinweis: Das Passwort 'admin123' sollte sofort nach dem ersten Login geändert werden!
