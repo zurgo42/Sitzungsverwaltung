@@ -178,7 +178,7 @@ class User {
      */
     public function resetPassword(string $token, string $neuesPasswort): bool {
         $user = $this->db->fetchOne(
-            "SELECT user_id FROM users
+            "SELECT user_id FROM fan_users
              WHERE reset_token = ? AND reset_expires > NOW()",
             [$token]
         );
