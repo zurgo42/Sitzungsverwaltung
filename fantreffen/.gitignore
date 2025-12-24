@@ -1,0 +1,12 @@
+# Konfigurationsdateien mit sensiblen Daten
+config.php
+mail.config.php
+config/config.php
+
+# Log-Dateien
+*.log
+logfile.txt
+
+# Temporäre Dateien
+*.tmp
+*.bak
