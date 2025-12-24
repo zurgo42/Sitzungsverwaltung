@@ -8,8 +8,8 @@ require_once __DIR__ . '/Database.php';
 class Reise {
     private Database $db;
 
-    public function __construct() {
-        $this->db = Database::getInstance();
+    public function __construct(?Database $db = null) {
+        $this->db = $db ?? Database::getInstance();
     }
 
     /**
@@ -53,6 +53,27 @@ class Reise {
              WHERE r.ende >= CURDATE()
              GROUP BY r.reise_id
              ORDER BY r.anfang ASC"
+        );
+    }
+
+    /**
+     * Alias für getAktive()
+     */
+    public function getAktiveReisen(): array {
+        return $this->getAktive();
+    }
+
+    /**
+     * Gibt alle Anmeldungen eines Users zurück
+     */
+    public function getAnmeldungenByUser(int $userId): array {
+        return $this->db->fetchAll(
+            "SELECT a.*, r.schiff, r.anfang, r.ende, r.treffen_status, r.treffen_ort, r.treffen_zeit
+             FROM fan_anmeldungen a
+             JOIN fan_reisen r ON a.reise_id = r.reise_id
+             WHERE a.user_id = ?
+             ORDER BY r.anfang DESC",
+            [$userId]
         );
     }
 
