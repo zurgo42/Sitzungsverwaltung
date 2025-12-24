@@ -90,18 +90,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $reise = $reiseModel->findById($reiseId);
             }
         } elseif ($action === 'add_admin' && $session->isSuperuser()) {
-            $adminEmail = trim($_POST['admin_email'] ?? '');
+            $adminEmail = strtolower(trim($_POST['admin_email'] ?? ''));
             $user = $userModel->findByEmail($adminEmail);
+            $isNewUser = false;
 
             if (!$user) {
-                $fehler = 'Benutzer mit dieser E-Mail nicht gefunden.';
-            } else {
+                // User existiert nicht -> neu anlegen mit Standard-Passwort
+                if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+                    $fehler = 'Bitte eine gültige E-Mail-Adresse eingeben.';
+                } else {
+                    try {
+                        $userId = $userModel->register($adminEmail, 'aidafantreffen', 'admin');
+                        $user = $userModel->findById($userId);
+                        $isNewUser = true;
+                    } catch (Exception $e) {
+                        $fehler = 'Fehler beim Anlegen des Benutzers: ' . $e->getMessage();
+                    }
+                }
+            }
+
+            if ($user && empty($fehler)) {
                 if ($reiseModel->addAdmin($reiseId, $user['user_id'])) {
                     // User zum Admin machen wenn noch nicht
                     if ($user['rolle'] === 'user') {
                         $userModel->updateRole($user['user_id'], 'admin');
                     }
-                    $erfolg = 'Admin wurde hinzugefügt.';
+
+                    if ($isNewUser) {
+                        $erfolg = 'Admin wurde hinzugefügt. Neuer Benutzer wurde mit Standard-Passwort "aidafantreffen" angelegt.';
+                        // E-Mail-Vorlage anzeigen
+                        $_SESSION['show_admin_email'] = [
+                            'email' => $adminEmail,
+                            'schiff' => $reise['schiff'],
+                            'anfang' => $reise['anfang'],
+                            'ende' => $reise['ende'],
+                            'isNew' => true
+                        ];
+                    } else {
+                        $erfolg = 'Admin wurde hinzugefügt.';
+                        $_SESSION['show_admin_email'] = [
+                            'email' => $adminEmail,
+                            'schiff' => $reise['schiff'],
+                            'anfang' => $reise['anfang'],
+                            'ende' => $reise['ende'],
+                            'isNew' => false
+                        ];
+                    }
                 } else {
                     $fehler = 'Admin konnte nicht hinzugefügt werden (bereits vorhanden?).';
                 }
@@ -358,5 +392,86 @@ include __DIR__ . '/../../templates/header.php';
         </div>
     </div>
 </div>
+
+<?php
+// E-Mail-Vorlage Modal anzeigen wenn Admin hinzugefügt wurde
+$showEmailModal = $_SESSION['show_admin_email'] ?? null;
+unset($_SESSION['show_admin_email']);
+
+if ($showEmailModal):
+    $emailTo = $showEmailModal['email'];
+    $schiff = $showEmailModal['schiff'];
+    $anfang = date('d.m.Y', strtotime($showEmailModal['anfang']));
+    $ende = date('d.m.Y', strtotime($showEmailModal['ende']));
+    $isNew = $showEmailModal['isNew'];
+
+    $subject = "Du bist Admin für das Fantreffen auf der $schiff";
+    $body = "Hallo,\n\n";
+    $body .= "du wurdest als Admin für das AIDA Fantreffen eingetragen:\n\n";
+    $body .= "Schiff: $schiff\n";
+    $body .= "Zeitraum: $anfang - $ende\n\n";
+    if ($isNew) {
+        $body .= "Für dich wurde ein Benutzerkonto angelegt.\n";
+        $body .= "Deine Zugangsdaten:\n";
+        $body .= "E-Mail: $emailTo\n";
+        $body .= "Passwort: aidafantreffen\n\n";
+        $body .= "WICHTIG: Bitte ändere dein Passwort nach dem ersten Login!\n\n";
+    }
+    $body .= "Als Admin kannst du:\n";
+    $body .= "- Die Reisedaten und Treffpunkt-Infos bearbeiten\n";
+    $body .= "- Die Teilnehmerliste einsehen und exportieren\n";
+    $body .= "- Namensschilder erstellen\n\n";
+    $body .= "Viele Grüße\n";
+    $body .= "Das Fantreffen-Team";
+?>
+<div class="modal fade show" id="emailModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">E-Mail an Admin senden</h5>
+                <button type="button" class="btn-close" onclick="document.getElementById('emailModal').style.display='none'"></button>
+            </div>
+            <div class="modal-body">
+                <p>Kopiere den folgenden Text und sende ihn an <strong><?= htmlspecialchars($emailTo) ?></strong>:</p>
+
+                <div class="mb-3">
+                    <label class="form-label">Betreff:</label>
+                    <input type="text" class="form-control" id="emailSubject" value="<?= htmlspecialchars($subject) ?>" readonly>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nachricht:</label>
+                    <textarea class="form-control" id="emailBody" rows="15" readonly><?= htmlspecialchars($body) ?></textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <a href="mailto:<?= rawurlencode($emailTo) ?>?subject=<?= rawurlencode($subject) ?>&body=<?= rawurlencode($body) ?>"
+                       class="btn btn-primary">
+                        E-Mail-Programm öffnen
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" onclick="copyEmailText()">
+                        Text kopieren
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('emailModal').style.display='none'">
+                    Schließen
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function copyEmailText() {
+    const subject = document.getElementById('emailSubject').value;
+    const body = document.getElementById('emailBody').value;
+    const text = "Betreff: " + subject + "\n\n" + body;
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Text wurde in die Zwischenablage kopiert!');
+    });
+}
+</script>
+<?php endif; ?>
 
 <?php include __DIR__ . '/../../templates/footer.php'; ?>

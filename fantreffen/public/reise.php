@@ -27,6 +27,18 @@ $userId = $currentUser['user_id'] ?? null;
 $fehler = '';
 $erfolg = '';
 
+// Prüfen ob User Admin dieser Reise oder Superuser ist
+$isReiseAdmin = Session::isSuperuser();
+if (!$isReiseAdmin && $userId) {
+    $admins = $reiseModel->getAdmins($reiseId);
+    foreach ($admins as $admin) {
+        if ($admin['user_id'] === $userId) {
+            $isReiseAdmin = true;
+            break;
+        }
+    }
+}
+
 // Prüfen ob User bereits angemeldet
 $eigeneAnmeldung = null;
 $eigeneTeilnehmer = [];
@@ -120,10 +132,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $session->isLoggedIn()) {
     }
 }
 
-// Alle Anmeldungen für diese Reise laden
+// Alle Anmeldungen für diese Reise laden (mit Details für Admin und für Abkürzung)
 $anmeldungen = $db->fetchAll(
     "SELECT a.*, u.email,
-            GROUP_CONCAT(CONCAT(t.vorname, ' ', t.name, COALESCE(CONCAT(' (', t.nickname, ')'), '')) SEPARATOR ', ') AS teilnehmer_namen
+            GROUP_CONCAT(
+                CONCAT_WS('|', t.vorname, t.name, COALESCE(t.nickname, ''))
+                SEPARATOR '||'
+            ) AS teilnehmer_detail
      FROM fan_anmeldungen a
      JOIN fan_users u ON a.user_id = u.user_id
      LEFT JOIN fan_teilnehmer t ON JSON_CONTAINS(a.teilnehmer_ids, CAST(t.teilnehmer_id AS CHAR))
@@ -133,12 +148,27 @@ $anmeldungen = $db->fetchAll(
     [$reiseId]
 );
 
-// Gesamtzahl Teilnehmer berechnen
+// Teilnehmer-Daten aufbereiten
 $gesamtTeilnehmer = 0;
-foreach ($anmeldungen as $a) {
+foreach ($anmeldungen as &$a) {
     $ids = json_decode($a['teilnehmer_ids'] ?? '[]', true);
     $gesamtTeilnehmer += count($ids);
+
+    // Teilnehmer parsen
+    $a['teilnehmer_parsed'] = [];
+    if ($a['teilnehmer_detail']) {
+        $parts = explode('||', $a['teilnehmer_detail']);
+        foreach ($parts as $part) {
+            $fields = explode('|', $part);
+            $a['teilnehmer_parsed'][] = [
+                'vorname' => $fields[0] ?? '',
+                'name' => $fields[1] ?? '',
+                'nickname' => $fields[2] ?? ''
+            ];
+        }
+    }
 }
+unset($a);
 
 $csrfToken = $session->getCsrfToken();
 
@@ -255,9 +285,15 @@ include __DIR__ . '/../templates/header.php';
         </div>
 
         <!-- Teilnehmerliste -->
+        <?php if ($isReiseAdmin || $eigeneAnmeldung): ?>
         <div class="card mb-4">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Teilnehmerliste (<?= $gesamtTeilnehmer ?> Personen)</h5>
+                <?php if ($isReiseAdmin): ?>
+                    <a href="admin/teilnehmerliste.php?id=<?= $reiseId ?>" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-list-ul"></i> Vollständige Liste
+                    </a>
+                <?php endif; ?>
             </div>
             <div class="card-body">
                 <?php if (empty($anmeldungen)): ?>
@@ -272,10 +308,41 @@ include __DIR__ . '/../templates/header.php';
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($anmeldungen as $a): ?>
-                                    <tr>
-                                        <td><?= htmlspecialchars($a['teilnehmer_namen'] ?: '-') ?></td>
-                                        <td><?= htmlspecialchars($a['kabine'] ?: '-') ?></td>
+                                <?php foreach ($anmeldungen as $a):
+                                    // Eigene Anmeldung gelb hervorheben
+                                    $isOwn = $eigeneAnmeldung && $a['anmeldung_id'] === $eigeneAnmeldung['anmeldung_id'];
+                                    $rowClass = $isOwn ? 'table-warning' : '';
+
+                                    // Teilnehmer-Anzeige formatieren
+                                    $teilnehmerAnzeige = [];
+                                    foreach ($a['teilnehmer_parsed'] as $t) {
+                                        if ($isReiseAdmin) {
+                                            // Admin sieht volle Namen
+                                            $display = $t['vorname'] . ' ' . $t['name'];
+                                            if ($t['nickname']) {
+                                                $display .= ' (' . $t['nickname'] . ')';
+                                            }
+                                        } else {
+                                            // Normale User sehen abgekürzte Form: "H... M..."
+                                            $display = mb_substr($t['vorname'], 0, 1) . '... ' . mb_substr($t['name'], 0, 1) . '...';
+                                        }
+                                        $teilnehmerAnzeige[] = $display;
+                                    }
+
+                                    // Kabine abkürzen für normale User
+                                    $kabineAnzeige = $a['kabine'] ?: '-';
+                                    if (!$isReiseAdmin && $a['kabine']) {
+                                        $kabineAnzeige = mb_substr($a['kabine'], 0, 1) . '...';
+                                    }
+                                ?>
+                                    <tr class="<?= $rowClass ?>">
+                                        <td>
+                                            <?= htmlspecialchars(implode(', ', $teilnehmerAnzeige) ?: '-') ?>
+                                            <?php if ($isOwn): ?>
+                                                <span class="badge bg-secondary ms-1">Du</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>Kabine <?= htmlspecialchars($kabineAnzeige) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -284,6 +351,7 @@ include __DIR__ . '/../templates/header.php';
                 <?php endif; ?>
             </div>
         </div>
+        <?php endif; ?>
     </div>
 
     <!-- Anmeldung -->
