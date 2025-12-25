@@ -154,7 +154,7 @@ $endeDatum = date('d.m.Y', strtotime($reise['ende']));
             border: 1px dashed #ccc;
             display: flex;
             flex-direction: column;
-            padding: 2mm;
+            padding: 2mm 2mm 1mm 2mm;
             overflow: hidden;
         }
 
@@ -164,20 +164,16 @@ $endeDatum = date('d.m.Y', strtotime($reise['ende']));
             }
         }
 
-        /* Schiffsbild oben - volle Breite im Querformat */
+        /* Schiffsbild oben - volle Breite, Höhe nach Bild */
         .etikett-bild {
             width: 100%;
-            height: 14mm;
-            overflow: hidden;
-            border-radius: 1mm;
             flex-shrink: 0;
         }
 
         .etikett-bild img {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
+            height: auto;
+            display: block;
         }
 
         /* Text-Bereich darunter */
@@ -188,20 +184,19 @@ $endeDatum = date('d.m.Y', strtotime($reise['ende']));
             justify-content: center;
             align-items: center;
             text-align: center;
-            padding-top: 1mm;
         }
 
         .etikett-info {
-            font-size: 7pt;
+            font-size: 8pt;
             color: #666;
             margin-bottom: 1mm;
         }
 
         .etikett-vorname {
-            font-size: 20pt;
+            font-size: 26pt;
             font-weight: bold;
             color: #0a1f6e;
-            line-height: 1.1;
+            line-height: 1.0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -209,10 +204,10 @@ $endeDatum = date('d.m.Y', strtotime($reise['ende']));
         }
 
         .etikett-nickname {
-            font-size: 10pt;
+            font-size: 14pt;
             font-style: italic;
             color: #666;
-            margin-top: 1mm;
+            margin-top: 0.5mm;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
