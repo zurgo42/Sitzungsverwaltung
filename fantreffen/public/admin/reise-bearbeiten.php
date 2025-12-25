@@ -173,7 +173,7 @@ include __DIR__ . '/../../templates/header.php';
                 <li class="breadcrumb-item active"><?= htmlspecialchars($reise['schiff']) ?> - Admin</li>
             </ol>
         </nav>
-        <h1><i class="bi bi-gear"></i> <?= htmlspecialchars($reise['schiff']) ?></h1>
+        <h1>⚙ <?= htmlspecialchars($reise['schiff']) ?></h1>
         <p class="lead text-muted">Reise vom <?= date('d.m.Y', strtotime($reise['anfang'])) ?> - <?= date('d.m.Y', strtotime($reise['ende'])) ?></p>
     </div>
 </div>
@@ -304,23 +304,23 @@ include __DIR__ . '/../../templates/header.php';
         <!-- Admin-Funktionen -->
         <div class="card mb-4 border-primary">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-tools"></i> Admin-Funktionen</h5>
+                <h5 class="mb-0">🔧 Admin-Funktionen</h5>
             </div>
             <div class="list-group list-group-flush">
                 <a href="teilnehmerliste.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
-                    <i class="bi bi-people me-2"></i> Teilnehmerliste
+                    👥 Teilnehmerliste
                 </a>
                 <a href="export-aida.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
-                    <i class="bi bi-send me-2"></i> An AIDA übermitteln
+                    ➤ An AIDA übermitteln
                 </a>
                 <a href="export-csv.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
-                    <i class="bi bi-file-earmark-spreadsheet me-2"></i> CSV-Export
+                    📊 CSV-Export
                 </a>
                 <a href="namensschilder.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
-                    <i class="bi bi-badge-id me-2"></i> Namensschilder drucken
+                    🏷 Namensschilder drucken
                 </a>
                 <a href="export-email.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
-                    <i class="bi bi-envelope me-2"></i> E-Mail-Liste / Mailing
+                    ✉ E-Mail-Liste / Mailing
                 </a>
             </div>
         </div>
@@ -328,14 +328,14 @@ include __DIR__ . '/../../templates/header.php';
         <!-- Vorlagen -->
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Vorlagen</h5>
+                <h5 class="mb-0">📄 Vorlagen</h5>
             </div>
             <div class="list-group list-group-flush">
                 <a href="#" class="list-group-item list-group-item-action text-muted">
-                    <i class="bi bi-file-text me-2"></i> Briefbogen (in Vorbereitung)
+                    📄 Briefbogen (in Vorbereitung)
                 </a>
                 <a href="#" class="list-group-item list-group-item-action text-muted">
-                    <i class="bi bi-map me-2"></i> Faltplan (in Vorbereitung)
+                    🗺 Faltplan (in Vorbereitung)
                 </a>
             </div>
         </div>

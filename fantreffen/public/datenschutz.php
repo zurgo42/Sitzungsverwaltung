@@ -158,21 +158,16 @@ require_once __DIR__ . '/../templates/header.php';
         <div class="card mb-4">
             <div class="card-body">
                 <h2 class="h4">9. Externe Dienste</h2>
-                <p>Diese Website verwendet:</p>
-                <ul>
-                    <li><strong>Bootstrap CSS/JS</strong> (von cdn.jsdelivr.net) - für das Design der Website</li>
-                    <li><strong>Bootstrap Icons</strong> (von cdn.jsdelivr.net) - für die Symbole</li>
-                </ul>
                 <p>
-                    Diese Ressourcen werden von externen Servern geladen. Dabei können technische Daten
-                    (wie deine IP-Adresse) an die Betreiber dieser Server übertragen werden.
+                    Diese Website lädt keine externen Ressourcen von Drittanbietern.
+                    Alle Styles und Icons sind lokal eingebunden.
                 </p>
             </div>
         </div>
 
         <div class="mt-4">
             <a href="index.php" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Zurück zur Startseite
+                ← Zurück zur Startseite
             </a>
         </div>
     </div>

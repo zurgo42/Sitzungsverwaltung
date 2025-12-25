@@ -172,13 +172,12 @@ include __DIR__ . '/../templates/header.php';
                     <div class="col-md-9">
                         <h2 class="mb-2"><?= htmlspecialchars($reise['schiff']) ?></h2>
                         <p class="mb-1">
-                            <i class="bi bi-calendar3"></i>
-                            <?= $reise['anfang_formatiert'] ?> - <?= $reise['ende_formatiert'] ?>
+                            📅 <?= $reise['anfang_formatiert'] ?> - <?= $reise['ende_formatiert'] ?>
                             (<?= $reise['dauer_tage'] ?> Tage)
                         </p>
                         <?php if ($reise['bahnhof']): ?>
                             <p class="mb-0 text-muted">
-                                <i class="bi bi-geo-alt"></i> ab <?= htmlspecialchars($reise['bahnhof']) ?>
+                                📍 ab <?= htmlspecialchars($reise['bahnhof']) ?>
                             </p>
                         <?php endif; ?>
                     </div>
@@ -222,8 +221,7 @@ include __DIR__ . '/../templates/header.php';
 
                     <h5 class="mb-3">Teilnehmer am Fantreffen</h5>
                     <p class="text-muted small mb-3">
-                        <i class="bi bi-info-circle"></i>
-                        Die Mobilnummer wird <strong>nicht veröffentlicht</strong> und ist nur für die Organisatoren sichtbar.
+                        ℹ Die Mobilnummer wird <strong>nicht veröffentlicht</strong> und ist nur für die Organisatoren sichtbar.
                     </p>
 
                     <!-- 4 Teilnehmer-Felder -->
@@ -260,8 +258,7 @@ include __DIR__ . '/../templates/header.php';
 
                     <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-check-lg"></i>
-                            <?= $anmeldung ? 'Änderungen speichern' : 'Anmelden' ?>
+                            ✓ <?= $anmeldung ? 'Änderungen speichern' : 'Anmelden' ?>
                         </button>
                         <a href="index.php" class="btn btn-outline-secondary">Abbrechen</a>
                     </div>
@@ -273,7 +270,7 @@ include __DIR__ . '/../templates/header.php';
                         <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
                         <input type="hidden" name="action" value="abmelden">
                         <button type="submit" class="btn btn-outline-danger w-100">
-                            <i class="bi bi-x-circle"></i> Von dieser Reise abmelden
+                            ✕ Von dieser Reise abmelden
                         </button>
                     </form>
                 <?php endif; ?>

@@ -81,7 +81,7 @@ require_once __DIR__ . '/../templates/header.php';
 
         <div class="mt-4">
             <a href="index.php" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Zurück zur Startseite
+                ← Zurück zur Startseite
             </a>
         </div>
     </div>

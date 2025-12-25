@@ -75,13 +75,12 @@ require_once __DIR__ . '/../templates/header.php';
         <div class="card shadow">
             <div class="card-body p-4">
                 <h2 class="card-title text-center mb-4">
-                    <i class="bi bi-person-plus"></i> Registrieren
+                    👤 Registrieren
                 </h2>
 
                 <?php if (!empty($errors)): ?>
                     <div class="alert alert-danger">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        <ul class="mb-0 ps-3">
+                        ⚠ <ul class="mb-0 ps-3">
                             <?php foreach ($errors as $error): ?>
                                 <li><?= htmlspecialchars($error) ?></li>
                             <?php endforeach; ?>
@@ -136,7 +135,7 @@ require_once __DIR__ . '/../templates/header.php';
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 py-2">
-                        <i class="bi bi-person-plus"></i> Registrieren
+                        👤 Registrieren
                     </button>
                 </form>
             </div>

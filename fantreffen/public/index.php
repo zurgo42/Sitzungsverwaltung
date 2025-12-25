@@ -91,8 +91,8 @@ require_once __DIR__ . '/../templates/header.php';
     <div class="accordion mt-4" id="detailsAccordion">
         <div class="accordion-item">
             <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#detailsContent">
-                    <i class="bi bi-info-circle me-2"></i> Was ist das AIDA Fantreffen?
+                <button class="accordion-button collapsed" type="button">
+                    ℹ Was ist das AIDA Fantreffen?
                 </button>
             </h2>
             <div id="detailsContent" class="accordion-collapse collapse" data-bs-parent="#detailsAccordion">
@@ -128,20 +128,18 @@ require_once __DIR__ . '/../templates/header.php';
 
 <?php if (isset($dbError)): ?>
     <div class="alert alert-warning">
-        <i class="bi bi-exclamation-triangle"></i>
-        Die Datenbankverbindung konnte nicht hergestellt werden.
+        ⚠ Die Datenbankverbindung konnte nicht hergestellt werden.
     </div>
 <?php endif; ?>
 
 <!-- Aktuelle Reisen -->
 <h2 class="mb-4">
-    <i class="bi bi-calendar-event"></i> Aktuelle Reisen
+    📅 Aktuelle Reisen
 </h2>
 
 <?php if (empty($aktiveReisen)): ?>
     <div class="alert alert-info">
-        <i class="bi bi-info-circle"></i>
-        Aktuell sind keine Reisen geplant. Schau später nochmal vorbei!
+        ℹ Aktuell sind keine Reisen geplant. Schau später nochmal vorbei!
     </div>
 <?php else: ?>
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
@@ -162,8 +160,7 @@ require_once __DIR__ . '/../templates/header.php';
 
                     <?php if ($istAngemeldet): ?>
                         <div class="bg-success text-white py-2 text-center">
-                            <i class="bi bi-check-circle"></i>
-                            Angemeldet mit <?= $anzahlTeilnehmer ?> Person<?= $anzahlTeilnehmer > 1 ? 'en' : '' ?>
+                            ✓ Angemeldet mit <?= $anzahlTeilnehmer ?> Person<?= $anzahlTeilnehmer > 1 ? 'en' : '' ?>
                         </div>
                     <?php endif; ?>
 
@@ -183,18 +180,16 @@ require_once __DIR__ . '/../templates/header.php';
                             <span class="badge bg-<?= $label[1] ?>"><?= $label[0] ?></span>
                         </div>
                         <p class="card-text">
-                            <i class="bi bi-calendar3"></i>
-                            <?= $reise['anfang_formatiert'] ?> - <?= $reise['ende_formatiert'] ?>
+                            📅 <?= $reise['anfang_formatiert'] ?> - <?= $reise['ende_formatiert'] ?>
                         </p>
                         <?php if ($reise['bahnhof']): ?>
                             <p class="card-text text-muted">
-                                <i class="bi bi-geo-alt"></i> ab <?= htmlspecialchars($reise['bahnhof']) ?>
+                                📍 ab <?= htmlspecialchars($reise['bahnhof']) ?>
                             </p>
                         <?php endif; ?>
                         <?php if ($gesamtTeilnehmer > 0): ?>
                             <p class="card-text">
-                                <i class="bi bi-people"></i>
-                                <strong><?= $gesamtTeilnehmer ?></strong> Teilnehmer angemeldet
+                                👥 <strong><?= $gesamtTeilnehmer ?></strong> Teilnehmer angemeldet
                             </p>
                         <?php endif; ?>
                     </div>
@@ -202,17 +197,17 @@ require_once __DIR__ . '/../templates/header.php';
                     <div class="card-footer bg-transparent">
                         <?php if ($istAngemeldet): ?>
                             <a href="dashboard.php?id=<?= $reiseId ?>" class="btn btn-success w-100">
-                                <i class="bi bi-eye"></i> Details
+                                👁 Details
                             </a>
                         <?php else: ?>
                             <a href="dashboard.php?id=<?= $reiseId ?>" class="btn btn-primary w-100">
-                                <i class="bi bi-hand-index"></i> Möchte dabeisein
+                                👆 Möchte dabeisein
                             </a>
                         <?php endif; ?>
 
                         <?php if ($istAdmin): ?>
                             <a href="admin/reise-bearbeiten.php?id=<?= $reiseId ?>" class="btn btn-outline-secondary w-100 mt-2">
-                                <i class="bi bi-gear"></i> Admin
+                                ⚙ Admin
                             </a>
                         <?php endif; ?>
                     </div>

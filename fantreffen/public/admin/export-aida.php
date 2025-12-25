@@ -66,13 +66,13 @@ include __DIR__ . '/../../templates/header.php';
         </nav>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1><i class="bi bi-send"></i> An AIDA übermitteln</h1>
+            <h1>➤ An AIDA übermitteln</h1>
             <div class="btn-group no-print">
                 <button onclick="copyToClipboard()" class="btn btn-primary">
-                    <i class="bi bi-clipboard"></i> Kopieren
+                    📋 Kopieren
                 </button>
                 <button onclick="window.print()" class="btn btn-outline-secondary">
-                    <i class="bi bi-printer"></i> Drucken
+                    🖨 Drucken
                 </button>
             </div>
         </div>
@@ -97,7 +97,7 @@ include __DIR__ . '/../../templates/header.php';
 <div class="card">
     <div class="card-header bg-primary text-white">
         <h5 class="mb-0">
-            <i class="bi bi-list-ol"></i> Teilnehmerliste für AIDA
+            📋 Teilnehmerliste für AIDA
         </h5>
     </div>
     <div class="card-body">
@@ -107,7 +107,7 @@ include __DIR__ . '/../../templates/header.php';
 
         <?php if (empty($teilnehmer)): ?>
             <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> Noch keine Teilnehmer für diese Reise angemeldet.
+                ℹ Noch keine Teilnehmer für diese Reise angemeldet.
             </div>
         <?php else: ?>
             <div class="bg-light p-3 rounded" id="aidaListe">
@@ -130,7 +130,7 @@ endforeach;
 
 <div class="mt-4 no-print">
     <a href="reise-bearbeiten.php?id=<?= $reiseId ?>" class="btn btn-secondary">
-        <i class="bi bi-arrow-left"></i> Zurück zur Reise
+        ← Zurück zur Reise
     </a>
 </div>
 

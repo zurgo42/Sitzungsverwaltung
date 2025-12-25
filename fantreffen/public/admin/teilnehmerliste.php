@@ -239,13 +239,13 @@ include __DIR__ . '/../../templates/header.php';
         </nav>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1><i class="bi bi-people"></i> Teilnehmerliste</h1>
+            <h1>👥 Teilnehmerliste</h1>
             <div class="btn-group no-print">
                 <button onclick="window.print()" class="btn btn-outline-secondary">
-                    <i class="bi bi-printer"></i> Drucken
+                    🖨 Drucken
                 </button>
                 <a href="export-csv.php?id=<?= $reiseId ?>" class="btn btn-outline-success">
-                    <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+                    📊 CSV
                 </a>
             </div>
         </div>
@@ -272,8 +272,8 @@ include __DIR__ . '/../../templates/header.php';
                 <strong>Kabinen:</strong> <?= $kabinenCount ?>
             </div>
             <div class="col-md-3 text-end">
-                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal">
-                    <i class="bi bi-person-plus"></i> Teilnehmer hinzufügen
+                <button class="btn btn-success" onclick="document.getElementById('addModal').style.display='flex'">
+                    👤+ Teilnehmer hinzufügen
                 </button>
             </div>
         </div>
@@ -282,7 +282,7 @@ include __DIR__ . '/../../templates/header.php';
 
 <?php if (empty($teilnehmer)): ?>
     <div class="alert alert-info">
-        <i class="bi bi-info-circle"></i> Noch keine Anmeldungen für diese Reise vorhanden.
+        ℹ Noch keine Anmeldungen für diese Reise vorhanden.
     </div>
 <?php else: ?>
     <div class="table-responsive">
@@ -331,10 +331,10 @@ include __DIR__ . '/../../templates/header.php';
                                 <td><?= htmlspecialchars($t['email']) ?></td>
                                 <td class="no-print">
                                     <button type="submit" class="btn btn-sm btn-success" title="Speichern">
-                                        <i class="bi bi-check"></i>
+                                        ✓
                                     </button>
                                     <a href="?id=<?= $reiseId ?>" class="btn btn-sm btn-secondary" title="Abbrechen">
-                                        <i class="bi bi-x"></i>
+                                        ✕
                                     </a>
                                 </td>
                             </form>
@@ -365,7 +365,7 @@ include __DIR__ . '/../../templates/header.php';
                             <td class="no-print">
                                 <a href="?id=<?= $reiseId ?>&edit=<?= $t['teilnehmer_id'] ?>"
                                    class="btn btn-sm btn-outline-primary" title="Bearbeiten">
-                                    <i class="bi bi-pencil"></i>
+                                    ✏
                                 </a>
                                 <form method="post" class="d-inline"
                                       onsubmit="return confirm('Teilnehmer wirklich löschen?');">
@@ -374,7 +374,7 @@ include __DIR__ . '/../../templates/header.php';
                                     <input type="hidden" name="teilnehmer_id" value="<?= $t['teilnehmer_id'] ?>">
                                     <input type="hidden" name="anmeldung_id" value="<?= $t['anmeldung_id'] ?>">
                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Löschen">
-                                        <i class="bi bi-trash"></i>
+                                        🗑
                                     </button>
                                 </form>
                             </td>
@@ -394,12 +394,12 @@ include __DIR__ . '/../../templates/header.php';
 
 <div class="mt-4 no-print">
     <a href="reise-bearbeiten.php?id=<?= $reiseId ?>" class="btn btn-secondary">
-        <i class="bi bi-arrow-left"></i> Zurück zur Reise
+        ← Zurück zur Reise
     </a>
 </div>
 
 <!-- Modal: Teilnehmer hinzufügen -->
-<div class="modal fade" id="addModal" tabindex="-1">
+<div class="modal" id="addModal" tabindex="-1" style="display: none; background: rgba(0,0,0,0.5);">
     <div class="modal-dialog">
         <div class="modal-content">
             <form method="post">
@@ -407,8 +407,8 @@ include __DIR__ . '/../../templates/header.php';
                 <input type="hidden" name="action" value="add">
 
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-person-plus"></i> Teilnehmer hinzufügen</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title">👤+ Teilnehmer hinzufügen</h5>
+                    <button type="button" class="btn-close" onclick="document.getElementById('addModal').style.display='none'">✕</button>
                 </div>
 
                 <div class="modal-body">
@@ -444,9 +444,9 @@ include __DIR__ . '/../../templates/header.php';
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('addModal').style.display='none'">Abbrechen</button>
                     <button type="submit" class="btn btn-success">
-                        <i class="bi bi-plus"></i> Hinzufügen
+                        + Hinzufügen
                     </button>
                 </div>
             </form>
@@ -485,13 +485,12 @@ if ($showNewUserEmail):
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-info text-white">
-                <h5 class="modal-title"><i class="bi bi-envelope"></i> E-Mail an neuen Benutzer senden</h5>
-                <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('emailModal').style.display='none'"></button>
+                <h5 class="modal-title">✉ E-Mail an neuen Benutzer senden</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('emailModal').style.display='none'">✕</button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    <strong>Neuer Benutzer angelegt!</strong> Bitte informiere den Teilnehmer über seine Zugangsdaten.
+                    ⚠ <strong>Neuer Benutzer angelegt!</strong> Bitte informiere den Teilnehmer über seine Zugangsdaten.
                 </div>
 
                 <p>Sende diese E-Mail an <strong><?= htmlspecialchars($emailTo) ?></strong>:</p>
@@ -509,10 +508,10 @@ if ($showNewUserEmail):
                 <div class="d-flex gap-2">
                     <a href="mailto:<?= rawurlencode($emailTo) ?>?subject=<?= rawurlencode($subject) ?>&body=<?= rawurlencode($body) ?>"
                        class="btn btn-primary">
-                        <i class="bi bi-envelope"></i> E-Mail-Programm öffnen
+                        ✉ E-Mail-Programm öffnen
                     </a>
                     <button type="button" class="btn btn-outline-secondary" onclick="copyNewUserEmail()">
-                        <i class="bi bi-clipboard"></i> Text kopieren
+                        📋 Text kopieren
                     </button>
                 </div>
             </div>

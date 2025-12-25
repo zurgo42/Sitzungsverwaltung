@@ -50,13 +50,12 @@ require_once __DIR__ . '/../templates/header.php';
         <div class="card shadow">
             <div class="card-body p-4">
                 <h2 class="card-title text-center mb-4">
-                    <i class="bi bi-box-arrow-in-right"></i> Anmelden
+                    → Anmelden
                 </h2>
 
                 <?php if ($error): ?>
                     <div class="alert alert-danger">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        <?= htmlspecialchars($error) ?>
+                        ⚠ <?= htmlspecialchars($error) ?>
                     </div>
                 <?php endif; ?>
 
@@ -84,7 +83,7 @@ require_once __DIR__ . '/../templates/header.php';
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 py-2 mb-3">
-                        <i class="bi bi-box-arrow-in-right"></i> Anmelden
+                        → Anmelden
                     </button>
 
                     <div class="text-center">

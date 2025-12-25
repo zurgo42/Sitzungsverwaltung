@@ -68,11 +68,11 @@ include __DIR__ . '/../templates/header.php';
                             <?php if ($istAngemeldet || $istAdmin): ?>
                                 <div class="bg-success text-white py-1 text-center small">
                                     <?php if ($istAngemeldet): ?>
-                                        <i class="bi bi-check-circle"></i> Du bist angemeldet
+                                        ✓ Du bist angemeldet
                                     <?php endif; ?>
                                     <?php if ($istAdmin): ?>
                                         <span class="<?= $istAngemeldet ? 'ms-2' : '' ?>">
-                                            <i class="bi bi-gear"></i> Admin
+                                            ⚙ Admin
                                         </span>
                                     <?php endif; ?>
                                 </div>
@@ -124,7 +124,7 @@ include __DIR__ . '/../templates/header.php';
                                 </a>
                                 <?php if ($istAdmin): ?>
                                     <a href="admin/reise-bearbeiten.php?id=<?= $reise['reise_id'] ?>" class="btn btn-outline-secondary btn-sm ms-2">
-                                        <i class="bi bi-pencil"></i> Bearbeiten
+                                        ✏ Bearbeiten
                                     </a>
                                 <?php endif; ?>
                             </div>

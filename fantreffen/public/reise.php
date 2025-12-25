@@ -191,10 +191,10 @@ include __DIR__ . '/../templates/header.php';
             <?php if ($isReiseAdmin): ?>
                 <div class="btn-group">
                     <a href="admin/reise-bearbeiten.php?id=<?= $reiseId ?>" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-pencil"></i> Bearbeiten
+                        ✏ Bearbeiten
                     </a>
                     <a href="admin/teilnehmerliste.php?id=<?= $reiseId ?>" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-people"></i> Teilnehmerliste
+                        👥 Teilnehmerliste
                     </a>
                 </div>
             <?php endif; ?>
@@ -306,7 +306,7 @@ include __DIR__ . '/../templates/header.php';
                 <h5 class="mb-0">Teilnehmerliste (<?= $gesamtTeilnehmer ?> Personen)</h5>
                 <?php if ($isReiseAdmin): ?>
                     <a href="admin/teilnehmerliste.php?id=<?= $reiseId ?>" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-list-ul"></i> Vollständige Liste
+                        ☰ Vollständige Liste
                     </a>
                 <?php endif; ?>
             </div>
