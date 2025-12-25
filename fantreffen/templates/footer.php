@@ -25,9 +25,13 @@
 
     document.querySelectorAll('.accordion-button').forEach(btn => {
         btn.addEventListener('click', () => {
-            const content = btn.nextElementSibling;
-            content.classList.toggle('show');
-            btn.classList.toggle('collapsed');
+            // Button ist in <h2>, Content ist das nächste Element nach <h2>
+            const header = btn.closest('.accordion-header');
+            const content = header.nextElementSibling;
+            if (content) {
+                content.classList.toggle('show');
+                btn.classList.toggle('collapsed');
+            }
         });
     });
     </script>
