@@ -29,6 +29,21 @@ try {
         return $r;
     }, $aktiveReisen);
 
+    // Gesamtzahl der Anmeldungen pro Reise laden
+    $anmeldungenProReise = [];
+    $stats = $db->fetchAll(
+        "SELECT reise_id, COUNT(DISTINCT anmeldung_id) as anzahl_anmeldungen,
+                SUM(JSON_LENGTH(teilnehmer_ids)) as anzahl_teilnehmer
+         FROM fan_anmeldungen
+         GROUP BY reise_id"
+    );
+    foreach ($stats as $s) {
+        $anmeldungenProReise[$s['reise_id']] = [
+            'anmeldungen' => (int)$s['anzahl_anmeldungen'],
+            'teilnehmer' => (int)$s['anzahl_teilnehmer']
+        ];
+    }
+
     // User-Anmeldungen laden
     if (Session::isLoggedIn()) {
         $userId = $_SESSION['user_id'];
@@ -136,13 +151,14 @@ require_once __DIR__ . '/../templates/header.php';
             $anzahlTeilnehmer = $meineAnmeldungen[$reiseId] ?? 0;
             $istAdmin = $isSuperuser || isset($meineAdminReisen[$reiseId]);
             $cardClass = $istAngemeldet ? 'border-success border-2' : '';
+            $gesamtTeilnehmer = $anmeldungenProReise[$reiseId]['teilnehmer'] ?? 0;
         ?>
             <div class="col">
                 <div class="card h-100 <?= $cardClass ?>">
                     <img src="<?= htmlspecialchars($reise['bild']) ?>"
                          class="card-img-top"
                          alt="<?= htmlspecialchars($reise['schiff']) ?>"
-                         style="height: 140px; object-fit: cover;">
+                         style="width: 100%; height: auto;">
 
                     <?php if ($istAngemeldet): ?>
                         <div class="bg-success text-white py-2 text-center">
@@ -173,6 +189,12 @@ require_once __DIR__ . '/../templates/header.php';
                         <?php if ($reise['bahnhof']): ?>
                             <p class="card-text text-muted">
                                 <i class="bi bi-geo-alt"></i> ab <?= htmlspecialchars($reise['bahnhof']) ?>
+                            </p>
+                        <?php endif; ?>
+                        <?php if ($gesamtTeilnehmer > 0): ?>
+                            <p class="card-text">
+                                <i class="bi bi-people"></i>
+                                <strong><?= $gesamtTeilnehmer ?></strong> Teilnehmer angemeldet
                             </p>
                         <?php endif; ?>
                     </div>

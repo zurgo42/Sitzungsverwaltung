@@ -120,14 +120,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     // User finden oder erstellen
                     $user = $db->fetchOne("SELECT user_id FROM fan_users WHERE email = ?", [$email]);
+                    $isNewUser = false;
                     if (!$user) {
-                        // Temporären User erstellen
+                        // Neuen User mit Standardpasswort erstellen
+                        $standardPasswort = 'aidafantreffen';
                         $db->insert('fan_users', [
                             'email' => $email,
-                            'passwort_hash' => password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
+                            'passwort_hash' => password_hash($standardPasswort, PASSWORD_DEFAULT),
                             'rolle' => 'user'
                         ]);
                         $userId = $db->getPdo()->lastInsertId();
+                        $isNewUser = true;
                     } else {
                         $userId = $user['user_id'];
                     }
@@ -168,7 +171,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     $db->commit();
-                    $erfolg = 'Teilnehmer wurde hinzugefügt.';
+
+                    if ($isNewUser) {
+                        // E-Mail-Daten für Modal speichern
+                        $_SESSION['new_user_email'] = [
+                            'email' => $email,
+                            'vorname' => $vorname,
+                            'name' => $name,
+                            'schiff' => $reise['schiff'],
+                            'anfang' => $reise['anfang'],
+                            'ende' => $reise['ende']
+                        ];
+                        $erfolg = 'Teilnehmer wurde hinzugefügt. Neuer Benutzer angelegt mit Passwort "aidafantreffen".';
+                    } else {
+                        $erfolg = 'Teilnehmer wurde hinzugefügt.';
+                    }
 
                 } catch (Exception $e) {
                     $db->rollback();
@@ -436,6 +453,88 @@ include __DIR__ . '/../../templates/header.php';
         </div>
     </div>
 </div>
+
+<?php
+// E-Mail-Vorlage Modal anzeigen wenn neuer User hinzugefügt wurde
+$showNewUserEmail = $_SESSION['new_user_email'] ?? null;
+unset($_SESSION['new_user_email']);
+
+if ($showNewUserEmail):
+    $emailTo = $showNewUserEmail['email'];
+    $vorname = $showNewUserEmail['vorname'];
+    $schiff = $showNewUserEmail['schiff'];
+    $anfang = date('d.m.Y', strtotime($showNewUserEmail['anfang']));
+    $ende = date('d.m.Y', strtotime($showNewUserEmail['ende']));
+
+    $subject = "Anmeldung zum Fantreffen auf der $schiff";
+    $body = "Hallo $vorname,\n\n";
+    $body .= "du wurdest für das AIDA Fantreffen angemeldet:\n\n";
+    $body .= "Schiff: $schiff\n";
+    $body .= "Zeitraum: $anfang - $ende\n\n";
+    $body .= "Für dich wurde ein Benutzerkonto angelegt.\n";
+    $body .= "Deine Zugangsdaten:\n";
+    $body .= "E-Mail: $emailTo\n";
+    $body .= "Passwort: aidafantreffen\n\n";
+    $body .= "WICHTIG: Bitte ändere dein Passwort nach dem ersten Login!\n\n";
+    $body .= "Du kannst dich hier einloggen und deine Daten ergänzen:\n";
+    $body .= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '') . dirname(dirname($_SERVER['SCRIPT_NAME'])) . "/login.php\n\n";
+    $body .= "Viele Grüße\n";
+    $body .= "Das Fantreffen-Team";
+?>
+<div class="modal fade show" id="emailModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-envelope"></i> E-Mail an neuen Benutzer senden</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('emailModal').style.display='none'"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Neuer Benutzer angelegt!</strong> Bitte informiere den Teilnehmer über seine Zugangsdaten.
+                </div>
+
+                <p>Sende diese E-Mail an <strong><?= htmlspecialchars($emailTo) ?></strong>:</p>
+
+                <div class="mb-3">
+                    <label class="form-label">Betreff:</label>
+                    <input type="text" class="form-control" id="emailSubject" value="<?= htmlspecialchars($subject) ?>" readonly>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nachricht:</label>
+                    <textarea class="form-control" id="emailBody" rows="12" readonly><?= htmlspecialchars($body) ?></textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <a href="mailto:<?= rawurlencode($emailTo) ?>?subject=<?= rawurlencode($subject) ?>&body=<?= rawurlencode($body) ?>"
+                       class="btn btn-primary">
+                        <i class="bi bi-envelope"></i> E-Mail-Programm öffnen
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" onclick="copyNewUserEmail()">
+                        <i class="bi bi-clipboard"></i> Text kopieren
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('emailModal').style.display='none'">
+                    Schließen
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function copyNewUserEmail() {
+    const subject = document.getElementById('emailSubject').value;
+    const body = document.getElementById('emailBody').value;
+    const text = "Betreff: " + subject + "\n\n" + body;
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Text wurde in die Zwischenablage kopiert!');
+    });
+}
+</script>
+<?php endif; ?>
 
 <style>
 @media print {

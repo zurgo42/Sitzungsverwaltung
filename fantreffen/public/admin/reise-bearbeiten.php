@@ -404,9 +404,16 @@ include __DIR__ . '/../../templates/header.php';
             </div>
             <div class="card-body">
                 <p class="small">Link für Teilnehmer zum Abrufen des Treffpunkt-Status:</p>
+                <?php
+                // Basis-URL ermitteln (ohne /admin/)
+                $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'] ?? 'example.com';
+                $scriptPath = dirname(dirname($_SERVER['SCRIPT_NAME'])); // /fantreffen/public
+                $statusUrl = $protocol . '://' . $host . $scriptPath . '/status.php?id=' . $reiseId;
+                ?>
                 <div class="input-group">
                     <input type="text" class="form-control form-control-sm" readonly
-                           value="<?= htmlspecialchars('https://' . ($_SERVER['HTTP_HOST'] ?? 'example.com') . '/status.php?id=' . $reiseId) ?>"
+                           value="<?= htmlspecialchars($statusUrl) ?>"
                            id="statusLink">
                     <button class="btn btn-outline-secondary btn-sm" type="button"
                             onclick="navigator.clipboard.writeText(document.getElementById('statusLink').value)">

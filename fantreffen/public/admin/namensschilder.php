@@ -1,8 +1,8 @@
 <?php
 /**
  * Namensschilder zum Drucken
- * Format: Etiketten 105x48mm (z.B. Avery Zweckform L7163)
- * Layout: Schiffsbild links, Text rechts
+ * Format: Etiketten 105x48mm
+ * Layout: Schiffsbild oben (Querformat), Text darunter
  */
 
 require_once __DIR__ . '/../../config/config.php';
@@ -49,7 +49,6 @@ $teilnehmer = $db->fetchAll(
 
 // Schiffsbild URL ermitteln
 $schiffBild = $reiseModel->getSchiffBild($reise['schiff']);
-// Absoluter Pfad für Print
 $schiffBildAbsolut = '../' . $schiffBild;
 
 // Reisedaten formatieren
@@ -127,7 +126,7 @@ $endeDatum = date('d.m.Y', strtotime($reise['ende']));
             width: 210mm;
             min-height: 297mm;
             margin: 0 auto;
-            padding: 8.5mm 0 8.5mm 0; /* Oberer/unterer Rand: (297 - 5*48) / 2 = 28.5mm, etwas reduziert */
+            padding: 8.5mm 0 8.5mm 0;
             background: #fff;
         }
 
@@ -154,8 +153,8 @@ $endeDatum = date('d.m.Y', strtotime($reise['ende']));
             height: 48mm;
             border: 1px dashed #ccc;
             display: flex;
-            align-items: center;
-            padding: 3mm;
+            flex-direction: column;
+            padding: 2mm;
             overflow: hidden;
         }
 
@@ -165,59 +164,55 @@ $endeDatum = date('d.m.Y', strtotime($reise['ende']));
             }
         }
 
-        /* Schiffsbild links */
+        /* Schiffsbild oben - volle Breite im Querformat */
         .etikett-bild {
-            width: 38mm;
-            height: 42mm;
-            flex-shrink: 0;
-            margin-right: 4mm;
+            width: 100%;
+            height: 14mm;
             overflow: hidden;
-            border-radius: 2mm;
+            border-radius: 1mm;
+            flex-shrink: 0;
         }
 
         .etikett-bild img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            object-position: center;
         }
 
-        /* Text-Bereich rechts */
+        /* Text-Bereich darunter */
         .etikett-text {
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            overflow: hidden;
+            align-items: center;
+            text-align: center;
+            padding-top: 1mm;
         }
 
-        .etikett-schiff {
-            font-size: 8pt;
-            color: #0a1f6e;
-            font-weight: bold;
-            margin-bottom: 1mm;
-        }
-
-        .etikett-datum {
+        .etikett-info {
             font-size: 7pt;
             color: #666;
-            margin-bottom: 3mm;
+            margin-bottom: 1mm;
         }
 
         .etikett-vorname {
-            font-size: 22pt;
+            font-size: 20pt;
             font-weight: bold;
             color: #0a1f6e;
             line-height: 1.1;
-            margin-bottom: 1mm;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            max-width: 100%;
         }
 
         .etikett-nickname {
-            font-size: 11pt;
+            font-size: 10pt;
             font-style: italic;
             color: #666;
+            margin-top: 1mm;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -243,9 +238,9 @@ $endeDatum = date('d.m.Y', strtotime($reise['ende']));
     <p style="margin-bottom: 15px;">
         <?= count($teilnehmer) ?> Teilnehmer | Etiketten-Format: 105 × 48 mm (2×5 = 10 Stück pro A4-Seite)
     </p>
-    <button onclick="window.print()">🖨️ Drucken</button>
-    <a href="teilnehmerliste.php?id=<?= $reiseId ?>">← Zurück zur Teilnehmerliste</a>
-    <a href="reise-bearbeiten.php?id=<?= $reiseId ?>">← Zurück zur Reise</a>
+    <button onclick="window.print()">Drucken</button>
+    <a href="teilnehmerliste.php?id=<?= $reiseId ?>">Zurück zur Teilnehmerliste</a>
+    <a href="reise-bearbeiten.php?id=<?= $reiseId ?>">Zurück zur Reise</a>
 </div>
 
 <?php
@@ -268,11 +263,10 @@ foreach ($seiten as $seiteNr => $seitenTeilnehmer):
                 <img src="<?= htmlspecialchars($schiffBildAbsolut) ?>" alt="<?= htmlspecialchars($reise['schiff']) ?>">
             </div>
             <div class="etikett-text">
-                <div class="etikett-schiff"><?= htmlspecialchars($reise['schiff']) ?></div>
-                <div class="etikett-datum"><?= $anfangDatum ?> - <?= $endeDatum ?></div>
+                <div class="etikett-info">Fantreffen <?= htmlspecialchars($reise['schiff']) ?> <?= $anfangDatum ?> - <?= $endeDatum ?></div>
                 <div class="etikett-vorname"><?= htmlspecialchars($t['vorname']) ?></div>
                 <?php if ($t['nickname']): ?>
-                    <div class="etikett-nickname"><?= htmlspecialchars($t['nickname']) ?></div>
+                    <div class="etikett-nickname">(<?= htmlspecialchars($t['nickname']) ?>)</div>
                 <?php endif; ?>
             </div>
         </div>
