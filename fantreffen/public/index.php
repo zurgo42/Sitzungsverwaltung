@@ -3,17 +3,12 @@
  * index.php - Startseite
  * Zeigt aktuelle Reisen und ermöglicht die Anmeldung
  */
-$__t = ['start' => microtime(true)];
 
 require_once __DIR__ . '/../src/Session.php';
 require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/Reise.php';
 
-$__t['require'] = microtime(true);
-
 Session::start();
-
-$__t['session'] = microtime(true);
 
 $pageTitle = 'AIDA Fantreffen';
 
@@ -24,11 +19,9 @@ $isSuperuser = Session::isSuperuser();
 
 try {
     $db = Database::getInstance();
-    $__t['db_connect'] = microtime(true);
 
     $reiseManager = new Reise($db);
     $aktiveReisen = $reiseManager->getAktive();
-    $__t['db_reisen'] = microtime(true);
 
     // Reisen für Anzeige formatieren
     $aktiveReisen = array_map(function($r) use ($reiseManager) {
@@ -45,7 +38,6 @@ try {
          FROM fan_anmeldungen
          GROUP BY reise_id"
     );
-    $__t['db_stats'] = microtime(true);
 
     foreach ($stats as $s) {
         $anmeldungenProReise[$s['reise_id']] = [
@@ -74,16 +66,13 @@ try {
             $meineAdminReisen[$ar['reise_id']] = true;
         }
     }
-    $__t['db_user'] = microtime(true);
 
 } catch (Exception $e) {
     $aktiveReisen = [];
     $dbError = true;
 }
 
-$__t['before_header'] = microtime(true);
 require_once __DIR__ . '/../templates/header.php';
-$__t['after_header'] = microtime(true);
 ?>
 
 <!-- Hero-Bereich -->
@@ -252,16 +241,3 @@ $__t['after_header'] = microtime(true);
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
-
-<!-- DEBUG Timing (ms):
-<?php
-$__t['end'] = microtime(true);
-$prev = $__t['start'];
-foreach ($__t as $name => $time) {
-    if ($name === 'start') continue;
-    printf("  %s: %d ms\n", $name, ($time - $prev) * 1000);
-    $prev = $time;
-}
-printf("  TOTAL: %d ms\n", ($__t['end'] - $__t['start']) * 1000);
-?>
--->
