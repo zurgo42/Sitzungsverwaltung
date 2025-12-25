@@ -156,6 +156,7 @@ require_once __DIR__ . '/../templates/header.php';
                     <img src="<?= htmlspecialchars($reise['bild']) ?>"
                          class="card-img-top"
                          alt="<?= htmlspecialchars($reise['schiff']) ?>"
+                         loading="lazy"
                          style="width: 100%; height: auto;">
 
                     <?php if ($istAngemeldet): ?>

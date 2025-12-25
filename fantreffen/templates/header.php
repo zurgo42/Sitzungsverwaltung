@@ -22,6 +22,11 @@ $basePath = strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../' : '';
 
     <!-- Custom CSS (ohne Bootstrap) -->
     <link href="<?= $basePath ?>css/style.css" rel="stylesheet">
+
+    <?php if (basename($_SERVER['PHP_SELF']) === 'index.php'): ?>
+    <!-- Preload LCP-Bild für schnellere Anzeige -->
+    <link rel="preload" as="image" href="<?= $basePath ?>images/FantreffenSchiff.jpg">
+    <?php endif; ?>
 </head>
 <body>
     <!-- Navigation -->
