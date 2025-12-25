@@ -206,11 +206,9 @@ $teilnehmer = $db->fetchAll(
             u.email, u.user_id
      FROM fan_anmeldungen a
      JOIN fan_users u ON a.user_id = u.user_id
-     JOIN fan_teilnehmer t ON (
-         JSON_CONTAINS(a.teilnehmer_ids, CAST(t.teilnehmer_id AS CHAR))
-         OR JSON_CONTAINS(a.teilnehmer_ids, CONCAT('\"', t.teilnehmer_id, '\"'))
-     )
+     JOIN fan_teilnehmer t ON t.user_id = u.user_id
      WHERE a.reise_id = ?
+       AND JSON_SEARCH(a.teilnehmer_ids, 'one', CAST(t.teilnehmer_id AS CHAR)) IS NOT NULL
      ORDER BY CAST(a.kabine AS UNSIGNED), a.kabine, t.name, t.vorname",
     [$reiseId]
 );
