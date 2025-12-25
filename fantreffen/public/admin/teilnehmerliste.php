@@ -182,13 +182,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Alle Teilnehmer dieser Reise laden - sortiert nach Kabine, dann Nachname
+// Hinweis: teilnehmer_ids enthält JSON-Array mit String-IDs wie ["1","2","3"]
 $teilnehmer = $db->fetchAll(
     "SELECT t.teilnehmer_id, t.vorname, t.name, t.nickname, t.mobil,
             a.anmeldung_id, a.kabine, a.erstellt AS anmeldung_datum,
             u.email, u.user_id
      FROM fan_anmeldungen a
      JOIN fan_users u ON a.user_id = u.user_id
-     JOIN fan_teilnehmer t ON JSON_CONTAINS(a.teilnehmer_ids, CAST(t.teilnehmer_id AS CHAR))
+     JOIN fan_teilnehmer t ON (
+         JSON_CONTAINS(a.teilnehmer_ids, CAST(t.teilnehmer_id AS CHAR))
+         OR JSON_CONTAINS(a.teilnehmer_ids, CONCAT('\"', t.teilnehmer_id, '\"'))
+     )
      WHERE a.reise_id = ?
      ORDER BY CAST(a.kabine AS UNSIGNED), a.kabine, t.name, t.vorname",
     [$reiseId]

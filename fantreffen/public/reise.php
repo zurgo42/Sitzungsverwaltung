@@ -141,7 +141,10 @@ $anmeldungen = $db->fetchAll(
             ) AS teilnehmer_detail
      FROM fan_anmeldungen a
      JOIN fan_users u ON a.user_id = u.user_id
-     LEFT JOIN fan_teilnehmer t ON JSON_CONTAINS(a.teilnehmer_ids, CAST(t.teilnehmer_id AS CHAR))
+     LEFT JOIN fan_teilnehmer t ON (
+         JSON_CONTAINS(a.teilnehmer_ids, CAST(t.teilnehmer_id AS CHAR))
+         OR JSON_CONTAINS(a.teilnehmer_ids, CONCAT('\"', t.teilnehmer_id, '\"'))
+     )
      WHERE a.reise_id = ?
      GROUP BY a.anmeldung_id
      ORDER BY a.erstellt ASC",
