@@ -54,8 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $userManager->findById($userId);
             Session::login($user);
 
-            Session::success('Willkommen! Bitte lege jetzt deine Teilnehmer an.');
-            Session::redirect('profil.php');
+            Session::success('Willkommen! Wähle eine Reise und melde dich an.');
+            Session::redirect('index.php');
         } catch (Exception $e) {
             if (strpos($e->getMessage(), 'bereits registriert') !== false) {
                 $errors[] = 'Diese E-Mail-Adresse ist bereits registriert.';
@@ -123,14 +123,15 @@ require_once __DIR__ . '/../templates/header.php';
                         <label for="passwort2">Passwort wiederholen</label>
                     </div>
 
-                    <div class="form-check mb-3">
+                    <div class="form-check mb-3 p-3 border rounded bg-light">
                         <input type="checkbox"
                                class="form-check-input"
                                id="datenschutz"
                                name="datenschutz"
+                               style="width: 1.2em; height: 1.2em;"
                                required>
-                        <label class="form-check-label" for="datenschutz">
-                            Ich habe die <a href="datenschutz.php" target="_blank">Datenschutzerklärung</a> gelesen und akzeptiere sie.
+                        <label class="form-check-label ms-2" for="datenschutz">
+                            <strong>Ich habe die <a href="datenschutz.php" target="_blank">Datenschutzerklärung</a> gelesen und akzeptiere sie.</strong>
                         </label>
                     </div>
 

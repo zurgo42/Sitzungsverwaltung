@@ -5,15 +5,21 @@
  */
 
 require_once __DIR__ . '/../src/Session.php';
+require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/Reise.php';
 
 Session::start();
 
-$pageTitle = 'AIDA Fantreffen - Startseite';
+$pageTitle = 'AIDA Fantreffen';
 
 // Aktive Reisen laden
+$meineAnmeldungen = [];
+$meineAdminReisen = [];
+$isSuperuser = Session::isSuperuser();
+
 try {
-    $reiseManager = new Reise();
+    $db = Database::getInstance();
+    $reiseManager = new Reise($db);
     $aktiveReisen = $reiseManager->getAktive();
 
     // Reisen für Anzeige formatieren
@@ -22,6 +28,42 @@ try {
         $r['bild'] = $reiseManager->getSchiffBild($r['schiff']);
         return $r;
     }, $aktiveReisen);
+
+    // Gesamtzahl der Anmeldungen pro Reise laden
+    $anmeldungenProReise = [];
+    $stats = $db->fetchAll(
+        "SELECT reise_id, COUNT(DISTINCT anmeldung_id) as anzahl_anmeldungen,
+                SUM(JSON_LENGTH(teilnehmer_ids)) as anzahl_teilnehmer
+         FROM fan_anmeldungen
+         GROUP BY reise_id"
+    );
+    foreach ($stats as $s) {
+        $anmeldungenProReise[$s['reise_id']] = [
+            'anmeldungen' => (int)$s['anzahl_anmeldungen'],
+            'teilnehmer' => (int)$s['anzahl_teilnehmer']
+        ];
+    }
+
+    // User-Anmeldungen laden
+    if (Session::isLoggedIn()) {
+        $userId = $_SESSION['user_id'];
+
+        // Anmeldungen mit Teilnehmeranzahl laden
+        $anmeldungen = $db->fetchAll(
+            "SELECT reise_id, teilnehmer_ids FROM fan_anmeldungen WHERE user_id = ?",
+            [$userId]
+        );
+        foreach ($anmeldungen as $a) {
+            $teilnehmerIds = json_decode($a['teilnehmer_ids'] ?? '[]', true);
+            $meineAnmeldungen[$a['reise_id']] = count($teilnehmerIds);
+        }
+
+        // Admin-Reisen laden
+        $adminReisen = $reiseManager->getAdminReisen($userId);
+        foreach ($adminReisen as $ar) {
+            $meineAdminReisen[$ar['reise_id']] = true;
+        }
+    }
 } catch (Exception $e) {
     $aktiveReisen = [];
     $dbError = true;
@@ -34,28 +76,11 @@ require_once __DIR__ . '/../templates/header.php';
 <div class="bg-light rounded-3 p-4 p-md-5 mb-4">
     <div class="row align-items-center">
         <div class="col-md-8">
-            <div class="d-flex align-items-center mb-3">
-                <img src="images/Logo_ws_klein_transparent.png" alt="AIDA Fantreffen" class="me-3" style="max-height: 80px;">
-                <h1 class="display-5 fw-bold mb-0">AIDA Fantreffen</h1>
-            </div>
+            <h1 class="display-5 fw-bold mb-3">Willkommen beim AIDA Fantreffen!</h1>
             <p class="lead">
-                Willkommen bei den AIDA-Fantreffen! Hier kannst du dich für Fantreffen auf AIDA-Kreuzfahrten anmelden.
+                Hier kannst du dich für Fantreffen auf AIDA-Kreuzfahrten anmelden.
+                Wähle einfach eine Reise aus und melde dich mit deinen Mitreisenden an.
             </p>
-            <?php if (!Session::isLoggedIn()): ?>
-                <a href="registrieren.php" class="btn btn-primary btn-lg me-2">
-                    <i class="bi bi-person-plus"></i> Jetzt registrieren
-                </a>
-                <a href="login.php" class="btn btn-outline-secondary btn-lg">
-                    <i class="bi bi-box-arrow-in-right"></i> Anmelden
-                </a>
-            <?php else: ?>
-                <a href="dashboard.php" class="btn btn-primary btn-lg me-2">
-                    <i class="bi bi-speedometer2"></i> Mein Dashboard
-                </a>
-                <a href="reisen.php" class="btn btn-outline-primary btn-lg">
-                    <i class="bi bi-ship"></i> Alle Reisen
-                </a>
-            <?php endif; ?>
         </div>
         <div class="col-md-4 text-center d-none d-md-block">
             <img src="images/FantreffenSchiff.jpg" alt="Fantreffen" class="img-fluid rounded shadow">
@@ -77,9 +102,7 @@ require_once __DIR__ . '/../templates/header.php';
                         Hier lernen sich Gleichgesinnte kennen, tauschen Erfahrungen aus und verbringen gemeinsam
                         Zeit während der Kreuzfahrt.
                     </p>
-                    <p>
-                        <strong>Was erwartet dich?</strong>
-                    </p>
+                    <p><strong>Was erwartet dich?</strong></p>
                     <ul>
                         <li>Kennenlernen anderer AIDA-Fans</li>
                         <li>Gemeinsamer Sektempfang</li>
@@ -87,18 +110,15 @@ require_once __DIR__ . '/../templates/header.php';
                         <li>Manchmal Überraschungen von der Crew</li>
                         <li>Nette Gesellschaft während der Reise</li>
                     </ul>
-                    <p>
-                        <strong>Wie funktioniert die Anmeldung?</strong>
-                    </p>
+                    <p><strong>Wie funktioniert die Anmeldung?</strong></p>
                     <ol>
-                        <li>Registriere dich mit deiner E-Mail-Adresse</li>
-                        <li>Lege deine Teilnehmer an (bis zu 4 Personen)</li>
-                        <li>Melde dich für eine Reise an und gib deine Kabinennummer an</li>
-                        <li>Du erhältst alle Infos zum Treffpunkt per E-Mail oder über die Smartphone-Seite</li>
+                        <li>Wähle eine Reise aus</li>
+                        <li>Registriere dich (falls noch nicht geschehen)</li>
+                        <li>Trage deine Teilnehmer und Kabinennummer ein</li>
+                        <li>Fertig! Du erhältst alle Infos zum Treffpunkt.</li>
                     </ol>
                     <p class="mb-0">
                         Die Teilnahme ist <strong>kostenlos</strong> und unverbindlich.
-                        Du kannst dich jederzeit wieder abmelden.
                     </p>
                 </div>
             </div>
@@ -110,7 +130,6 @@ require_once __DIR__ . '/../templates/header.php';
     <div class="alert alert-warning">
         <i class="bi bi-exclamation-triangle"></i>
         Die Datenbankverbindung konnte nicht hergestellt werden.
-        Bitte prüfe die Konfiguration.
     </div>
 <?php endif; ?>
 
@@ -126,109 +145,81 @@ require_once __DIR__ . '/../templates/header.php';
     </div>
 <?php else: ?>
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        <?php foreach ($aktiveReisen as $reise): ?>
+        <?php foreach ($aktiveReisen as $reise):
+            $reiseId = $reise['reise_id'];
+            $istAngemeldet = isset($meineAnmeldungen[$reiseId]);
+            $anzahlTeilnehmer = $meineAnmeldungen[$reiseId] ?? 0;
+            $istAdmin = $isSuperuser || isset($meineAdminReisen[$reiseId]);
+            $cardClass = $istAngemeldet ? 'border-success border-2' : '';
+            $gesamtTeilnehmer = $anmeldungenProReise[$reiseId]['teilnehmer'] ?? 0;
+        ?>
             <div class="col">
-                <div class="card card-reise h-100">
+                <div class="card h-100 <?= $cardClass ?>">
                     <img src="<?= htmlspecialchars($reise['bild']) ?>"
                          class="card-img-top"
-                         alt="<?= htmlspecialchars($reise['schiff']) ?>">
+                         alt="<?= htmlspecialchars($reise['schiff']) ?>"
+                         style="width: 100%; height: auto;">
+
+                    <?php if ($istAngemeldet): ?>
+                        <div class="bg-success text-white py-2 text-center">
+                            <i class="bi bi-check-circle"></i>
+                            Angemeldet mit <?= $anzahlTeilnehmer ?> Person<?= $anzahlTeilnehmer > 1 ? 'en' : '' ?>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="card-body">
-                        <h5 class="card-title"><?= htmlspecialchars($reise['schiff']) ?></h5>
-                        <?php if ($reise['bahnhof']): ?>
-                            <p class="card-text text-muted small mb-1">
-                                <i class="bi bi-geo-alt"></i> ab <?= htmlspecialchars($reise['bahnhof']) ?>
-                            </p>
-                        <?php endif; ?>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0"><?= htmlspecialchars($reise['schiff']) ?></h5>
+                            <?php
+                            $statusLabels = [
+                                'geplant' => ['Geplant', 'warning'],
+                                'angemeldet' => ['Bei AIDA angemeldet', 'info'],
+                                'bestaetigt' => ['Bestätigt', 'success'],
+                                'abgesagt' => ['Abgesagt', 'danger']
+                            ];
+                            $status = $reise['treffen_status'] ?? 'geplant';
+                            $label = $statusLabels[$status] ?? ['Geplant', 'warning'];
+                            ?>
+                            <span class="badge bg-<?= $label[1] ?>"><?= $label[0] ?></span>
+                        </div>
                         <p class="card-text">
                             <i class="bi bi-calendar3"></i>
                             <?= $reise['anfang_formatiert'] ?> - <?= $reise['ende_formatiert'] ?>
-                            <span class="text-muted">(<?= $reise['dauer_tage'] ?> Tage)</span>
                         </p>
-
-                        <!-- Treffen-Status -->
-                        <?php
-                        $statusClass = match($reise['treffen_status']) {
-                            'bestaetigt' => 'badge-treffen-bestaetigt',
-                            'abgesagt'   => 'badge-treffen-abgesagt',
-                            default      => 'badge-treffen-geplant'
-                        };
-                        $statusText = match($reise['treffen_status']) {
-                            'bestaetigt' => 'Treffen bestätigt',
-                            'abgesagt'   => 'Treffen abgesagt',
-                            default      => 'Treffen geplant'
-                        };
-                        ?>
-                        <span class="badge <?= $statusClass ?>">
-                            <?= $statusText ?>
-                        </span>
-
-                        <?php if ($reise['treffen_ort'] && $reise['treffen_status'] === 'bestaetigt'): ?>
-                            <p class="card-text mt-2 small">
-                                <i class="bi bi-pin-map"></i>
-                                <?= htmlspecialchars($reise['treffen_ort']) ?>
-                                <?php if ($reise['treffen_zeit']): ?>
-                                    <br>
-                                    <i class="bi bi-clock"></i>
-                                    <?= date('d.m.Y H:i', strtotime($reise['treffen_zeit'])) ?> Uhr
-                                <?php endif; ?>
+                        <?php if ($reise['bahnhof']): ?>
+                            <p class="card-text text-muted">
+                                <i class="bi bi-geo-alt"></i> ab <?= htmlspecialchars($reise['bahnhof']) ?>
+                            </p>
+                        <?php endif; ?>
+                        <?php if ($gesamtTeilnehmer > 0): ?>
+                            <p class="card-text">
+                                <i class="bi bi-people"></i>
+                                <strong><?= $gesamtTeilnehmer ?></strong> Teilnehmer angemeldet
                             </p>
                         <?php endif; ?>
                     </div>
+
                     <div class="card-footer bg-transparent">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">
-                                <i class="bi bi-people"></i>
-                                <?= $reise['anzahl_anmeldungen'] ?? 0 ?> Anmeldungen
-                            </small>
-                            <a href="reise.php?id=<?= $reise['reise_id'] ?>" class="btn btn-sm btn-primary">
-                                Details & Anmelden
+                        <?php if ($istAngemeldet): ?>
+                            <a href="dashboard.php?id=<?= $reiseId ?>" class="btn btn-success w-100">
+                                <i class="bi bi-eye"></i> Details
                             </a>
-                        </div>
+                        <?php else: ?>
+                            <a href="dashboard.php?id=<?= $reiseId ?>" class="btn btn-primary w-100">
+                                <i class="bi bi-hand-index"></i> Möchte dabeisein
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if ($istAdmin): ?>
+                            <a href="admin/reise-bearbeiten.php?id=<?= $reiseId ?>" class="btn btn-outline-secondary w-100 mt-2">
+                                <i class="bi bi-gear"></i> Admin
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
         <?php endforeach; ?>
     </div>
 <?php endif; ?>
-
-<!-- Info-Bereich -->
-<div class="row mt-5">
-    <div class="col-md-4 mb-4">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body text-center">
-                <i class="bi bi-person-check display-4 text-primary mb-3"></i>
-                <h5>Einfache Anmeldung</h5>
-                <p class="text-muted">
-                    Registriere dich einmal und melde dich für beliebig viele Reisen an.
-                    Deine Teilnehmer-Daten bleiben gespeichert.
-                </p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-4">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body text-center">
-                <i class="bi bi-envelope-check display-4 text-primary mb-3"></i>
-                <h5>Info per Mail</h5>
-                <p class="text-muted">
-                    Du erhältst automatisch alle wichtigen Infos zum Treffen per E-Mail -
-                    inklusive Ort, Zeit und Sonderinfos.
-                </p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-4">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-body text-center">
-                <i class="bi bi-phone display-4 text-primary mb-3"></i>
-                <h5>Mobil abrufbar</h5>
-                <p class="text-muted">
-                    Auf dem Schiff kannst du jederzeit den aktuellen Stand abrufen -
-                    wann und wo das Treffen stattfindet.
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
 
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>

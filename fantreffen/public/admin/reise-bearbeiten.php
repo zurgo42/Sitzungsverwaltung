@@ -169,14 +169,12 @@ include __DIR__ . '/../../templates/header.php';
     <div class="col-12">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="../dashboard.php">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="../reise.php?id=<?= $reiseId ?>">
-                    <?= htmlspecialchars($reise['schiff']) ?>
-                </a></li>
-                <li class="breadcrumb-item active">Bearbeiten</li>
+                <li class="breadcrumb-item"><a href="../index.php">Startseite</a></li>
+                <li class="breadcrumb-item active"><?= htmlspecialchars($reise['schiff']) ?> - Admin</li>
             </ol>
         </nav>
-        <h1>Reise bearbeiten</h1>
+        <h1><i class="bi bi-gear"></i> <?= htmlspecialchars($reise['schiff']) ?></h1>
+        <p class="lead text-muted">Reise vom <?= date('d.m.Y', strtotime($reise['anfang'])) ?> - <?= date('d.m.Y', strtotime($reise['ende'])) ?></p>
     </div>
 </div>
 
@@ -256,6 +254,9 @@ include __DIR__ . '/../../templates/header.php';
                                 <option value="geplant" <?= $reise['treffen_status'] === 'geplant' ? 'selected' : '' ?>>
                                     Geplant
                                 </option>
+                                <option value="angemeldet" <?= $reise['treffen_status'] === 'angemeldet' ? 'selected' : '' ?>>
+                                    Bei AIDA angemeldet
+                                </option>
                                 <option value="bestaetigt" <?= $reise['treffen_status'] === 'bestaetigt' ? 'selected' : '' ?>>
                                     Bestätigt
                                 </option>
@@ -300,17 +301,41 @@ include __DIR__ . '/../../templates/header.php';
     </div>
 
     <div class="col-lg-4">
-        <!-- Teilnehmerliste -->
+        <!-- Admin-Funktionen -->
+        <div class="card mb-4 border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-tools"></i> Admin-Funktionen</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="teilnehmerliste.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
+                    <i class="bi bi-people me-2"></i> Teilnehmerliste
+                </a>
+                <a href="export-aida.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
+                    <i class="bi bi-send me-2"></i> An AIDA übermitteln
+                </a>
+                <a href="export-csv.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
+                    <i class="bi bi-file-earmark-spreadsheet me-2"></i> CSV-Export
+                </a>
+                <a href="namensschilder.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
+                    <i class="bi bi-badge-id me-2"></i> Namensschilder drucken
+                </a>
+                <a href="export-email.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
+                    <i class="bi bi-envelope me-2"></i> E-Mail-Liste / Mailing
+                </a>
+            </div>
+        </div>
+
+        <!-- Vorlagen -->
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0">Teilnehmer</h5>
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Vorlagen</h5>
             </div>
-            <div class="card-body">
-                <a href="teilnehmerliste.php?id=<?= $reiseId ?>" class="btn btn-primary w-100 mb-2">
-                    Teilnehmerliste anzeigen
+            <div class="list-group list-group-flush">
+                <a href="#" class="list-group-item list-group-item-action text-muted">
+                    <i class="bi bi-file-text me-2"></i> Briefbogen (in Vorbereitung)
                 </a>
-                <a href="namensschilder.php?id=<?= $reiseId ?>" class="btn btn-outline-secondary w-100">
-                    Namensschilder drucken
+                <a href="#" class="list-group-item list-group-item-action text-muted">
+                    <i class="bi bi-map me-2"></i> Faltplan (in Vorbereitung)
                 </a>
             </div>
         </div>
@@ -379,9 +404,16 @@ include __DIR__ . '/../../templates/header.php';
             </div>
             <div class="card-body">
                 <p class="small">Link für Teilnehmer zum Abrufen des Treffpunkt-Status:</p>
+                <?php
+                // Basis-URL ermitteln (ohne /admin/)
+                $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'] ?? 'example.com';
+                $scriptPath = dirname(dirname($_SERVER['SCRIPT_NAME'])); // /fantreffen/public
+                $statusUrl = $protocol . '://' . $host . $scriptPath . '/status.php?id=' . $reiseId;
+                ?>
                 <div class="input-group">
                     <input type="text" class="form-control form-control-sm" readonly
-                           value="<?= htmlspecialchars('https://' . ($_SERVER['HTTP_HOST'] ?? 'example.com') . '/status.php?id=' . $reiseId) ?>"
+                           value="<?= htmlspecialchars($statusUrl) ?>"
                            id="statusLink">
                     <button class="btn btn-outline-secondary btn-sm" type="button"
                             onclick="navigator.clipboard.writeText(document.getElementById('statusLink').value)">

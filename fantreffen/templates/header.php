@@ -7,6 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $isLoggedIn = isset($_SESSION['user_id']);
 $userEmail = $_SESSION['email'] ?? '';
 $userRolle = $_SESSION['rolle'] ?? '';
+$basePath = strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../' : '';
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -15,64 +16,72 @@ $userRolle = $_SESSION['rolle'] ?? '';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle ?? 'AIDA Fantreffen') ?></title>
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?= $basePath ?>Logo_ws_klein_transparent.png">
+    <link rel="apple-touch-icon" href="<?= $basePath ?>Logo_ws_klein_transparent.png">
+
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../css/style.css' : 'css/style.css' ?>" rel="stylesheet">
+    <link href="<?= $basePath ?>css/style.css" rel="stylesheet">
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../index.php' : 'index.php' ?>">
+            <a class="navbar-brand d-flex align-items-center" href="<?= $basePath ?>index.php">
+                <img src="<?= $basePath ?>Logo_ws_klein_transparent.png" alt="" height="40" class="me-2">
                 AIDA Fantreffen
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../reisen.php' : 'reisen.php' ?>">Reisen</a>
-                    </li>
+                <ul class="navbar-nav ms-auto">
                     <?php if ($isLoggedIn): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../dashboard.php' : 'dashboard.php' ?>">Dashboard</a>
-                        </li>
                         <?php if ($userRolle === 'superuser'): ?>
+                            <!-- Superuser Navigation -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?= $basePath ?>admin/reise-neu.php">
+                                    <i class="bi bi-plus-circle"></i> Reise hinzufügen
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?= $basePath ?>admin/benutzer.php">
+                                    <i class="bi bi-people"></i> Benutzer
+                                </a>
+                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                    Verwaltung
+                                    <i class="bi bi-shield-check"></i> Superuser
                                 </a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? 'reise-neu.php' : 'admin/reise-neu.php' ?>">Neue Reise anlegen</a></li>
-                                    <li><a class="dropdown-item" href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? 'benutzer.php' : 'admin/benutzer.php' ?>">Benutzer verwalten</a></li>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="<?= $basePath ?>passwort.php">Passwort ändern</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="<?= $basePath ?>logout.php">Abmelden</a></li>
+                                </ul>
+                            </li>
+                        <?php else: ?>
+                            <!-- Normaler User Navigation -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                    <?= htmlspecialchars($userEmail) ?>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="<?= $basePath ?>passwort.php">Passwort ändern</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="<?= $basePath ?>logout.php">Abmelden</a></li>
                                 </ul>
                             </li>
                         <?php endif; ?>
-                    <?php endif; ?>
-                </ul>
-                <ul class="navbar-nav">
-                    <?php if ($isLoggedIn): ?>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                <?= htmlspecialchars($userEmail) ?>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../profil.php' : 'profil.php' ?>">Mein Profil</a></li>
-                                <li><a class="dropdown-item" href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../passwort.php' : 'passwort.php' ?>">Passwort ändern</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../logout.php' : 'logout.php' ?>">Abmelden</a></li>
-                            </ul>
-                        </li>
                     <?php else: ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../login.php' : 'login.php' ?>">Anmelden</a>
+                            <a class="nav-link" href="<?= $basePath ?>login.php">Anmelden</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="<?= strpos($_SERVER['PHP_SELF'], '/admin/') !== false ? '../registrieren.php' : 'registrieren.php' ?>">Registrieren</a>
+                            <a class="nav-link" href="<?= $basePath ?>registrieren.php">Registrieren</a>
                         </li>
                     <?php endif; ?>
                 </ul>

@@ -47,6 +47,11 @@ main {
     color: #000;
 }
 
+.badge-treffen-angemeldet {
+    background-color: #17a2b8;
+    color: #fff;
+}
+
 .badge-treffen-bestaetigt {
     background-color: #28a745;
 }
@@ -93,6 +98,10 @@ main {
 
 .status-icon.geplant {
     color: #ffc107;
+}
+
+.status-icon.angemeldet {
+    color: #17a2b8;
 }
 
 /* Admin-Bereich */
