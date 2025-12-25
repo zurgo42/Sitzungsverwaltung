@@ -1,196 +1,275 @@
 <?php
 /**
- * Dashboard - Übersicht für eingeloggte User
+ * Dashboard - Anmeldung für eine bestimmte Reise
+ * Einfaches Formular: Kabine, E-Mail, 4 Teilnehmer
  */
 
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/Session.php';
-require_once __DIR__ . '/../src/User.php';
 require_once __DIR__ . '/../src/Reise.php';
 
 $session = new Session();
-$session->requireLogin();
-
 $db = Database::getInstance();
-$user = new User($db);
-$reise = new Reise($db);
+$reiseModel = new Reise($db);
 
-$currentUser = $session->getUser();
-$meineAnmeldungen = $reise->getAnmeldungenByUser($currentUser['user_id']);
-$aktiveReisen = $reise->getAktiveReisen();
+// Reise-ID aus URL
+$reiseId = (int)($_GET['id'] ?? 0);
+$reise = $reiseModel->findById($reiseId);
 
-// Map für schnelle Prüfung ob angemeldet
-$angemeldeteReisen = [];
-foreach ($meineAnmeldungen as $a) {
-    $angemeldeteReisen[$a['reise_id']] = true;
+if (!$reise) {
+    header('Location: index.php');
+    exit;
 }
 
-$pageTitle = 'Übersicht';
+// Login erforderlich - sonst weiter zu Login mit Redirect
+if (!$session->isLoggedIn()) {
+    header('Location: login.php?redirect=' . urlencode('dashboard.php?id=' . $reiseId));
+    exit;
+}
+
+$currentUser = $session->getUser();
+$userId = $currentUser['user_id'];
+$userEmail = $currentUser['email'];
+
+$fehler = '';
+$erfolg = '';
+
+// Bestehende Anmeldung und Teilnehmer laden
+$anmeldung = $db->fetchOne(
+    "SELECT * FROM fan_anmeldungen WHERE user_id = ? AND reise_id = ?",
+    [$userId, $reiseId]
+);
+
+// Teilnehmer des Users laden
+$teilnehmer = $db->fetchAll(
+    "SELECT * FROM fan_teilnehmer WHERE user_id = ? ORDER BY position ASC",
+    [$userId]
+);
+
+// Formular verarbeiten
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!$session->validateCsrfToken($_POST['csrf_token'] ?? '')) {
+        $fehler = 'Ungültiger Sicherheitstoken.';
+    } else {
+        $action = $_POST['action'] ?? '';
+
+        if ($action === 'speichern') {
+            $kabine = trim($_POST['kabine'] ?? '');
+
+            // Teilnehmer verarbeiten (4 Stück)
+            $teilnehmerDaten = [];
+            $teilnehmerIds = [];
+
+            for ($i = 1; $i <= 4; $i++) {
+                $vorname = trim($_POST["vorname_$i"] ?? '');
+                $name = trim($_POST["name_$i"] ?? '');
+                $mobil = trim($_POST["mobil_$i"] ?? '');
+
+                if (!empty($vorname) && !empty($name)) {
+                    $teilnehmerDaten[] = [
+                        'position' => $i,
+                        'vorname' => $vorname,
+                        'name' => $name,
+                        'mobil' => $mobil ?: null
+                    ];
+                }
+            }
+
+            if (empty($teilnehmerDaten)) {
+                $fehler = 'Bitte mindestens einen Teilnehmer angeben.';
+            } else {
+                try {
+                    $db->beginTransaction();
+
+                    // Alte Teilnehmer löschen und neu anlegen
+                    $db->delete('fan_teilnehmer', 'user_id = ?', [$userId]);
+
+                    foreach ($teilnehmerDaten as $t) {
+                        $db->insert('fan_teilnehmer', [
+                            'user_id' => $userId,
+                            'position' => $t['position'],
+                            'vorname' => $t['vorname'],
+                            'name' => $t['name'],
+                            'mobil' => $t['mobil']
+                        ]);
+                        $teilnehmerIds[] = $db->getPdo()->lastInsertId();
+                    }
+
+                    // Anmeldung erstellen oder aktualisieren
+                    if ($anmeldung) {
+                        $db->update('fan_anmeldungen', [
+                            'kabine' => $kabine ?: null,
+                            'teilnehmer_ids' => json_encode($teilnehmerIds)
+                        ], 'anmeldung_id = ?', [$anmeldung['anmeldung_id']]);
+                    } else {
+                        $db->insert('fan_anmeldungen', [
+                            'user_id' => $userId,
+                            'reise_id' => $reiseId,
+                            'kabine' => $kabine ?: null,
+                            'teilnehmer_ids' => json_encode($teilnehmerIds)
+                        ]);
+                    }
+
+                    $db->commit();
+
+                    // Zurück zur Startseite
+                    Session::success('Deine Anmeldung wurde gespeichert!');
+                    header('Location: index.php');
+                    exit;
+
+                } catch (Exception $e) {
+                    $db->rollback();
+                    $fehler = 'Fehler beim Speichern: ' . $e->getMessage();
+                }
+            }
+        } elseif ($action === 'abmelden') {
+            if ($anmeldung) {
+                $db->delete('fan_anmeldungen', 'anmeldung_id = ?', [$anmeldung['anmeldung_id']]);
+                Session::success('Du hast dich erfolgreich abgemeldet.');
+                header('Location: index.php');
+                exit;
+            }
+        }
+    }
+}
+
+// Teilnehmer für Formular vorbereiten (4 Slots)
+$formTeilnehmer = array_fill(1, 4, ['vorname' => '', 'name' => '', 'mobil' => '']);
+foreach ($teilnehmer as $t) {
+    $pos = $t['position'] ?? 1;
+    if ($pos >= 1 && $pos <= 4) {
+        $formTeilnehmer[$pos] = [
+            'vorname' => $t['vorname'] ?? '',
+            'name' => $t['name'] ?? '',
+            'mobil' => $t['mobil'] ?? ''
+        ];
+    }
+}
+
+$csrfToken = $session->getCsrfToken();
+$reise = $reiseModel->formatForDisplay($reise);
+$pageTitle = 'Anmeldung: ' . $reise['schiff'];
+
 include __DIR__ . '/../templates/header.php';
 ?>
 
-<div class="row">
-    <div class="col-12">
-        <h1>Willkommen, <?= htmlspecialchars($currentUser['email']) ?>!</h1>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
 
-        <?php if ($session->isAdmin()): ?>
-            <span class="badge bg-primary">Admin</span>
-        <?php endif; ?>
-        <?php if ($session->isSuperuser()): ?>
-            <span class="badge bg-danger">Superuser</span>
-        <?php endif; ?>
-    </div>
-</div>
-
-<div class="row mt-4">
-    <!-- Schnellzugriff -->
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0">Schnellzugriff</h5>
-            </div>
+        <!-- Reise-Info -->
+        <div class="card mb-4">
             <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="profil.php" class="btn btn-outline-primary">
-                        👤 Mein Profil & Teilnehmer
-                    </a>
-                    <a href="reisen.php" class="btn btn-outline-success">
-                        🚢 Reisen anzeigen
-                    </a>
-                    <a href="passwort.php" class="btn btn-outline-secondary">
-                        🔑 Passwort ändern
-                    </a>
+                <div class="row align-items-center">
+                    <div class="col-md-3 text-center">
+                        <img src="<?= htmlspecialchars($reiseModel->getSchiffBild($reise['schiff'])) ?>"
+                             class="img-fluid rounded" alt="<?= htmlspecialchars($reise['schiff']) ?>">
+                    </div>
+                    <div class="col-md-9">
+                        <h2 class="mb-2"><?= htmlspecialchars($reise['schiff']) ?></h2>
+                        <p class="mb-1">
+                            <i class="bi bi-calendar3"></i>
+                            <?= $reise['anfang_formatiert'] ?> - <?= $reise['ende_formatiert'] ?>
+                            (<?= $reise['dauer_tage'] ?> Tage)
+                        </p>
+                        <?php if ($reise['bahnhof']): ?>
+                            <p class="mb-0 text-muted">
+                                <i class="bi bi-geo-alt"></i> ab <?= htmlspecialchars($reise['bahnhof']) ?>
+                            </p>
+                        <?php endif; ?>
+                    </div>
                 </div>
-
-                <?php if ($session->isSuperuser()): ?>
-                    <hr>
-                    <h6>Superuser</h6>
-                    <div class="d-grid gap-2">
-                        <a href="admin/reise-neu.php" class="btn btn-outline-danger">
-                            ➕ Neue Reise anlegen
-                        </a>
-                        <a href="admin/benutzer.php" class="btn btn-outline-danger">
-                            👥 Benutzer verwalten
-                        </a>
-                    </div>
-                <?php endif; ?>
             </div>
         </div>
-    </div>
 
-    <!-- Meine Anmeldungen -->
-    <div class="col-md-8 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0">Meine Anmeldungen</h5>
-            </div>
-            <div class="card-body">
-                <?php if (empty($meineAnmeldungen)): ?>
-                    <p class="text-muted">Du hast dich noch für keine Reise angemeldet.</p>
-                    <a href="reisen.php" class="btn btn-primary">Jetzt für eine Reise anmelden</a>
-                <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Schiff</th>
-                                    <th>Zeitraum</th>
-                                    <th>Kabine</th>
-                                    <th>Status</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($meineAnmeldungen as $anmeldung): ?>
-                                    <tr>
-                                        <td><?= htmlspecialchars($anmeldung['schiff']) ?></td>
-                                        <td>
-                                            <?= date('d.m.Y', strtotime($anmeldung['anfang'])) ?> -
-                                            <?= date('d.m.Y', strtotime($anmeldung['ende'])) ?>
-                                        </td>
-                                        <td><?= htmlspecialchars($anmeldung['kabine'] ?? '-') ?></td>
-                                        <td>
-                                            <?php
-                                            $statusClass = [
-                                                'geplant' => 'warning',
-                                                'bestaetigt' => 'success',
-                                                'abgesagt' => 'danger'
-                                            ];
-                                            $statusText = [
-                                                'geplant' => 'Geplant',
-                                                'bestaetigt' => 'Bestätigt',
-                                                'abgesagt' => 'Abgesagt'
-                                            ];
-                                            $status = $anmeldung['treffen_status'];
-                                            ?>
-                                            <span class="badge bg-<?= $statusClass[$status] ?>">
-                                                <?= $statusText[$status] ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <a href="reise.php?id=<?= $anmeldung['reise_id'] ?>"
-                                               class="btn btn-sm btn-outline-primary">Details</a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
-</div>
+        <?php if ($fehler): ?>
+            <div class="alert alert-danger"><?= htmlspecialchars($fehler) ?></div>
+        <?php endif; ?>
 
-<!-- Aktuelle Reisen -->
-<div class="row">
-    <div class="col-12">
+        <!-- Anmeldeformular -->
         <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Aktuelle Fantreffen-Reisen</h5>
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <?= $anmeldung ? 'Deine Anmeldung bearbeiten' : 'Zum Fantreffen anmelden' ?>
+                </h4>
             </div>
             <div class="card-body">
-                <?php if (empty($aktiveReisen)): ?>
-                    <p class="text-muted">Derzeit sind keine aktiven Reisen geplant.</p>
-                <?php else: ?>
-                    <div class="row">
-                        <?php foreach ($aktiveReisen as $r):
-                            $istAngemeldet = isset($angemeldeteReisen[$r['reise_id']]);
-                            $cardClass = $istAngemeldet ? 'border-success border-2' : '';
-                        ?>
-                            <div class="col-md-6 col-lg-4 mb-3">
-                                <div class="card h-100 <?= $cardClass ?>">
-                                    <?php if ($istAngemeldet): ?>
-                                        <div class="bg-success text-white py-1 text-center small">
-                                            <i class="bi bi-check-circle"></i> Du bist angemeldet
-                                        </div>
-                                    <?php endif; ?>
-                                    <div class="card-body">
-                                        <h5 class="card-title"><?= htmlspecialchars($r['schiff']) ?></h5>
-                                        <p class="card-text">
-                                            <strong>Zeitraum:</strong><br>
-                                            <?= date('d.m.Y', strtotime($r['anfang'])) ?> -
-                                            <?= date('d.m.Y', strtotime($r['ende'])) ?>
-                                        </p>
-                                        <?php if ($r['treffen_ort']): ?>
-                                            <p class="card-text">
-                                                <strong>Treffpunkt:</strong><br>
-                                                <?= htmlspecialchars($r['treffen_ort']) ?>
-                                            </p>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="card-footer">
-                                        <a href="reise.php?id=<?= $r['reise_id'] ?>"
-                                           class="btn btn-primary btn-sm">Details & Anmelden</a>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                    <input type="hidden" name="action" value="speichern">
+
+                    <!-- Kabine und E-Mail -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="kabine" class="form-label">Kabinennummer</label>
+                            <input type="text" class="form-control" id="kabine" name="kabine"
+                                   value="<?= htmlspecialchars($anmeldung['kabine'] ?? '') ?>"
+                                   placeholder="z.B. 8123">
+                            <div class="form-text">Falls schon bekannt</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">E-Mail-Adresse</label>
+                            <input type="email" class="form-control" value="<?= htmlspecialchars($userEmail) ?>" disabled>
+                            <div class="form-text">Kann nicht geändert werden</div>
+                        </div>
                     </div>
+
+                    <hr>
+
+                    <h5 class="mb-3">Teilnehmer am Fantreffen</h5>
+                    <p class="text-muted small mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        Die Mobilnummer wird <strong>nicht veröffentlicht</strong> und ist nur für die Organisatoren sichtbar.
+                    </p>
+
+                    <!-- 4 Teilnehmer-Felder -->
+                    <?php for ($i = 1; $i <= 4; $i++): ?>
+                        <div class="row mb-3 pb-3 <?= $i < 4 ? 'border-bottom' : '' ?>">
+                            <div class="col-12">
+                                <strong>Teilnehmer <?= $i ?><?= $i === 1 ? ' (du selbst)' : '' ?></strong>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="vorname_<?= $i ?>" class="form-label">Vorname <?= $i === 1 ? '*' : '' ?></label>
+                                <input type="text" class="form-control" id="vorname_<?= $i ?>" name="vorname_<?= $i ?>"
+                                       value="<?= htmlspecialchars($formTeilnehmer[$i]['vorname']) ?>"
+                                       <?= $i === 1 ? 'required' : '' ?>>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="name_<?= $i ?>" class="form-label">Nachname <?= $i === 1 ? '*' : '' ?></label>
+                                <input type="text" class="form-control" id="name_<?= $i ?>" name="name_<?= $i ?>"
+                                       value="<?= htmlspecialchars($formTeilnehmer[$i]['name']) ?>"
+                                       <?= $i === 1 ? 'required' : '' ?>>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="mobil_<?= $i ?>" class="form-label">Mobil</label>
+                                <input type="tel" class="form-control" id="mobil_<?= $i ?>" name="mobil_<?= $i ?>"
+                                       value="<?= htmlspecialchars($formTeilnehmer[$i]['mobil']) ?>">
+                            </div>
+                        </div>
+                    <?php endfor; ?>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-lg"></i>
+                            <?= $anmeldung ? 'Änderungen speichern' : 'Anmelden' ?>
+                        </button>
+                        <a href="index.php" class="btn btn-outline-secondary">Abbrechen</a>
+                    </div>
+                </form>
+
+                <?php if ($anmeldung): ?>
+                    <hr>
+                    <form method="post" onsubmit="return confirm('Wirklich abmelden?');">
+                        <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                        <input type="hidden" name="action" value="abmelden">
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-x-circle"></i> Von dieser Reise abmelden
+                        </button>
+                    </form>
                 <?php endif; ?>
             </div>
         </div>
+
     </div>
 </div>
 
