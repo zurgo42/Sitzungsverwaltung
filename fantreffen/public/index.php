@@ -152,7 +152,20 @@ require_once __DIR__ . '/../templates/header.php';
                     <?php endif; ?>
 
                     <div class="card-body">
-                        <h5 class="card-title"><?= htmlspecialchars($reise['schiff']) ?></h5>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0"><?= htmlspecialchars($reise['schiff']) ?></h5>
+                            <?php
+                            $statusLabels = [
+                                'geplant' => ['Geplant', 'warning'],
+                                'angemeldet' => ['Bei AIDA angemeldet', 'info'],
+                                'bestaetigt' => ['Bestätigt', 'success'],
+                                'abgesagt' => ['Abgesagt', 'danger']
+                            ];
+                            $status = $reise['treffen_status'] ?? 'geplant';
+                            $label = $statusLabels[$status] ?? ['Geplant', 'warning'];
+                            ?>
+                            <span class="badge bg-<?= $label[1] ?>"><?= $label[0] ?></span>
+                        </div>
                         <p class="card-text">
                             <i class="bi bi-calendar3"></i>
                             <?= $reise['anfang_formatiert'] ?> - <?= $reise['ende_formatiert'] ?>

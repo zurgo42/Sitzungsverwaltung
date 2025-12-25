@@ -64,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             for ($i = 1; $i <= 4; $i++) {
                 $vorname = trim($_POST["vorname_$i"] ?? '');
                 $name = trim($_POST["name_$i"] ?? '');
+                $nickname = trim($_POST["nickname_$i"] ?? '');
                 $mobil = trim($_POST["mobil_$i"] ?? '');
 
                 if (!empty($vorname) && !empty($name)) {
@@ -71,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'position' => $i,
                         'vorname' => $vorname,
                         'name' => $name,
+                        'nickname' => $nickname ?: null,
                         'mobil' => $mobil ?: null
                     ];
                 }
@@ -91,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'position' => $t['position'],
                             'vorname' => $t['vorname'],
                             'name' => $t['name'],
+                            'nickname' => $t['nickname'],
                             'mobil' => $t['mobil']
                         ]);
                         $teilnehmerIds[] = $db->getPdo()->lastInsertId();
@@ -135,13 +138,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Teilnehmer für Formular vorbereiten (4 Slots)
-$formTeilnehmer = array_fill(1, 4, ['vorname' => '', 'name' => '', 'mobil' => '']);
+$formTeilnehmer = array_fill(1, 4, ['vorname' => '', 'name' => '', 'nickname' => '', 'mobil' => '']);
 foreach ($teilnehmer as $t) {
     $pos = $t['position'] ?? 1;
     if ($pos >= 1 && $pos <= 4) {
         $formTeilnehmer[$pos] = [
             'vorname' => $t['vorname'] ?? '',
             'name' => $t['name'] ?? '',
+            'nickname' => $t['nickname'] ?? '',
             'mobil' => $t['mobil'] ?? ''
         ];
     }
@@ -225,22 +229,28 @@ include __DIR__ . '/../templates/header.php';
                     <!-- 4 Teilnehmer-Felder -->
                     <?php for ($i = 1; $i <= 4; $i++): ?>
                         <div class="row mb-3 pb-3 <?= $i < 4 ? 'border-bottom' : '' ?>">
-                            <div class="col-12">
+                            <div class="col-12 mb-2">
                                 <strong>Teilnehmer <?= $i ?><?= $i === 1 ? ' (du selbst)' : '' ?></strong>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label for="vorname_<?= $i ?>" class="form-label">Vorname <?= $i === 1 ? '*' : '' ?></label>
                                 <input type="text" class="form-control" id="vorname_<?= $i ?>" name="vorname_<?= $i ?>"
                                        value="<?= htmlspecialchars($formTeilnehmer[$i]['vorname']) ?>"
                                        <?= $i === 1 ? 'required' : '' ?>>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label for="name_<?= $i ?>" class="form-label">Nachname <?= $i === 1 ? '*' : '' ?></label>
                                 <input type="text" class="form-control" id="name_<?= $i ?>" name="name_<?= $i ?>"
                                        value="<?= htmlspecialchars($formTeilnehmer[$i]['name']) ?>"
                                        <?= $i === 1 ? 'required' : '' ?>>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <label for="nickname_<?= $i ?>" class="form-label">Nickname</label>
+                                <input type="text" class="form-control" id="nickname_<?= $i ?>" name="nickname_<?= $i ?>"
+                                       value="<?= htmlspecialchars($formTeilnehmer[$i]['nickname']) ?>"
+                                       placeholder="z.B. Forenname">
+                            </div>
+                            <div class="col-md-3">
                                 <label for="mobil_<?= $i ?>" class="form-label">Mobil</label>
                                 <input type="tel" class="form-control" id="mobil_<?= $i ?>" name="mobil_<?= $i ?>"
                                        value="<?= htmlspecialchars($formTeilnehmer[$i]['mobil']) ?>">

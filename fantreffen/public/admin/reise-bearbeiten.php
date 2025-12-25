@@ -308,10 +308,10 @@ include __DIR__ . '/../../templates/header.php';
             </div>
             <div class="list-group list-group-flush">
                 <a href="teilnehmerliste.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
-                    <i class="bi bi-people me-2"></i> Teilnehmerliste anzeigen
+                    <i class="bi bi-people me-2"></i> Teilnehmerliste
                 </a>
-                <a href="teilnehmerliste.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action" onclick="window.print(); return false;">
-                    <i class="bi bi-printer me-2"></i> Teilnehmerliste drucken
+                <a href="export-aida.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
+                    <i class="bi bi-send me-2"></i> An AIDA übermitteln
                 </a>
                 <a href="export-csv.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
                     <i class="bi bi-file-earmark-spreadsheet me-2"></i> CSV-Export
@@ -321,6 +321,21 @@ include __DIR__ . '/../../templates/header.php';
                 </a>
                 <a href="export-email.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
                     <i class="bi bi-envelope me-2"></i> E-Mail-Liste / Mailing
+                </a>
+            </div>
+        </div>
+
+        <!-- Vorlagen -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Vorlagen</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="#" class="list-group-item list-group-item-action text-muted">
+                    <i class="bi bi-file-text me-2"></i> Briefbogen (in Vorbereitung)
+                </a>
+                <a href="#" class="list-group-item list-group-item-action text-muted">
+                    <i class="bi bi-map me-2"></i> Faltplan (in Vorbereitung)
                 </a>
             </div>
         </div>
