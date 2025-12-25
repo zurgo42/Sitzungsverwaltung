@@ -168,6 +168,7 @@ $endeDatum = date('d.m.Y', strtotime($reise['ende']));
         .etikett-bild {
             width: 100%;
             flex-shrink: 0;
+            padding: 0 30px;
         }
 
         .etikett-bild img {
