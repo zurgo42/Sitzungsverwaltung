@@ -103,8 +103,8 @@ img {
     .row-cols-lg-3 > * { width: 33.333%; }
 }
 
-.g-4 {
-    gap: 1.5rem;
+.g-4 > * {
+    margin-bottom: 1.5rem;
 }
 
 /* ===== Navigation ===== */
@@ -795,6 +795,20 @@ select.form-control {
 .shadow { box-shadow: var(--shadow); }
 
 .img-fluid { max-width: 100%; height: auto; }
+
+.external-links {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+.external-links a {
+    display: inline-flex;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+.external-links a:hover {
+    opacity: 1;
+}
 
 .overflow-hidden { overflow: hidden; }
 

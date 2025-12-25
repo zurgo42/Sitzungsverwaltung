@@ -179,8 +179,27 @@ require_once __DIR__ . '/../templates/header.php';
                             ?>
                             <span class="badge bg-<?= $label[1] ?>"><?= $label[0] ?></span>
                         </div>
-                        <p class="card-text">
-                            📅 <?= $reise['anfang_formatiert'] ?> - <?= $reise['ende_formatiert'] ?>
+                        <p class="card-text d-flex align-items-center">
+                            <span>📅 <?= $reise['anfang_formatiert'] ?> - <?= $reise['ende_formatiert'] ?></span>
+                            <?php if (!empty($reise['link_wasserurlaub']) || !empty($reise['link_facebook']) || !empty($reise['link_kids'])): ?>
+                                <span class="ms-auto external-links">
+                                    <?php if (!empty($reise['link_wasserurlaub'])): ?>
+                                        <a href="<?= htmlspecialchars($reise['link_wasserurlaub']) ?>" target="_blank" title="Wasserurlaub">
+                                            <img src="images/logoWasserurlaub.png" alt="Wasserurlaub" style="height: 20px;">
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if (!empty($reise['link_facebook'])): ?>
+                                        <a href="<?= htmlspecialchars($reise['link_facebook']) ?>" target="_blank" title="Facebook">
+                                            <img src="images/facebook.jpg" alt="Facebook" style="height: 20px;">
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if (!empty($reise['link_kids'])): ?>
+                                        <a href="<?= htmlspecialchars($reise['link_kids']) ?>" target="_blank" title="Kids">
+                                            <img src="images/kids.jpg" alt="Kids" style="height: 20px;">
+                                        </a>
+                                    <?php endif; ?>
+                                </span>
+                            <?php endif; ?>
                         </p>
                         <?php if ($reise['bahnhof']): ?>
                             <p class="card-text text-muted">
