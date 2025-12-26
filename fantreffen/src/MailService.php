@@ -120,7 +120,7 @@ class MailService {
     /**
      * Sendet Admin-Ernennungs-Mail
      */
-    public function sendAdminErnennung(int $userId, int $reiseId): bool {
+    public function sendAdminErnennung(int $userId, int $reiseId, ?string $passwort = null): bool {
         $user = $this->db->fetchOne("SELECT * FROM fan_users WHERE user_id = ?", [$userId]);
         $reise = $this->db->fetchOne("SELECT * FROM fan_reisen WHERE reise_id = ?", [$reiseId]);
 
@@ -132,14 +132,24 @@ class MailService {
             [$userId]
         );
 
-        return $this->sendFromVorlage('admin_ernennung', $user['email'], [
+        $platzhalter = [
             'vorname' => $teilnehmer['vorname'] ?? 'Hallo',
             'name' => $teilnehmer['name'] ?? '',
             'email' => $user['email'],
             'schiff' => $reise['schiff'],
             'anfang' => date('d.m.Y', strtotime($reise['anfang'])),
-            'ende' => date('d.m.Y', strtotime($reise['ende']))
-        ], $reiseId, 8);
+            'ende' => date('d.m.Y', strtotime($reise['ende'])),
+            'passwort' => $passwort ?? ''
+        ];
+
+        // Bei neuem User Passwort-Info hinzufügen
+        if ($passwort) {
+            $platzhalter['passwort_info'] = "Deine Zugangsdaten:\nE-Mail: {$user['email']}\nPasswort: $passwort\n\nWICHTIG: Bitte ändere dein Passwort nach dem ersten Login!";
+        } else {
+            $platzhalter['passwort_info'] = '';
+        }
+
+        return $this->sendFromVorlage('admin_ernennung', $user['email'], $platzhalter, $reiseId, 8);
     }
 
     /**
