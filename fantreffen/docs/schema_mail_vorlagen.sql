@@ -12,7 +12,7 @@ SET NAMES utf8mb4;
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `fan_mail_vorlagen` (
     `vorlage_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `code` VARCHAR(50) NOT NULL UNIQUE,
+    `code` VARCHAR(50) NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `beschreibung` TEXT DEFAULT NULL,
     `betreff` VARCHAR(255) NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `fan_mail_vorlagen` (
     `erstellt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `aktualisiert` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`vorlage_id`),
-    UNIQUE KEY `code` (`code`)
+    UNIQUE KEY `idx_code` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
