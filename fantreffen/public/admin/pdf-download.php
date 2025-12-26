@@ -1,6 +1,8 @@
 <?php
 /**
  * PDF Download Handler
+ * Faltblatt: öffentlich zugänglich
+ * Einladungsbogen: nur für Admins
  */
 
 require_once __DIR__ . '/../../config/config.php';
@@ -9,8 +11,7 @@ require_once __DIR__ . '/../../src/Session.php';
 require_once __DIR__ . '/../../src/Reise.php';
 require_once __DIR__ . '/../../src/PdfService.php';
 
-$session = new Session();
-$session->requireLogin();
+Session::start();
 
 $db = Database::getInstance();
 $reiseModel = new Reise($db);
@@ -26,33 +27,24 @@ if (!$reise) {
     exit('Reise nicht gefunden');
 }
 
-// Berechtigung prüfen (Admin oder Teilnehmer der Reise)
-$currentUser = $session->getUser();
-$isAdmin = Session::isSuperuser() || $reiseModel->isReiseAdmin($reiseId, $currentUser['user_id']);
-
-// Teilnehmer dürfen nur das Faltblatt herunterladen
-$isParticipant = $db->fetchColumn(
-    "SELECT COUNT(*) FROM fan_anmeldungen WHERE reise_id = ? AND user_id = ?",
-    [$reiseId, $currentUser['user_id']]
-) > 0;
-
-if (!$isAdmin && !$isParticipant) {
-    header('HTTP/1.0 403 Forbidden');
-    exit('Keine Berechtigung');
-}
-
 // PDF-Pfad ermitteln
 $path = null;
 $filename = '';
 
 switch ($type) {
     case 'faltblatt':
+        // Faltblatt ist öffentlich zugänglich
         $path = $pdfService->getFaltblattPath($reiseId);
         $filename = 'Faltblatt_' . $reise['schiff'] . '.pdf';
         break;
 
     case 'einladung':
-        // Nur Admins dürfen den Einladungsbogen herunterladen
+        // Einladungsbogen nur für Admins
+        if (!Session::isLoggedIn()) {
+            header('HTTP/1.0 403 Forbidden');
+            exit('Keine Berechtigung');
+        }
+        $isAdmin = Session::isSuperuser() || $reiseModel->isReiseAdmin($reiseId, $_SESSION['user_id']);
         if (!$isAdmin) {
             header('HTTP/1.0 403 Forbidden');
             exit('Keine Berechtigung');
@@ -66,12 +58,17 @@ switch ($type) {
         exit('Ungültiger Typ');
 }
 
-// PDF generieren falls nicht vorhanden
+// PDF generieren falls nicht vorhanden (nur für Admins)
 if (!$path) {
-    $pdfService->generateForReise($reise);
-    $path = ($type === 'faltblatt')
-        ? $pdfService->getFaltblattPath($reiseId)
-        : $pdfService->getEinladungPath($reiseId);
+    if (Session::isLoggedIn()) {
+        $isAdmin = Session::isSuperuser() || $reiseModel->isReiseAdmin($reiseId, $_SESSION['user_id']);
+        if ($isAdmin) {
+            $pdfService->generateForReise($reise);
+            $path = ($type === 'faltblatt')
+                ? $pdfService->getFaltblattPath($reiseId)
+                : $pdfService->getEinladungPath($reiseId);
+        }
+    }
 }
 
 if (!$path || !file_exists($path)) {

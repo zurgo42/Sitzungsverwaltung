@@ -10,7 +10,7 @@ class PdfService {
 
     public function __construct() {
         $this->fpdfPath = __DIR__ . '/../../fpdf';
-        $this->outputPath = __DIR__ . '/../storage/pdf';
+        $this->outputPath = __DIR__ . '/../pdf';
         $this->imagePath = __DIR__ . '/../public/images';
 
         // FPDF laden

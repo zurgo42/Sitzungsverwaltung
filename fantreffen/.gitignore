@@ -12,4 +12,4 @@ logfile.txt
 *.bak
 
 # Generierte PDFs
-storage/pdf/*.pdf
+pdf/*.pdf

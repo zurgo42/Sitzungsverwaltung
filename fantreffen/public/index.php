@@ -7,6 +7,7 @@
 require_once __DIR__ . '/../src/Session.php';
 require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/Reise.php';
+require_once __DIR__ . '/../src/PdfService.php';
 
 Session::start();
 
@@ -21,6 +22,7 @@ try {
     $db = Database::getInstance();
 
     $reiseManager = new Reise($db);
+    $pdfService = new PdfService();
     $aktiveReisen = $reiseManager->getAktive();
 
     // Reisen für Anzeige formatieren
@@ -162,6 +164,7 @@ require_once __DIR__ . '/../templates/header.php';
             $istAdmin = $isSuperuser || isset($meineAdminReisen[$reiseId]);
             $cardClass = $istAngemeldet ? 'border-success border-2' : '';
             $gesamtTeilnehmer = $anmeldungenProReise[$reiseId]['teilnehmer'] ?? 0;
+            $pdfStatus = $pdfService->existsForReise($reiseId);
         ?>
             <div class="col">
                 <div class="card h-100 <?= $cardClass ?>">
@@ -234,6 +237,13 @@ require_once __DIR__ . '/../templates/header.php';
                         <?php else: ?>
                             <a href="dashboard.php?id=<?= $reiseId ?>" class="btn btn-primary w-100">
                                 👆 Möchte dabeisein
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if ($pdfStatus['faltblatt']): ?>
+                            <a href="admin/pdf-download.php?id=<?= $reiseId ?>&type=faltblatt"
+                               class="btn btn-outline-info w-100 mt-2" target="_blank">
+                                🚢 Faltplan herunterladen
                             </a>
                         <?php endif; ?>
 
