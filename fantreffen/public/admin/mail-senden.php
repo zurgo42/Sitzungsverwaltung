@@ -122,10 +122,17 @@ $ohneKabine = $db->fetchColumn(
     "SELECT COUNT(*) FROM fan_anmeldungen WHERE reise_id = ? AND (kabine IS NULL OR kabine = '')",
     [$reiseId]
 );
-$pendingMails = $db->fetchColumn(
-    "SELECT COUNT(*) FROM fan_mail_queue WHERE reise_id = ? AND gesendet IS NULL",
-    [$reiseId]
-);
+
+// Pending Mails - prüfen ob reise_id Spalte existiert
+try {
+    $pendingMails = $db->fetchColumn(
+        "SELECT COUNT(*) FROM fan_mail_queue WHERE reise_id = ? AND gesendet IS NULL",
+        [$reiseId]
+    );
+} catch (Exception $e) {
+    // Spalte reise_id existiert noch nicht
+    $pendingMails = 0;
+}
 
 $csrfToken = $session->getCsrfToken();
 $reise = $reiseModel->formatForDisplay($reise);
