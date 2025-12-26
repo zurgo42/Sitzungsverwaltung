@@ -74,7 +74,7 @@ class Database {
     /**
      * Führt eine SELECT-Abfrage aus und gibt einen einzelnen Wert zurück
      */
-    public function fetchColumn(string $sql, array $params = [], int $column = 0): mixed {
+    public function fetchColumn(string $sql, array $params = [], int $column = 0) {
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchColumn($column);
