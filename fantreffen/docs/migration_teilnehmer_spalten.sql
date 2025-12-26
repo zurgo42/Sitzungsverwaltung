@@ -30,20 +30,46 @@ SET
 WHERE teilnehmer_ids IS NOT NULL;
 
 -- -----------------------------------------------------------------------------
--- Schritt 3: Foreign Keys hinzufügen
+-- Schritt 3: Verwaiste IDs bereinigen (IDs die nicht in fan_teilnehmer existieren)
 -- -----------------------------------------------------------------------------
-ALTER TABLE `fan_anmeldungen`
-    ADD CONSTRAINT `fk_anmeldung_teilnehmer1`
-        FOREIGN KEY (`teilnehmer1_id`) REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL,
-    ADD CONSTRAINT `fk_anmeldung_teilnehmer2`
-        FOREIGN KEY (`teilnehmer2_id`) REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL,
-    ADD CONSTRAINT `fk_anmeldung_teilnehmer3`
-        FOREIGN KEY (`teilnehmer3_id`) REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL,
-    ADD CONSTRAINT `fk_anmeldung_teilnehmer4`
-        FOREIGN KEY (`teilnehmer4_id`) REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL;
+UPDATE `fan_anmeldungen` a
+SET a.teilnehmer1_id = NULL
+WHERE a.teilnehmer1_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM fan_teilnehmer t WHERE t.teilnehmer_id = a.teilnehmer1_id);
+
+UPDATE `fan_anmeldungen` a
+SET a.teilnehmer2_id = NULL
+WHERE a.teilnehmer2_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM fan_teilnehmer t WHERE t.teilnehmer_id = a.teilnehmer2_id);
+
+UPDATE `fan_anmeldungen` a
+SET a.teilnehmer3_id = NULL
+WHERE a.teilnehmer3_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM fan_teilnehmer t WHERE t.teilnehmer_id = a.teilnehmer3_id);
+
+UPDATE `fan_anmeldungen` a
+SET a.teilnehmer4_id = NULL
+WHERE a.teilnehmer4_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM fan_teilnehmer t WHERE t.teilnehmer_id = a.teilnehmer4_id);
 
 -- -----------------------------------------------------------------------------
--- Schritt 4: Index für schnellere Abfragen
+-- Schritt 4: Foreign Keys hinzufügen (optional - kann weggelassen werden)
+-- -----------------------------------------------------------------------------
+-- HINWEIS: Foreign Keys können Probleme verursachen. Falls nicht gewünscht,
+-- diesen Abschnitt überspringen. Die Anwendungslogik prüft die Datenintegrität.
+--
+-- ALTER TABLE `fan_anmeldungen`
+--     ADD CONSTRAINT `fk_anmeldung_teilnehmer1`
+--         FOREIGN KEY (`teilnehmer1_id`) REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL,
+--     ADD CONSTRAINT `fk_anmeldung_teilnehmer2`
+--         FOREIGN KEY (`teilnehmer2_id`) REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL,
+--     ADD CONSTRAINT `fk_anmeldung_teilnehmer3`
+--         FOREIGN KEY (`teilnehmer3_id`) REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL,
+--     ADD CONSTRAINT `fk_anmeldung_teilnehmer4`
+--         FOREIGN KEY (`teilnehmer4_id`) REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL;
+
+-- -----------------------------------------------------------------------------
+-- Schritt 5: Index für schnellere Abfragen
 -- -----------------------------------------------------------------------------
 ALTER TABLE `fan_anmeldungen`
     ADD INDEX `idx_teilnehmer1` (`teilnehmer1_id`),
@@ -52,7 +78,7 @@ ALTER TABLE `fan_anmeldungen`
     ADD INDEX `idx_teilnehmer4` (`teilnehmer4_id`);
 
 -- -----------------------------------------------------------------------------
--- Schritt 5: Alte JSON-Spalte entfernen (optional - erst nach erfolgreicher Prüfung!)
+-- Schritt 6: Alte JSON-Spalte entfernen (optional - erst nach erfolgreicher Prüfung!)
 -- -----------------------------------------------------------------------------
 -- Führe diesen Befehl erst aus, nachdem du geprüft hast, dass die Migration erfolgreich war:
 -- ALTER TABLE `fan_anmeldungen` DROP COLUMN `teilnehmer_ids`;

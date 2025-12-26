@@ -115,15 +115,8 @@ CREATE TABLE IF NOT EXISTS `fan_anmeldungen` (
     CONSTRAINT `fk_fan_anmeldungen_user` FOREIGN KEY (`user_id`)
         REFERENCES `fan_users` (`user_id`) ON DELETE CASCADE,
     CONSTRAINT `fk_fan_anmeldungen_reise` FOREIGN KEY (`reise_id`)
-        REFERENCES `fan_reisen` (`reise_id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_anmeldung_teilnehmer1` FOREIGN KEY (`teilnehmer1_id`)
-        REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL,
-    CONSTRAINT `fk_anmeldung_teilnehmer2` FOREIGN KEY (`teilnehmer2_id`)
-        REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL,
-    CONSTRAINT `fk_anmeldung_teilnehmer3` FOREIGN KEY (`teilnehmer3_id`)
-        REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL,
-    CONSTRAINT `fk_anmeldung_teilnehmer4` FOREIGN KEY (`teilnehmer4_id`)
-        REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL
+        REFERENCES `fan_reisen` (`reise_id`) ON DELETE CASCADE
+    -- Foreign Keys für teilnehmer*_id absichtlich weggelassen (verursachen Probleme bei Migration)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
