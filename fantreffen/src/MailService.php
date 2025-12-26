@@ -31,10 +31,10 @@ class MailService {
     public function getProvider(string $email): string {
         $domain = strtolower(substr(strrchr($email, '@'), 1));
 
-        if (str_contains($domain, 'gmx')) return 'gmx';
-        if (str_contains($domain, 'web.de')) return 'web';
-        if (str_contains($domain, 't-online')) return 't-online';
-        if (str_contains($domain, 'yahoo')) return 'yahoo';
+        if (strpos($domain, 'gmx') !== false) return 'gmx';
+        if (strpos($domain, 'web.de') !== false) return 'web';
+        if (strpos($domain, 't-online') !== false) return 't-online';
+        if (strpos($domain, 'yahoo') !== false) return 'yahoo';
 
         return 'default';
     }
