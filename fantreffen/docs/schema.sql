@@ -90,25 +90,40 @@ CREATE TABLE IF NOT EXISTS `fan_reise_admins` (
 
 -- -----------------------------------------------------------------------------
 -- Tabelle: fan_anmeldungen
--- Anmeldungen von Usern zu Reisen
+-- Anmeldungen von Usern zu Reisen (max. 4 Teilnehmer pro Anmeldung)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `fan_anmeldungen` (
     `anmeldung_id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `user_id` INT UNSIGNED NOT NULL,
     `reise_id` INT UNSIGNED NOT NULL,
     `kabine` VARCHAR(20) DEFAULT NULL,
+    `teilnehmer1_id` INT UNSIGNED DEFAULT NULL,
+    `teilnehmer2_id` INT UNSIGNED DEFAULT NULL,
+    `teilnehmer3_id` INT UNSIGNED DEFAULT NULL,
+    `teilnehmer4_id` INT UNSIGNED DEFAULT NULL,
     `bemerkung` TEXT DEFAULT NULL,
-    `teilnehmer_ids` JSON DEFAULT NULL,
     `infomail_gesendet` DATETIME DEFAULT NULL,
     `erstellt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `aktualisiert` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`anmeldung_id`),
     UNIQUE KEY `user_reise` (`user_id`, `reise_id`),
     KEY `idx_reise` (`reise_id`),
+    KEY `idx_teilnehmer1` (`teilnehmer1_id`),
+    KEY `idx_teilnehmer2` (`teilnehmer2_id`),
+    KEY `idx_teilnehmer3` (`teilnehmer3_id`),
+    KEY `idx_teilnehmer4` (`teilnehmer4_id`),
     CONSTRAINT `fk_fan_anmeldungen_user` FOREIGN KEY (`user_id`)
         REFERENCES `fan_users` (`user_id`) ON DELETE CASCADE,
     CONSTRAINT `fk_fan_anmeldungen_reise` FOREIGN KEY (`reise_id`)
-        REFERENCES `fan_reisen` (`reise_id`) ON DELETE CASCADE
+        REFERENCES `fan_reisen` (`reise_id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_anmeldung_teilnehmer1` FOREIGN KEY (`teilnehmer1_id`)
+        REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_anmeldung_teilnehmer2` FOREIGN KEY (`teilnehmer2_id`)
+        REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_anmeldung_teilnehmer3` FOREIGN KEY (`teilnehmer3_id`)
+        REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_anmeldung_teilnehmer4` FOREIGN KEY (`teilnehmer4_id`)
+        REFERENCES `fan_teilnehmer` (`teilnehmer_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------

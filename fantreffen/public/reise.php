@@ -78,13 +78,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $session->isLoggedIn()) {
                     $fehler = 'Ungültige Teilnehmerauswahl.';
                 } else {
                     try {
-                        $db->insert('fan_anmeldungen', [
+                        // Max 4 Teilnehmer in die Spalten einfügen
+                        $anmeldungDaten = [
                             'user_id' => $userId,
                             'reise_id' => $reiseId,
                             'kabine' => $kabine ?: null,
                             'bemerkung' => $bemerkung ?: null,
-                            'teilnehmer_ids' => json_encode($validTeilnehmer)
-                        ]);
+                            'teilnehmer1_id' => $validTeilnehmer[0] ?? null,
+                            'teilnehmer2_id' => $validTeilnehmer[1] ?? null,
+                            'teilnehmer3_id' => $validTeilnehmer[2] ?? null,
+                            'teilnehmer4_id' => $validTeilnehmer[3] ?? null
+                        ];
+                        $db->insert('fan_anmeldungen', $anmeldungDaten);
                         $erfolg = 'Du hast dich erfolgreich angemeldet!';
                         // Neu laden um Anmeldung anzuzeigen
                         $eigeneAnmeldung = $db->fetchOne(
@@ -115,7 +120,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $session->isLoggedIn()) {
                 $db->update('fan_anmeldungen', [
                     'kabine' => $kabine ?: null,
                     'bemerkung' => $bemerkung ?: null,
-                    'teilnehmer_ids' => json_encode($validTeilnehmer)
+                    'teilnehmer1_id' => $validTeilnehmer[0] ?? null,
+                    'teilnehmer2_id' => $validTeilnehmer[1] ?? null,
+                    'teilnehmer3_id' => $validTeilnehmer[2] ?? null,
+                    'teilnehmer4_id' => $validTeilnehmer[3] ?? null
                 ], 'anmeldung_id = ?', [$eigeneAnmeldung['anmeldung_id']]);
 
                 $erfolg = 'Deine Anmeldung wurde aktualisiert.';
@@ -138,11 +146,16 @@ $anmeldungen = $db->fetchAll(
             GROUP_CONCAT(
                 CONCAT_WS('|', t.vorname, t.name, COALESCE(t.nickname, ''))
                 SEPARATOR '||'
-            ) AS teilnehmer_detail
+            ) AS teilnehmer_detail,
+            (CASE WHEN a.teilnehmer1_id IS NOT NULL THEN 1 ELSE 0 END) +
+            (CASE WHEN a.teilnehmer2_id IS NOT NULL THEN 1 ELSE 0 END) +
+            (CASE WHEN a.teilnehmer3_id IS NOT NULL THEN 1 ELSE 0 END) +
+            (CASE WHEN a.teilnehmer4_id IS NOT NULL THEN 1 ELSE 0 END) AS anzahl_teilnehmer
      FROM fan_anmeldungen a
      JOIN fan_users u ON a.user_id = u.user_id
-     LEFT JOIN fan_teilnehmer t ON t.user_id = u.user_id
-         AND JSON_SEARCH(a.teilnehmer_ids, 'one', CAST(t.teilnehmer_id AS CHAR)) IS NOT NULL
+     LEFT JOIN fan_teilnehmer t ON t.teilnehmer_id IN (
+         a.teilnehmer1_id, a.teilnehmer2_id, a.teilnehmer3_id, a.teilnehmer4_id
+     )
      WHERE a.reise_id = ?
      GROUP BY a.anmeldung_id
      ORDER BY a.erstellt ASC",
@@ -152,8 +165,7 @@ $anmeldungen = $db->fetchAll(
 // Teilnehmer-Daten aufbereiten
 $gesamtTeilnehmer = 0;
 foreach ($anmeldungen as &$a) {
-    $ids = json_decode($a['teilnehmer_ids'] ?? '[]', true);
-    $gesamtTeilnehmer += count($ids);
+    $gesamtTeilnehmer += (int)$a['anzahl_teilnehmer'];
 
     // Teilnehmer parsen
     $a['teilnehmer_parsed'] = [];
@@ -414,7 +426,12 @@ include __DIR__ . '/../templates/header.php';
                         <div class="mb-3">
                             <label class="form-label">Teilnehmer</label>
                             <?php
-                            $selectedIds = json_decode($eigeneAnmeldung['teilnehmer_ids'] ?? '[]', true);
+                            $selectedIds = array_filter([
+                                $eigeneAnmeldung['teilnehmer1_id'] ?? null,
+                                $eigeneAnmeldung['teilnehmer2_id'] ?? null,
+                                $eigeneAnmeldung['teilnehmer3_id'] ?? null,
+                                $eigeneAnmeldung['teilnehmer4_id'] ?? null
+                            ]);
                             foreach ($eigeneTeilnehmer as $t):
                                 $checked = in_array($t['teilnehmer_id'], $selectedIds) ? 'checked' : '';
                             ?>

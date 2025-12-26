@@ -34,7 +34,12 @@ try {
     $anmeldungenProReise = [];
     $stats = $db->fetchAll(
         "SELECT reise_id, COUNT(DISTINCT anmeldung_id) as anzahl_anmeldungen,
-                SUM(JSON_LENGTH(teilnehmer_ids)) as anzahl_teilnehmer
+                SUM(
+                    (CASE WHEN teilnehmer1_id IS NOT NULL THEN 1 ELSE 0 END) +
+                    (CASE WHEN teilnehmer2_id IS NOT NULL THEN 1 ELSE 0 END) +
+                    (CASE WHEN teilnehmer3_id IS NOT NULL THEN 1 ELSE 0 END) +
+                    (CASE WHEN teilnehmer4_id IS NOT NULL THEN 1 ELSE 0 END)
+                ) as anzahl_teilnehmer
          FROM fan_anmeldungen
          GROUP BY reise_id"
     );
@@ -52,12 +57,16 @@ try {
 
         // Anmeldungen mit Teilnehmeranzahl laden
         $anmeldungen = $db->fetchAll(
-            "SELECT reise_id, teilnehmer_ids FROM fan_anmeldungen WHERE user_id = ?",
+            "SELECT reise_id,
+                    (CASE WHEN teilnehmer1_id IS NOT NULL THEN 1 ELSE 0 END) +
+                    (CASE WHEN teilnehmer2_id IS NOT NULL THEN 1 ELSE 0 END) +
+                    (CASE WHEN teilnehmer3_id IS NOT NULL THEN 1 ELSE 0 END) +
+                    (CASE WHEN teilnehmer4_id IS NOT NULL THEN 1 ELSE 0 END) as anzahl_teilnehmer
+             FROM fan_anmeldungen WHERE user_id = ?",
             [$userId]
         );
         foreach ($anmeldungen as $a) {
-            $teilnehmerIds = json_decode($a['teilnehmer_ids'] ?? '[]', true);
-            $meineAnmeldungen[$a['reise_id']] = count($teilnehmerIds);
+            $meineAnmeldungen[$a['reise_id']] = (int)$a['anzahl_teilnehmer'];
         }
 
         // Admin-Reisen laden

@@ -227,15 +227,19 @@ foreach ($alteTeilnehmer as $alt) {
     // Anmeldung anlegen
     try {
         $insertAnmeldung = $pdo->prepare("
-            INSERT INTO fan_anmeldungen (user_id, reise_id, kabine, bemerkung, teilnehmer_ids, erstellt)
-            VALUES (?, ?, ?, ?, ?, NOW())
+            INSERT INTO fan_anmeldungen (user_id, reise_id, kabine, bemerkung,
+                teilnehmer1_id, teilnehmer2_id, teilnehmer3_id, teilnehmer4_id, erstellt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ");
         $insertAnmeldung->execute([
             $userId,
             $neueReiseId,
             $alt['kabine'] ?? null,
             $alt['bemerkung'] ?? null,
-            json_encode($teilnehmerIds)
+            $teilnehmerIds[0] ?? null,
+            $teilnehmerIds[1] ?? null,
+            $teilnehmerIds[2] ?? null,
+            $teilnehmerIds[3] ?? null
         ]);
         echo "  [OK] Anmeldung: {$alt['email']} -> Reise $neueReiseId (" . count($teilnehmerIds) . " Teilnehmer)\n";
     } catch (PDOException $e) {

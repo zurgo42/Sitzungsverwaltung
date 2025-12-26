@@ -80,23 +80,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($teilnehmerId && $anmeldungId) {
                 // Teilnehmer aus Anmeldung entfernen
                 $anmeldung = $db->fetchOne(
-                    "SELECT teilnehmer_ids FROM fan_anmeldungen WHERE anmeldung_id = ?",
+                    "SELECT teilnehmer1_id, teilnehmer2_id, teilnehmer3_id, teilnehmer4_id
+                     FROM fan_anmeldungen WHERE anmeldung_id = ?",
                     [$anmeldungId]
                 );
 
                 if ($anmeldung) {
-                    $ids = json_decode($anmeldung['teilnehmer_ids'] ?? '[]', true);
-                    $ids = array_filter($ids, fn($id) => $id != $teilnehmerId);
+                    // Prüfen welche Spalte den Teilnehmer enthält und auf NULL setzen
+                    $updateData = [];
+                    $verbleibendeTeilnehmer = 0;
 
-                    if (empty($ids)) {
+                    for ($i = 1; $i <= 4; $i++) {
+                        $spalte = "teilnehmer{$i}_id";
+                        if ((int)$anmeldung[$spalte] === $teilnehmerId) {
+                            $updateData[$spalte] = null;
+                        } elseif ($anmeldung[$spalte] !== null) {
+                            $verbleibendeTeilnehmer++;
+                        }
+                    }
+
+                    if ($verbleibendeTeilnehmer === 0) {
                         // Letzte Teilnehmer - ganze Anmeldung löschen
                         $db->delete('fan_anmeldungen', 'anmeldung_id = ?', [$anmeldungId]);
                         $erfolg = 'Anmeldung wurde vollständig gelöscht.';
                     } else {
                         // Nur diesen Teilnehmer entfernen
-                        $db->update('fan_anmeldungen', [
-                            'teilnehmer_ids' => json_encode(array_values($ids))
-                        ], 'anmeldung_id = ?', [$anmeldungId]);
+                        $db->update('fan_anmeldungen', $updateData, 'anmeldung_id = ?', [$anmeldungId]);
                         $erfolg = 'Teilnehmer wurde entfernt.';
                     }
 
@@ -153,20 +162,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     );
 
                     if ($existingAnmeldung) {
-                        // Zu bestehender Anmeldung hinzufügen
-                        $ids = json_decode($existingAnmeldung['teilnehmer_ids'] ?? '[]', true);
-                        $ids[] = $teilnehmerId;
-                        $db->update('fan_anmeldungen', [
-                            'teilnehmer_ids' => json_encode($ids),
-                            'kabine' => $kabine ?: $existingAnmeldung['kabine']
-                        ], 'anmeldung_id = ?', [$existingAnmeldung['anmeldung_id']]);
+                        // Zu bestehender Anmeldung hinzufügen - erste freie Spalte finden
+                        $updateData = ['kabine' => $kabine ?: $existingAnmeldung['kabine']];
+                        for ($i = 1; $i <= 4; $i++) {
+                            $spalte = "teilnehmer{$i}_id";
+                            if (empty($existingAnmeldung[$spalte])) {
+                                $updateData[$spalte] = $teilnehmerId;
+                                break;
+                            }
+                        }
+                        $db->update('fan_anmeldungen', $updateData,
+                            'anmeldung_id = ?', [$existingAnmeldung['anmeldung_id']]);
                     } else {
                         // Neue Anmeldung erstellen
                         $db->insert('fan_anmeldungen', [
                             'user_id' => $userId,
                             'reise_id' => $reiseId,
                             'kabine' => $kabine ?: null,
-                            'teilnehmer_ids' => json_encode([$teilnehmerId])
+                            'teilnehmer1_id' => $teilnehmerId
                         ]);
                     }
 
@@ -199,16 +212,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Alle Teilnehmer dieser Reise laden - sortiert nach Kabine, dann Nachname
-// Hinweis: teilnehmer_ids enthält JSON-Array mit String-IDs wie ["1","2","3"]
 $teilnehmer = $db->fetchAll(
     "SELECT t.teilnehmer_id, t.vorname, t.name, t.nickname, t.mobil,
             a.anmeldung_id, a.kabine, a.erstellt AS anmeldung_datum,
             u.email, u.user_id
      FROM fan_anmeldungen a
      JOIN fan_users u ON a.user_id = u.user_id
-     JOIN fan_teilnehmer t ON t.user_id = u.user_id
+     JOIN fan_teilnehmer t ON t.teilnehmer_id IN (
+         a.teilnehmer1_id, a.teilnehmer2_id, a.teilnehmer3_id, a.teilnehmer4_id
+     )
      WHERE a.reise_id = ?
-       AND JSON_SEARCH(a.teilnehmer_ids, 'one', CAST(t.teilnehmer_id AS CHAR)) IS NOT NULL
      ORDER BY CAST(a.kabine AS UNSIGNED), a.kabine, t.name, t.vorname",
     [$reiseId]
 );

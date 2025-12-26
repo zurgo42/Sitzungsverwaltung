@@ -179,10 +179,14 @@ class Reise {
      */
     public function getTeilnehmerAnzahl(int $reiseId): int {
         return (int) $this->db->fetchColumn(
-            "SELECT COUNT(*)
-             FROM fan_anmeldungen a
-             JOIN JSON_TABLE(a.teilnehmer_ids, '$[*]' COLUMNS(tid INT PATH '$')) AS t
-             WHERE a.reise_id = ?",
+            "SELECT SUM(
+                (CASE WHEN teilnehmer1_id IS NOT NULL THEN 1 ELSE 0 END) +
+                (CASE WHEN teilnehmer2_id IS NOT NULL THEN 1 ELSE 0 END) +
+                (CASE WHEN teilnehmer3_id IS NOT NULL THEN 1 ELSE 0 END) +
+                (CASE WHEN teilnehmer4_id IS NOT NULL THEN 1 ELSE 0 END)
+             )
+             FROM fan_anmeldungen
+             WHERE reise_id = ?",
             [$reiseId]
         );
     }

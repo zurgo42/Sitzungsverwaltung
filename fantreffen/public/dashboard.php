@@ -59,7 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Teilnehmer verarbeiten (4 Stück)
             $teilnehmerDaten = [];
-            $teilnehmerIds = [];
 
             for ($i = 1; $i <= 4; $i++) {
                 $vorname = trim($_POST["vorname_$i"] ?? '');
@@ -87,6 +86,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Alte Teilnehmer löschen und neu anlegen
                     $db->delete('fan_teilnehmer', 'user_id = ?', [$userId]);
 
+                    // Teilnehmer-IDs nach Position (1-4) sammeln
+                    $teilnehmerNachPosition = [1 => null, 2 => null, 3 => null, 4 => null];
+
                     foreach ($teilnehmerDaten as $t) {
                         $db->insert('fan_teilnehmer', [
                             'user_id' => $userId,
@@ -96,22 +98,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'nickname' => $t['nickname'],
                             'mobil' => $t['mobil']
                         ]);
-                        $teilnehmerIds[] = $db->getPdo()->lastInsertId();
+                        $teilnehmerNachPosition[$t['position']] = (int)$db->getPdo()->lastInsertId();
                     }
 
                     // Anmeldung erstellen oder aktualisieren
+                    $anmeldungDaten = [
+                        'kabine' => $kabine ?: null,
+                        'teilnehmer1_id' => $teilnehmerNachPosition[1],
+                        'teilnehmer2_id' => $teilnehmerNachPosition[2],
+                        'teilnehmer3_id' => $teilnehmerNachPosition[3],
+                        'teilnehmer4_id' => $teilnehmerNachPosition[4]
+                    ];
+
                     if ($anmeldung) {
-                        $db->update('fan_anmeldungen', [
-                            'kabine' => $kabine ?: null,
-                            'teilnehmer_ids' => json_encode($teilnehmerIds)
-                        ], 'anmeldung_id = ?', [$anmeldung['anmeldung_id']]);
+                        $db->update('fan_anmeldungen', $anmeldungDaten,
+                            'anmeldung_id = ?', [$anmeldung['anmeldung_id']]);
                     } else {
-                        $db->insert('fan_anmeldungen', [
-                            'user_id' => $userId,
-                            'reise_id' => $reiseId,
-                            'kabine' => $kabine ?: null,
-                            'teilnehmer_ids' => json_encode($teilnehmerIds)
-                        ]);
+                        $anmeldungDaten['user_id'] = $userId;
+                        $anmeldungDaten['reise_id'] = $reiseId;
+                        $db->insert('fan_anmeldungen', $anmeldungDaten);
                     }
 
                     $db->commit();
