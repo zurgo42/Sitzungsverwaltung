@@ -113,6 +113,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $erfolg = "$count E-Mails wurden in die Warteschlange gestellt.";
                 }
                 break;
+
+            case 'process_queue':
+                // Mail-Queue manuell abarbeiten
+                $maxMails = (int)($_POST['max_mails'] ?? 10);
+                $stats = $mailService->processQueue([
+                    'gmx' => $maxMails,
+                    'web' => $maxMails,
+                    't-online' => $maxMails,
+                    'yahoo' => $maxMails,
+                    'default' => $maxMails
+                ]);
+                $erfolg = "Queue verarbeitet: {$stats['sent']} gesendet, {$stats['failed']} fehlgeschlagen, {$stats['skipped']} übersprungen.";
+                break;
         }
     }
 }
@@ -133,9 +146,15 @@ try {
         "SELECT COUNT(*) FROM fan_mail_queue WHERE reise_id = ? AND gesendet IS NULL",
         [$reiseId]
     );
+    $pendingMailsTotal = $db->fetchColumn(
+        "SELECT COUNT(*) FROM fan_mail_queue WHERE gesendet IS NULL"
+    );
 } catch (Exception $e) {
     // Spalte reise_id existiert noch nicht
     $pendingMails = 0;
+    $pendingMailsTotal = $db->fetchColumn(
+        "SELECT COUNT(*) FROM fan_mail_queue WHERE gesendet IS NULL"
+    );
 }
 
 $csrfToken = $session->getCsrfToken();
@@ -286,6 +305,41 @@ include __DIR__ . '/../../templates/header.php';
                         Nachricht an alle <?= $anmeldungCount ?> Teilnehmer senden
                     </button>
                 </form>
+            </div>
+        </div>
+
+        <!-- Mail-Queue verarbeiten -->
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">📬 Mail-Warteschlange</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <p class="mb-1">
+                            <strong><?= $pendingMails ?></strong> Mails für diese Reise wartend
+                        </p>
+                        <p class="mb-0 text-muted">
+                            <strong><?= $pendingMailsTotal ?></strong> Mails insgesamt in der Queue
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <form method="post" class="d-flex gap-2 align-items-center justify-content-end">
+                            <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                            <input type="hidden" name="action" value="process_queue">
+                            <label class="form-label mb-0 me-2">Max. Mails:</label>
+                            <select name="max_mails" class="form-select form-select-sm" style="width: auto;">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                            </select>
+                            <button type="submit" class="btn btn-info" <?= $pendingMailsTotal == 0 ? 'disabled' : '' ?>>
+                                ▶ Queue jetzt abarbeiten
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
 
