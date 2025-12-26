@@ -8,10 +8,12 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/Session.php';
 require_once __DIR__ . '/../src/Reise.php';
+require_once __DIR__ . '/../src/MailService.php';
 
 $session = new Session();
 $db = Database::getInstance();
 $reiseModel = new Reise($db);
+$mailService = new MailService($db);
 
 // Reise-ID aus URL
 $reiseId = (int)($_GET['id'] ?? 0);
@@ -110,6 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'teilnehmer4_id' => $teilnehmerNachPosition[4]
                     ];
 
+                    $isNewAnmeldung = false;
                     if ($anmeldung) {
                         $db->update('fan_anmeldungen', $anmeldungDaten,
                             'anmeldung_id = ?', [$anmeldung['anmeldung_id']]);
@@ -117,12 +120,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $anmeldungDaten['user_id'] = $userId;
                         $anmeldungDaten['reise_id'] = $reiseId;
                         $db->insert('fan_anmeldungen', $anmeldungDaten);
+                        $isNewAnmeldung = true;
                     }
 
                     $db->commit();
 
+                    // Bei Neuanmeldung Bestätigungs-Mail senden
+                    if ($isNewAnmeldung) {
+                        $mailService->sendAnmeldebestaetigung($userId, $reiseId);
+                    }
+
                     // Zurück zur Startseite
-                    Session::success('Deine Anmeldung wurde gespeichert!');
+                    Session::success($isNewAnmeldung
+                        ? 'Deine Anmeldung wurde gespeichert! Du erhältst eine Bestätigung per E-Mail.'
+                        : 'Deine Anmeldung wurde aktualisiert!');
                     header('Location: index.php');
                     exit;
 
