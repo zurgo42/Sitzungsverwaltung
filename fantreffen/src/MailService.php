@@ -254,7 +254,7 @@ class MailService {
     public function processQueue(array $limits = []): array {
         $limits = array_merge($this->providerLimits, $limits);
 
-        $stats = ['processed' => 0, 'sent' => 0, 'failed' => 0];
+        $stats = ['processed' => 0, 'sent' => 0, 'failed' => 0, 'skipped' => 0];
 
         // Zähle bereits gesendete Mails pro Provider in der letzten Stunde
         $sentCounts = [];
@@ -282,6 +282,7 @@ class MailService {
 
             // Limit erreicht?
             if ($currentCount >= $limit) {
+                $stats['skipped']++;
                 continue;
             }
 
