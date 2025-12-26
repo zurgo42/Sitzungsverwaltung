@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../src/Session.php';
 require_once __DIR__ . '/../../src/Reise.php';
 require_once __DIR__ . '/../../src/User.php';
 require_once __DIR__ . '/../../src/MailService.php';
+require_once __DIR__ . '/../../src/PdfService.php';
 
 $session = new Session();
 $session->requireLogin();
@@ -17,6 +18,7 @@ $db = Database::getInstance();
 $reiseModel = new Reise($db);
 $userModel = new User($db);
 $mailService = new MailService($db);
+$pdfService = new PdfService();
 
 $reiseId = (int)($_GET['id'] ?? 0);
 $reise = $reiseModel->findById($reiseId);
@@ -148,9 +150,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $fehler = 'Reise konnte nicht gelöscht werden.';
             }
+        } elseif ($action === 'generate_pdfs') {
+            $result = $pdfService->generateForReise($reise);
+            if (empty($result['errors'])) {
+                $erfolg = 'PDFs wurden erfolgreich generiert.';
+            } else {
+                $fehler = 'Fehler bei PDF-Generierung: ' . implode(', ', $result['errors']);
+            }
         }
     }
 }
+
+// PDF-Status prüfen
+$pdfStatus = $pdfService->existsForReise($reiseId);
 
 $reiseAdmins = $reiseModel->getAdmins($reiseId);
 $csrfToken = $session->getCsrfToken();
@@ -322,18 +334,38 @@ include __DIR__ . '/../../templates/header.php';
             </div>
         </div>
 
-        <!-- Vorlagen -->
+        <!-- PDF Vorlagen -->
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0">📄 Vorlagen</h5>
+                <h5 class="mb-0">📄 PDF-Vorlagen</h5>
             </div>
-            <div class="list-group list-group-flush">
-                <a href="#" class="list-group-item list-group-item-action text-muted">
-                    📄 Briefbogen (in Vorbereitung)
-                </a>
-                <a href="#" class="list-group-item list-group-item-action text-muted">
-                    🗺 Faltplan (in Vorbereitung)
-                </a>
+            <div class="card-body">
+                <?php if ($pdfStatus['einladung'] || $pdfStatus['faltblatt']): ?>
+                    <div class="list-group mb-3">
+                        <?php if ($pdfStatus['einladung']): ?>
+                            <a href="pdf-download.php?id=<?= $reiseId ?>&type=einladung"
+                               class="list-group-item list-group-item-action" target="_blank">
+                                📄 Einladungsbogen
+                            </a>
+                        <?php endif; ?>
+                        <?php if ($pdfStatus['faltblatt']): ?>
+                            <a href="pdf-download.php?id=<?= $reiseId ?>&type=faltblatt"
+                               class="list-group-item list-group-item-action" target="_blank">
+                                🚢 Faltplan Schiff
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                <?php else: ?>
+                    <p class="text-muted small mb-3">Noch keine PDFs generiert.</p>
+                <?php endif; ?>
+
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                    <input type="hidden" name="action" value="generate_pdfs">
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                        <?= ($pdfStatus['einladung'] || $pdfStatus['faltblatt']) ? '🔄 PDFs neu generieren' : '📄 PDFs generieren' ?>
+                    </button>
+                </form>
             </div>
         </div>
 
