@@ -171,8 +171,22 @@ $csrfToken = $session->getCsrfToken();
 $reise = $reiseModel->formatForDisplay($reise);
 $pageTitle = 'Anmeldung: ' . $reise['schiff'];
 
+// Yahoo-Warnung prüfen
+$userEmail = strtolower($currentUser['email'] ?? '');
+$isYahooUser = (strpos($userEmail, 'yahoo') !== false) || (strpos($userEmail, 'aol') !== false);
+
 include __DIR__ . '/../templates/header.php';
 ?>
+
+<?php if ($isYahooUser): ?>
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <strong>⚠ Hinweis zu deiner E-Mail-Adresse:</strong><br>
+    Du bist mit einer Yahoo/AOL-Adresse angemeldet. Leider blockiert Yahoo häufig E-Mails von Webseiten wie dieser.
+    Es kann sein, dass du <strong>keine Benachrichtigungen</strong> zum Fantreffen erhältst.<br>
+    <small class="text-muted">Falls möglich, hinterlege bitte eine alternative E-Mail-Adresse (z.B. GMX, Web.de, Gmail).</small>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></button>
+</div>
+<?php endif; ?>
 
 <div class="row justify-content-center">
     <div class="col-lg-8">
