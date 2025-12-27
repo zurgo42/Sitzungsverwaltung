@@ -125,15 +125,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $db->commit();
 
-                    // Bei Neuanmeldung Bestätigungs-Mail senden
-                    if ($isNewAnmeldung) {
-                        $mailService->sendAnmeldebestaetigung($userId, $reiseId);
+                    // Bei Neuanmeldung Bestätigungs-Mail senden (wenn aktiviert)
+                    $mailSent = false;
+                    if ($isNewAnmeldung && defined('MAIL_SEND_ANMELDEBESTAETIGUNG') && MAIL_SEND_ANMELDEBESTAETIGUNG) {
+                        $mailSent = $mailService->sendAnmeldebestaetigung($userId, $reiseId);
                     }
 
                     // Zurück zur Startseite
-                    Session::success($isNewAnmeldung
-                        ? 'Deine Anmeldung wurde gespeichert! Du erhältst eine Bestätigung per E-Mail.'
-                        : 'Deine Anmeldung wurde aktualisiert!');
+                    if ($isNewAnmeldung) {
+                        $msg = 'Deine Anmeldung wurde gespeichert!';
+                        if ($mailSent) {
+                            $msg .= ' Du erhältst eine Bestätigung per E-Mail.';
+                        }
+                        Session::success($msg);
+                    } else {
+                        Session::success('Deine Anmeldung wurde aktualisiert!');
+                    }
                     header('Location: index.php');
                     exit;
 

@@ -21,6 +21,10 @@ define('MAIL_FROM_NAME', 'Aida Fantreffen');
 // BCC-Kopie an Admin (leer = deaktiviert)
 define('MAIL_BCC_ADMIN', '');  // z.B. 'admin@example.de'
 
+// Bestätigungsmail nach Anmeldung senden (true/false)
+// Bei false erhält der Teilnehmer nur die Rückmeldung auf der Webseite
+define('MAIL_SEND_ANMELDEBESTAETIGUNG', true);
+
 // Anwendung
 define('APP_NAME', 'Aida Fantreffen');
 define('APP_URL', 'https://aidafantreffen.de');
