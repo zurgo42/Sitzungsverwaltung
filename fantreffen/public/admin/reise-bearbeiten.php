@@ -325,11 +325,8 @@ include __DIR__ . '/../../templates/header.php';
                 <a href="namensschilder.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
                     🏷 Namensschilder drucken
                 </a>
-                <a href="export-email.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
-                    ✉ E-Mail-Liste / Mailing
-                </a>
                 <a href="mail-senden.php?id=<?= $reiseId ?>" class="list-group-item list-group-item-action">
-                    📧 Massen-Mails senden
+                    📧 Mails an Teilnehmer
                 </a>
             </div>
         </div>
@@ -437,7 +434,7 @@ include __DIR__ . '/../../templates/header.php';
                 // Basis-URL ermitteln (ohne /admin/)
                 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
                 $host = $_SERVER['HTTP_HOST'] ?? 'example.com';
-                $scriptPath = dirname(dirname($_SERVER['SCRIPT_NAME'])); // /fantreffen/public
+                $scriptPath = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'])), '/');
                 $statusUrl = $protocol . '://' . $host . $scriptPath . '/status.php?id=' . $reiseId;
                 ?>
                 <div class="input-group">

@@ -210,8 +210,8 @@ require_once __DIR__ . '/../templates/header.php';
                                         </a>
                                     <?php endif; ?>
                                     <?php if (!empty($reise['link_kids'])): ?>
-                                        <a href="<?= htmlspecialchars($reise['link_kids']) ?>" target="_blank" title="Kids">
-                                            <img src="images/kids.jpg" alt="Kids" style="height: 20px;">
+                                        <a href="<?= htmlspecialchars($reise['link_kids']) ?>" target="_blank" title="Meine Landausflüge">
+                                            <img src="images/meinelandausfluege.jpg" alt="Meine Landausflüge" style="height: 20px;">
                                         </a>
                                     <?php endif; ?>
                                 </span>
@@ -243,7 +243,7 @@ require_once __DIR__ . '/../templates/header.php';
                         <?php if ($pdfStatus['faltblatt']): ?>
                             <a href="admin/pdf-download.php?id=<?= $reiseId ?>&type=faltblatt"
                                class="btn btn-outline-info w-100 mt-2" target="_blank">
-                                🚢 Faltplan herunterladen
+                                🚢 Fanschiffchen zum Falten
                             </a>
                         <?php endif; ?>
 
