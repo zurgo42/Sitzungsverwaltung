@@ -361,6 +361,65 @@ $mail->SMTPDebug = 2;  // Ausführliche Ausgabe
 
 ---
 
+## Bounce-Handling (Zurückgewiesene Mails)
+
+### Problem: Yahoo/AOL Blocks
+
+Yahoo und AOL blockieren häufig E-Mails von Shared-Hosting-Servern mit Fehlermeldungen wie:
+
+```
+421 4.7.0 [TSS04] Messages temporarily deferred due to unexpected volume
+or user complaints - see https://postmaster.yahooinc.com/error-codes
+```
+
+### Ursachen
+
+1. **Schlechte IP-Reputation** - Die Shared-Hosting-IP wurde von anderen Nutzern "verbrannt"
+2. **Fehlendes SPF/DKIM/DMARC** - E-Mail-Authentifizierung nicht korrekt konfiguriert
+3. **Zu viele Mails** - Rate-Limiting durch den Provider
+4. **Spam-Beschwerden** - Empfänger haben frühere Mails als Spam markiert
+
+### Lösungsansätze
+
+| Lösung | Aufwand | Effektivität |
+|--------|---------|--------------|
+| **SPF/DKIM/DMARC einrichten** | Mittel | Hoch |
+| **Dedizierte IP verwenden** | Hoch (VPS) | Hoch |
+| **Externen Mailservice nutzen** | Niedrig | Sehr hoch |
+| **Yahoo-Empfänger ausschließen** | Niedrig | Workaround |
+
+### Externe Mailservices (empfohlen)
+
+Für zuverlässigen Mailversand sind externe Services besser geeignet:
+
+- **Mailjet** - Kostenlos bis 200 Mails/Tag
+- **SendGrid** - Kostenlos bis 100 Mails/Tag
+- **Amazon SES** - Sehr günstig, aber Setup komplexer
+
+### SPF/DKIM einrichten (beim Domain-Hoster)
+
+1. **SPF-Record** in DNS hinzufügen:
+   ```
+   v=spf1 include:_spf.example-hosting.de ~all
+   ```
+
+2. **DKIM-Record** vom Mailserver abrufen und eintragen
+
+3. **DMARC-Record** hinzufügen:
+   ```
+   v=DMARC1; p=none; rua=mailto:dmarc@deine-domain.de
+   ```
+
+### Bounce-Erkennung im System
+
+Aktuell werden Bounces nicht automatisch erkannt. Bei Bedarf könnte implementiert werden:
+
+1. **Return-Path Header** mit Bounce-Adresse setzen
+2. **Bounce-Mailbox** per IMAP/POP3 auslesen
+3. **Betroffene Adressen** in der Datenbank markieren
+
+---
+
 ## Versionshinweise
 
 - **PHP-Version:** Kompatibel mit PHP 7.4+

@@ -21,7 +21,8 @@ class MailService {
         $this->config = [
             'from_email' => defined('MAIL_FROM') ? MAIL_FROM : 'noreply@aidafantreffen.de',
             'from_name' => defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'AIDA Fantreffen',
-            'base_url' => defined('BASE_URL') ? BASE_URL : ''
+            'base_url' => defined('BASE_URL') ? BASE_URL : '',
+            'bcc_admin' => defined('MAIL_BCC_ADMIN') ? MAIL_BCC_ADMIN : ''
         ];
     }
 
@@ -340,6 +341,9 @@ class MailService {
         $headers = [];
         $headers[] = "From: " . mb_encode_mimeheader($fromName, 'UTF-8') . " <$fromEmail>";
         $headers[] = "Reply-To: $fromEmail";
+        if (!empty($this->config['bcc_admin'])) {
+            $headers[] = "Bcc: " . $this->config['bcc_admin'];
+        }
         $headers[] = "MIME-Version: 1.0";
         $headers[] = "Content-Type: multipart/alternative; boundary=\"$boundary\"";
         $headers[] = "X-Mailer: PHP/" . phpversion();

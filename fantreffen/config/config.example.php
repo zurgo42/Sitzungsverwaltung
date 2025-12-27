@@ -18,6 +18,9 @@ define('MAIL_PASS', 'dein_mail_passwort');
 define('MAIL_FROM_ADDRESS', 'info@example.de');
 define('MAIL_FROM_NAME', 'Aida Fantreffen');
 
+// BCC-Kopie an Admin (leer = deaktiviert)
+define('MAIL_BCC_ADMIN', '');  // z.B. 'admin@example.de'
+
 // Anwendung
 define('APP_NAME', 'Aida Fantreffen');
 define('APP_URL', 'https://aidafantreffen.de');
