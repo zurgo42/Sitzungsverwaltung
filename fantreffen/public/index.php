@@ -113,14 +113,15 @@ require_once __DIR__ . '/../templates/header.php';
                 <div class="accordion-body">
                     <p>
                         Das <strong>AIDA Fantreffen</strong> ist ein ungezwungenes Treffen von AIDA-Fans an Bord.
-                        Hier lernen sich Gleichgesinnte kennen, tauschen Erfahrungen aus und verbringen gemeinsam
-                        Zeit während der Kreuzfahrt.
+                        Hier lernen sich Gleichgesinnte kennen, tauschen Erfahrungen aus und verbringen gemeinsam Zeit während der Kreuzfahrt.
                     </p>
                     <p><strong>Was erwartet dich?</strong></p>
                     <ul>
                         <li>Kennenlernen anderer AIDA-Fans</li>
                         <li>Gemeinsamer Sektempfang</li>
                         <li>Erfahrungsaustausch und Tipps</li>
+                        <li>Verabredung gemeinsamer Aktivitäten</li>
+                        <li>Insider-Informationen vom General Manager</li>
                         <li>Manchmal Überraschungen von der Crew</li>
                         <li>Nette Gesellschaft während der Reise</li>
                     </ul>
@@ -131,8 +132,9 @@ require_once __DIR__ . '/../templates/header.php';
                         <li>Trage deine Teilnehmer und Kabinennummer ein</li>
                         <li>Fertig! Du erhältst alle Infos zum Treffpunkt.</li>
                     </ol>
+                    <p><strong><br>Du möchtest für eine andere Reise selbst ein Fantreffen organisieren?</strong></p>
                     <p class="mb-0">
-                        Die Teilnahme ist <strong>kostenlos</strong> und unverbindlich.
+                        Gern - dieses Projekt ist entsprechend ausgelegt. Dann melde dich bei uns <strong><a href="mailto:admin@aidafantreffen.de">per Mail</a></strong>; wir legen für dich eine entsprechende Seite an und dein Job ist es, die Mitreisenden anzusprechen, das Treffen bei Aida anzumelden, mit diesem Script die Fans zu benachrichtigen und die Namensschilder etc. zu drucken.<br>Und dann beim Treffen an Bord die Fans zu begrüßen und mit dem ersten Glas Sekt auf eine schöne Reise anzustoßen...
                     </p>
                 </div>
             </div>
