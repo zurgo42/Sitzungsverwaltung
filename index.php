@@ -11,14 +11,34 @@
  * Letzte Aktualisierung: 28.10.2025 MEZ
  */
 
+// Konfiguration und Hilfsfunktionen laden (MUSS vor Session-Konfiguration stehen)
+require_once 'config.php';           // Datenbankverbindung und Konstanten
+
+// ============================================
+// SESSION-LIFETIME MANAGEMENT
+// ============================================
+// Trust-Device Cookie prüfen
+$trust_device = isset($_COOKIE['trust_device']) && $_COOKIE['trust_device'] === '1';
+
+// Session-Lifetime setzen basierend auf Trust-Device Status (MUSS vor session_start() stehen)
+if ($trust_device) {
+    // Vertrauenswürdiges Gerät: Session bleibt bis zum expliziten Logout
+    // Cookie-Lifetime auf 0 = bis Browser geschlossen wird
+    // gc_maxlifetime auf 30 Tage = Session-Daten bleiben 30 Tage erhalten
+    ini_set('session.cookie_lifetime', 0);
+    ini_set('session.gc_maxlifetime', 2592000); // 30 Tage
+} else {
+    // Normaler Modus: Session läuft nach SESSION_TIMEOUT ab
+    ini_set('session.cookie_lifetime', SESSION_TIMEOUT);
+    ini_set('session.gc_maxlifetime', SESSION_TIMEOUT);
+}
+
 // Session starten (muss ganz am Anfang stehen, vor jeder Ausgabe)
 // Prüfen ob Session bereits gestartet wurde (z.B. durch sso_direct.php)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-// Konfiguration und Hilfsfunktionen laden
-require_once 'config.php';           // Datenbankverbindung und Konstanten
+// ============================================
 require_once 'config_adapter.php';   // Konfiguration für Mitgliederquelle
 require_once 'member_functions.php'; // Prozedurale Wrapper-Funktionen für Mitglieder
 require_once 'functions.php';        // Wiederverwendbare Funktionen
@@ -52,8 +72,34 @@ function get_member_from_cache($member_id) {
 // ============================================
 // Wenn der Logout-Link geklickt wurde (?logout=1), Session beenden
 if (isset($_GET['logout'])) {
+    // Session zerstören
     session_destroy();
+
+    // Trust-Device Cookie löschen
+    if (isset($_COOKIE['trust_device'])) {
+        setcookie('trust_device', '', time() - 3600, '/');
+    }
+
+    // Redirect to login or SSO entry point
     header('Location: index.php');
+    exit;
+}
+
+// ============================================
+// TRUST-DEVICE TOGGLE
+// ============================================
+// Trust-Device Cookie setzen/löschen
+if (isset($_GET['toggle_trust_device'])) {
+    if (isset($_COOKIE['trust_device']) && $_COOKIE['trust_device'] === '1') {
+        // Trust-Device deaktivieren
+        setcookie('trust_device', '0', time() - 3600, '/');
+    } else {
+        // Trust-Device aktivieren (Cookie für 365 Tage)
+        setcookie('trust_device', '1', time() + 31536000, '/');
+    }
+
+    // Zur gleichen Seite zurück
+    header('Location: ' . $_SERVER['PHP_SELF'] . (isset($_GET['tab']) ? '?tab=' . $_GET['tab'] : ''));
     exit;
 }
 
@@ -710,7 +756,17 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                     <span class="icon">🌙</span>
                 </button>
 
+                <!-- Trust-Device Toggle -->
+                <a href="?toggle_trust_device=1"
+                   class="trust-device-toggle"
+                   title="<?php echo $trust_device ? 'Vertrauenswürdiges Gerät deaktivieren' : 'Gerät als vertrauenswürdig markieren'; ?>">
+                    <?php echo $trust_device ? '🔓' : '🔒'; ?>
+                </a>
+
                 <?php if ($display_mode === 'SSOdirekt' && $sso_config): ?>
+                    <!-- Logout-Button für SSOdirekt-Modus -->
+                    <a href="?logout=1" class="logout-btn" title="Abmelden">Abmelden</a>
+
                     <!-- Zurück-Button für SSOdirekt-Modus -->
                     <a href="<?php echo $sso_config['back_button_url']; ?>" class="logout-btn sso-back-button">
                         <?php echo $sso_config['back_button_text']; ?>

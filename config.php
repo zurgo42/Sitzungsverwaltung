@@ -52,7 +52,7 @@ if (IS_LOCAL) {
 
 // ============= SYSTEM-EINSTELLUNGEN =============
 define('TIMEZONE', 'Europe/Berlin');
-define('SESSION_TIMEOUT', 3600);  // in Sekunden (1 Stunde)
+define('SESSION_TIMEOUT', 18000);  // in Sekunden (5 Stunden)
 
 // Tabs aktivieren/deaktivieren
 define('ENABLE_DOCUMENTS_TAB', true);  // Dokumenten-Verwaltung aktivieren/deaktivieren

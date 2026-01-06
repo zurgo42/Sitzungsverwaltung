@@ -5,28 +5,31 @@
  * Eigenständige Seite mit:
  * - SSO-Integration via Session
  * - Custom Styling (anpassbar an Vereins-Design)
- * - "Zurück zum VTool" statt "Abmelden"
+ * - Logout und "Zurück zum VTool" Buttons
  * - Konfigurierbarer Footer
+ * - Trust-Device Unterstützung
  *
  * ARCHITEKTUR:
- * - Setzt nur DISPLAY_MODE_OVERRIDE und startet Session
- * - Delegiert ALLES andere an index.php
- * - index.php übernimmt: Configs, Auth, Members-Array, UI
+ * - Setzt nur DISPLAY_MODE_OVERRIDE
+ * - Delegiert ALLES andere an index.php (inkl. Session-Start mit Lifetime-Management)
+ * - index.php übernimmt: Configs, Session-Start, Auth, Members-Array, UI
  */
-
-// Session starten
-session_start();
 
 // DISPLAY_MODE auf SSOdirekt setzen (MUSS VOR include index.php definiert werden)
 // Wird von index.php beim Rendern der UI verwendet
 define('DISPLAY_MODE_OVERRIDE', 'SSOdirekt');
 
+// WICHTIG: Keine session_start() hier!
+// index.php übernimmt Session-Management mit korrekter Lifetime-Konfiguration
+
 // Das war's! index.php übernimmt jetzt:
 // 1. Laden aller Configs (config.php, config_adapter.php, etc.)
-// 2. Initialisierung des globalen Members-Arrays
-// 3. SSO-Authentifizierung via get_sso_membership_number()
-// 4. Laden des $current_user
-// 5. HTML-Ausgabe mit SSOdirekt-Styling
+// 2. Session-Lifetime-Management (basierend auf Trust-Device)
+// 3. Session-Start
+// 4. Initialisierung des globalen Members-Arrays
+// 5. SSO-Authentifizierung via get_sso_membership_number()
+// 6. Laden des $current_user
+// 7. HTML-Ausgabe mit SSOdirekt-Styling
 
 include __DIR__ . '/index.php';
 ?>

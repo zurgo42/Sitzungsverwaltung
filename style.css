@@ -2451,6 +2451,29 @@ body.dark-mode .dark-mode-toggle .icon {
     transform: rotate(180deg);
 }
 
+/* ==============================================
+   TRUST DEVICE TOGGLE BUTTON
+   ============================================== */
+
+.trust-device-toggle {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 6px 12px;
+    margin-left: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.trust-device-toggle:hover {
+    background: var(--hover-bg);
+    transform: scale(1.05);
+}
+
 /* Dark mode specific overrides for key components */
 body.dark-mode {
     background-color: var(--bg-secondary);
