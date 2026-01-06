@@ -39,6 +39,7 @@ function render_user_notifications($pdo, $member_id) {
         $abs['is_current'] = (strtotime('today') >= strtotime($abs['start_date']) &&
                               strtotime('today') <= strtotime($abs['end_date'])) ? 1 : 0;
     }
+    unset($abs); // Referenz löschen um Seiteneffekte bei späteren foreach zu vermeiden
 
     if (!empty($all_absences)) {
         $absence_items = [];

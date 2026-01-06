@@ -740,6 +740,7 @@ function get_absences_with_names($pdo, $where_clause = "1=1", $params = []) {
             $absence['sub_role'] = null;
         }
     }
+    unset($absence); // Referenz löschen um Seiteneffekte zu vermeiden
 
     return $absences;
 }
