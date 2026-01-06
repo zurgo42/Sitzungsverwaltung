@@ -152,10 +152,13 @@ function render_user_notifications($pdo, $member_id) {
     $stmt_summary = $pdo->prepare("
         (SELECT 'meeting' as type, m.meeting_id as item_id, m.meeting_name as title, m.meeting_date as date_time
          FROM svmeetings m
-         INNER JOIN svmeeting_participants mp ON m.meeting_id = mp.meeting_id
-         WHERE mp.member_id = ?
-         AND m.meeting_date >= NOW()
+         LEFT JOIN svmeeting_participants mp ON m.meeting_id = mp.meeting_id AND mp.member_id = ?
+         WHERE m.meeting_date >= NOW()
          AND m.status IN ('preparation', 'active')
+         AND (
+             m.visibility_type IN ('public', 'authenticated')
+             OR mp.member_id IS NOT NULL
+         )
          ORDER BY m.meeting_date ASC)
         UNION ALL
         (SELECT 'poll' as type, p.poll_id as item_id, p.title, pd.suggested_date as date_time
