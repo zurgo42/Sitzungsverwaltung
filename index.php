@@ -918,9 +918,7 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             case 'admin':
                 // Admin-Panel anzeigen (nur für berechtigte Benutzer)
                 if ($current_user['is_admin']) {
-                    // process_admin.php verarbeitet Admin-Aktionen
-                    include 'process_admin.php';
-                    // tab_admin.php zeigt das Admin-Panel an
+                    // tab_admin.php lädt process_admin.php selbst und zeigt das Admin-Panel an
                     include 'tab_admin.php';
                 } else {
                     // Dezente Fehlermeldung bei unberechtigtem Zugriff
