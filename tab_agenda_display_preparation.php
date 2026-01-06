@@ -25,6 +25,7 @@ foreach ($all_absences as &$abs) {
     $abs['is_current'] = (strtotime('today') >= strtotime($abs['start_date']) &&
                           strtotime('today') <= strtotime($abs['end_date'])) ? 1 : 0;
 }
+unset($abs); // Referenz löschen um Seiteneffekte bei späteren foreach zu vermeiden
 
 // Abwesenheitsanzeige (nur wenn Abwesenheiten vorhanden)
 if (!empty($all_absences)) {
