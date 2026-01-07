@@ -562,19 +562,20 @@ foreach ($agenda_items as $item):
         </details>
         <?php endif; ?>
 
-        <!-- Kommentare (nur anzeigen wenn vorhanden) -->
-        <?php if (!empty($comments)): ?>
+        <!-- Kommentare & Diskussion -->
         <div style="margin-top: 15px;">
             <strong style="display: block; margin-bottom: 10px; color: #333;">💬 Kommentare & Diskussion:</strong>
 
-            <!-- Bestehende Kommentare anzeigen -->
+            <!-- Bestehende Kommentare anzeigen (nur wenn vorhanden) -->
+            <?php if (!empty($comments)): ?>
             <div style="margin-bottom: 15px; background: white; border: 1px solid #ddd; border-radius: 5px; padding: 8px;">
                 <?php foreach ($comments as $comment): ?>
                     <?php render_comment_line($comment, 'full'); ?>
                 <?php endforeach; ?>
             </div>
+            <?php endif; ?>
 
-            <!-- Kommentar hinzufügen -->
+            <!-- Kommentar hinzufügen (immer anzeigen) -->
             <form method="POST" action="" style="margin-top: 10px;">
                 <input type="hidden" name="add_comment_preparation" value="1">
                 <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
@@ -587,7 +588,6 @@ foreach ($agenda_items as $item):
                 </button>
             </form>
         </div>
-        <?php endif; ?>
         
     </div>
 <?php endforeach; ?>
