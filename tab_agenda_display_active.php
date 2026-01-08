@@ -152,30 +152,13 @@ $active_item_id = $stmt->fetchColumn();
                 <input type="hidden" name="add_uninvited_participant" value="1">
 
                 <?php
-                // Alle Members laden, die NICHT eingeladen sind
-                $stmt_invited = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
-                $stmt_invited->execute([$current_meeting_id]);
-                $invited_ids = $stmt_invited->fetchAll(PDO::FETCH_COLUMN);
-
-                // Aus $all_members Array filtern
-                $uninvited_members = [];
-                if (isset($all_members)) {
-                    foreach ($all_members as $member) {
-                        if (!in_array($member['member_id'], $invited_ids) && $member['is_active']) {
-                            $uninvited_members[] = $member;
-                        }
-                    }
-                } else {
-                    // Fallback
-                    $uninvited_members = get_all_members($pdo);
-                    $uninvited_members = array_filter($uninvited_members, function($m) use ($invited_ids) {
-                        return !in_array($m['member_id'], $invited_ids) && $m['is_active'];
-                    });
-                }
-                // Sortieren
-                usort($uninvited_members, function($a, $b) {
-                    return strcmp($a['last_name'], $b['last_name']);
+                // ALLE aktiven Mitglieder für Auswahl laden (nicht nur nicht-eingeladene)
+                $all_active_for_selection = get_all_members($pdo);
+                $all_active_for_selection = array_filter($all_active_for_selection, function($m) {
+                    return isset($m['is_active']) && $m['is_active'] == 1;
                 });
+                // Nach Rollen-Hierarchie sortieren
+                $uninvited_members = sort_members_by_role_hierarchy($all_active_for_selection);
                 ?>
 
                 <?php if (count($uninvited_members) > 0): ?>
@@ -456,7 +439,8 @@ foreach ($agenda_items as $item):
                         <input type="hidden" name="toggle_confidential" value="1">
                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                         <button type="submit" style="background: #2196f3; color: white; padding: 4px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">
-                            <?php echo $item['is_confidential'] ? '🔓 Öffentlich' : '🔒 Vertraulich'; ?>
+                            <span class="desktop-only"><?php echo $item['is_confidential'] ? '🔓 Öffentlich' : '🔒 Vertraulich'; ?></span>
+                            <span class="mobile-only"><?php echo $item['is_confidential'] ? 'Ändern in öffentlich' : 'Ändern in vertraulich'; ?></span>
                         </button>
                     </form>
                 </div>

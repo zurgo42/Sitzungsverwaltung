@@ -495,27 +495,14 @@ require_once 'module_notifications.php';
                         <input type="hidden" name="meeting_id" value="<?php echo $m['meeting_id']; ?>">
                         
                         <?php
-                        // Teilnehmer-IDs abrufen
-                        $stmt_participants = $pdo->prepare("
-                            SELECT member_id
-                            FROM svmeeting_participants
-                            WHERE meeting_id = ?
-                        ");
-                        $stmt_participants->execute([$m['meeting_id']]);
-                        $participant_ids = $stmt_participants->fetchAll(PDO::FETCH_COLUMN);
-
-                        // Adapter verwenden, um vollständige Member-Daten zu holen
-                        $participants = [];
-                        foreach ($participant_ids as $pid) {
-                            $member = get_member_by_id($pdo, $pid);
-                            if ($member) {
-                                $participants[] = $member;
-                            }
-                        }
-                        // Nach Nachname sortieren
-                        usort($participants, function($a, $b) {
-                            return strcmp($a['last_name'], $b['last_name']);
+                        // ALLE aktiven Mitglieder für Chairman/Secretary-Auswahl laden
+                        $all_active_members = get_all_members($pdo);
+                        // Nur aktive Mitglieder filtern
+                        $all_active_members = array_filter($all_active_members, function($m) {
+                            return isset($m['is_active']) && $m['is_active'] == 1;
                         });
+                        // Nach Rollen-Hierarchie sortieren
+                        $participants = sort_members_by_role_hierarchy($all_active_members);
                         ?>
                         
                         <div class="meeting-form-grid-equal">

@@ -22,28 +22,34 @@ function render_todo_creation_form($pdo, $item, $meeting_id, $is_secretary, $mee
         return;
     }
     
-    // Teilnehmer mit Anwesenheitsstatus laden (Adapter-kompatibel)
+    // ALLE aktiven Mitglieder für TODO-Zuweisung laden
+    $all_active_members = get_all_members($pdo);
+    $all_active_members = array_filter($all_active_members, function($m) {
+        return isset($m['is_active']) && $m['is_active'] == 1;
+    });
+
+    // Anwesenheitsstatus für Teilnehmer laden (für Markierung mit ✓)
     $stmt = $pdo->prepare("
         SELECT member_id, attendance_status
         FROM svmeeting_participants
         WHERE meeting_id = ?
     ");
     $stmt->execute([$meeting_id]);
-    $participants_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Adapter verwenden, um vollständige Member-Daten zu holen
-    $participants_with_attendance = [];
-    foreach ($participants_data as $p_data) {
-        $member = get_member_by_id($pdo, $p_data['member_id']);
-        if ($member) {
-            $member['attendance_status'] = $p_data['attendance_status'];
-            $participants_with_attendance[] = $member;
-        }
+    $attendance_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $attendance_map = [];
+    foreach ($attendance_data as $a) {
+        $attendance_map[$a['member_id']] = $a['attendance_status'];
     }
-    // Nach Nachname sortieren
-    usort($participants_with_attendance, function($a, $b) {
-        return strcmp($a['last_name'], $b['last_name']);
-    });
+
+    // Anwesenheit zu allen Mitgliedern hinzufügen
+    $participants_with_attendance = [];
+    foreach ($all_active_members as $member) {
+        $member['attendance_status'] = $attendance_map[$member['member_id']] ?? 'absent';
+        $participants_with_attendance[] = $member;
+    }
+
+    // Nach Rollen-Hierarchie sortieren
+    $participants_with_attendance = sort_members_by_role_hierarchy($participants_with_attendance);
     ?>
     
     <div style="margin-top: 15px; padding: 12px; background: #fff8e1; border: 2px solid #ffc107; border-radius: 6px;">

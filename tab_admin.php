@@ -178,6 +178,7 @@ require_once 'process_admin.php';
         <div class="modal-content">
             <h3>Meeting bearbeiten</h3>
             <form method="POST" id="edit-meeting-form">
+                <input type="hidden" name="edit_meeting" value="1">
                 <input type="hidden" name="meeting_id" id="edit_meeting_id">
                 <div class="form-group">
                     <label>Meeting-Name:</label>

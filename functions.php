@@ -744,4 +744,44 @@ function get_absences_with_names($pdo, $where_clause = "1=1", $params = []) {
 
     return $absences;
 }
+
+/**
+ * Sortiert Mitglieder-Array nach Rollen-Hierarchie
+ * Reihenfolge: Vorstand -> GF/Assistenz -> Führungsteam -> Mitglieder
+ * Innerhalb der Gruppen alphabetisch nach Nachnamen
+ *
+ * @param array $members Array mit Mitgliedern
+ * @return array Sortiertes Array
+ */
+function sort_members_by_role_hierarchy($members) {
+    // Rollen-Prioritäten definieren (niedrigere Zahl = höhere Priorität)
+    $role_priority = [
+        'vorstand' => 1,
+        'gf' => 2,
+        'assistenz' => 2,  // GF und Assistenz gleichwertig
+        'fuehrungsteam' => 3,
+        'mitglied' => 4,
+        'member' => 4  // Fallback für englische Bezeichnung
+    ];
+
+    usort($members, function($a, $b) use ($role_priority) {
+        // Rollen ermitteln
+        $role_a = strtolower($a['role'] ?? 'mitglied');
+        $role_b = strtolower($b['role'] ?? 'mitglied');
+
+        // Prioritäten holen (default 99 für unbekannte Rollen)
+        $prio_a = $role_priority[$role_a] ?? 99;
+        $prio_b = $role_priority[$role_b] ?? 99;
+
+        // Erst nach Priorität sortieren
+        if ($prio_a !== $prio_b) {
+            return $prio_a - $prio_b;
+        }
+
+        // Bei gleicher Priorität alphabetisch nach Nachname
+        return strcmp($a['last_name'], $b['last_name']);
+    });
+
+    return $members;
+}
 ?>

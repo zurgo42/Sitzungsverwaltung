@@ -166,31 +166,13 @@ if (!$submission_deadline_passed) {
                 <input type="hidden" name="add_uninvited_participant" value="1">
 
                 <?php
-                // Alle Members laden, die NICHT eingeladen sind
-                // Eingeladene IDs holen
-                $stmt_invited = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
-                $stmt_invited->execute([$current_meeting_id]);
-                $invited_ids = $stmt_invited->fetchAll(PDO::FETCH_COLUMN);
-
-                // Aus Members-Array filtern (verwendet $all_members aus tab_agenda.php)
-                $uninvited_members = [];
-                if (isset($all_members) && is_array($all_members)) {
-                    foreach ($all_members as $member) {
-                        if (!in_array($member['member_id'], $invited_ids) && $member['is_active']) {
-                            $uninvited_members[] = $member;
-                        }
-                    }
-                } else {
-                    // Fallback: Direkt aus DB laden
-                    $uninvited_members = get_all_members($pdo);
-                    $uninvited_members = array_filter($uninvited_members, function($m) use ($invited_ids) {
-                        return !in_array($m['member_id'], $invited_ids) && $m['is_active'];
-                    });
-                }
-                // Nach Nachname sortieren
-                usort($uninvited_members, function($a, $b) {
-                    return strcmp($a['last_name'], $b['last_name']);
+                // ALLE aktiven Mitglieder für Auswahl laden (nicht nur nicht-eingeladene)
+                $all_active_for_selection = get_all_members($pdo);
+                $all_active_for_selection = array_filter($all_active_for_selection, function($m) {
+                    return isset($m['is_active']) && $m['is_active'] == 1;
                 });
+                // Nach Rollen-Hierarchie sortieren
+                $uninvited_members = sort_members_by_role_hierarchy($all_active_for_selection);
                 ?>
 
                 <?php if (count($uninvited_members) > 0): ?>

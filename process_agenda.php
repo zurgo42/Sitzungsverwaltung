@@ -1474,15 +1474,20 @@ if (isset($_POST['start_meeting']) && ($is_secretary || $is_chairman) && $meetin
         
         // TOP 999 erstellen für Sitzungsende
         $stmt = $pdo->prepare("
-            INSERT INTO svagenda_items 
-            (meeting_id, top_number, title, description, priority, estimated_duration, is_confidential, created_by_member_id) 
+            INSERT INTO svagenda_items
+            (meeting_id, top_number, title, description, priority, estimated_duration, is_confidential, created_by_member_id)
             VALUES (?, 999, 'Sitzungsende', 'Automatisch erfasst', 1.00, 1, 0, ?)
         ");
         $stmt->execute([$current_meeting_id, $current_user['member_id']]);
-        
-        // Meeting-Status auf active setzen
-        $stmt = $pdo->prepare("UPDATE svmeetings SET status = 'active' WHERE meeting_id = ?");
+
+        // TOP #0 item_id holen
+        $stmt = $pdo->prepare("SELECT item_id FROM svagenda_items WHERE meeting_id = ? AND top_number = 0");
         $stmt->execute([$current_meeting_id]);
+        $top0_item_id = $stmt->fetchColumn();
+
+        // Meeting-Status auf active setzen und TOP #0 aktivieren
+        $stmt = $pdo->prepare("UPDATE svmeetings SET status = 'active', active_item_id = ? WHERE meeting_id = ?");
+        $stmt->execute([$top0_item_id, $current_meeting_id]);
         
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;

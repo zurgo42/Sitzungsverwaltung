@@ -2169,8 +2169,9 @@ body.dark-mode .other-todos-accordion-header:hover {
     }
 
     .logout-btn::before {
-        content: '🚪';
-        font-size: 18px;
+        content: '←';
+        font-size: 20px;
+        font-weight: bold;
     }
 
     /* Zurück-Button behält seinen Text */
