@@ -42,7 +42,7 @@ foreach ($agenda_items as $item):
         <!-- TOP-Header mit Kategorie -->
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
             <strong style="font-size: 16px; color: #333;">
-                TOP <?php echo $item['top_number']; ?>: <?php echo htmlspecialchars($item['title']); ?>
+                TOP #<?php echo $item['top_number']; ?>: <?php echo htmlspecialchars($item['title']); ?>
             </strong>
             <?php render_category_badge($item['category']); ?>
             <?php if ($item['is_confidential']): ?>

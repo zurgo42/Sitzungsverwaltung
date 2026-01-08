@@ -495,15 +495,27 @@ require_once 'module_notifications.php';
                         <input type="hidden" name="meeting_id" value="<?php echo $m['meeting_id']; ?>">
                         
                         <?php
+                        // Teilnehmer-IDs abrufen
                         $stmt_participants = $pdo->prepare("
-                            SELECT m.member_id, m.first_name, m.last_name 
-                            FROM svmeeting_participants mp
-                            JOIN svmembers m ON mp.member_id = m.member_id
-                            WHERE mp.meeting_id = ?
-                            ORDER BY m.last_name, m.first_name
+                            SELECT member_id
+                            FROM svmeeting_participants
+                            WHERE meeting_id = ?
                         ");
                         $stmt_participants->execute([$m['meeting_id']]);
-                        $participants = $stmt_participants->fetchAll();
+                        $participant_ids = $stmt_participants->fetchAll(PDO::FETCH_COLUMN);
+
+                        // Adapter verwenden, um vollständige Member-Daten zu holen
+                        $participants = [];
+                        foreach ($participant_ids as $pid) {
+                            $member = get_member_by_id($pdo, $pid);
+                            if ($member) {
+                                $participants[] = $member;
+                            }
+                        }
+                        // Nach Nachname sortieren
+                        usort($participants, function($a, $b) {
+                            return strcmp($a['last_name'], $b['last_name']);
+                        });
                         ?>
                         
                         <div class="meeting-form-grid-equal">

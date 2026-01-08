@@ -2156,9 +2156,31 @@ body.dark-mode .other-todos-accordion-header:hover {
     }
 
     .logout-btn {
-        padding: 4px 10px;
+        padding: 6px 10px;
+        font-size: 18px;
+        margin-right: 5px;
+        min-width: 32px;
+        text-align: center;
+    }
+
+    /* Text ausblenden und durch Icon ersetzen */
+    .logout-btn {
+        font-size: 0;
+    }
+
+    .logout-btn::before {
+        content: '🚪';
+        font-size: 18px;
+    }
+
+    /* Zurück-Button behält seinen Text */
+    .logout-btn.sso-back-button {
         font-size: 11px;
-        margin-right: 10px;
+        padding: 4px 10px;
+    }
+
+    .logout-btn.sso-back-button::before {
+        content: '';
     }
 
     .dark-mode-toggle {

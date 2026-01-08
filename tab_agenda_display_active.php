@@ -428,7 +428,7 @@ foreach ($agenda_items as $item):
                     </span>
                 <?php endif; ?>
                 <strong style="font-size: 16px; color: #333;">
-                    TOP <?php echo $item['top_number']; ?>: <?php echo htmlspecialchars($item['title']); ?>
+                    TOP #<?php echo $item['top_number']; ?>: <?php echo htmlspecialchars($item['title']); ?>
                 </strong>
                 <?php render_category_badge($item['category']); ?>
                 <?php if ($item['is_confidential']): ?>
@@ -436,21 +436,21 @@ foreach ($agenda_items as $item):
                 <?php endif; ?>
             </div>
 
-            <?php if ($is_secretary && $item['top_number'] != 0 && $item['top_number'] != 99 && $item['top_number'] != 999): ?>
+            <?php if ($can_edit_meeting && $item['top_number'] != 999): ?>
                 <div class="top-header-right">
                     <!-- Aktiv schalten via AJAX -->
                     <?php if (!$is_active): ?>
-                        <button onclick="setActiveTop(<?php echo $item['item_id']; ?>, <?php echo $current_meeting_id; ?>)" 
+                        <button onclick="setActiveTop(<?php echo $item['item_id']; ?>, <?php echo $current_meeting_id; ?>)"
                                 style="background: #f44336; color: white; padding: 4px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">
                             🔴 Aktivieren
                         </button>
                     <?php else: ?>
-                        <button onclick="unsetActiveTop(<?php echo $current_meeting_id; ?>)" 
+                        <button onclick="unsetActiveTop(<?php echo $current_meeting_id; ?>)"
                                 style="background: #999; color: white; padding: 4px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">
                             ⚫ Deaktivieren
                         </button>
                     <?php endif; ?>
-                    
+
                     <!-- Verschieben öffentlich/vertraulich -->
                     <form method="POST" action="" style="display: inline;" onsubmit="return confirm('TOP wirklich verschieben?');">
                         <input type="hidden" name="toggle_confidential" value="1">
@@ -529,32 +529,28 @@ foreach ($agenda_items as $item):
             <?php endif; ?>
         </div>
         
-        <!-- LIVE-KOMMENTARE (dynamisch ein-/ausgeblendet je nach Aktiv-Status) -->
+        <!-- LIVE-KOMMENTARE (immer sichtbar, aber Formular nur bei aktivem TOP) -->
         <?php if ($item['top_number'] != 999): ?>
             <div id="live-comments-container-<?php echo $item['item_id']; ?>"
-                 style="margin-top: 12px; padding: 12px; background: #ffebee; border: 2px solid #f44336; border-radius: 6px; <?php echo !$is_active ? 'display: none;' : ''; ?>">
+                 style="margin-top: 12px; padding: 12px; background: #ffebee; border: 2px solid #f44336; border-radius: 6px;">
                 <h4 style="color: #c62828; margin-bottom: 8px;">💬 Live-Kommentare (während Sitzung)</h4>
 
                 <!-- Live-Kommentare-Anzeige -->
                 <div id="live-comments-<?php echo $item['item_id']; ?>" style="background: white; border: 1px solid #f44336; border-radius: 4px; padding: 8px; margin-bottom: 10px; max-height: 120px; overflow-y: auto;">
                     <?php
-                    if ($is_active) {
-                        $stmt = $pdo->prepare("
-                            SELECT alc.*, m.first_name, m.last_name
-                            FROM svagenda_live_comments alc
-                            JOIN svmembers m ON alc.member_id = m.member_id
-                            WHERE alc.item_id = ?
-                            ORDER BY alc.created_at ASC
-                        ");
-                        $stmt->execute([$item['item_id']]);
-                        $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    $stmt = $pdo->prepare("
+                        SELECT alc.*, m.first_name, m.last_name
+                        FROM svagenda_live_comments alc
+                        JOIN svmembers m ON alc.member_id = m.member_id
+                        WHERE alc.item_id = ?
+                        ORDER BY alc.created_at ASC
+                    ");
+                    $stmt->execute([$item['item_id']]);
+                    $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                        if (!empty($live_comments)) {
-                            foreach ($live_comments as $lc) {
-                                render_comment_line($lc, 'time');
-                            }
-                        } else {
-                            echo '<div style="color: #999; font-size: 12px;">Noch keine Kommentare</div>';
+                    if (!empty($live_comments)) {
+                        foreach ($live_comments as $lc) {
+                            render_comment_line($lc, 'time');
                         }
                     } else {
                         echo '<div style="color: #999; font-size: 12px;">Noch keine Kommentare</div>';
@@ -562,7 +558,8 @@ foreach ($agenda_items as $item):
                     ?>
                 </div>
 
-                <!-- Formular für neuen Live-Kommentar -->
+                <!-- Formular für neuen Live-Kommentar (nur bei aktivem TOP) -->
+                <?php if ($is_active): ?>
                 <form method="POST" action="" class="live-comment-form">
                     <input type="hidden" name="add_live_comment" value="1">
                     <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
@@ -579,6 +576,7 @@ foreach ($agenda_items as $item):
                         💬 Senden
                     </button>
                 </form>
+                <?php endif; ?>
 
                 <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; font-size: 12px; color: #666; font-style: italic;">
                     ℹ️ Kommentare in diesem Feld bleiben bis zur Protokollgenehmigung sichtbar und werden dann verworfen
@@ -815,47 +813,39 @@ function updateProtocol(itemId) {
                 }
             }
 
-            // Live-Kommentare-Container ein-/ausblenden je nach Aktiv-Status
-            const commentsContainer = document.getElementById(`live-comments-container-${itemId}`);
-            if (commentsContainer) {
-                commentsContainer.style.display = data.is_active ? 'block' : 'none';
-            }
+            // Live-Kommentare aktualisieren (immer, unabhängig vom Aktiv-Status)
+            const commentsDiv = document.getElementById(`live-comments-${itemId}`);
+            if (commentsDiv && data.live_comments) {
+                let html = '';
+                data.live_comments.forEach(comment => {
+                    const time = new Date(comment.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
 
-            // Live-Kommentare aktualisieren (nur wenn TOP aktiv ist)
-            if (data.is_active) {
-                const commentsDiv = document.getElementById(`live-comments-${itemId}`);
-                if (commentsDiv && data.live_comments) {
-                    let html = '';
-                    data.live_comments.forEach(comment => {
-                        const time = new Date(comment.created_at).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+                    // Linkify comment text
+                    let commentText = comment.comment_text
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;');
 
-                        // Linkify comment text
-                        let commentText = comment.comment_text
-                            .replace(/</g, '&lt;')
-                            .replace(/>/g, '&gt;');
-
-                        commentText = commentText.replace(/\b((https?:\/\/|www\.)[^\s<]+)/gi, function(url) {
-                            let href = url.startsWith('http') ? url : 'http://' + url;
-                            let ext = url.split('.').pop().toLowerCase();
-                            let isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
-                            let isPdf = (ext === 'pdf');
-                            let onclick = '';
-                            if (isImage || isPdf) {
-                                let type = isImage ? 'Bild' : 'PDF';
-                                onclick = ` onclick="if(window.innerWidth <= 768) { alert('⚠️ ${type}-Datei wird in neuem Tab geöffnet'); }"`;
-                            }
-                            return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
-                        });
-
-                        html += `<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
-                            <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${commentText}</span>
-                        </div>`;
+                    commentText = commentText.replace(/\b((https?:\/\/|www\.)[^\s<]+)/gi, function(url) {
+                        let href = url.startsWith('http') ? url : 'http://' + url;
+                        let ext = url.split('.').pop().toLowerCase();
+                        let isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+                        let isPdf = (ext === 'pdf');
+                        let onclick = '';
+                        if (isImage || isPdf) {
+                            let type = isImage ? 'Bild' : 'PDF';
+                            onclick = ` onclick="if(window.innerWidth <= 768) { alert('⚠️ ${type}-Datei wird in neuem Tab geöffnet'); }"`;
+                        }
+                        return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
                     });
-                    commentsDiv.innerHTML = html || '<div style="color: #999; font-size: 12px; padding: 4px;">Noch keine Kommentare</div>';
 
-                    // Auto-Scroll zum Ende der Kommentare
-                    commentsDiv.scrollTop = commentsDiv.scrollHeight;
-                }
+                    html += `<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
+                        <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${commentText}</span>
+                    </div>`;
+                });
+                commentsDiv.innerHTML = html || '<div style="color: #999; font-size: 12px; padding: 4px;">Noch keine Kommentare</div>';
+
+                // Auto-Scroll zum Ende der Kommentare
+                commentsDiv.scrollTop = commentsDiv.scrollHeight;
             }
 
             // Abstimmungsergebnis aktualisieren

@@ -22,16 +22,28 @@ function render_todo_creation_form($pdo, $item, $meeting_id, $is_secretary, $mee
         return;
     }
     
-    // Teilnehmer mit Anwesenheitsstatus laden
+    // Teilnehmer mit Anwesenheitsstatus laden (Adapter-kompatibel)
     $stmt = $pdo->prepare("
-        SELECT m.*, mp.attendance_status
-        FROM svmembers m
-        JOIN svmeeting_participants mp ON m.member_id = mp.member_id
-        WHERE mp.meeting_id = ?
-        ORDER BY m.last_name, m.first_name
+        SELECT member_id, attendance_status
+        FROM svmeeting_participants
+        WHERE meeting_id = ?
     ");
     $stmt->execute([$meeting_id]);
-    $participants_with_attendance = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $participants_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Adapter verwenden, um vollständige Member-Daten zu holen
+    $participants_with_attendance = [];
+    foreach ($participants_data as $p_data) {
+        $member = get_member_by_id($pdo, $p_data['member_id']);
+        if ($member) {
+            $member['attendance_status'] = $p_data['attendance_status'];
+            $participants_with_attendance[] = $member;
+        }
+    }
+    // Nach Nachname sortieren
+    usort($participants_with_attendance, function($a, $b) {
+        return strcmp($a['last_name'], $b['last_name']);
+    });
     ?>
     
     <div style="margin-top: 15px; padding: 12px; background: #fff8e1; border: 2px solid #ffc107; border-radius: 6px;">

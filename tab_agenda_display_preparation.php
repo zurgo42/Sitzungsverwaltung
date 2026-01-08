@@ -407,7 +407,7 @@ foreach ($agenda_items as $item):
     } elseif ($item['top_number'] == 99) {
         $top_display = ''; // Leer lassen für TOP 99
     } else {
-        $top_display = 'TOP ' . $item['top_number'];
+        $top_display = 'TOP #' . $item['top_number'];
     }
     
     // Kategorie-Daten aus globaler Definition holen
@@ -466,13 +466,13 @@ foreach ($agenda_items as $item):
             
             <div style="display: flex; gap: 10px; align-items: center;">
                 <!-- Durchschnittswerte -->
-                <div style="text-align: center; background: #e3f2fd; padding: 8px 12px; border-radius: 5px;">
+                <div style="text-align: center; background: <?php echo $item['priority'] ? '#e3f2fd' : '#d4edda'; ?>; padding: 8px 12px; border-radius: 5px;">
                     <div style="font-size: 0.8em; color: #666;">Ø Priorität</div>
                     <div style="font-weight: bold; color: #2c5aa0; font-size: 1.2em;">
                         <?php echo $item['priority'] ? number_format($item['priority'], 1) : '-'; ?>
                     </div>
                 </div>
-                <div style="text-align: center; background: #e3f2fd; padding: 8px 12px; border-radius: 5px;">
+                <div style="text-align: center; background: <?php echo $item['estimated_duration'] ? '#e3f2fd' : '#d4edda'; ?>; padding: 8px 12px; border-radius: 5px;">
                     <div style="font-size: 0.8em; color: #666;">Ø Dauer</div>
                     <div style="font-weight: bold; color: #2c5aa0; font-size: 1.2em;">
                         <?php echo $item['estimated_duration'] ? $item['estimated_duration'] . ' min' : '-'; ?>
