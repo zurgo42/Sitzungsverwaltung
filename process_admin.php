@@ -780,9 +780,11 @@ foreach ($meetings as &$meeting) {
     $meeting['participant_ids'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
-// Alle Mitglieder laden (über Wrapper-Funktion)
+// Alle registrierten Mitglieder laden (auch inaktive) für Admin-Verwaltung
 // Funktioniert mit members ODER berechtigte Tabelle (siehe config_adapter.php)
-$members = get_all_members($pdo);
+$members = get_all_registered_members($pdo);
+// Nach Rollen-Hierarchie sortieren
+$members = sort_members_by_role_hierarchy($members);
 
 // Alle Abwesenheiten laden (für Admin-Verwaltung)
 $all_absences = get_absences_with_names($pdo);

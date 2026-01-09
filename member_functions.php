@@ -110,6 +110,84 @@ function get_all_members($pdo) {
 }
 
 /**
+ * Holt ALLE registrierten Mitglieder ohne Filterung
+ *
+ * Diese Funktion gibt ALLE Mitglieder zurück, auch wenn sie nicht aktiv sind.
+ * Nützlich für Dropdown-Listen wo alle Personen zur Auswahl stehen sollen.
+ *
+ * @param PDO $pdo Datenbankverbindung
+ * @return array Liste aller registrierten Mitglieder
+ *
+ * BEISPIEL:
+ * $all_registered = get_all_registered_members($pdo);
+ * // Zeigt auch inaktive Mitglieder
+ */
+function get_all_registered_members($pdo) {
+    $source = defined('MEMBER_SOURCE') ? MEMBER_SOURCE : 'members';
+
+    if ($source === 'berechtigte') {
+        // Direkt aus berechtigte-Tabelle OHNE WHERE-Filterung
+        try {
+            $sql = "
+            SELECT
+                ID AS member_id,
+                MNr AS membership_number,
+                Vorname AS first_name,
+                Name AS last_name,
+                eMail AS email,
+                '' AS password_hash,
+                CASE
+                    WHEN aktiv = 19 THEN 'vorstand'
+                    WHEN Funktion = 'GF' THEN 'gf'
+                    WHEN Funktion = 'SV' THEN 'assistenz'
+                    WHEN Funktion = 'RL' THEN 'fuehrungsteam'
+                    ELSE 'mitglied'
+                END AS role,
+                CASE
+                    WHEN Funktion IN ('GF', 'SV') OR MNr = '0495018' THEN 1
+                    ELSE 0
+                END AS is_admin,
+                CASE
+                    WHEN aktiv = 19 OR Funktion IN ('GF', 'SV') THEN 1
+                    ELSE 0
+                END AS is_confidential,
+                CASE
+                    WHEN aktiv > 17 OR Funktion IN ('RL', 'SV', 'AD', 'FP', 'GF') THEN 1
+                    ELSE 0
+                END AS is_active,
+                angelegt AS created_at,
+                angelegt AS updated_at
+            FROM berechtigte
+            ";
+
+            $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+
+            // Role_display hinzufügen
+            foreach ($rows as &$row) {
+                $displayNames = [
+                    'vorstand' => 'Vorstand',
+                    'gf' => 'Geschäftsführung',
+                    'assistenz' => 'Assistenz',
+                    'fuehrungsteam' => 'Führungsteam',
+                    'mitglied' => 'Mitglied'
+                ];
+                $row['role_display'] = $displayNames[$row['role']] ?? 'Mitglied';
+            }
+            unset($row);
+
+            return $rows;
+        } catch (PDOException $e) {
+            error_log("Fehler in get_all_registered_members: " . $e->getMessage());
+            return [];
+        }
+    } else {
+        // Standard: Aus svmembers (alle, auch inaktive)
+        $adapter = get_member_adapter($pdo);
+        return $adapter->getAllMembers();
+    }
+}
+
+/**
  * Holt EIN Mitglied nach ID
  *
  * @param PDO $pdo Datenbankverbindung

@@ -495,14 +495,10 @@ require_once 'module_notifications.php';
                         <input type="hidden" name="meeting_id" value="<?php echo $m['meeting_id']; ?>">
                         
                         <?php
-                        // ALLE aktiven Mitglieder für Chairman/Secretary-Auswahl laden
-                        $all_active_members = get_all_members($pdo);
-                        // Nur aktive Mitglieder filtern
-                        $all_active_members = array_filter($all_active_members, function($m) {
-                            return isset($m['is_active']) && $m['is_active'] == 1;
-                        });
+                        // ALLE registrierten Mitglieder für Chairman/Secretary-Auswahl laden
+                        $all_registered_members = get_all_registered_members($pdo);
                         // Nach Rollen-Hierarchie sortieren
-                        $participants = sort_members_by_role_hierarchy($all_active_members);
+                        $participants = sort_members_by_role_hierarchy($all_registered_members);
                         ?>
                         
                         <div class="meeting-form-grid-equal">

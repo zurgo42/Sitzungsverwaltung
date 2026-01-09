@@ -152,13 +152,10 @@ $active_item_id = $stmt->fetchColumn();
                 <input type="hidden" name="add_uninvited_participant" value="1">
 
                 <?php
-                // ALLE aktiven Mitglieder für Auswahl laden (nicht nur nicht-eingeladene)
-                $all_active_for_selection = get_all_members($pdo);
-                $all_active_for_selection = array_filter($all_active_for_selection, function($m) {
-                    return isset($m['is_active']) && $m['is_active'] == 1;
-                });
+                // ALLE registrierten Mitglieder für Auswahl laden
+                $all_registered = get_all_registered_members($pdo);
                 // Nach Rollen-Hierarchie sortieren
-                $uninvited_members = sort_members_by_role_hierarchy($all_active_for_selection);
+                $uninvited_members = sort_members_by_role_hierarchy($all_registered);
                 ?>
 
                 <?php if (count($uninvited_members) > 0): ?>

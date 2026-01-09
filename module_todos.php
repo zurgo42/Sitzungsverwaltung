@@ -22,11 +22,8 @@ function render_todo_creation_form($pdo, $item, $meeting_id, $is_secretary, $mee
         return;
     }
     
-    // ALLE aktiven Mitglieder für TODO-Zuweisung laden
-    $all_active_members = get_all_members($pdo);
-    $all_active_members = array_filter($all_active_members, function($m) {
-        return isset($m['is_active']) && $m['is_active'] == 1;
-    });
+    // ALLE registrierten Mitglieder für TODO-Zuweisung laden
+    $all_registered_members = get_all_registered_members($pdo);
 
     // Anwesenheitsstatus für Teilnehmer laden (für Markierung mit ✓)
     $stmt = $pdo->prepare("
@@ -43,7 +40,7 @@ function render_todo_creation_form($pdo, $item, $meeting_id, $is_secretary, $mee
 
     // Anwesenheit zu allen Mitgliedern hinzufügen
     $participants_with_attendance = [];
-    foreach ($all_active_members as $member) {
+    foreach ($all_registered_members as $member) {
         $member['attendance_status'] = $attendance_map[$member['member_id']] ?? 'absent';
         $participants_with_attendance[] = $member;
     }

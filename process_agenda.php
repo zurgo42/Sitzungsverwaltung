@@ -843,29 +843,46 @@ if (isset($_POST['delete_comment'])) {
 if (isset($_POST['add_comment_preparation'])) {
     $item_id = intval($_POST['item_id'] ?? 0);
     $comment_text = trim($_POST['comment'] ?? '');
-    
-    if ($item_id && !empty($comment_text)) {
+    $priority_rating = !empty($_POST['priority_rating']) ? floatval($_POST['priority_rating']) : null;
+    $duration_estimate = !empty($_POST['duration_estimate']) ? intval($_POST['duration_estimate']) : null;
+
+    if ($item_id) {
         try {
             // Meeting-Status prüfen (nur in preparation)
             $stmt = $pdo->prepare("SELECT status FROM svmeetings WHERE meeting_id = ?");
             $stmt->execute([$current_meeting_id]);
             $meeting_status = $stmt->fetchColumn();
-            
+
             if ($meeting_status === 'preparation') {
-                // Neuen Kommentar erstellen
-                $stmt = $pdo->prepare("
-                    INSERT INTO svagenda_comments (item_id, member_id, comment_text, created_at)
-                    VALUES (?, ?, ?, NOW())
-                ");
-                $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+                // Prüfen, ob bereits ein Kommentar existiert
+                $stmt = $pdo->prepare("SELECT comment_id FROM svagenda_comments WHERE item_id = ? AND member_id = ?");
+                $stmt->execute([$item_id, $current_user['member_id']]);
+                $existing_comment = $stmt->fetchColumn();
+
+                if ($existing_comment) {
+                    // Bestehenden Kommentar aktualisieren
+                    $stmt = $pdo->prepare("
+                        UPDATE svagenda_comments
+                        SET comment_text = ?, priority_rating = ?, duration_estimate = ?, created_at = NOW()
+                        WHERE comment_id = ?
+                    ");
+                    $stmt->execute([$comment_text, $priority_rating, $duration_estimate, $existing_comment]);
+                } else {
+                    // Neuen Kommentar erstellen
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svagenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate, created_at)
+                        VALUES (?, ?, ?, ?, ?, NOW())
+                    ");
+                    $stmt->execute([$item_id, $current_user['member_id'], $comment_text, $priority_rating, $duration_estimate]);
+                }
             }
-            
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
             exit;
-            
+
         } catch (PDOException $e) {
-            error_log("Fehler beim Hinzufügen des Kommentars: " . $e->getMessage());
-            $error = "Fehler beim Hinzufügen des Kommentars";
+            error_log("Fehler beim Hinzufügen/Aktualisieren des Kommentars: " . $e->getMessage());
+            $error = "Fehler beim Speichern des Kommentars";
         }
     }
 }

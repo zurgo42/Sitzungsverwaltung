@@ -166,13 +166,10 @@ if (!$submission_deadline_passed) {
                 <input type="hidden" name="add_uninvited_participant" value="1">
 
                 <?php
-                // ALLE aktiven Mitglieder für Auswahl laden (nicht nur nicht-eingeladene)
-                $all_active_for_selection = get_all_members($pdo);
-                $all_active_for_selection = array_filter($all_active_for_selection, function($m) {
-                    return isset($m['is_active']) && $m['is_active'] == 1;
-                });
+                // ALLE registrierten Mitglieder für Auswahl laden
+                $all_registered = get_all_registered_members($pdo);
                 // Nach Rollen-Hierarchie sortieren
-                $uninvited_members = sort_members_by_role_hierarchy($all_active_for_selection);
+                $uninvited_members = sort_members_by_role_hierarchy($all_registered);
                 ?>
 
                 <?php if (count($uninvited_members) > 0): ?>
@@ -563,10 +560,28 @@ foreach ($agenda_items as $item):
                 <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
 
                 <textarea name="comment" rows="3" placeholder="Ihr Kommentar zu diesem TOP..."
-                          style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px;"></textarea>
+                          style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px;"><?php echo $own_comment ? htmlspecialchars($own_comment['comment_text']) : ''; ?></textarea>
+
+                <!-- Priorität und Dauer Eingabefelder -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Priorität (1-10):</label>
+                        <input type="number" name="priority_rating" min="1" max="10" step="0.1"
+                               value="<?php echo $own_comment ? $own_comment['priority_rating'] : ''; ?>"
+                               placeholder="z.B. 7.5"
+                               style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: <?php echo ($own_comment && $own_comment['priority_rating']) ? '#fff' : '#d4edda'; ?>;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">Dauer (Min.):</label>
+                        <input type="number" name="duration_estimate" min="1"
+                               value="<?php echo $own_comment ? $own_comment['duration_estimate'] : ''; ?>"
+                               placeholder="z.B. 15"
+                               style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: <?php echo ($own_comment && $own_comment['duration_estimate']) ? '#fff' : '#d4edda'; ?>;">
+                    </div>
+                </div>
 
                 <button type="submit" style="background: #2c5aa0; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">
-                    💬 Kommentar hinzufügen
+                    💬 <?php echo $own_comment ? 'Kommentar aktualisieren' : 'Kommentar hinzufügen'; ?>
                 </button>
             </form>
         </div>
