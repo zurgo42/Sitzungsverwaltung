@@ -581,7 +581,7 @@ foreach ($agenda_items as $item):
             <?php endif; ?>
 
             <!-- Kommentar hinzufügen (immer anzeigen) -->
-            <form method="POST" action="" style="margin-top: 10px;">
+            <form method="POST" action="" enctype="multipart/form-data" style="margin-top: 10px;">
                 <input type="hidden" name="add_comment_preparation" value="1">
                 <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
 
@@ -604,6 +604,16 @@ foreach ($agenda_items as $item):
                                placeholder="z.B. 15"
                                style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: <?php echo ($own_comment && $own_comment['duration_estimate']) ? '#fff' : '#d4edda'; ?>;">
                     </div>
+                </div>
+
+                <!-- Dateianhang Upload -->
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">📎 Dateianhang (optional):</label>
+                    <input type="file" name="attachment"
+                           style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; background: white; font-size: 12px;">
+                    <small style="display: block; margin-top: 2px; font-size: 10px; color: #999;">
+                        Max. 10 MB, erlaubte Formate: PDF, DOC(X), XLS(X), PPT(X), TXT, JPG, PNG, ZIP
+                    </small>
                 </div>
 
                 <button type="submit" style="background: #2c5aa0; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">

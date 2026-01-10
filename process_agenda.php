@@ -21,6 +21,79 @@ function get_full_meeting_link($meeting_id) {
     return $protocol . $host . $script . "?tab=agenda&meeting_id=" . $meeting_id;
 }
 
+// Hilfsfunktion: Datei-Upload verarbeiten
+function process_file_upload($file_input_name, $meeting_id, $member_id) {
+    // Prüfen ob Datei hochgeladen wurde
+    if (!isset($_FILES[$file_input_name]) || $_FILES[$file_input_name]['error'] === UPLOAD_ERR_NO_FILE) {
+        return null; // Keine Datei hochgeladen
+    }
+
+    $file = $_FILES[$file_input_name];
+
+    // Fehlerprüfung
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        error_log("File upload error: " . $file['error']);
+        return false;
+    }
+
+    // Größenprüfung (max 10 MB)
+    $max_size = 10 * 1024 * 1024; // 10 MB in Bytes
+    if ($file['size'] > $max_size) {
+        error_log("File too large: " . $file['size'] . " bytes");
+        return false;
+    }
+
+    // Erlaubte MIME-Typen
+    $allowed_types = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain',
+        'image/jpeg',
+        'image/png',
+        'application/zip',
+        'application/x-zip-compressed'
+    ];
+
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime_type = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+
+    if (!in_array($mime_type, $allowed_types)) {
+        error_log("Invalid file type: " . $mime_type);
+        return false;
+    }
+
+    // Dateinamen generieren: {meeting_id}-{member_id}-{timestamp}-{original_name}
+    $original_name = basename($file['name']);
+    $original_name = preg_replace('/[^a-zA-Z0-9._-]/', '_', $original_name); // Sonderzeichen entfernen
+    $timestamp = time();
+    $new_filename = "{$meeting_id}-{$member_id}-{$timestamp}-{$original_name}";
+
+    // Upload-Verzeichnis erstellen falls nicht vorhanden
+    $upload_dir = __DIR__ . '/uploads/';
+    if (!is_dir($upload_dir)) {
+        mkdir($upload_dir, 0777, true);
+    }
+
+    // Datei verschieben
+    $target_path = $upload_dir . $new_filename;
+    if (move_uploaded_file($file['tmp_name'], $target_path)) {
+        return [
+            'filename' => $new_filename,
+            'original_name' => $file['name'],
+            'size' => $file['size'],
+            'mime_type' => $mime_type
+        ];
+    }
+
+    return false;
+}
+
 // Berechtigungen ermitteln (falls Meeting geladen)
 $is_secretary = false;
 $is_chairman = false;
@@ -854,6 +927,9 @@ if (isset($_POST['add_comment_preparation'])) {
             $meeting_status = $stmt->fetchColumn();
 
             if ($meeting_status === 'preparation') {
+                // Datei-Upload verarbeiten
+                $file_data = process_file_upload('attachment', $current_meeting_id, $current_user['member_id']);
+
                 // Prüfen, ob bereits ein Kommentar existiert
                 $stmt = $pdo->prepare("SELECT comment_id FROM svagenda_comments WHERE item_id = ? AND member_id = ?");
                 $stmt->execute([$item_id, $current_user['member_id']]);
@@ -861,19 +937,52 @@ if (isset($_POST['add_comment_preparation'])) {
 
                 if ($existing_comment) {
                     // Bestehenden Kommentar aktualisieren
-                    $stmt = $pdo->prepare("
-                        UPDATE svagenda_comments
-                        SET comment_text = ?, priority_rating = ?, duration_estimate = ?, created_at = NOW()
-                        WHERE comment_id = ?
-                    ");
-                    $stmt->execute([$comment_text, $priority_rating, $duration_estimate, $existing_comment]);
+                    if ($file_data && is_array($file_data)) {
+                        // Mit Dateianhang
+                        $stmt = $pdo->prepare("
+                            UPDATE svagenda_comments
+                            SET comment_text = ?, priority_rating = ?, duration_estimate = ?,
+                                attachment_filename = ?, attachment_original_name = ?,
+                                attachment_size = ?, attachment_mime_type = ?, created_at = NOW()
+                            WHERE comment_id = ?
+                        ");
+                        $stmt->execute([
+                            $comment_text, $priority_rating, $duration_estimate,
+                            $file_data['filename'], $file_data['original_name'],
+                            $file_data['size'], $file_data['mime_type'],
+                            $existing_comment
+                        ]);
+                    } else {
+                        // Ohne Dateianhang
+                        $stmt = $pdo->prepare("
+                            UPDATE svagenda_comments
+                            SET comment_text = ?, priority_rating = ?, duration_estimate = ?, created_at = NOW()
+                            WHERE comment_id = ?
+                        ");
+                        $stmt->execute([$comment_text, $priority_rating, $duration_estimate, $existing_comment]);
+                    }
                 } else {
                     // Neuen Kommentar erstellen
-                    $stmt = $pdo->prepare("
-                        INSERT INTO svagenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate, created_at)
-                        VALUES (?, ?, ?, ?, ?, NOW())
-                    ");
-                    $stmt->execute([$item_id, $current_user['member_id'], $comment_text, $priority_rating, $duration_estimate]);
+                    if ($file_data && is_array($file_data)) {
+                        // Mit Dateianhang
+                        $stmt = $pdo->prepare("
+                            INSERT INTO svagenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate,
+                                                          attachment_filename, attachment_original_name, attachment_size,
+                                                          attachment_mime_type, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                        ");
+                        $stmt->execute([
+                            $item_id, $current_user['member_id'], $comment_text, $priority_rating, $duration_estimate,
+                            $file_data['filename'], $file_data['original_name'], $file_data['size'], $file_data['mime_type']
+                        ]);
+                    } else {
+                        // Ohne Dateianhang
+                        $stmt = $pdo->prepare("
+                            INSERT INTO svagenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate, created_at)
+                            VALUES (?, ?, ?, ?, ?, NOW())
+                        ");
+                        $stmt->execute([$item_id, $current_user['member_id'], $comment_text, $priority_rating, $duration_estimate]);
+                    }
                 }
             }
 
@@ -1295,14 +1404,33 @@ if (isset($_POST['update_active_priority']) && $is_secretary && $meeting['status
 if (isset($_POST['add_live_comment']) && $meeting['status'] === 'active') {
     $item_id = intval($_POST['item_id']);
     $comment_text = trim($_POST['comment_text'] ?? '');
-    
+
     if ($comment_text) {
         try {
-            $stmt = $pdo->prepare("
-                INSERT INTO svagenda_live_comments (item_id, member_id, comment_text, created_at)
-                VALUES (?, ?, ?, NOW())
-            ");
-            $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+            // Datei-Upload verarbeiten
+            $file_data = process_file_upload('attachment', $current_meeting_id, $current_user['member_id']);
+
+            if ($file_data && is_array($file_data)) {
+                // Mit Dateianhang
+                $stmt = $pdo->prepare("
+                    INSERT INTO svagenda_live_comments (item_id, member_id, comment_text,
+                                                        attachment_filename, attachment_original_name,
+                                                        attachment_size, attachment_mime_type, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+                ");
+                $stmt->execute([
+                    $item_id, $current_user['member_id'], $comment_text,
+                    $file_data['filename'], $file_data['original_name'],
+                    $file_data['size'], $file_data['mime_type']
+                ]);
+            } else {
+                // Ohne Dateianhang
+                $stmt = $pdo->prepare("
+                    INSERT INTO svagenda_live_comments (item_id, member_id, comment_text, created_at)
+                    VALUES (?, ?, ?, NOW())
+                ");
+                $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+            }
 
             // Zum aktiven TOP redirecten (falls vorhanden), sonst zum kommentierten TOP
             $active_item_id = $meeting['active_item_id'] ?? $item_id;

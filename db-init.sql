@@ -117,12 +117,17 @@ CREATE TABLE IF NOT EXISTS svagenda_comments (
     item_id INT NOT NULL,
     member_id INT NOT NULL,
     comment_text TEXT NOT NULL,
+    attachment_filename VARCHAR(500) DEFAULT NULL,
+    attachment_original_name VARCHAR(255) DEFAULT NULL,
+    attachment_size INT DEFAULT NULL,
+    attachment_mime_type VARCHAR(100) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE,
     FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
     INDEX idx_item (item_id),
-    INDEX idx_member (member_id)
+    INDEX idx_member (member_id),
+    INDEX idx_attachment (attachment_filename)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =========================================================

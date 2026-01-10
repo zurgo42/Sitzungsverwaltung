@@ -567,7 +567,7 @@ foreach ($agenda_items as $item):
 
                 <!-- Formular für neuen Live-Kommentar (nur bei aktivem TOP) -->
                 <?php if ($is_active): ?>
-                <form method="POST" action="" class="live-comment-form">
+                <form method="POST" action="" enctype="multipart/form-data" class="live-comment-form">
                     <input type="hidden" name="add_live_comment" value="1">
                     <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
 
@@ -577,6 +577,16 @@ foreach ($agenda_items as $item):
                                   placeholder="Ihr Beitrag zur laufenden Diskussion..."
                                   style="width: 100%; padding: 6px; border: 1px solid #f44336; border-radius: 4px; font-size: 13px;"
                                   required></textarea>
+                    </div>
+
+                    <!-- Dateianhang Upload -->
+                    <div style="margin: 8px 0;">
+                        <label style="display: block; font-size: 11px; color: #666; margin-bottom: 3px;">📎 Dateianhang (optional):</label>
+                        <input type="file" name="attachment"
+                               style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; background: white; font-size: 11px;">
+                        <small style="display: block; margin-top: 2px; font-size: 10px; color: #999;">
+                            Max. 10 MB, erlaubte Formate: PDF, DOC(X), XLS(X), PPT(X), TXT, JPG, PNG, ZIP
+                        </small>
                     </div>
 
                     <button type="submit" style="background: #f44336; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
