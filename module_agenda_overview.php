@@ -182,7 +182,7 @@ function render_agenda_overview($agenda_items, $current_user = null, $current_me
                                            name="priority_rating[<?php echo $item["item_id"]; ?>]"
                                            value="<?php echo htmlspecialchars($user_prio); ?>"
                                            min="1" max="9" step="1"
-                                           style="width: 45px; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"
+                                           style="width: 45px; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 4px; background: <?php echo empty($user_prio) ? '#d4edda' : '#fff'; ?>;"
                                            placeholder="1-9">
 								<?php }
                                 if ($item['top_number'] <> 0) { ?>
@@ -191,7 +191,7 @@ function render_agenda_overview($agenda_items, $current_user = null, $current_me
                                            name="duration_estimate[<?php echo $item["item_id"]; ?>]"
                                            value="<?php echo htmlspecialchars($user_duration); ?>"
                                            min="1" max="300"
-                                           style="width: 40px; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 4px;">
+                                           style="width: 40px; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 4px; background: <?php echo empty($user_duration) ? '#d4edda' : '#fff'; ?>;">
 								<?php	}
                                 ?>
 								</td>

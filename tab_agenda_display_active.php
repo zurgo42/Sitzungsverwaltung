@@ -285,6 +285,32 @@ $active_item_id = $stmt->fetchColumn();
                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
         </div>
 
+        <?php
+        // Antragsteller-Auswahl nur für Sekretär und Assistenz
+        $is_assistenz_active = in_array(strtolower($current_user['role'] ?? ''), ['assistenz']);
+        if ($is_secretary || $is_assistenz_active):
+            // Alle registrierten Mitglieder nach Rolle sortiert laden
+            $all_registered_active = get_all_registered_members($pdo);
+            $sorted_members_active = sort_members_by_role_hierarchy($all_registered_active);
+        ?>
+        <div class="form-group">
+            <label>👤 Antragsteller:</label>
+            <select name="created_by_member_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">-- Bitte wählen --</option>
+                <?php foreach ($sorted_members_active as $member):
+                    $display_role = $member['role_display'] ?? get_role_display_name($member['role']);
+                ?>
+                    <option value="<?php echo $member['member_id']; ?>" <?php echo ($member['member_id'] == $current_user['member_id']) ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $display_role . ')'); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <small style="display: block; margin-top: 4px; color: #666;">
+                Wähle die Person aus, die diesen TOP beantragt
+            </small>
+        </div>
+        <?php endif; ?>
+
         <div class="top-add-form-footer">
             <label style="display: flex; align-items: center; gap: 5px;">
                 <input type="checkbox" name="is_confidential" value="1" style="width: auto;">

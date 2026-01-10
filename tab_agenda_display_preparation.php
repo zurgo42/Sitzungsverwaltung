@@ -305,7 +305,33 @@ if (!$submission_deadline_passed) {
                 <label style="font-weight: 600;">📄 Antragstext:</label>
                 <textarea name="proposal_text" rows="4" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px;"></textarea>
             </div>
-            
+
+            <?php
+            // Antragsteller-Auswahl nur für Sekretär und Assistenz
+            $is_assistenz = in_array(strtolower($current_user['role'] ?? ''), ['assistenz']);
+            if ($is_secretary || $is_assistenz):
+                // Alle registrierten Mitglieder nach Rolle sortiert laden
+                $all_registered_for_proposer = get_all_registered_members($pdo);
+                $sorted_members_proposer = sort_members_by_role_hierarchy($all_registered_for_proposer);
+            ?>
+            <div class="form-group">
+                <label style="font-weight: 600;">👤 Antragsteller:</label>
+                <select name="created_by_member_id" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="">-- Bitte wählen --</option>
+                    <?php foreach ($sorted_members_proposer as $member):
+                        $display_role = $member['role_display'] ?? get_role_display_name($member['role']);
+                    ?>
+                        <option value="<?php echo $member['member_id']; ?>" <?php echo ($member['member_id'] == $current_user['member_id']) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $display_role . ')'); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <small style="display: block; margin-top: 4px; color: #666;">
+                    Wähle die Person aus, die diesen TOP beantragt
+                </small>
+            </div>
+            <?php endif; ?>
+
             <?php
             // Priorität/Dauer nur für Führungsteam
             $is_leadership = in_array(strtolower($current_user['role'] ?? ''), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam']);
