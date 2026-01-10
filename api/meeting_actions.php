@@ -51,10 +51,10 @@ try {
         exit;
     }
 
-    // Nur Sekretär darf TOP aktivieren/deaktivieren
-    if ($meeting['secretary_member_id'] != $member_id) {
+    // Nur Sekretär oder Versammlungsleiter darf TOP aktivieren/deaktivieren
+    if ($meeting['secretary_member_id'] != $member_id && $meeting['chairman_member_id'] != $member_id) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'Permission denied. Only secretary can perform this action.']);
+        echo json_encode(['success' => false, 'error' => 'Permission denied. Only secretary or chairman can perform this action.']);
         exit;
     }
 

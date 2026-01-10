@@ -761,7 +761,7 @@ if (isset($_POST['delete_collab_text'])) {
 // 4. DATEN LADEN
 // ============================================
 
-// Alle Meetings laden
+// Alle Meetings laden (nächste zuerst)
 $meetings = $pdo->query("
     SELECT m.*,
         mem_inv.first_name as inviter_first_name,
@@ -770,7 +770,7 @@ $meetings = $pdo->query("
         (SELECT COUNT(*) FROM svagenda_items WHERE meeting_id = m.meeting_id) as agenda_count
     FROM svmeetings m
     LEFT JOIN svmembers mem_inv ON m.invited_by_member_id = mem_inv.member_id
-    ORDER BY m.meeting_date DESC
+    ORDER BY m.meeting_date ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 // Teilnehmer für jedes Meeting laden
@@ -779,6 +779,7 @@ foreach ($meetings as &$meeting) {
     $stmt->execute([$meeting['meeting_id']]);
     $meeting['participant_ids'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
+unset($meeting); // Referenz löschen um Seiteneffekte zu vermeiden
 
 // Alle registrierten Mitglieder laden (auch inaktive) für Admin-Verwaltung
 // Funktioniert mit members ODER berechtigte Tabelle (siehe config_adapter.php)

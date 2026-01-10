@@ -1052,10 +1052,12 @@ if (isset($_POST['save_protocol'])) {
                     }
                 }
             }
-            
-            header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
+
+            // Zum aktiven TOP redirecten (falls vorhanden), sonst zum gespeicherten TOP
+            $active_item_id = $meeting['active_item_id'] ?? $item_id;
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$active_item_id");
             exit;
-            
+
         } catch (PDOException $e) {
             error_log("Fehler beim Speichern des Protokolls: " . $e->getMessage());
             $error = "Fehler beim Speichern des Protokolls";
@@ -1301,8 +1303,10 @@ if (isset($_POST['add_live_comment']) && $meeting['status'] === 'active') {
                 VALUES (?, ?, ?, NOW())
             ");
             $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
-            
-            header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
+
+            // Zum aktiven TOP redirecten (falls vorhanden), sonst zum kommentierten TOP
+            $active_item_id = $meeting['active_item_id'] ?? $item_id;
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$active_item_id");
             exit;
         } catch (PDOException $e) {
             error_log("Fehler beim Speichern des Live-Kommentars: " . $e->getMessage());
