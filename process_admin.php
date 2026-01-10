@@ -758,6 +758,53 @@ if (isset($_POST['delete_collab_text'])) {
 }
 
 // ============================================
+// DATEI-UPLOAD VERWALTUNG
+// ============================================
+
+/**
+ * Hochgeladene Datei löschen
+ */
+if (isset($_POST['delete_uploaded_file'])) {
+    $filename = $_POST['filename'] ?? '';
+
+    try {
+        // Sicherheitsprüfung: Nur Dateien im uploads-Verzeichnis
+        $filename = basename($filename); // Verhindert directory traversal
+        $filepath = __DIR__ . '/uploads/' . $filename;
+
+        if (!file_exists($filepath)) {
+            $error_message = "❌ Datei nicht gefunden";
+        } else {
+            // Datei löschen
+            if (unlink($filepath)) {
+                // Protokollieren
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'file_delete',
+                    "Hochgeladene Datei gelöscht: " . $filename,
+                    'uploaded_file',
+                    null,
+                    ['filename' => $filename],
+                    null
+                );
+
+                $success_message = "✅ Datei erfolgreich gelöscht";
+            } else {
+                $error_message = "❌ Fehler beim Löschen der Datei";
+            }
+        }
+
+        header("Location: ?tab=admin#admin-files");
+        exit;
+
+    } catch (Exception $e) {
+        error_log("Fehler beim Löschen der Datei: " . $e->getMessage());
+        $error_message = "❌ Fehler beim Löschen der Datei";
+    }
+}
+
+// ============================================
 // 4. DATEN LADEN
 // ============================================
 

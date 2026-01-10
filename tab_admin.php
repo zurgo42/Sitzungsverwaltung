@@ -791,6 +791,151 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
     </div> <!-- End admin-section-content -->
 </div>
 
+<!-- Hochgeladene Dateien -->
+<div id="admin-files" class="admin-section">
+    <h3 class="admin-section-header collapsed" onclick="toggleSection(this)">📎 Hochgeladene Dateien</h3>
+
+    <div class="admin-section-content collapsed">
+        <?php
+        // Alle hochgeladenen Dateien sammeln
+        $uploads_dir = __DIR__ . '/uploads/';
+        $uploaded_files = [];
+        $total_size = 0;
+
+        if (is_dir($uploads_dir)) {
+            $files = scandir($uploads_dir);
+            foreach ($files as $file) {
+                if ($file === '.' || $file === '..') continue;
+
+                $filepath = $uploads_dir . $file;
+                if (!is_file($filepath)) continue;
+
+                // Dateiname-Format: {meeting_id}-{member_id}-{timestamp}-{original_name}
+                $parts = explode('-', $file, 4);
+                $meeting_id = $parts[0] ?? null;
+                $member_id = $parts[1] ?? null;
+                $timestamp = $parts[2] ?? null;
+                $original_name = $parts[3] ?? $file;
+
+                $filesize = filesize($filepath);
+                $total_size += $filesize;
+
+                // Meeting-Infos laden
+                $meeting_info = null;
+                if ($meeting_id && is_numeric($meeting_id)) {
+                    $stmt = $pdo->prepare("SELECT meeting_name, meeting_date FROM svmeetings WHERE meeting_id = ?");
+                    $stmt->execute([$meeting_id]);
+                    $meeting_info = $stmt->fetch(PDO::FETCH_ASSOC);
+                }
+
+                // Member-Info laden
+                $member_info = null;
+                if ($member_id && is_numeric($member_id)) {
+                    $member_info = get_member_by_id($pdo, $member_id);
+                }
+
+                $uploaded_files[] = [
+                    'filename' => $file,
+                    'original_name' => $original_name,
+                    'size' => $filesize,
+                    'upload_date' => $timestamp ? date('d.m.Y H:i', $timestamp) : 'unbekannt',
+                    'meeting_id' => $meeting_id,
+                    'meeting_name' => $meeting_info['meeting_name'] ?? 'unbekannt',
+                    'meeting_date' => $meeting_info['meeting_date'] ?? null,
+                    'member_name' => $member_info ? ($member_info['first_name'] . ' ' . $member_info['last_name']) : 'unbekannt',
+                    'filepath' => $filepath
+                ];
+            }
+
+            // Sortieren nach Upload-Datum (neueste zuerst)
+            usort($uploaded_files, function($a, $b) {
+                return strtotime($b['upload_date']) - strtotime($a['upload_date']);
+            });
+        }
+        ?>
+
+        <!-- Speicherplatz-Statistik -->
+        <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+            <strong>📊 Speicherplatz:</strong>
+            <?php echo count($uploaded_files); ?> Dateien,
+            <?php
+            if ($total_size >= 1073741824) {
+                echo number_format($total_size / 1073741824, 2) . ' GB';
+            } elseif ($total_size >= 1048576) {
+                echo number_format($total_size / 1048576, 2) . ' MB';
+            } elseif ($total_size >= 1024) {
+                echo number_format($total_size / 1024, 2) . ' KB';
+            } else {
+                echo $total_size . ' B';
+            }
+            ?> gesamt
+        </div>
+
+        <?php if (empty($uploaded_files)): ?>
+            <div class="info-box">Keine hochgeladenen Dateien vorhanden.</div>
+        <?php else: ?>
+            <table class="admin-table" style="font-size: 12px;">
+                <thead>
+                    <tr>
+                        <th>Dateiname</th>
+                        <th>Größe</th>
+                        <th>Hochgeladen am</th>
+                        <th>Von</th>
+                        <th>Sitzung</th>
+                        <th>Aktion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($uploaded_files as $file): ?>
+                        <tr>
+                            <td>
+                                <a href="uploads/<?php echo htmlspecialchars($file['filename']); ?>" target="_blank" style="color: #2196f3; text-decoration: none;">
+                                    📎 <?php echo htmlspecialchars($file['original_name']); ?>
+                                </a>
+                            </td>
+                            <td>
+                                <?php
+                                $size = $file['size'];
+                                if ($size >= 1048576) {
+                                    echo number_format($size / 1048576, 2) . ' MB';
+                                } elseif ($size >= 1024) {
+                                    echo number_format($size / 1024, 2) . ' KB';
+                                } else {
+                                    echo $size . ' B';
+                                }
+                                ?>
+                            </td>
+                            <td><?php echo htmlspecialchars($file['upload_date']); ?></td>
+                            <td><?php echo htmlspecialchars($file['member_name']); ?></td>
+                            <td>
+                                <?php if ($file['meeting_id']): ?>
+                                    <a href="?tab=agenda&meeting_id=<?php echo $file['meeting_id']; ?>" style="color: #2196f3; text-decoration: none;">
+                                        <?php echo htmlspecialchars($file['meeting_name']); ?>
+                                        <?php if ($file['meeting_date']): ?>
+                                            (<?php echo date('d.m.Y', strtotime($file['meeting_date'])); ?>)
+                                        <?php endif; ?>
+                                    </a>
+                                <?php else: ?>
+                                    -
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <form method="POST" action="" style="display: inline;" onsubmit="return confirm('Datei wirklich löschen?');">
+                                    <input type="hidden" name="delete_uploaded_file" value="1">
+                                    <input type="hidden" name="filename" value="<?php echo htmlspecialchars($file['filename']); ?>">
+                                    <button type="submit" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px;">
+                                        🗑️ Löschen
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+    </div> <!-- End admin-section-content -->
+</div>
+
 <!-- Admin-Protokoll -->
 <div id="admin-log" class="admin-section">
     <h3 class="admin-section-header" onclick="toggleSection(this)">📋 Admin-Protokoll (letzte 50 Aktionen)</h3>
