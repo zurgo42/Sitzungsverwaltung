@@ -21,6 +21,56 @@ function get_full_meeting_link($meeting_id) {
     return $protocol . $host . $script . "?tab=agenda&meeting_id=" . $meeting_id;
 }
 
+// Hilfsfunktion: Dateien basierend auf Lösch-Option automatisch löschen
+function delete_attachments_by_option($pdo, $meeting_id, $deletion_option) {
+    $uploads_dir = __DIR__ . '/uploads/';
+    $deleted_count = 0;
+
+    try {
+        // Dateien aus svagenda_comments laden
+        $stmt = $pdo->prepare("
+            SELECT c.comment_id, c.attachment_filename, c.attachment_original_name
+            FROM svagenda_comments c
+            JOIN svagenda_items i ON c.item_id = i.item_id
+            WHERE i.meeting_id = ?
+            AND c.attachment_filename IS NOT NULL
+            AND c.attachment_deletion_option = ?
+        ");
+        $stmt->execute([$meeting_id, $deletion_option]);
+        $comment_files = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Dateien aus svagenda_live_comments laden
+        $stmt = $pdo->prepare("
+            SELECT c.comment_id, c.attachment_filename, c.attachment_original_name
+            FROM svagenda_live_comments c
+            JOIN svagenda_items i ON c.item_id = i.item_id
+            WHERE i.meeting_id = ?
+            AND c.attachment_filename IS NOT NULL
+            AND c.attachment_deletion_option = ?
+        ");
+        $stmt->execute([$meeting_id, $deletion_option]);
+        $live_comment_files = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $all_files = array_merge($comment_files, $live_comment_files);
+
+        foreach ($all_files as $file) {
+            $filepath = $uploads_dir . $file['attachment_filename'];
+            if (file_exists($filepath)) {
+                if (unlink($filepath)) {
+                    $deleted_count++;
+                    error_log("Auto-deleted file: {$file['attachment_filename']} (option: {$deletion_option})");
+                }
+            }
+        }
+
+        return $deleted_count;
+
+    } catch (Exception $e) {
+        error_log("Error in delete_attachments_by_option: " . $e->getMessage());
+        return 0;
+    }
+}
+
 // Hilfsfunktion: Datei-Upload verarbeiten
 function process_file_upload($file_input_name, $meeting_id, $member_id) {
     // Prüfen ob Datei hochgeladen wurde
@@ -1019,10 +1069,46 @@ if (isset($_POST['add_comment_preparation'])) {
 if (isset($_POST['save_protocol'])) {
     $item_id = intval($_POST['item_id'] ?? 0);
     $protocol_text = trim($_POST['protocol_text'] ?? '');
-    
+
     // Prüfen ob User Sekretär ist
     if ($is_secretary && $meeting['status'] === 'active') {
         try {
+            // DATEIEN INS PROTOKOLL AUFNEHMEN: Links zu Dateien mit Option 'include_in_protocol' hinzufügen
+            $stmt = $pdo->prepare("
+                SELECT attachment_filename, attachment_original_name, attachment_size
+                FROM svagenda_comments
+                WHERE item_id = ?
+                AND attachment_filename IS NOT NULL
+                AND attachment_deletion_option = 'include_in_protocol'
+            ");
+            $stmt->execute([$item_id]);
+            $protocol_files = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Auch Live-Kommentare prüfen
+            $stmt = $pdo->prepare("
+                SELECT attachment_filename, attachment_original_name, attachment_size
+                FROM svagenda_live_comments
+                WHERE item_id = ?
+                AND attachment_filename IS NOT NULL
+                AND attachment_deletion_option = 'include_in_protocol'
+            ");
+            $stmt->execute([$item_id]);
+            $live_protocol_files = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $all_protocol_files = array_merge($protocol_files, $live_protocol_files);
+
+            if (!empty($all_protocol_files)) {
+                // Links am Ende des Protokolltextes hinzufügen
+                if (!empty($protocol_text)) {
+                    $protocol_text .= "\n\n";
+                }
+                $protocol_text .= "Anlagen:\n";
+                foreach ($all_protocol_files as $file) {
+                    $original_name = $file['attachment_original_name'] ?? $file['attachment_filename'];
+                    $protocol_text .= "- {$original_name}: uploads/{$file['attachment_filename']}\n";
+                }
+            }
+
             // 1. Abstimmungsergebnisse speichern (falls vorhanden)
             $vote_yes = isset($_POST['vote_yes']) && isset($_POST['vote_yes'][$item_id]) ? intval($_POST['vote_yes'][$item_id]) : null;
             $vote_no = isset($_POST['vote_no']) && isset($_POST['vote_no'][$item_id]) ? intval($_POST['vote_no'][$item_id]) : null;
@@ -1654,19 +1740,25 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
     try {
         // TOP 999 updated_at setzen (= Endzeitpunkt)
         $stmt = $pdo->prepare("
-            UPDATE svagenda_items 
-            SET updated_at = NOW() 
+            UPDATE svagenda_items
+            SET updated_at = NOW()
             WHERE meeting_id = ? AND top_number = 999
         ");
         $stmt->execute([$current_meeting_id]);
-        
+
         // Meeting Status und ended_at setzen
         $stmt = $pdo->prepare("
-            UPDATE svmeetings 
+            UPDATE svmeetings
             SET status = 'ended', ended_at = NOW(), active_item_id = NULL
             WHERE meeting_id = ?
         ");
         $stmt->execute([$current_meeting_id]);
+
+        // AUTOMATISCHES LÖSCHEN: Dateien mit Option 'after_meeting' löschen
+        $deleted_count = delete_attachments_by_option($pdo, $current_meeting_id, 'after_meeting');
+        if ($deleted_count > 0) {
+            error_log("Meeting {$current_meeting_id} ended: Auto-deleted {$deleted_count} file(s)");
+        }
         
         // TODO für Sekretär erstellen mit vollständigen Sitzungsdaten
         $due_date = date('Y-m-d H:i:s', strtotime('+72 hours'));
@@ -1931,6 +2023,12 @@ if (isset($_POST['save_protocol_ready_changes']) && $is_secretary && $meeting['s
  */
 if (isset($_POST['approve_protocol']) && $is_chairman && $meeting['status'] === 'protocol_ready') {
     try {
+        // AUTOMATISCHES LÖSCHEN: Dateien mit Option 'after_approval' löschen
+        $deleted_count = delete_attachments_by_option($pdo, $current_meeting_id, 'after_approval');
+        if ($deleted_count > 0) {
+            error_log("Meeting {$current_meeting_id} protocol approved: Auto-deleted {$deleted_count} file(s)");
+        }
+
         // Finale Protokolle nochmal generieren und speichern
         require_once 'module_protocol.php';
         require_once 'module_helpers.php';
