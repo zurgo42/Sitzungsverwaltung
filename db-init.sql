@@ -121,6 +121,7 @@ CREATE TABLE IF NOT EXISTS svagenda_comments (
     attachment_original_name VARCHAR(255) DEFAULT NULL,
     attachment_size INT DEFAULT NULL,
     attachment_mime_type VARCHAR(100) DEFAULT NULL,
+    attachment_deletion_option ENUM('after_meeting', 'after_approval', 'manual', 'include_in_protocol') DEFAULT 'manual',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE,

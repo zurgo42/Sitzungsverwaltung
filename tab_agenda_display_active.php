@@ -585,8 +585,31 @@ foreach ($agenda_items as $item):
                         <input type="file" name="attachment"
                                style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; background: white; font-size: 11px;">
                         <small style="display: block; margin-top: 2px; font-size: 10px; color: #999;">
-                            Max. 10 MB, erlaubte Formate: PDF, DOC(X), XLS(X), PPT(X), TXT, JPG, PNG, ZIP
+                            Max. 20 MB, erlaubte Formate: PDF, DOC(X), XLS(X), PPT(X), TXT, JPG, PNG, ZIP
                         </small>
+
+                        <!-- Lösch-Optionen -->
+                        <div style="margin-top: 6px; padding: 6px; background: #f5f5f5; border-radius: 3px;">
+                            <label style="display: block; font-size: 10px; color: #666; font-weight: 600; margin-bottom: 4px;">Datei behandeln:</label>
+                            <div style="display: flex; flex-direction: column; gap: 3px;">
+                                <label style="font-size: 10px; cursor: pointer;">
+                                    <input type="radio" name="attachment_deletion_option" value="after_meeting" style="margin-right: 3px;">
+                                    Nach der Sitzung löschen
+                                </label>
+                                <label style="font-size: 10px; cursor: pointer;">
+                                    <input type="radio" name="attachment_deletion_option" value="after_approval" style="margin-right: 3px;">
+                                    Wenn Protokoll genehmigt löschen
+                                </label>
+                                <label style="font-size: 10px; cursor: pointer;">
+                                    <input type="radio" name="attachment_deletion_option" value="manual" checked style="margin-right: 3px;">
+                                    Durch Admin löschen
+                                </label>
+                                <label style="font-size: 10px; cursor: pointer;">
+                                    <input type="radio" name="attachment_deletion_option" value="include_in_protocol" style="margin-right: 3px;">
+                                    Ins Protokoll aufnehmen <span style="color: #999; font-size: 9px;">(keine pers. Daten)</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <button type="submit" style="background: #f44336; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
@@ -744,7 +767,8 @@ function setActiveTop(itemId, meetingId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.reload();
+            // Zum aktivierten TOP redirecten (wie beim Speichern des Protokolls)
+            window.location.href = `?tab=agenda&meeting_id=${meetingId}#top-${itemId}`;
         } else {
             alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
         }
@@ -764,7 +788,8 @@ function unsetActiveTop(meetingId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.reload();
+            // Zur Agenda redirecten (bleibt an aktueller Scroll-Position wenn möglich)
+            window.location.href = `?tab=agenda&meeting_id=${meetingId}`;
         } else {
             alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
         }

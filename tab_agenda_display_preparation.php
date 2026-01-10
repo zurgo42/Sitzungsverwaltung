@@ -612,8 +612,31 @@ foreach ($agenda_items as $item):
                     <input type="file" name="attachment"
                            style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; background: white; font-size: 12px;">
                     <small style="display: block; margin-top: 2px; font-size: 10px; color: #999;">
-                        Max. 10 MB, erlaubte Formate: PDF, DOC(X), XLS(X), PPT(X), TXT, JPG, PNG, ZIP
+                        Max. 20 MB, erlaubte Formate: PDF, DOC(X), XLS(X), PPT(X), TXT, JPG, PNG, ZIP
                     </small>
+
+                    <!-- Lösch-Optionen -->
+                    <div style="margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px;">
+                        <label style="display: block; font-size: 11px; color: #666; font-weight: 600; margin-bottom: 6px;">Datei behandeln:</label>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 11px; cursor: pointer;">
+                                <input type="radio" name="attachment_deletion_option" value="after_meeting" style="margin-right: 4px;">
+                                Nach der Sitzung löschen
+                            </label>
+                            <label style="font-size: 11px; cursor: pointer;">
+                                <input type="radio" name="attachment_deletion_option" value="after_approval" style="margin-right: 4px;">
+                                Wenn Protokoll genehmigt löschen
+                            </label>
+                            <label style="font-size: 11px; cursor: pointer;">
+                                <input type="radio" name="attachment_deletion_option" value="manual" checked style="margin-right: 4px;">
+                                Durch Admin löschen (Standard)
+                            </label>
+                            <label style="font-size: 11px; cursor: pointer;">
+                                <input type="radio" name="attachment_deletion_option" value="include_in_protocol" style="margin-right: 4px;">
+                                Ins Protokoll aufnehmen <span style="color: #999;">(Datei darf keine personenbezogenen Daten enthalten)</span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 <button type="submit" style="background: #2c5aa0; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">

@@ -167,7 +167,7 @@ function render_editable_comment_form($item_id, $my_comment, $meeting_status) {
                    name="comment_attachment[<?php echo $item_id; ?>]"
                    style="font-size: 12px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; background: white; width: 100%;">
             <small style="color: #999; font-size: 10px; display: block; margin-top: 2px;">
-                Max. 10 MB, erlaubte Formate: PDF, DOC(X), XLS(X), PPT(X), TXT, JPG, PNG, ZIP
+                Max. 20 MB, erlaubte Formate: PDF, DOC(X), XLS(X), PPT(X), TXT, JPG, PNG, ZIP
             </small>
         </div>
 

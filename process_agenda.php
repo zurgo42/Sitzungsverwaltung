@@ -36,8 +36,8 @@ function process_file_upload($file_input_name, $meeting_id, $member_id) {
         return false;
     }
 
-    // Größenprüfung (max 10 MB)
-    $max_size = 10 * 1024 * 1024; // 10 MB in Bytes
+    // Größenprüfung (max 20 MB)
+    $max_size = 20 * 1024 * 1024; // 20 MB in Bytes
     if ($file['size'] > $max_size) {
         error_log("File too large: " . $file['size'] . " bytes");
         return false;
@@ -918,6 +918,7 @@ if (isset($_POST['add_comment_preparation'])) {
     $comment_text = trim($_POST['comment'] ?? '');
     $priority_rating = !empty($_POST['priority_rating']) ? floatval($_POST['priority_rating']) : null;
     $duration_estimate = !empty($_POST['duration_estimate']) ? intval($_POST['duration_estimate']) : null;
+    $deletion_option = $_POST['attachment_deletion_option'] ?? 'manual';
 
     if ($item_id) {
         try {
@@ -943,13 +944,13 @@ if (isset($_POST['add_comment_preparation'])) {
                             UPDATE svagenda_comments
                             SET comment_text = ?, priority_rating = ?, duration_estimate = ?,
                                 attachment_filename = ?, attachment_original_name = ?,
-                                attachment_size = ?, attachment_mime_type = ?, created_at = NOW()
+                                attachment_size = ?, attachment_mime_type = ?, attachment_deletion_option = ?, created_at = NOW()
                             WHERE comment_id = ?
                         ");
                         $stmt->execute([
                             $comment_text, $priority_rating, $duration_estimate,
                             $file_data['filename'], $file_data['original_name'],
-                            $file_data['size'], $file_data['mime_type'],
+                            $file_data['size'], $file_data['mime_type'], $deletion_option,
                             $existing_comment
                         ]);
                     } else {
@@ -968,12 +969,12 @@ if (isset($_POST['add_comment_preparation'])) {
                         $stmt = $pdo->prepare("
                             INSERT INTO svagenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate,
                                                           attachment_filename, attachment_original_name, attachment_size,
-                                                          attachment_mime_type, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                                                          attachment_mime_type, attachment_deletion_option, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
                         ");
                         $stmt->execute([
                             $item_id, $current_user['member_id'], $comment_text, $priority_rating, $duration_estimate,
-                            $file_data['filename'], $file_data['original_name'], $file_data['size'], $file_data['mime_type']
+                            $file_data['filename'], $file_data['original_name'], $file_data['size'], $file_data['mime_type'], $deletion_option
                         ]);
                     } else {
                         // Ohne Dateianhang
@@ -1404,6 +1405,7 @@ if (isset($_POST['update_active_priority']) && $is_secretary && $meeting['status
 if (isset($_POST['add_live_comment']) && $meeting['status'] === 'active') {
     $item_id = intval($_POST['item_id']);
     $comment_text = trim($_POST['comment_text'] ?? '');
+    $deletion_option = $_POST['attachment_deletion_option'] ?? 'manual';
 
     if ($comment_text) {
         try {
@@ -1415,13 +1417,13 @@ if (isset($_POST['add_live_comment']) && $meeting['status'] === 'active') {
                 $stmt = $pdo->prepare("
                     INSERT INTO svagenda_live_comments (item_id, member_id, comment_text,
                                                         attachment_filename, attachment_original_name,
-                                                        attachment_size, attachment_mime_type, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+                                                        attachment_size, attachment_mime_type, attachment_deletion_option, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
                 ");
                 $stmt->execute([
                     $item_id, $current_user['member_id'], $comment_text,
                     $file_data['filename'], $file_data['original_name'],
-                    $file_data['size'], $file_data['mime_type']
+                    $file_data['size'], $file_data['mime_type'], $deletion_option
                 ]);
             } else {
                 // Ohne Dateianhang

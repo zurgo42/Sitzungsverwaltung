@@ -1,7 +1,4 @@
 <?php
-
-// Benachrichtigungsmodul laden
-require_once 'module_notifications.php';
 /**
  * tab_admin.php - Admin-Verwaltung (Präsentation)
  * Bereinigt: 29.10.2025 02:45 MEZ
@@ -10,8 +7,11 @@ require_once 'module_notifications.php';
  * Nur Darstellung - alle Verarbeitungen in process_admin.php
  */
 
-// Logik einbinden
+// WICHTIG: Logik ZUERST einbinden (vor jeglicher Ausgabe, wegen header() redirects)
 require_once 'process_admin.php';
+
+// Benachrichtigungsmodul laden
+require_once 'module_notifications.php';
 ?>
 
 <style>
