@@ -10,5 +10,13 @@ ADD COLUMN attachment_size INT DEFAULT NULL AFTER attachment_original_name,
 ADD COLUMN attachment_mime_type VARCHAR(100) DEFAULT NULL AFTER attachment_size,
 ADD INDEX idx_attachment (attachment_filename);
 
+-- Add file attachment fields to svagenda_live_comments table
+ALTER TABLE svagenda_live_comments
+ADD COLUMN attachment_filename VARCHAR(500) DEFAULT NULL AFTER comment_text,
+ADD COLUMN attachment_original_name VARCHAR(255) DEFAULT NULL AFTER attachment_filename,
+ADD COLUMN attachment_size INT DEFAULT NULL AFTER attachment_original_name,
+ADD COLUMN attachment_mime_type VARCHAR(100) DEFAULT NULL AFTER attachment_size,
+ADD INDEX idx_attachment (attachment_filename);
+
 -- Note: Files will be stored in uploads/ directory with format:
 -- {meeting_id}-{member_id}-{original_filename}

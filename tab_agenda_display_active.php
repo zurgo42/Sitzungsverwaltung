@@ -927,8 +927,16 @@ function updateProtocol(itemId) {
                         return `<a href="${href}" target="_blank" rel="noopener noreferrer"${onclick}>${url}</a>`;
                     });
 
+                    // Dateianhang anzeigen (falls vorhanden)
+                    let attachmentHtml = '';
+                    if (comment.attachment_filename) {
+                        const originalName = comment.attachment_original_name || comment.attachment_filename;
+                        const fileSize = comment.attachment_size ? ` (${(comment.attachment_size / 1024 / 1024).toFixed(2)} MB)` : '';
+                        attachmentHtml = `<br><span style="margin-left: 20px;">📎 <a href="uploads/${comment.attachment_filename}" target="_blank" style="color: #2196f3; text-decoration: underline;">${originalName}</a>${fileSize}</span>`;
+                    }
+
                     html += `<div style="padding: 4px 0; border-bottom: 1px solid #eee; font-size: 13px; line-height: 1.5;">
-                        <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${commentText}</span>
+                        <strong style="color: #333;">${comment.first_name} ${comment.last_name}</strong> <span style="color: #999; font-size: 11px;">${time}:</span> <span style="color: #555;">${commentText}</span>${attachmentHtml}
                     </div>`;
                 });
                 commentsDiv.innerHTML = html || '<div style="color: #999; font-size: 12px; padding: 4px;">Noch keine Kommentare</div>';

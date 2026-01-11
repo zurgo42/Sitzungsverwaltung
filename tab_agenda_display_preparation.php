@@ -635,10 +635,6 @@ foreach ($agenda_items as $item):
                                     <input type="radio" name="attachment_deletion_option" value="manual" style="margin-right: 4px;">
                                     Durch Admin löschen
                                 </label>
-                                <label style="font-size: 11px; cursor: pointer;">
-                                    <input type="radio" name="attachment_deletion_option" value="include_in_protocol" style="margin-right: 4px;">
-                                    Ins Protokoll aufnehmen <span style="color: #999;">(Datei darf keine personenbezogenen Daten enthalten)</span>
-                                </label>
                             </div>
                         </div>
                     </div>
