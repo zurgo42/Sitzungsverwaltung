@@ -7,8 +7,8 @@
  * Nur Darstellung - alle Verarbeitungen in process_admin.php
  */
 
-// WICHTIG: Logik ZUERST einbinden (vor jeglicher Ausgabe, wegen header() redirects)
-require_once 'process_admin.php';
+// WICHTIG: process_admin.php wird bereits in index.php geladen (vor HTML-Ausgabe)
+// require_once 'process_admin.php'; // Nicht mehr hier laden - bereits in index.php
 
 // Benachrichtigungsmodul laden
 require_once 'module_notifications.php';

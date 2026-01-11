@@ -217,8 +217,50 @@ $active_item_id = $stmt->fetchColumn();
         }
         </script>
     </details>
+
+    <!-- Vorsitz und Protokollführung -->
+    <?php
+    global $members_by_id;
+    $chairman_name = 'Nicht zugewiesen';
+    $secretary_name = 'Nicht zugewiesen';
+
+    if (!empty($meeting['chairman_member_id']) && isset($members_by_id[$meeting['chairman_member_id']])) {
+        $chairman = $members_by_id[$meeting['chairman_member_id']];
+        $chairman_name = htmlspecialchars($chairman['first_name'] . ' ' . $chairman['last_name']);
+    }
+
+    if (!empty($meeting['secretary_member_id']) && isset($members_by_id[$meeting['secretary_member_id']])) {
+        $secretary = $members_by_id[$meeting['secretary_member_id']];
+        $secretary_name = htmlspecialchars($secretary['first_name'] . ' ' . $secretary['last_name']);
+    }
+    ?>
+    <div style="margin-top: 10px; padding: 10px; background: #e8f4f8; border: 1px solid #90caf9; border-radius: 4px; font-size: 13px;">
+        <strong>Vorsitz:</strong> <?php echo $chairman_name; ?> &nbsp;|&nbsp;
+        <strong>Protokollführung:</strong> <?php echo $secretary_name; ?>
+    </div>
 <?php else: ?>
     <?php render_readonly_participant_list($pdo, $current_meeting_id, $participants); ?>
+
+    <!-- Vorsitz und Protokollführung -->
+    <?php
+    global $members_by_id;
+    $chairman_name = 'Nicht zugewiesen';
+    $secretary_name = 'Nicht zugewiesen';
+
+    if (!empty($meeting['chairman_member_id']) && isset($members_by_id[$meeting['chairman_member_id']])) {
+        $chairman = $members_by_id[$meeting['chairman_member_id']];
+        $chairman_name = htmlspecialchars($chairman['first_name'] . ' ' . $chairman['last_name']);
+    }
+
+    if (!empty($meeting['secretary_member_id']) && isset($members_by_id[$meeting['secretary_member_id']])) {
+        $secretary = $members_by_id[$meeting['secretary_member_id']];
+        $secretary_name = htmlspecialchars($secretary['first_name'] . ' ' . $secretary['last_name']);
+    }
+    ?>
+    <div style="margin-top: 10px; padding: 10px; background: #e8f4f8; border: 1px solid #90caf9; border-radius: 4px; font-size: 13px;">
+        <strong>Vorsitz:</strong> <?php echo $chairman_name; ?> &nbsp;|&nbsp;
+        <strong>Protokollführung:</strong> <?php echo $secretary_name; ?>
+    </div>
 <?php endif; ?>
 
 <!-- NEUEN TOP HINZUFÜGEN (nur Sekretär) -->
@@ -579,35 +621,40 @@ foreach ($agenda_items as $item):
                                   required></textarea>
                     </div>
 
-                    <!-- Dateianhang Upload -->
+                    <!-- Dateianhang Upload (Akkordion) -->
                     <div style="margin: 8px 0;">
-                        <label style="display: block; font-size: 11px; color: #666; margin-bottom: 3px;">📎 Dateianhang (optional):</label>
-                        <input type="file" name="attachment"
-                               style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; background: white; font-size: 11px;">
-                        <small style="display: block; margin-top: 2px; font-size: 10px; color: #999;">
-                            Max. 20 MB, erlaubte Formate: PDF, DOC(X), XLS(X), PPT(X), TXT, JPG, PNG, ZIP
-                        </small>
+                        <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none';"
+                             style="cursor: pointer; padding: 5px 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 3px; font-size: 10px; color: #6c757d; user-select: none;">
+                            📎 Dateianhang (optional) – klicken zum Öffnen
+                        </div>
+                        <div style="display: none; margin-top: 6px; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 3px;">
+                            <input type="file" name="attachment"
+                                   style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 3px; background: white; font-size: 11px; margin-bottom: 4px;">
+                            <small style="display: block; margin-bottom: 6px; font-size: 10px; color: #999;">
+                                Max. 20 MB, erlaubte Formate: PDF, DOC(X), XLS(X), PPT(X), TXT, JPG, PNG, ZIP
+                            </small>
 
-                        <!-- Lösch-Optionen -->
-                        <div style="margin-top: 6px; padding: 6px; background: #f5f5f5; border-radius: 3px;">
-                            <label style="display: block; font-size: 10px; color: #666; font-weight: 600; margin-bottom: 4px;">Datei behandeln:</label>
-                            <div style="display: flex; flex-direction: column; gap: 3px;">
-                                <label style="font-size: 10px; cursor: pointer;">
-                                    <input type="radio" name="attachment_deletion_option" value="after_meeting" style="margin-right: 3px;">
-                                    Nach der Sitzung löschen
-                                </label>
-                                <label style="font-size: 10px; cursor: pointer;">
-                                    <input type="radio" name="attachment_deletion_option" value="after_approval" style="margin-right: 3px;">
-                                    Wenn Protokoll genehmigt löschen
-                                </label>
-                                <label style="font-size: 10px; cursor: pointer;">
-                                    <input type="radio" name="attachment_deletion_option" value="manual" checked style="margin-right: 3px;">
-                                    Durch Admin löschen
-                                </label>
-                                <label style="font-size: 10px; cursor: pointer;">
-                                    <input type="radio" name="attachment_deletion_option" value="include_in_protocol" style="margin-right: 3px;">
-                                    Ins Protokoll aufnehmen <span style="color: #999; font-size: 9px;">(keine pers. Daten)</span>
-                                </label>
+                            <!-- Lösch-Optionen -->
+                            <div style="padding: 6px; background: white; border: 1px solid #dee2e6; border-radius: 3px;">
+                                <label style="display: block; font-size: 10px; color: #666; font-weight: 600; margin-bottom: 4px;">Datei behandeln:</label>
+                                <div style="display: flex; flex-direction: column; gap: 3px;">
+                                    <label style="font-size: 10px; cursor: pointer;">
+                                        <input type="radio" name="attachment_deletion_option" value="after_meeting" checked style="margin-right: 3px;">
+                                        Nach der Sitzung löschen (Standard)
+                                    </label>
+                                    <label style="font-size: 10px; cursor: pointer;">
+                                        <input type="radio" name="attachment_deletion_option" value="after_approval" style="margin-right: 3px;">
+                                        Wenn Protokoll genehmigt löschen
+                                    </label>
+                                    <label style="font-size: 10px; cursor: pointer;">
+                                        <input type="radio" name="attachment_deletion_option" value="manual" style="margin-right: 3px;">
+                                        Durch Admin löschen
+                                    </label>
+                                    <label style="font-size: 10px; cursor: pointer;">
+                                        <input type="radio" name="attachment_deletion_option" value="include_in_protocol" style="margin-right: 3px;">
+                                        Ins Protokoll aufnehmen <span style="color: #999; font-size: 9px;">(keine pers. Daten)</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -925,11 +972,27 @@ function updateAllProtocols() {
     });
 }
 
+// Auto-Scroll zum aktiven TOP
+function scrollToActiveTop() {
+    <?php if ($active_item_id): ?>
+        const activeTop = document.getElementById('top-<?php echo $active_item_id; ?>');
+        if (activeTop) {
+            // Warten bis Layout berechnet ist
+            setTimeout(function() {
+                activeTop.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    <?php endif; ?>
+}
+
 // Live-Updates starten (nur im Status "active")
 <?php if ($meeting['status'] === 'active'): ?>
     // Warten bis DOM geladen ist
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
+            // Auto-Scroll zum aktiven TOP
+            scrollToActiveTop();
+
             // Initial-Update
             updateAllProtocols();
 
@@ -938,6 +1001,7 @@ function updateAllProtocols() {
         });
     } else {
         // DOM bereits geladen
+        scrollToActiveTop();
         updateAllProtocols();
         updateInterval = setInterval(updateAllProtocols, 5000);
     }

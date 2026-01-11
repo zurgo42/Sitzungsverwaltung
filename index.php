@@ -471,8 +471,10 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
 }
 
 // PROCESS ADMIN
-// Wird bei POST-Requests auf dem Admin-Tab eingebunden
-// Dies geschieht bereits in der Presentation-Datei (tab_admin.php)
+// WICHTIG: Muss VOR HTML-Ausgabe geladen werden (wegen header() redirects)
+if (isset($_GET['tab']) && $_GET['tab'] === 'admin') {
+    require_once 'process_admin.php';
+}
 
 // ============================================
 // DISPLAY-MODUS ERKENNUNG

@@ -606,35 +606,40 @@ foreach ($agenda_items as $item):
                     </div>
                 </div>
 
-                <!-- Dateianhang Upload -->
+                <!-- Dateianhang Upload (Akkordion) -->
                 <div style="margin-bottom: 10px;">
-                    <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">📎 Dateianhang (optional):</label>
-                    <input type="file" name="attachment"
-                           style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; background: white; font-size: 12px;">
-                    <small style="display: block; margin-top: 2px; font-size: 10px; color: #999;">
-                        Max. 20 MB, erlaubte Formate: PDF, DOC(X), XLS(X), PPT(X), TXT, JPG, PNG, ZIP
-                    </small>
+                    <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none';"
+                         style="cursor: pointer; padding: 6px 10px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; font-size: 11px; color: #6c757d; user-select: none;">
+                        📎 Dateianhang (optional) – klicken zum Öffnen
+                    </div>
+                    <div style="display: none; margin-top: 8px; padding: 10px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px;">
+                        <input type="file" name="attachment"
+                               style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; background: white; font-size: 12px; margin-bottom: 6px;">
+                        <small style="display: block; margin-bottom: 8px; font-size: 10px; color: #999;">
+                            Max. 20 MB, erlaubte Formate: PDF, DOC(X), XLS(X), PPT(X), TXT, JPG, PNG, ZIP
+                        </small>
 
-                    <!-- Lösch-Optionen -->
-                    <div style="margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px;">
-                        <label style="display: block; font-size: 11px; color: #666; font-weight: 600; margin-bottom: 6px;">Datei behandeln:</label>
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 11px; cursor: pointer;">
-                                <input type="radio" name="attachment_deletion_option" value="after_meeting" style="margin-right: 4px;">
-                                Nach der Sitzung löschen
-                            </label>
-                            <label style="font-size: 11px; cursor: pointer;">
-                                <input type="radio" name="attachment_deletion_option" value="after_approval" style="margin-right: 4px;">
-                                Wenn Protokoll genehmigt löschen
-                            </label>
-                            <label style="font-size: 11px; cursor: pointer;">
-                                <input type="radio" name="attachment_deletion_option" value="manual" checked style="margin-right: 4px;">
-                                Durch Admin löschen (Standard)
-                            </label>
-                            <label style="font-size: 11px; cursor: pointer;">
-                                <input type="radio" name="attachment_deletion_option" value="include_in_protocol" style="margin-right: 4px;">
-                                Ins Protokoll aufnehmen <span style="color: #999;">(Datei darf keine personenbezogenen Daten enthalten)</span>
-                            </label>
+                        <!-- Lösch-Optionen -->
+                        <div style="padding: 8px; background: white; border: 1px solid #dee2e6; border-radius: 4px;">
+                            <label style="display: block; font-size: 11px; color: #666; font-weight: 600; margin-bottom: 6px;">Datei behandeln:</label>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <label style="font-size: 11px; cursor: pointer;">
+                                    <input type="radio" name="attachment_deletion_option" value="after_meeting" checked style="margin-right: 4px;">
+                                    Nach der Sitzung löschen (Standard)
+                                </label>
+                                <label style="font-size: 11px; cursor: pointer;">
+                                    <input type="radio" name="attachment_deletion_option" value="after_approval" style="margin-right: 4px;">
+                                    Wenn Protokoll genehmigt löschen
+                                </label>
+                                <label style="font-size: 11px; cursor: pointer;">
+                                    <input type="radio" name="attachment_deletion_option" value="manual" style="margin-right: 4px;">
+                                    Durch Admin löschen
+                                </label>
+                                <label style="font-size: 11px; cursor: pointer;">
+                                    <input type="radio" name="attachment_deletion_option" value="include_in_protocol" style="margin-right: 4px;">
+                                    Ins Protokoll aufnehmen <span style="color: #999;">(Datei darf keine personenbezogenen Daten enthalten)</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
