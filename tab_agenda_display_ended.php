@@ -209,15 +209,8 @@ foreach ($agenda_items as $item):
         
         <!-- Live-Kommentare (zugeklappt, falls vorhanden) -->
         <?php
-        $stmt = $pdo->prepare("
-            SELECT alc.*, m.first_name, m.last_name
-            FROM svagenda_live_comments alc
-            JOIN svmembers m ON alc.member_id = m.member_id
-            WHERE alc.item_id = ?
-            ORDER BY alc.created_at ASC
-        ");
-        $stmt->execute([$item['item_id']]);
-        $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // SSO-kompatibel: Member-Namen über Adapter holen
+        $live_comments = get_live_comments($pdo, $item['item_id']);
         
         if (!empty($live_comments)):
         ?>

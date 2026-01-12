@@ -2424,6 +2424,39 @@ body.dark-mode .other-todos-accordion-header:hover {
         padding: 20px;
         width: 95%;
     }
+
+    /* Status "ended" - Mobile Fixes */
+    .agenda-item {
+        overflow-x: hidden;
+        word-wrap: break-word;
+    }
+
+    /* TOP-Header flex container - wrap auf Mobile */
+    .agenda-item > div[style*="display: flex"]:first-of-type {
+        flex-wrap: wrap !important;
+    }
+
+    /* Lange Wörter umbrechen */
+    .agenda-item strong,
+    .agenda-item div,
+    .agenda-item span,
+    .agenda-item p {
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+
+    /* Textareas volle Breite */
+    .agenda-item textarea {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Buttons nicht über Rand */
+    .agenda-item button {
+        max-width: 100%;
+        white-space: normal;
+        word-break: break-word;
+    }
 }
 
 @media (max-width: 600px) {
