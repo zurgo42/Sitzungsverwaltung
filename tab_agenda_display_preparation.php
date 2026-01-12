@@ -499,7 +499,7 @@ foreach ($agenda_items as $item):
         <div style="margin-bottom: 15px;">
             <strong style="display: block; margin-bottom: 5px; color: #333;">Beschreibung:</strong>
             <div style="padding: 8px; background: #f5f5f5; border-radius: 4px;">
-                <?php echo nl2br(htmlspecialchars($item['description'])); ?>
+                <?php echo nl2br(linkify_text($item['description'])); ?>
             </div>
         </div>
         <?php endif; ?>

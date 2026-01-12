@@ -517,7 +517,7 @@ foreach ($agenda_items as $item):
         <!-- Beschreibung -->
         <?php if ($item['description']): ?>
             <div style="color: #666; margin: 8px 0; font-size: 14px;">
-                <?php echo nl2br(htmlspecialchars($item['description'])); ?>
+                <?php echo nl2br(linkify_text($item['description'])); ?>
             </div>
         <?php endif; ?>
         
