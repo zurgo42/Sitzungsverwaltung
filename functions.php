@@ -49,6 +49,8 @@ function get_current_member() {
  * Konvertiert URLs in Text zu klickbaren Links
  * - Öffnet Links in neuem Tab
  * - Zeigt Alerts für Bilder/PDFs auf Mobilgeräten
+ * - Zeigt lange URLs (>40 Zeichen) als "🔗 Link" mit Tooltip
+ * - Fügt Copy-Button (📋) für lange URLs hinzu
  *
  * @param string $text Der Text der URLs enthalten kann
  * @return string Der Text mit klickbaren Links
@@ -73,6 +75,9 @@ function linkify_text($text) {
         $is_image = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']);
         $is_pdf = ($extension === 'pdf');
 
+        // Link-Text: Bei langen URLs nur "Link" anzeigen
+        $display_text = strlen($matches[1]) > 40 ? '🔗 Link' : htmlspecialchars($matches[1]);
+
         // Alert für Bilder/PDFs auf Mobile
         $onclick = '';
         if ($is_image || $is_pdf) {
@@ -80,7 +85,14 @@ function linkify_text($text) {
             $onclick = " onclick=\"if(window.innerWidth <= 768) { alert('⚠️ {$type}-Datei wird in neuem Tab geöffnet'); }\"";
         }
 
-        return '<a href="' . htmlspecialchars($url) . '" target="_blank" rel="noopener noreferrer"' . $onclick . '>' . htmlspecialchars($matches[1]) . '</a>';
+        // Copy-Button (nur bei verkürzten Links)
+        $copy_button = '';
+        if (strlen($matches[1]) > 40) {
+            $escaped_url = htmlspecialchars($url);
+            $copy_button = ' <button onclick="navigator.clipboard.writeText(\'' . addslashes($escaped_url) . '\'); this.textContent=\'✓\'; setTimeout(()=>this.textContent=\'📋\',1000); return false;" style="border:none; background:transparent; cursor:pointer; font-size:14px; padding:0 4px; color:#2196f3;" title="Link kopieren">📋</button>';
+        }
+
+        return '<a href="' . htmlspecialchars($url) . '" target="_blank" rel="noopener noreferrer" title="' . htmlspecialchars($url) . '"' . $onclick . '>' . $display_text . '</a>' . $copy_button;
     }, $text);
 
     return $text;

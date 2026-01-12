@@ -2457,12 +2457,10 @@ body.dark-mode .other-todos-accordion-header:hover {
         overflow-wrap: break-word;
     }
 
-    /* Links MÜSSEN umbrechen - auch lange URLs */
+    /* Links umbrechen (kurze URLs werden voll angezeigt) */
     .agenda-item a {
-        word-break: break-all !important;
-        overflow-wrap: break-word !important;
-        word-wrap: break-word !important;
-        display: inline-block;
+        word-break: break-word;
+        overflow-wrap: break-word;
         max-width: 100%;
     }
 
@@ -2479,34 +2477,11 @@ body.dark-mode .other-todos-accordion-header:hover {
         word-break: break-word;
     }
 
-    /* Globale Link-Regel für alle Container auf Mobile */
-    .content a,
-    .main-content a,
-    details a,
-    div[style*="background"] a {
-        word-break: break-all !important;
-        overflow-wrap: break-word !important;
-        max-width: 100%;
-    }
-
-    /* UNIVERSAL: Alle Links auf Mobile umbrechen - höchste Priorität */
-    body a {
-        word-break: break-all !important;
-        overflow-wrap: anywhere !important;
-        word-wrap: break-word !important;
-        hyphens: auto !important;
-    }
-
-    /* UNIVERSAL: Alle Container dürfen nicht über Viewport gehen */
-    body > * {
-        max-width: 100vw !important;
-        overflow-x: hidden !important;
-    }
-
+    /* Container-Breite begrenzen für bessere Mobile-Darstellung */
     .content,
     .main-content {
-        max-width: 100vw !important;
-        overflow-x: hidden !important;
+        max-width: 100vw;
+        overflow-x: hidden;
     }
 }
 
