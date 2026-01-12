@@ -2429,6 +2429,18 @@ body.dark-mode .other-todos-accordion-header:hover {
     .agenda-item {
         overflow-x: hidden;
         word-wrap: break-word;
+        max-width: 100vw !important;
+        box-sizing: border-box;
+    }
+
+    /* Alle divs innerhalb von agenda-item begrenzen */
+    .agenda-item > div,
+    .agenda-item details,
+    .agenda-item details > div,
+    .agenda-item div[style] {
+        max-width: 100% !important;
+        overflow-x: hidden;
+        box-sizing: border-box;
     }
 
     /* TOP-Header flex container - wrap auf Mobile */
@@ -2475,6 +2487,26 @@ body.dark-mode .other-todos-accordion-header:hover {
         word-break: break-all !important;
         overflow-wrap: break-word !important;
         max-width: 100%;
+    }
+
+    /* UNIVERSAL: Alle Links auf Mobile umbrechen - höchste Priorität */
+    body a {
+        word-break: break-all !important;
+        overflow-wrap: anywhere !important;
+        word-wrap: break-word !important;
+        hyphens: auto !important;
+    }
+
+    /* UNIVERSAL: Alle Container dürfen nicht über Viewport gehen */
+    body > * {
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+    }
+
+    .content,
+    .main-content {
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
     }
 }
 
