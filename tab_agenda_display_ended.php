@@ -237,15 +237,8 @@ foreach ($agenda_items as $item):
         <?php if ($is_secretary): ?>
             <!-- Nachträgliche Kommentare für Protokollführer anzeigen (vor dem Protokollfeld) -->
             <?php
-            $stmt = $pdo->prepare("
-                SELECT apc.*, m.first_name, m.last_name
-                FROM svagenda_post_comments apc
-                JOIN svmembers m ON apc.member_id = m.member_id
-                WHERE apc.item_id = ?
-                ORDER BY apc.created_at ASC
-            ");
-            $stmt->execute([$item['item_id']]);
-            $post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // SSO-kompatibel: Member-Namen über Adapter holen
+            $post_comments = get_post_comments($pdo, $item['item_id']);
 
             if (!empty($post_comments)):
             ?>
@@ -330,15 +323,8 @@ foreach ($agenda_items as $item):
                 
                 <!-- Bestehende nachträgliche Kommentare anzeigen -->
                 <?php
-                $stmt = $pdo->prepare("
-                    SELECT apc.*, m.first_name, m.last_name
-                    FROM svagenda_post_comments apc
-                    JOIN svmembers m ON apc.member_id = m.member_id
-                    WHERE apc.item_id = ?
-                    ORDER BY apc.created_at ASC
-                ");
-                $stmt->execute([$item['item_id']]);
-                $post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                // SSO-kompatibel: Member-Namen über Adapter holen
+                $post_comments = get_post_comments($pdo, $item['item_id']);
                 
                 if (!empty($post_comments)):
                 ?>
