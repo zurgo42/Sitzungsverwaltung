@@ -152,28 +152,10 @@ foreach ($agenda_items as $item):
         
         <!-- Diskussionsbeiträge (zugeklappt, nur wenn vorhanden) -->
         <?php
-        // Alle Kommentare laden
+        // Alle Kommentare laden (SSO-kompatibel)
         $prep_comments = get_item_comments($pdo, $item['item_id']);
-
-        $stmt = $pdo->prepare("
-            SELECT alc.*, m.first_name, m.last_name
-            FROM svagenda_live_comments alc
-            JOIN svmembers m ON alc.member_id = m.member_id
-            WHERE alc.item_id = ?
-            ORDER BY alc.created_at ASC
-        ");
-        $stmt->execute([$item['item_id']]);
-        $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $stmt = $pdo->prepare("
-            SELECT apc.*, m.first_name, m.last_name
-            FROM svagenda_post_comments apc
-            JOIN svmembers m ON apc.member_id = m.member_id
-            WHERE apc.item_id = ?
-            ORDER BY apc.created_at ASC
-        ");
-        $stmt->execute([$item['item_id']]);
-        $post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $live_comments = get_live_comments($pdo, $item['item_id']);
+        $post_comments = get_post_comments($pdo, $item['item_id']);
 
         // Nur anzeigen wenn mindestens eine Kommentarart vorhanden
         if (!empty($prep_comments) || !empty($live_comments) || !empty($post_comments)):
@@ -253,16 +235,8 @@ foreach ($agenda_items as $item):
         <!-- NACHTRÄGLICHE KOMMENTARE FÜR PROTOKOLLFÜHRER -->
         <?php if ($is_secretary): ?>
             <?php
-            // Nachträgliche Kommentare laden
-            $stmt = $pdo->prepare("
-                SELECT apc.*, m.first_name, m.last_name
-                FROM svagenda_post_comments apc
-                JOIN svmembers m ON apc.member_id = m.member_id
-                WHERE apc.item_id = ?
-                ORDER BY apc.created_at ASC
-            ");
-            $stmt->execute([$item['item_id']]);
-            $all_post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Nachträgliche Kommentare laden (SSO-kompatibel)
+            $all_post_comments = get_post_comments($pdo, $item['item_id']);
 
             if (!empty($all_post_comments)):
             ?>
