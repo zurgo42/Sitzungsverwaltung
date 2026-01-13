@@ -386,9 +386,11 @@ if (isset($_POST['delete_agenda_item'])) {
 
                     $pdo->commit();
 
-                    // Admin-Log eintrag
-                    log_admin_action($pdo, $current_user['member_id'], 'delete_top',
-                        "TOP #{$item['top_number']} '{$item['title']}' gelöscht");
+                    // Admin-Log eintrag (falls Funktion verfügbar)
+                    if (function_exists('log_admin_action')) {
+                        log_admin_action($pdo, $current_user['member_id'], 'delete_top',
+                            "TOP #{$item['top_number']} '{$item['title']}' gelöscht");
+                    }
 
                     header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}");
                     exit;
