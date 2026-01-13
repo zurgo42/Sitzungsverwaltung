@@ -19,18 +19,18 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
     
     // === HEADER: Meeting-Informationen ===
     
-    // Endzeitpunkt aus TOP 999 holen
-    $stmt = $pdo->prepare("SELECT updated_at FROM svagenda_items WHERE top_number = 999 AND meeting_id = ?");
-    $stmt->execute([$meeting['meeting_id']]);
-    $end_time = $stmt->fetchColumn();
-    
+    // Start- und Endzeitpunkt aus Meeting-Daten holen
+    // WICHTIG: started_at/ended_at verwenden (nicht meeting_date oder TOP 999)
+    $start_time = $meeting['started_at'] ?? $meeting['meeting_date']; // Fallback auf meeting_date
+    $end_time = $meeting['ended_at']; // Korrektes Sitzungsende verwenden
+
     // Meeting-Name und Zeit
-    $protokoll .= htmlspecialchars($meeting['meeting_name'] ?? 'Ohne Namen') . '&lt;br&gt;am ' . 
-                 date('d.m.Y H:i', strtotime($meeting['meeting_date'])) . ' Uhr';
-    
+    $protokoll .= htmlspecialchars($meeting['meeting_name'] ?? 'Ohne Namen') . '&lt;br&gt;am ' .
+                 date('d.m.Y H:i', strtotime($start_time)) . ' Uhr';
+
     if ($end_time) {
         $protokoll .= ' bis ';
-        if (date('d.m.Y', strtotime($meeting['meeting_date'])) != date('d.m.Y', strtotime($end_time))) {
+        if (date('d.m.Y', strtotime($start_time)) != date('d.m.Y', strtotime($end_time))) {
             $protokoll .= date('d.m.Y', strtotime($end_time)) . ' ';
         }
         $protokoll .= date('H:i', strtotime($end_time)) . ' Uhr ';

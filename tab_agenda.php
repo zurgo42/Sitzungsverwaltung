@@ -159,6 +159,10 @@ $can_edit_meeting = ($is_secretary || $is_chairman);
             <strong>Video-Link:</strong> <a href="<?= htmlspecialchars($meeting['video_link']) ?>" target="_blank" style="color: #2196f3;"><?= htmlspecialchars($meeting['video_link']) ?></a><br>
         <?php endif; ?>
 
+        <?php if (in_array($meeting['status'], ['active', 'ended', 'protocol_ready', 'archived']) && $meeting['started_at']): ?>
+            <strong>Beginn:</strong> <?php echo date('d.m.Y H:i', strtotime($meeting['started_at'])); ?> Uhr<br>
+        <?php endif; ?>
+
         <?php if (in_array($meeting['status'], ['ended', 'protocol_ready', 'archived']) && $meeting['ended_at']): ?>
             <strong>Ende:</strong> <?php echo date('d.m.Y H:i', strtotime($meeting['ended_at'])); ?> Uhr<br>
         <?php endif; ?>
