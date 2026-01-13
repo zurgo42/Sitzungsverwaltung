@@ -448,6 +448,11 @@ foreach ($agenda_items as $item):
     
     // Prüfen ob User der Ersteller ist
     $is_creator = ($item['created_by_member_id'] == $current_user['member_id']);
+
+    // Prüfen ob User Admin oder Protokollführung ist (dürfen auch editieren/löschen)
+    $is_admin = ($current_user['role'] === 'admin');
+    $can_edit = $is_creator || $is_admin || $is_secretary;
+    $can_delete = $is_creator || $is_admin || $is_secretary;
     ?>
     
     <div id="top-<?php echo $item['item_id']; ?>" style="margin: 20px 0; padding: 15px; border: 2px solid #2c5aa0; border-radius: 8px; background: white;">
@@ -513,12 +518,12 @@ foreach ($agenda_items as $item):
             </div>
         </div>
         <?php endif; ?>
-        
-        <!-- Bearbeiten-Button (nur für Ersteller) -->
-        <?php if ($is_creator): ?>
+
+        <!-- Bearbeiten-Button (für Ersteller, Admin oder Protokollführung) -->
+        <?php if ($can_edit): ?>
         <details style="margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; padding: 10px; background: #fafafa;">
             <summary style="cursor: pointer; font-weight: bold; color: #555;">
-                ✏️ TOP bearbeiten
+                ✏️ TOP bearbeiten<?php if (!$is_creator): ?> (Admin/Protokollführung)<?php endif; ?>
             </summary>
             <form method="POST" action="" style="margin-top: 10px;">
                 <input type="hidden" name="edit_agenda_item" value="1">
@@ -557,14 +562,27 @@ foreach ($agenda_items as $item):
                     <button type="submit" style="background: #4CAF50; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">
                         💾 Speichern
                     </button>
-                    <button type="submit" name="delete_agenda_item" value="1" 
-                            onclick="return confirm('TOP wirklich löschen?')"
+                    <button type="submit" name="delete_agenda_item" value="1"
+                            onclick="return confirm('⚠️ WARNUNG: TOP #<?php echo $item['top_number']; ?> \"<?php echo htmlspecialchars($item['title']); ?>\" wirklich löschen?\n\nAlle Kommentare und Anhänge werden ebenfalls gelöscht!\n\nDieser Vorgang kann nicht rückgängig gemacht werden.')"
                             style="background: #f44336; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">
                         🗑️ Löschen
                     </button>
                 </div>
             </form>
         </details>
+        <?php endif; ?>
+
+        <!-- Lösch-Button für Admin/Protokollführung (wenn nicht Ersteller) -->
+        <?php if ($can_delete && !$is_creator): ?>
+        <form method="POST" action="" style="margin-bottom: 15px;">
+            <input type="hidden" name="delete_agenda_item" value="1">
+            <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+            <button type="submit"
+                    onclick="return confirm('⚠️ WARNUNG: TOP #<?php echo $item['top_number']; ?> \"<?php echo htmlspecialchars($item['title']); ?>\" wirklich löschen?\n\nAlle Kommentare und Anhänge werden ebenfalls gelöscht!\n\nDieser Vorgang kann nicht rückgängig gemacht werden.')"
+                    style="background: #f44336; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                🗑️ TOP löschen (Admin/Protokollführung)
+            </button>
+        </form>
         <?php endif; ?>
 
         <!-- Kommentare & Diskussion -->

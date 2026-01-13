@@ -508,6 +508,21 @@ foreach ($agenda_items as $item):
                             <span class="mobile-only"><?php echo $item['is_confidential'] ? 'Ändern in öffentlich' : 'Ändern in vertraulich'; ?></span>
                         </button>
                     </form>
+
+                    <!-- Löschen (Admin oder Protokollführung) -->
+                    <?php
+                    $is_admin_active = ($current_user['role'] === 'admin');
+                    if ($is_admin_active || $is_secretary):
+                    ?>
+                    <form method="POST" action="" style="display: inline;"
+                          onsubmit="return confirm('⚠️ WARNUNG: TOP #<?php echo $item['top_number']; ?> \"<?php echo htmlspecialchars($item['title']); ?>\" wirklich löschen?\n\nAlle Kommentare, Protokoll-Einträge und Anhänge werden ebenfalls gelöscht!\n\nDieser Vorgang kann nicht rückgängig gemacht werden.');">
+                        <input type="hidden" name="delete_agenda_item" value="1">
+                        <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                        <button type="submit" style="background: #f44336; color: white; padding: 4px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">
+                            🗑️ Löschen
+                        </button>
+                    </form>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         </div>

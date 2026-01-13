@@ -36,7 +36,33 @@ if (!$can_edit_meeting) {
                 <label style="font-weight: 600;">📄 Antragstext:</label>
                 <textarea name="proposal_text" rows="4" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px;"></textarea>
             </div>
-            
+
+            <?php
+            // Antragsteller-Auswahl für Sekretär und Assistenz
+            $is_assistenz_prep = in_array(strtolower($current_user['role'] ?? ''), ['assistenz']);
+            if ($is_secretary || $is_assistenz_prep):
+                // Alle registrierten Mitglieder nach Rolle sortiert laden
+                $all_registered_prep = get_all_registered_members($pdo);
+                $sorted_members_prep = sort_members_by_role_hierarchy($all_registered_prep);
+            ?>
+            <div class="form-group">
+                <label style="font-weight: 600;">👤 Antragsteller:</label>
+                <select name="created_by_member_id" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px;">
+                    <option value="">-- Bitte wählen --</option>
+                    <?php foreach ($sorted_members_prep as $member):
+                        $display_role = $member['role_display'] ?? get_role_display_name($member['role']);
+                    ?>
+                        <option value="<?php echo $member['member_id']; ?>" <?php echo ($member['member_id'] == $current_user['member_id']) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $display_role . ')'); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <small style="display: block; margin-top: 4px; color: #666;">
+                    Wähle die Person aus, die diesen TOP beantragt
+                </small>
+            </div>
+            <?php endif; ?>
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div class="form-group">
                     <label style="font-weight: 600;">Priorität (1-10):</label>

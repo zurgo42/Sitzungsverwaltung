@@ -179,6 +179,11 @@ if (isset($_POST['add_agenda_item'])) {
     $duration = intval($_POST['duration'] ?? 15);
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
 
+    // Antragsteller/Ersteller: Aus Formular oder aktueller User als Fallback
+    $created_by_member_id = !empty($_POST['created_by_member_id'])
+        ? intval($_POST['created_by_member_id'])
+        : $current_user['member_id'];
+
     if ($current_meeting_id && $title) {
         try {
             // Transaktion starten für atomare Operation
@@ -203,7 +208,7 @@ if (isset($_POST['add_agenda_item'])) {
                 $priority,
                 $duration,
                 $is_confidential,
-                $current_user['member_id']
+                $created_by_member_id
             ]);
 
             $new_item_id = $pdo->lastInsertId();
@@ -238,7 +243,7 @@ if (isset($_POST['add_agenda_item'])) {
 }
 
 /**
- * Einzelnen TOP editieren (Ersteller in Vorbereitung)
+ * Einzelnen TOP editieren (Ersteller, Admin oder Protokollführung)
  */
 if (isset($_POST['edit_agenda_item'])) {
     $item_id = intval($_POST['item_id'] ?? 0);
@@ -252,9 +257,9 @@ if (isset($_POST['edit_agenda_item'])) {
 
     if ($item_id && $title) {
         try {
-            // Prüfen ob User der Ersteller ist
+            // TOP-Informationen und Meeting-Status laden
             $stmt = $pdo->prepare("
-                SELECT ai.created_by_member_id, ai.meeting_id, m.status, ai.category as old_category
+                SELECT ai.created_by_member_id, ai.meeting_id, m.status, m.secretary_member_id, ai.category as old_category
                 FROM svagenda_items ai
                 JOIN svmeetings m ON ai.meeting_id = m.meeting_id
                 WHERE ai.item_id = ?
@@ -262,28 +267,32 @@ if (isset($_POST['edit_agenda_item'])) {
             $stmt->execute([$item_id]);
             $item = $stmt->fetch();
 
-            error_log("EDIT TOP Check: is_creator=" . ($item && $item['created_by_member_id'] == $current_user['member_id'] ? 'YES' : 'NO') .
-                      ", status=" . ($item['status'] ?? 'NULL') .
-                      ", old_category=" . ($item['old_category'] ?? 'NULL'));
+            if ($item) {
+                $is_creator = ($item['created_by_member_id'] == $current_user['member_id']);
+                $is_admin = ($current_user['role'] === 'admin');
+                $is_secretary = ($item['secretary_member_id'] == $current_user['member_id']);
 
-            // Nur editierbar wenn Ersteller UND Meeting in Vorbereitung
-            if ($item &&
-                $item['created_by_member_id'] == $current_user['member_id'] &&
-                $item['status'] === 'preparation') {
+                error_log("EDIT TOP Check: is_creator=$is_creator, is_admin=$is_admin, is_secretary=$is_secretary, status={$item['status']}");
 
-                $stmt = $pdo->prepare("
-                    UPDATE svagenda_items
-                    SET title = ?, description = ?, category = ?, proposal_text = ?
-                    WHERE item_id = ?
-                ");
-                $stmt->execute([$title, $description, $category, $proposal_text, $item_id]);
+                // Editierbar wenn: (Ersteller ODER Admin ODER Protokollführung) UND Meeting in Vorbereitung
+                if (($is_creator || $is_admin || $is_secretary) && $item['status'] === 'preparation') {
 
-                error_log("EDIT TOP Success: Updated category from {$item['old_category']} to $category");
+                    $stmt = $pdo->prepare("
+                        UPDATE svagenda_items
+                        SET title = ?, description = ?, category = ?, proposal_text = ?
+                        WHERE item_id = ?
+                    ");
+                    $stmt->execute([$title, $description, $category, $proposal_text, $item_id]);
 
-                header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}#top-$item_id");
-                exit;
+                    error_log("EDIT TOP Success: Updated category from {$item['old_category']} to $category");
+
+                    header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}#top-$item_id");
+                    exit;
+                } else {
+                    error_log("EDIT TOP FAILED: Berechtigung verweigert oder falscher Status");
+                }
             } else {
-                error_log("EDIT TOP FAILED: Berechtigung verweigert oder falscher Status");
+                error_log("EDIT TOP FAILED: TOP nicht gefunden");
             }
         } catch (PDOException $e) {
             error_log("Fehler beim Editieren des TOP: " . $e->getMessage());
@@ -292,6 +301,112 @@ if (isset($_POST['edit_agenda_item'])) {
         error_log("EDIT TOP FAILED: Missing item_id or title");
     }
 }
+
+/**
+ * TOP löschen (Admin oder Protokollführung)
+ *
+ * POST-Parameter:
+ * - delete_agenda_item: 1
+ * - item_id: Int (TOP item_id)
+ *
+ * Berechtigung: Admin oder Protokollführung
+ * Redirect: ?tab=agenda&meeting_id=X
+ */
+if (isset($_POST['delete_agenda_item'])) {
+    $item_id = intval($_POST['item_id'] ?? 0);
+
+    if ($item_id) {
+        try {
+            // TOP-Informationen laden
+            $stmt = $pdo->prepare("
+                SELECT ai.meeting_id, ai.top_number, ai.title, m.status,
+                       m.secretary_member_id
+                FROM svagenda_items ai
+                JOIN svmeetings m ON ai.meeting_id = m.meeting_id
+                WHERE ai.item_id = ?
+            ");
+            $stmt->execute([$item_id]);
+            $item = $stmt->fetch();
+
+            if ($item) {
+                $is_admin = ($current_user['role'] === 'admin');
+                $is_secretary = ($item['secretary_member_id'] == $current_user['member_id']);
+
+                // Berechtigung prüfen: Admin ODER Protokollführung
+                if ($is_admin || $is_secretary) {
+                    $pdo->beginTransaction();
+
+                    // 1. Dateianhänge aus Kommentaren löschen
+                    $uploads_dir = __DIR__ . '/uploads/';
+
+                    // Dateien aus svagenda_comments
+                    $stmt = $pdo->prepare("
+                        SELECT attachment_filename
+                        FROM svagenda_comments
+                        WHERE item_id = ? AND attachment_filename IS NOT NULL
+                    ");
+                    $stmt->execute([$item_id]);
+                    $files = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                    foreach ($files as $filename) {
+                        $filepath = $uploads_dir . $filename;
+                        if (file_exists($filepath)) {
+                            unlink($filepath);
+                        }
+                    }
+
+                    // Dateien aus svagenda_live_comments
+                    $stmt = $pdo->prepare("
+                        SELECT attachment_filename
+                        FROM svagenda_live_comments
+                        WHERE item_id = ? AND attachment_filename IS NOT NULL
+                    ");
+                    $stmt->execute([$item_id]);
+                    $files = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                    foreach ($files as $filename) {
+                        $filepath = $uploads_dir . $filename;
+                        if (file_exists($filepath)) {
+                            unlink($filepath);
+                        }
+                    }
+
+                    // 2. Kommentare löschen
+                    $stmt = $pdo->prepare("DELETE FROM svagenda_comments WHERE item_id = ?");
+                    $stmt->execute([$item_id]);
+
+                    $stmt = $pdo->prepare("DELETE FROM svagenda_live_comments WHERE item_id = ?");
+                    $stmt->execute([$item_id]);
+
+                    // 3. ToDos löschen
+                    $stmt = $pdo->prepare("DELETE FROM svtodos WHERE item_id = ?");
+                    $stmt->execute([$item_id]);
+
+                    // 4. TOP selbst löschen
+                    $stmt = $pdo->prepare("DELETE FROM svagenda_items WHERE item_id = ?");
+                    $stmt->execute([$item_id]);
+
+                    $pdo->commit();
+
+                    // Admin-Log eintrag
+                    log_admin_action($pdo, $current_user['member_id'], 'delete_top',
+                        "TOP #{$item['top_number']} '{$item['title']}' gelöscht");
+
+                    header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}");
+                    exit;
+                } else {
+                    error_log("DELETE TOP FAILED: Keine Berechtigung (nicht Admin oder Protokollführung)");
+                }
+            } else {
+                error_log("DELETE TOP FAILED: TOP nicht gefunden (item_id=$item_id)");
+            }
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("FEHLER beim Löschen des TOP: " . $e->getMessage());
+        }
+    }
+}
+
 /**
  * Alle TOP-Änderungen speichern
  * 
@@ -1540,6 +1655,11 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
     $proposal_text = ($category === 'antrag_beschluss') ? trim($_POST['proposal_text'] ?? '') : '';
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
 
+    // Antragsteller/Ersteller: Aus Formular oder aktueller User als Fallback
+    $created_by_member_id = !empty($_POST['created_by_member_id'])
+        ? intval($_POST['created_by_member_id'])
+        : $current_user['member_id'];
+
     if ($title) {
         try {
             // Transaktion starten für atomare Operation
@@ -1563,7 +1683,7 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
                 $category,
                 $proposal_text,
                 $is_confidential,
-                $current_user['member_id']
+                $created_by_member_id
             ]);
 
             $new_item_id = $pdo->lastInsertId();
@@ -1722,8 +1842,8 @@ if (isset($_POST['start_meeting']) && ($is_secretary || $is_chairman) && $meetin
         $stmt->execute([$current_meeting_id]);
         $top0_item_id = $stmt->fetchColumn();
 
-        // Meeting-Status auf active setzen und TOP #0 aktivieren
-        $stmt = $pdo->prepare("UPDATE svmeetings SET status = 'active', active_item_id = ? WHERE meeting_id = ?");
+        // Meeting-Status auf active setzen, started_at setzen, und TOP #0 aktivieren
+        $stmt = $pdo->prepare("UPDATE svmeetings SET status = 'active', started_at = NOW(), active_item_id = ? WHERE meeting_id = ?");
         $stmt->execute([$top0_item_id, $current_meeting_id]);
         
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");

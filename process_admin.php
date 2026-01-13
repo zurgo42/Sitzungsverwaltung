@@ -808,23 +808,31 @@ if (isset($_POST['delete_uploaded_file'])) {
 // 4. DATEN LADEN
 // ============================================
 
-// Alle Meetings laden (nächste zuerst)
+// Alle Meetings laden (nächste zuerst) - SSO-kompatibel
 $meetings = $pdo->query("
     SELECT m.*,
-        mem_inv.first_name as inviter_first_name,
-        mem_inv.last_name as inviter_last_name,
         (SELECT COUNT(*) FROM svmeeting_participants WHERE meeting_id = m.meeting_id) as participant_count,
         (SELECT COUNT(*) FROM svagenda_items WHERE meeting_id = m.meeting_id) as agenda_count
     FROM svmeetings m
-    LEFT JOIN svmembers mem_inv ON m.invited_by_member_id = mem_inv.member_id
     ORDER BY m.meeting_date ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-// Teilnehmer für jedes Meeting laden
+// Teilnehmer und Einladenden-Namen für jedes Meeting laden
 foreach ($meetings as &$meeting) {
+    // Teilnehmer-IDs laden
     $stmt = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
     $stmt->execute([$meeting['meeting_id']]);
     $meeting['participant_ids'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    // Einladenden-Namen über Adapter laden (SSO-kompatibel)
+    if ($meeting['invited_by_member_id']) {
+        $inviter = get_member_by_id($pdo, $meeting['invited_by_member_id']);
+        $meeting['inviter_first_name'] = $inviter ? $inviter['first_name'] : null;
+        $meeting['inviter_last_name'] = $inviter ? $inviter['last_name'] : null;
+    } else {
+        $meeting['inviter_first_name'] = null;
+        $meeting['inviter_last_name'] = null;
+    }
 }
 unset($meeting); // Referenz löschen um Seiteneffekte zu vermeiden
 
@@ -837,29 +845,51 @@ $members = sort_members_by_role_hierarchy($members);
 // Alle Abwesenheiten laden (für Admin-Verwaltung)
 $all_absences = get_absences_with_names($pdo);
 
-// Offene ToDos laden
+// Offene ToDos laden - SSO-kompatibel
 $open_todos = $pdo->query("
-    SELECT t.*, 
-        m.first_name, m.last_name,
+    SELECT t.*,
         ai.title as agenda_title,
         meet.meeting_name, meet.meeting_date
     FROM svtodos t
-    LEFT JOIN svmembers m ON t.assigned_to_member_id = m.member_id
     LEFT JOIN svagenda_items ai ON t.item_id = ai.item_id
     LEFT JOIN svmeetings meet ON t.meeting_id = meet.meeting_id
     WHERE t.status = 'open'
     ORDER BY t.due_date ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-// Admin-Log laden (letzte 50 Einträge)
+// Member-Namen für ToDos über Adapter laden (SSO-kompatibel)
+foreach ($open_todos as &$todo) {
+    if ($todo['assigned_to_member_id']) {
+        $member = get_member_by_id($pdo, $todo['assigned_to_member_id']);
+        $todo['first_name'] = $member ? $member['first_name'] : null;
+        $todo['last_name'] = $member ? $member['last_name'] : null;
+    } else {
+        $todo['first_name'] = null;
+        $todo['last_name'] = null;
+    }
+}
+unset($todo);
+
+// Admin-Log laden (letzte 50 Einträge) - SSO-kompatibel
 $admin_logs = $pdo->query("
-    SELECT al.*, 
-        m.first_name, m.last_name
+    SELECT al.*
     FROM svadmin_log al
-    LEFT JOIN svmembers m ON al.admin_member_id = m.member_id
     ORDER BY al.created_at DESC
     LIMIT 50
 ")->fetchAll(PDO::FETCH_ASSOC);
+
+// Member-Namen für Admin-Logs über Adapter laden (SSO-kompatibel)
+foreach ($admin_logs as &$log) {
+    if ($log['admin_member_id']) {
+        $member = get_member_by_id($pdo, $log['admin_member_id']);
+        $log['first_name'] = $member ? $member['first_name'] : null;
+        $log['last_name'] = $member ? $member['last_name'] : null;
+    } else {
+        $log['first_name'] = null;
+        $log['last_name'] = null;
+    }
+}
+unset($log);
 
 // Statistiken berechnen
 $stats = [
@@ -870,16 +900,26 @@ $stats = [
     'archived' => count(array_filter($meetings, fn($m) => $m['status'] === 'archived'))
 ];
 
-// Alle kollaborativen Texte laden (Meeting-spezifisch UND allgemein)
+// Alle kollaborativen Texte laden (Meeting-spezifisch UND allgemein) - SSO-kompatibel
 $all_collab_texts = $pdo->query("
     SELECT t.*,
-        m.first_name as initiator_first_name,
-        m.last_name as initiator_last_name,
         mt.meeting_name
     FROM svcollab_texts t
-    JOIN svmembers m ON t.initiator_member_id = m.member_id
     LEFT JOIN svmeetings mt ON t.meeting_id = mt.meeting_id
     ORDER BY t.created_at DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
+
+// Initiator-Namen für kollaborative Texte über Adapter laden (SSO-kompatibel)
+foreach ($all_collab_texts as &$text) {
+    if ($text['initiator_member_id']) {
+        $member = get_member_by_id($pdo, $text['initiator_member_id']);
+        $text['initiator_first_name'] = $member ? $member['first_name'] : null;
+        $text['initiator_last_name'] = $member ? $member['last_name'] : null;
+    } else {
+        $text['initiator_first_name'] = null;
+        $text['initiator_last_name'] = null;
+    }
+}
+unset($text);
 
 ?>
