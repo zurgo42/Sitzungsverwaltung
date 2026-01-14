@@ -14,7 +14,13 @@
 // ZUGRIFFSKONTROLLE
 // ============================================
 
-if (empty($current_user['is_admin'])) {
+// Prüfe Admin-Berechtigung (SSO-kompatibel)
+$is_admin_user = (
+    (!empty($current_user['is_admin']) && $current_user['is_admin'] == 1) ||
+    ($current_user['role'] === 'admin')
+);
+
+if (!$is_admin_user) {
     echo '<div class="error-message">❌ Zugriff verweigert. Du hast keine Admin-Rechte.</div>';
     exit;
 }
