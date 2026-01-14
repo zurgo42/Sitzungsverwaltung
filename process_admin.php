@@ -2,13 +2,18 @@
 /**
  * process_admin.php - Admin-Verwaltung (Business Logic)
  * Bereinigt: 29.10.2025 02:30 MEZ
- * 
+ *
  * Verarbeitet alle Admin-Aktionen mit vollständiger Protokollierung
  * Nur für Benutzer mit is_admin = TRUE zugänglich
- * 
+ *
  * WICHTIG: Diese Datei wird in tab_admin.php eingebunden
  * Voraussetzungen: $pdo, $current_user
  */
+
+// === ERSTER TEST: Wird diese Datei überhaupt ausgeführt? ===
+echo '<div style="background: #4caf50; color: white; padding: 20px; margin: 10px; border-radius: 4px; font-weight: bold; font-size: 16px;">
+✅ PROCESS_ADMIN.PHP WIRD AUSGEFÜHRT - TEST ERFOLGREICH
+</div>';
 
 // ============================================
 // ZUGRIFFSKONTROLLE
