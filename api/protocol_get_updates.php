@@ -33,6 +33,17 @@ if ($item_id <= 0) {
 }
 
 try {
+    // Prüfen ob collaborative_protocol Spalte existiert
+    $columns_check = $pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'collaborative_protocol'")->fetchAll();
+    if (empty($columns_check)) {
+        http_response_code(503);
+        echo json_encode([
+            'error' => 'Database migration required',
+            'details' => 'Please run: php run_collab_migration.php'
+        ]);
+        exit;
+    }
+
     // Prüfen ob User Zugriff auf dieses Meeting hat
     $stmt = $pdo->prepare("
         SELECT m.meeting_id, m.collaborative_protocol
@@ -76,17 +87,23 @@ try {
     $content_hash = md5($content);
 
     // Wer editiert gerade? (aktiv in letzten 30 Sekunden)
-    $stmt = $pdo->prepare("
-        SELECT pe.member_id, m.first_name, m.last_name,
-               TIMESTAMPDIFF(SECOND, pe.last_activity, NOW()) as seconds_ago
-        FROM svprotocol_editing pe
-        JOIN svmembers m ON pe.member_id = m.member_id
-        WHERE pe.item_id = ?
-        AND pe.last_activity > DATE_SUB(NOW(), INTERVAL 30 SECOND)
-        AND pe.member_id != ?
-    ");
-    $stmt->execute([$item_id, $member_id]);
-    $editors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $editors = [];
+    try {
+        $stmt = $pdo->prepare("
+            SELECT pe.member_id, m.first_name, m.last_name,
+                   TIMESTAMPDIFF(SECOND, pe.last_activity, NOW()) as seconds_ago
+            FROM svprotocol_editing pe
+            JOIN svmembers m ON pe.member_id = m.member_id
+            WHERE pe.item_id = ?
+            AND pe.last_activity > DATE_SUB(NOW(), INTERVAL 30 SECOND)
+            AND pe.member_id != ?
+        ");
+        $stmt->execute([$item_id, $member_id]);
+        $editors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        // Tabelle existiert noch nicht - ignorieren
+        error_log("svprotocol_editing table not found: " . $e->getMessage());
+    }
 
     // Editoren-Namen zusammenbauen
     $editor_names = [];
@@ -95,16 +112,22 @@ try {
     }
 
     // Letzte Änderung
-    $stmt = $pdo->prepare("
-        SELECT pv.modified_at, m.first_name, m.last_name
-        FROM svprotocol_versions pv
-        JOIN svmembers m ON pv.modified_by = m.member_id
-        WHERE pv.item_id = ?
-        ORDER BY pv.modified_at DESC
-        LIMIT 1
-    ");
-    $stmt->execute([$item_id]);
-    $last_change = $stmt->fetch(PDO::FETCH_ASSOC);
+    $last_change = null;
+    try {
+        $stmt = $pdo->prepare("
+            SELECT pv.modified_at, m.first_name, m.last_name
+            FROM svprotocol_versions pv
+            JOIN svmembers m ON pv.modified_by = m.member_id
+            WHERE pv.item_id = ?
+            ORDER BY pv.modified_at DESC
+            LIMIT 1
+        ");
+        $stmt->execute([$item_id]);
+        $last_change = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        // Tabelle existiert noch nicht - ignorieren
+        error_log("svprotocol_versions table not found: " . $e->getMessage());
+    }
 
     echo json_encode([
         'success' => true,

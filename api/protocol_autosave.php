@@ -36,6 +36,17 @@ if ($item_id <= 0) {
 }
 
 try {
+    // Prüfen ob collaborative_protocol Spalte existiert
+    $columns_check = $pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'collaborative_protocol'")->fetchAll();
+    if (empty($columns_check)) {
+        http_response_code(503);
+        echo json_encode([
+            'error' => 'Database migration required',
+            'details' => 'Please run: php run_collab_migration.php'
+        ]);
+        exit;
+    }
+
     // Prüfen ob User Zugriff auf dieses Meeting hat
     $stmt = $pdo->prepare("
         SELECT m.meeting_id, m.collaborative_protocol
@@ -93,22 +104,32 @@ try {
     ");
     $stmt->execute([$content, $item_id]);
 
-    // Version für History speichern
+    // Version für History speichern (falls Tabelle existiert)
     $new_hash = md5($content);
-    $stmt = $pdo->prepare("
-        INSERT INTO svprotocol_versions
-        (item_id, protocol_text, modified_by, version_hash)
-        VALUES (?, ?, ?, ?)
-    ");
-    $stmt->execute([$item_id, $content, $member_id, $new_hash]);
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO svprotocol_versions
+            (item_id, protocol_text, modified_by, version_hash)
+            VALUES (?, ?, ?, ?)
+        ");
+        $stmt->execute([$item_id, $content, $member_id, $new_hash]);
+    } catch (PDOException $e) {
+        // Tabelle existiert noch nicht - ignorieren
+        error_log("svprotocol_versions insert failed: " . $e->getMessage());
+    }
 
-    // "Wer editiert gerade" aktualisieren
-    $stmt = $pdo->prepare("
-        INSERT INTO svprotocol_editing (item_id, member_id, last_activity)
-        VALUES (?, ?, NOW())
-        ON DUPLICATE KEY UPDATE member_id = ?, last_activity = NOW()
-    ");
-    $stmt->execute([$item_id, $member_id, $member_id]);
+    // "Wer editiert gerade" aktualisieren (falls Tabelle existiert)
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO svprotocol_editing (item_id, member_id, last_activity)
+            VALUES (?, ?, NOW())
+            ON DUPLICATE KEY UPDATE member_id = ?, last_activity = NOW()
+        ");
+        $stmt->execute([$item_id, $member_id, $member_id]);
+    } catch (PDOException $e) {
+        // Tabelle existiert noch nicht - ignorieren
+        error_log("svprotocol_editing update failed: " . $e->getMessage());
+    }
 
     echo json_encode([
         'success' => true,
