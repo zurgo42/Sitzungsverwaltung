@@ -449,9 +449,10 @@ foreach ($agenda_items as $item):
     // Prüfen ob User der Ersteller ist
     $is_creator = ($item['created_by_member_id'] == $current_user['member_id']);
 
-    // Prüfen ob User Admin oder Protokollführung ist (dürfen auch editieren/löschen)
+    // Prüfen ob User Admin, Protokollführung oder Assistenz ist (dürfen auch editieren/löschen)
     $is_admin = ($current_user['role'] === 'admin');
-    $can_edit = $is_creator || $is_admin || $is_secretary;
+    $is_assistenz = in_array(strtolower($current_user['role'] ?? ''), ['assistenz']);
+    $can_edit = $is_creator || $is_admin || $is_secretary || $is_assistenz;
     $can_delete = $is_creator || $is_admin || $is_secretary;
     ?>
     
@@ -519,6 +520,23 @@ foreach ($agenda_items as $item):
         </div>
         <?php endif; ?>
 
+        <!-- JavaScript für zweistufige Lösch-Bestätigung -->
+        <script>
+        function confirmDeleteTop<?php echo $item['item_id']; ?>() {
+            // Erste Bestätigung
+            if (!confirm('⚠️ WARNUNG: TOP #<?php echo $item['top_number']; ?> "<?php echo addslashes(htmlspecialchars($item['title'])); ?>" wirklich löschen?\n\nAlle Kommentare, Anhänge und ToDos werden ebenfalls gelöscht!')) {
+                return false;
+            }
+
+            // Zweite Bestätigung (zusätzliche Sicherheit)
+            if (!confirm('🛑 LETZTE WARNUNG!\n\nDieser Vorgang kann NICHT rückgängig gemacht werden!\n\nTOP #<?php echo $item['top_number']; ?> wirklich unwiderruflich löschen?')) {
+                return false;
+            }
+
+            return true;
+        }
+        </script>
+
         <!-- Bearbeiten-Button (für Ersteller, Admin oder Protokollführung) -->
         <?php if ($can_edit): ?>
         <details style="margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; padding: 10px; background: #fafafa;">
@@ -563,7 +581,7 @@ foreach ($agenda_items as $item):
                         💾 Speichern
                     </button>
                     <button type="submit" name="delete_agenda_item" value="1"
-                            onclick="return confirm('⚠️ WARNUNG: TOP #<?php echo $item['top_number']; ?> \"<?php echo htmlspecialchars($item['title']); ?>\" wirklich löschen?\n\nAlle Kommentare und Anhänge werden ebenfalls gelöscht!\n\nDieser Vorgang kann nicht rückgängig gemacht werden.')"
+                            onclick="return confirmDeleteTop<?php echo $item['item_id']; ?>()"
                             style="background: #f44336; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">
                         🗑️ Löschen
                     </button>
@@ -578,7 +596,7 @@ foreach ($agenda_items as $item):
             <input type="hidden" name="delete_agenda_item" value="1">
             <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
             <button type="submit"
-                    onclick="return confirm('⚠️ WARNUNG: TOP #<?php echo $item['top_number']; ?> \"<?php echo htmlspecialchars($item['title']); ?>\" wirklich löschen?\n\nAlle Kommentare und Anhänge werden ebenfalls gelöscht!\n\nDieser Vorgang kann nicht rückgängig gemacht werden.')"
+                    onclick="return confirmDeleteTop<?php echo $item['item_id']; ?>()"
                     style="background: #f44336; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
                 🗑️ TOP löschen (Admin/Protokollführung)
             </button>

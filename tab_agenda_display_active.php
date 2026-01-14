@@ -514,8 +514,23 @@ foreach ($agenda_items as $item):
                     $is_admin_active = ($current_user['role'] === 'admin');
                     if ($is_admin_active || $is_secretary):
                     ?>
+                    <script>
+                    function confirmDeleteTopActive<?php echo $item['item_id']; ?>() {
+                        // Erste Bestätigung
+                        if (!confirm('⚠️ WARNUNG: TOP #<?php echo $item['top_number']; ?> "<?php echo addslashes(htmlspecialchars($item['title'])); ?>" wirklich löschen?\n\nAlle Kommentare, Protokoll-Einträge und Anhänge werden ebenfalls gelöscht!')) {
+                            return false;
+                        }
+
+                        // Zweite Bestätigung (zusätzliche Sicherheit)
+                        if (!confirm('🛑 LETZTE WARNUNG!\n\nDieser Vorgang kann NICHT rückgängig gemacht werden!\n\nTOP #<?php echo $item['top_number']; ?> wirklich unwiderruflich löschen?')) {
+                            return false;
+                        }
+
+                        return true;
+                    }
+                    </script>
                     <form method="POST" action="" style="display: inline;"
-                          onsubmit="return confirm('⚠️ WARNUNG: TOP #<?php echo $item['top_number']; ?> \"<?php echo htmlspecialchars($item['title']); ?>\" wirklich löschen?\n\nAlle Kommentare, Protokoll-Einträge und Anhänge werden ebenfalls gelöscht!\n\nDieser Vorgang kann nicht rückgängig gemacht werden.');">
+                          onsubmit="return confirmDeleteTopActive<?php echo $item['item_id']; ?>();">
                         <input type="hidden" name="delete_agenda_item" value="1">
                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                         <button type="submit" style="background: #f44336; color: white; padding: 4px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">
@@ -575,7 +590,51 @@ foreach ($agenda_items as $item):
                 <?php endif; ?>
             </div>
         <?php endif; ?>
-        
+
+        <!-- Bearbeiten-Button (für Protokollführung und Assistenz) -->
+        <?php
+        $is_assistenz_active = in_array(strtolower($current_user['role'] ?? ''), ['assistenz']);
+        $can_edit_active = ($is_secretary || $is_assistenz_active || $current_user['role'] === 'admin');
+        if ($can_edit_active && $item['top_number'] != 999):
+        ?>
+        <details style="margin: 15px 0; border: 1px solid #2196f3; border-radius: 5px; padding: 10px; background: #f0f7ff;">
+            <summary style="cursor: pointer; font-weight: bold; color: #1976d2;">
+                ✏️ TOP bearbeiten (Protokollführung/Assistenz)
+            </summary>
+            <form method="POST" action="" style="margin-top: 10px;">
+                <input type="hidden" name="edit_agenda_item" value="1">
+                <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Titel:</label>
+                    <input type="text" name="title" value="<?php echo htmlspecialchars($item['title']); ?>"
+                           required style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;">
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Beschreibung:</label>
+                    <textarea name="description" rows="3"
+                              style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;"><?php echo htmlspecialchars($item['description']); ?></textarea>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Kategorie:</label>
+                    <?php render_category_select('category', 'edit_category_active_' . $item['item_id'], $item['category'], 'toggleProposalField("edit_active_' . $item['item_id'] . '")'); ?>
+                </div>
+
+                <div style="margin-bottom: 10px;" id="edit_active_<?php echo $item['item_id']; ?>_proposal" style="display: <?php echo $item['category'] === 'antrag_beschluss' ? 'block' : 'none'; ?>;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">📄 Antragstext:</label>
+                    <textarea name="proposal_text" rows="3"
+                              style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;"><?php echo htmlspecialchars($item['proposal_text'] ?? ''); ?></textarea>
+                </div>
+
+                <button type="submit" style="background: #2196f3; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                    💾 Speichern
+                </button>
+            </form>
+        </details>
+        <?php endif; ?>
+
         <!-- Diskussionsbeiträge aus Vorbereitung -->
         <div style="margin-top: 12px;">
             <h4 style="font-size: 14px; color: #666; margin-bottom: 8px;">💬 Diskussionsbeiträge (Vorbereitung)</h4>

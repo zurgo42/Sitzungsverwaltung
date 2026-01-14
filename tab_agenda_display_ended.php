@@ -187,7 +187,51 @@ foreach ($agenda_items as $item):
                 <?php echo nl2br(linkify_text($item['description'])); ?>
             </div>
         <?php endif; ?>
-        
+
+        <!-- Bearbeiten-Button (für Protokollführung und Assistenz) -->
+        <?php
+        $is_assistenz_ended = in_array(strtolower($current_user['role'] ?? ''), ['assistenz']);
+        $can_edit_ended = ($is_secretary || $is_assistenz_ended || $current_user['role'] === 'admin');
+        if ($can_edit_ended && $item['top_number'] != 999):
+        ?>
+        <details style="margin: 15px 0; border: 1px solid #ff9800; border-radius: 5px; padding: 10px; background: #fff3e0;">
+            <summary style="cursor: pointer; font-weight: bold; color: #e65100;">
+                ✏️ TOP bearbeiten (Protokollführung/Assistenz)
+            </summary>
+            <form method="POST" action="" style="margin-top: 10px;">
+                <input type="hidden" name="edit_agenda_item" value="1">
+                <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Titel:</label>
+                    <input type="text" name="title" value="<?php echo htmlspecialchars($item['title']); ?>"
+                           required style="width: 100%; padding: 8px; border: 1px solid #ff9800; border-radius: 4px;">
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Beschreibung:</label>
+                    <textarea name="description" rows="3"
+                              style="width: 100%; padding: 8px; border: 1px solid #ff9800; border-radius: 4px;"><?php echo htmlspecialchars($item['description']); ?></textarea>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Kategorie:</label>
+                    <?php render_category_select('category', 'edit_category_ended_' . $item['item_id'], $item['category'], 'toggleProposalField("edit_ended_' . $item['item_id'] . '")'); ?>
+                </div>
+
+                <div style="margin-bottom: 10px;" id="edit_ended_<?php echo $item['item_id']; ?>_proposal" style="display: <?php echo $item['category'] === 'antrag_beschluss' ? 'block' : 'none'; ?>;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">📄 Antragstext:</label>
+                    <textarea name="proposal_text" rows="3"
+                              style="width: 100%; padding: 8px; border: 1px solid #ff9800; border-radius: 4px;"><?php echo htmlspecialchars($item['proposal_text'] ?? ''); ?></textarea>
+                </div>
+
+                <button type="submit" style="background: #ff9800; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                    💾 Speichern
+                </button>
+            </form>
+        </details>
+        <?php endif; ?>
+
         <!-- Diskussionsbeiträge aus Vorbereitung (zugeklappt, nur wenn vorhanden) -->
         <?php
         $prep_comments = get_item_comments($pdo, $item['item_id']);

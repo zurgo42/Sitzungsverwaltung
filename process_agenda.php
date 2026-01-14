@@ -271,11 +271,13 @@ if (isset($_POST['edit_agenda_item'])) {
                 $is_creator = ($item['created_by_member_id'] == $current_user['member_id']);
                 $is_admin = ($current_user['role'] === 'admin');
                 $is_secretary = ($item['secretary_member_id'] == $current_user['member_id']);
+                $is_assistenz = in_array(strtolower($current_user['role'] ?? ''), ['assistenz']);
 
-                error_log("EDIT TOP Check: is_creator=$is_creator, is_admin=$is_admin, is_secretary=$is_secretary, status={$item['status']}");
+                error_log("EDIT TOP Check: is_creator=$is_creator, is_admin=$is_admin, is_secretary=$is_secretary, is_assistenz=$is_assistenz, status={$item['status']}");
 
-                // Editierbar wenn: (Ersteller ODER Admin ODER Protokollführung) UND Meeting in Vorbereitung
-                if (($is_creator || $is_admin || $is_secretary) && $item['status'] === 'preparation') {
+                // Editierbar wenn: (Ersteller ODER Admin ODER Protokollführung ODER Assistenz) UND Meeting in (preparation ODER active ODER ended)
+                $allowed_statuses = ['preparation', 'active', 'ended'];
+                if (($is_creator || $is_admin || $is_secretary || $is_assistenz) && in_array($item['status'], $allowed_statuses)) {
 
                     $stmt = $pdo->prepare("
                         UPDATE svagenda_items
