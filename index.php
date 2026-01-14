@@ -473,21 +473,6 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
 // PROCESS ADMIN
 // WICHTIG: Muss VOR HTML-Ausgabe geladen werden (wegen header() redirects)
 if (isset($_GET['tab']) && $_GET['tab'] === 'admin') {
-    // DEBUG: Zeige $current_user BEVOR process_admin.php geladen wird
-    echo '<div style="background: #ffebee; padding: 15px; margin: 10px; border: 2px solid #f44336; border-radius: 4px; font-family: monospace; font-size: 12px;">';
-    echo '<strong style="color: #c62828;">🔍 DEBUG: index.php - BEFORE process_admin.php</strong><br><br>';
-    echo '<strong>$current_user Inhalt:</strong><br>';
-    if (!isset($current_user)) {
-        echo '❌ $current_user ist NICHT GESETZT!<br>';
-    } else if (empty($current_user)) {
-        echo '❌ $current_user ist LEER!<br>';
-    } else {
-        echo '<pre style="background: white; padding: 10px; border-radius: 4px; overflow: auto;">';
-        print_r($current_user);
-        echo '</pre>';
-    }
-    echo '</div>';
-
     require_once 'process_admin.php';
 }
 

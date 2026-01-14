@@ -10,34 +10,15 @@
  * Voraussetzungen: $pdo, $current_user
  */
 
-// === ERSTER TEST: Wird diese Datei überhaupt ausgeführt? ===
-echo '<div style="background: #4caf50; color: white; padding: 20px; margin: 10px; border-radius: 4px; font-weight: bold; font-size: 16px;">
-✅ PROCESS_ADMIN.PHP WIRD AUSGEFÜHRT - TEST ERFOLGREICH
-</div>';
-
 // ============================================
 // ZUGRIFFSKONTROLLE
 // ============================================
-
-// DEBUG: Zeige User-Daten
-echo '<div style="background: #fff3cd; padding: 10px; margin: 10px 0; border: 1px solid #ffc107; border-radius: 4px;">';
-echo '<strong>DEBUG: Current User Daten:</strong><br>';
-echo 'is_admin: ' . (isset($current_user['is_admin']) ? $current_user['is_admin'] : 'NOT SET') . '<br>';
-echo 'role: ' . (isset($current_user['role']) ? $current_user['role'] : 'NOT SET') . '<br>';
-echo 'member_id: ' . (isset($current_user['member_id']) ? $current_user['member_id'] : 'NOT SET') . '<br>';
-echo 'All keys: ' . implode(', ', array_keys($current_user ?? [])) . '<br>';
-echo '</div>';
 
 // Prüfe Admin-Berechtigung (SSO-kompatibel)
 $is_admin_user = (
     (!empty($current_user['is_admin']) && $current_user['is_admin'] == 1) ||
     (isset($current_user['role']) && $current_user['role'] === 'admin')
 );
-
-echo '<div style="background: #e3f2fd; padding: 10px; margin: 10px 0; border: 1px solid #2196f3; border-radius: 4px;">';
-echo '<strong>DEBUG: Zugriffsprüfung:</strong><br>';
-echo 'is_admin_user: ' . ($is_admin_user ? 'TRUE' : 'FALSE') . '<br>';
-echo '</div>';
 
 if (!$is_admin_user) {
     echo '<div class="error-message">❌ Zugriff verweigert. Du hast keine Admin-Rechte.</div>';
