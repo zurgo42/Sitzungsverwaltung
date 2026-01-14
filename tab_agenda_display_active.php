@@ -628,6 +628,32 @@ foreach ($agenda_items as $item):
                               style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;"><?php echo htmlspecialchars($item['proposal_text'] ?? ''); ?></textarea>
                 </div>
 
+                <?php
+                // Ersteller-Feld für Protokollführung, Assistenz und Admin
+                $is_admin_edit_active = ($current_user['role'] === 'admin');
+                if ($is_secretary || $is_assistenz_active || $is_admin_edit_active):
+                    $all_registered_edit_active = get_all_registered_members($pdo);
+                    $sorted_members_edit_active = sort_members_by_role_hierarchy($all_registered_edit_active);
+                ?>
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">👤 Antragsteller/Ersteller:</label>
+                    <select name="created_by_member_id" style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;">
+                        <option value="">-- Nicht ändern --</option>
+                        <?php foreach ($sorted_members_edit_active as $member):
+                            $display_role = $member['role_display'] ?? get_role_display_name($member['role']);
+                            $selected = ($member['member_id'] == $item['created_by_member_id']) ? 'selected' : '';
+                        ?>
+                            <option value="<?php echo $member['member_id']; ?>" <?php echo $selected; ?>>
+                                <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $display_role . ')'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="display: block; margin-top: 4px; color: #666;">
+                        Aktuell: <?php echo htmlspecialchars($item['creator_first'] . ' ' . $item['creator_last']); ?>
+                    </small>
+                </div>
+                <?php endif; ?>
+
                 <button type="submit" style="background: #2196f3; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
                     💾 Speichern
                 </button>

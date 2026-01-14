@@ -100,14 +100,31 @@ require_once 'module_notifications.php';
 
 <!-- Statistik-Übersicht -->
 <div class="info-box" style="margin-bottom: 30px;">
-    <strong>📊 Übersicht:</strong> 
-    <?php echo $stats['total']; ?> Meetings gesamt 
-    (<?php echo $stats['preparation']; ?> in Vorbereitung, 
-    <?php echo $stats['active']; ?> aktiv, 
-    <?php echo $stats['ended']; ?> beendet, 
-    <?php echo $stats['archived']; ?> archiviert) • 
-    <?php echo count($members); ?> Mitglieder • 
-    <?php echo count($open_todos); ?> offene ToDos
+    <strong>📊 Übersicht:</strong>
+    <?php
+    // Debug: Variablen-Prüfung
+    if (!isset($stats)) {
+        echo '<span style="color: red;">ERROR: $stats nicht definiert</span>';
+    } else {
+        echo ($stats['total'] ?? 0) . ' Meetings gesamt ';
+        echo '(' . ($stats['preparation'] ?? 0) . ' in Vorbereitung, ';
+        echo ($stats['active'] ?? 0) . ' aktiv, ';
+        echo ($stats['ended'] ?? 0) . ' beendet, ';
+        echo ($stats['archived'] ?? 0) . ' archiviert) • ';
+    }
+
+    if (!isset($members)) {
+        echo '<span style="color: red;">ERROR: $members nicht definiert</span>';
+    } else {
+        echo count($members) . ' Mitglieder • ';
+    }
+
+    if (!isset($open_todos)) {
+        echo '<span style="color: red;">ERROR: $open_todos nicht definiert</span>';
+    } else {
+        echo count($open_todos) . ' offene ToDos';
+    }
+    ?>
 </div>
 
 <!-- Meeting-Verwaltung -->

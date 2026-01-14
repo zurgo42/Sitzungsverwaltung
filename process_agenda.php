@@ -279,14 +279,33 @@ if (isset($_POST['edit_agenda_item'])) {
                 $allowed_statuses = ['preparation', 'active', 'ended'];
                 if (($is_creator || $is_admin || $is_secretary || $is_assistenz) && in_array($item['status'], $allowed_statuses)) {
 
-                    $stmt = $pdo->prepare("
-                        UPDATE svagenda_items
-                        SET title = ?, description = ?, category = ?, proposal_text = ?
-                        WHERE item_id = ?
-                    ");
-                    $stmt->execute([$title, $description, $category, $proposal_text, $item_id]);
+                    // Ersteller ändern (nur für Protokollführung, Assistenz oder Admin)
+                    $can_change_creator = ($is_admin || $is_secretary || $is_assistenz);
+                    $new_creator_id = null;
 
-                    error_log("EDIT TOP Success: Updated category from {$item['old_category']} to $category");
+                    if ($can_change_creator && !empty($_POST['created_by_member_id'])) {
+                        $new_creator_id = intval($_POST['created_by_member_id']);
+                    }
+
+                    if ($new_creator_id) {
+                        // Ersteller wird geändert
+                        $stmt = $pdo->prepare("
+                            UPDATE svagenda_items
+                            SET title = ?, description = ?, category = ?, proposal_text = ?, created_by_member_id = ?
+                            WHERE item_id = ?
+                        ");
+                        $stmt->execute([$title, $description, $category, $proposal_text, $new_creator_id, $item_id]);
+                        error_log("EDIT TOP Success: Updated with new creator $new_creator_id");
+                    } else {
+                        // Ersteller bleibt gleich
+                        $stmt = $pdo->prepare("
+                            UPDATE svagenda_items
+                            SET title = ?, description = ?, category = ?, proposal_text = ?
+                            WHERE item_id = ?
+                        ");
+                        $stmt->execute([$title, $description, $category, $proposal_text, $item_id]);
+                        error_log("EDIT TOP Success: Updated category from {$item['old_category']} to $category");
+                    }
 
                     header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}#top-$item_id");
                     exit;

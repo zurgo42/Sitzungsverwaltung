@@ -569,7 +569,32 @@ foreach ($agenda_items as $item):
                     <textarea name="proposal_text" rows="3"
                               style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"><?php echo htmlspecialchars($item['proposal_text'] ?? ''); ?></textarea>
                 </div>
-                
+
+                <?php
+                // Ersteller-Feld für Protokollführung, Assistenz und Admin
+                if ($is_secretary || $is_assistenz || $is_admin):
+                    $all_registered_edit = get_all_registered_members($pdo);
+                    $sorted_members_edit = sort_members_by_role_hierarchy($all_registered_edit);
+                ?>
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">👤 Antragsteller/Ersteller:</label>
+                    <select name="created_by_member_id" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="">-- Nicht ändern --</option>
+                        <?php foreach ($sorted_members_edit as $member):
+                            $display_role = $member['role_display'] ?? get_role_display_name($member['role']);
+                            $selected = ($member['member_id'] == $item['created_by_member_id']) ? 'selected' : '';
+                        ?>
+                            <option value="<?php echo $member['member_id']; ?>" <?php echo $selected; ?>>
+                                <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $display_role . ')'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="display: block; margin-top: 4px; color: #666;">
+                        Aktuell: <?php echo htmlspecialchars($item['creator_first'] . ' ' . $item['creator_last']); ?>
+                    </small>
+                </div>
+                <?php endif; ?>
+
                 <?php if ($item['is_confidential']): ?>
                 <div style="margin-bottom: 10px; padding: 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
                     🔒 <strong>Vertraulich</strong> - Dieser Status kann nach Erstellung nicht mehr geändert werden
