@@ -550,7 +550,66 @@ foreach ($agenda_items as $item):
                 <?php echo nl2br(linkify_text($item['description'])); ?>
             </div>
         <?php endif; ?>
-        
+
+        <!-- TOP 0: Sitzungsleitung und Protokollführung bearbeiten (nur für Protokollführung) -->
+        <?php if ($item['top_number'] == 0 && $is_secretary): ?>
+            <details style="margin: 15px 0; border: 2px solid #ff9800; border-radius: 5px; padding: 15px; background: #fff3e0;">
+                <summary style="cursor: pointer; font-weight: bold; color: #e65100; font-size: 15px;">
+                    🔄 Sitzungsleitung und Protokollführung ändern
+                </summary>
+                <form method="POST" action="" style="margin-top: 15px;">
+                    <input type="hidden" name="update_meeting_roles" value="1">
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">
+                            👤 Sitzungsleitung (Vorsitz):
+                        </label>
+                        <?php
+                        // Alle Teilnehmer für Auswahl laden
+                        $all_members_for_roles = get_all_registered_members($pdo);
+                        $sorted_members_for_roles = sort_members_by_role_hierarchy($all_members_for_roles);
+                        ?>
+                        <select name="chairman_id" required style="width: 100%; padding: 10px; border: 2px solid #ff9800; border-radius: 4px; font-size: 14px;">
+                            <option value="">-- Bitte wählen --</option>
+                            <?php foreach ($sorted_members_for_roles as $member):
+                                $display_role = $member['role_display'] ?? get_role_display_name($member['role']);
+                                $is_selected = ($meeting['chairman_member_id'] == $member['member_id']) ? 'selected' : '';
+                            ?>
+                                <option value="<?php echo $member['member_id']; ?>" <?php echo $is_selected; ?>>
+                                    <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $display_role . ')'); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">
+                            📝 Protokollführung:
+                        </label>
+                        <select name="secretary_id" required style="width: 100%; padding: 10px; border: 2px solid #ff9800; border-radius: 4px; font-size: 14px;">
+                            <option value="">-- Bitte wählen --</option>
+                            <?php foreach ($sorted_members_for_roles as $member):
+                                $display_role = $member['role_display'] ?? get_role_display_name($member['role']);
+                                $is_selected = ($meeting['secretary_member_id'] == $member['member_id']) ? 'selected' : '';
+                            ?>
+                                <option value="<?php echo $member['member_id']; ?>" <?php echo $is_selected; ?>>
+                                    <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $display_role . ')'); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <button type="submit" style="background: #ff9800; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; width: 100%;">
+                        💾 Rollen speichern
+                    </button>
+
+                    <div style="margin-top: 10px; padding: 8px; background: #fff9c4; border-left: 4px solid #fbc02d; font-size: 12px; color: #333;">
+                        <strong>⚠️ Hinweis:</strong> Diese Änderung gilt für die gesamte Sitzung. Die neue Protokollführung übernimmt alle Rechte und Funktionen.
+                    </div>
+                </form>
+            </details>
+        <?php endif; ?>
+
         <!-- Meta-Info (nicht bei TOP 999) -->
         <?php if ($item['top_number'] != 999): ?>
             <div style="font-size: 12px; color: #999; margin: 8px 0;">
