@@ -8,6 +8,11 @@
 require_once 'module_todos.php';
 require_once 'module_agenda_overview.php';
 
+// Kollaboratives Protokoll JavaScript einbinden (wenn aktiv)
+if (!empty($meeting['collaborative_protocol']) && $meeting['collaborative_protocol'] == 1) {
+    echo '<script src="js/collab_protocol.js"></script>';
+}
+
 if (empty($agenda_items)) {
     echo '<div class="info-box">Keine Tagesordnungspunkte vorhanden.</div>';
     return;
@@ -831,41 +836,76 @@ foreach ($agenda_items as $item):
         <?php endif; ?>
         
         <?php if ($item['top_number'] != 999): ?>
-            <?php if ($is_secretary): ?>
-                <!-- PROTOKOLL-FORMULAR (nur für Sekretär) -->
-                <div style="margin-top: 15px; padding: 12px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 6px;">
-                    <h4 style="color: #1976d2; margin-bottom: 10px;">📝 Protokoll</h4>
+            <?php
+            // Prüfen ob kollaborativer Protokoll-Modus aktiv ist
+            $is_collaborative = ($meeting['collaborative_protocol'] == 1);
+            $can_edit_protocol = $is_secretary || $is_collaborative;
+            ?>
 
-                    <form method="POST" action="">
-                        <input type="hidden" name="save_protocol" value="1">
-                        <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+            <?php if ($can_edit_protocol): ?>
+                <!-- PROTOKOLL-FORMULAR (klassisch: nur Sekretär | kollaborativ: alle Teilnehmer) -->
+                <div style="margin-top: 15px; padding: 12px; background: <?php echo $is_collaborative ? '#e8f5e9' : '#f0f7ff'; ?>; border: 2px solid <?php echo $is_collaborative ? '#4caf50' : '#2196f3'; ?>; border-radius: 6px;">
+                    <h4 style="color: <?php echo $is_collaborative ? '#2e7d32' : '#1976d2'; ?>; margin-bottom: 10px;">
+                        📝 Protokoll
+                        <?php if ($is_collaborative): ?>
+                            <span style="font-size: 12px; color: #666; font-weight: normal;">🤝 Kollaborativ-Modus</span>
+                        <?php endif; ?>
+                    </h4>
 
+                    <?php if ($is_collaborative): ?>
+                        <!-- KOLLABORATIVER MODUS: Auto-Sync -->
                         <div class="form-group">
                             <label style="font-weight: 600;">Protokollnotizen:</label>
-                            <textarea name="protocol_text"
+                            <div id="collab-editors-<?php echo $item['item_id']; ?>" style="font-size: 11px; color: #666; margin-bottom: 5px; min-height: 16px;">
+                                <!-- Wird per JavaScript gefüllt -->
+                            </div>
+                            <textarea id="protocol-text-<?php echo $item['item_id']; ?>"
+                                      class="collab-protocol-textarea"
+                                      data-item-id="<?php echo $item['item_id']; ?>"
                                       rows="5"
-                                      placeholder="Notizen zu diesem TOP..."
-                                      style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
-                    </div>
-                    
-                    <?php 
-                    // Abstimmungsfelder nur bei Antrag/Beschluss
-                    if ($item['category'] === 'antrag_beschluss') {
-                        render_voting_fields($item['item_id'], $item);
-                    }
-                    
-                    // ToDo-Vergabe (für Protokollant) - INNERHALB des Formulars!
-                    render_todo_creation_form($pdo, $item, $current_meeting_id, $is_secretary, 'active', $participants);
-                    ?>
-                    
-                    <button type="submit" style="background: #2196f3; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; margin-top: 10px;">
-                        💾 Protokoll speichern
-                    </button>
-                </form>
-                
-                <?php 
-                // Wiedervorlage-Feature
-                if ($item['top_number'] != 0 && $item['top_number'] != 99):
+                                      placeholder="Notizen zu diesem TOP... (Änderungen werden automatisch gespeichert)"
+                                      style="width: 100%; padding: 8px; border: 2px solid #4caf50; border-radius: 4px;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; font-size: 11px; color: #666;">
+                                <span id="collab-status-<?php echo $item['item_id']; ?>">●  Bereit</span>
+                                <span id="collab-last-saved-<?php echo $item['item_id']; ?>"></span>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <!-- KLASSISCHER MODUS: Nur Sekretär, manuelles Speichern -->
+                        <form method="POST" action="">
+                            <input type="hidden" name="save_protocol" value="1">
+                            <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+
+                            <div class="form-group">
+                                <label style="font-weight: 600;">Protokollnotizen:</label>
+                                <textarea name="protocol_text"
+                                          rows="5"
+                                          placeholder="Notizen zu diesem TOP..."
+                                          style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
+                            </div>
+
+                            <?php if ($is_secretary): ?>
+                            <!-- Abstimmungsfelder und ToDo nur für Sekretär im klassischen Modus -->
+                            <?php
+                            // Abstimmungsfelder nur bei Antrag/Beschluss
+                            if ($item['category'] === 'antrag_beschluss') {
+                                render_voting_fields($item['item_id'], $item);
+                            }
+
+                            // ToDo-Vergabe (für Protokollant) - INNERHALB des Formulars!
+                            render_todo_creation_form($pdo, $item, $current_meeting_id, $is_secretary, 'active', $participants);
+                            ?>
+                            <?php endif; ?>
+
+                            <button type="submit" style="background: #2196f3; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; margin-top: 10px;">
+                                💾 Protokoll speichern
+                            </button>
+                        </form>
+                    <?php endif; // Ende klassischer Modus ?>
+
+                <?php
+                // Wiedervorlage-Feature (nur für Sekretär)
+                if ($is_secretary && $item['top_number'] != 0 && $item['top_number'] != 99):
                     // Zukünftige Meetings laden
                     $stmt_future = $pdo->prepare("
                         SELECT meeting_id, meeting_name, meeting_date, location

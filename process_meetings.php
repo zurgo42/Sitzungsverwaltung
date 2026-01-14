@@ -213,11 +213,13 @@ if (isset($_POST['create_meeting'])) {
         $pdo->beginTransaction();
 
         // 1. Meeting erstellen
+        $collaborative_protocol = isset($_POST['collaborative_protocol']) && $_POST['collaborative_protocol'] == 1 ? 1 : 0;
+
         $stmt = $pdo->prepare("
             INSERT INTO svmeetings
             (meeting_name, meeting_date, expected_end_date, submission_deadline, location, video_link,
-             chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
+             chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, collaborative_protocol, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
         ");
         $stmt->execute([
             $meeting_name,
@@ -229,7 +231,8 @@ if (isset($_POST['create_meeting'])) {
             $chairman_member_id,
             $secretary_member_id,
             $current_user['member_id'],
-            $visibility_type
+            $visibility_type,
+            $collaborative_protocol
         ]);
         
         $meeting_id = $pdo->lastInsertId();
@@ -309,6 +312,7 @@ if (isset($_POST['edit_meeting'])) {
     $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
     $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
+    $collaborative_protocol = isset($_POST['collaborative_protocol']) && $_POST['collaborative_protocol'] == 1 ? 1 : 0;
 
     if (empty($meeting_name) || empty($meeting_date)) {
         header("Location: index.php?tab=meetings&error=missing_data&meeting_id=$meeting_id");
@@ -332,7 +336,7 @@ if (isset($_POST['edit_meeting'])) {
         $stmt = $pdo->prepare("
             UPDATE svmeetings
             SET meeting_name = ?, meeting_date = ?, expected_end_date = ?, submission_deadline = ?,
-                location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?, visibility_type = ?
+                location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?, visibility_type = ?, collaborative_protocol = ?
             WHERE meeting_id = ?
         ");
         $stmt->execute([
@@ -345,6 +349,7 @@ if (isset($_POST['edit_meeting'])) {
             $chairman_member_id,
             $secretary_member_id,
             $visibility_type,
+            $collaborative_protocol,
             $meeting_id
         ]);
         
