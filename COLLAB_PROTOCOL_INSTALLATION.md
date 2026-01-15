@@ -1,26 +1,42 @@
 # Kollaboratives Protokoll - Installations-Anleitung
 
-## Schritt 1: Datenbank-Migration ausführen
+## Schritt 1: Datenbank-Migrationen ausführen
 
 Du musst die Datenbank-Tabellen erstellen, damit das kollaborative Protokoll funktioniert.
 
-### Option A: Via Browser (einfachste Methode)
+### Migration 1: Basis-Feature (erforderlich)
 
+**Option A: Via Browser (einfachste Methode)**
 1. Öffne im Browser: `http://deine-domain.de/Sitzungsverwaltung/run_collab_migration.php`
 2. Du solltest sehen: "✅ Migration abgeschlossen!"
-3. Fertig!
 
-### Option B: Via Kommandozeile
-
+**Option B: Via Kommandozeile**
 ```bash
 cd /pfad/zu/Sitzungsverwaltung
 php run_collab_migration.php
 ```
 
-### Option C: Direkt via MySQL
-
+**Option C: Direkt via MySQL**
 ```bash
 mysql -u username -p datenbank_name < migrations/add_collaborative_protocol.sql
+```
+
+### Migration 2: Force-Update Tracking (empfohlen)
+
+Diese Migration verbessert den Prioritäts-Button, damit Force-Updates auch bei tippenden Usern ankommen.
+
+**Option A: Via Browser**
+1. Öffne im Browser: `http://deine-domain.de/Sitzungsverwaltung/run_force_update_migration.php`
+2. Du solltest sehen: "✅ Migration abgeschlossen!"
+
+**Option B: Via Kommandozeile**
+```bash
+php run_force_update_migration.php
+```
+
+**Option C: Direkt via MySQL**
+```bash
+mysql -u username -p datenbank_name < migrations/add_force_update_tracking.sql
 ```
 
 ## Schritt 2: Funktionalität testen
@@ -88,6 +104,24 @@ mysql -u username -p datenbank_name < migrations/add_collaborative_protocol.sql
 1. **"Last Write Wins"**: Bei gleichzeitigen Änderungen an derselben Stelle gewinnt die letzte Speicherung
 2. **Cursor-Position**: Wird ungefähr beibehalten, kann aber bei starken Änderungen anderer springen
 3. **Konflikte**: Werden angezeigt, aber nicht automatisch gemergt
+
+## Neueste Verbesserungen (2026-01-15):
+
+### Bug-Fixes:
+- ✅ **"User schreibt gerade" verschwindet jetzt schneller** (10s statt 30s Timeout)
+- ✅ **Keine falschen Konflikt-Warnungen mehr** nach erfolgreichem Speichern
+- ✅ **Editing-Status wird sofort gelöscht** beim Verlassen des Feldes (Blur)
+- ✅ **Cursor-Position bleibt erhalten** bei Updates (nur wenn Feld fokussiert ist)
+
+### Force-Update Verbesserungen:
+- ✅ **Prioritäts-Button funktioniert zuverlässig** - Updates werden auch an tippende User übertragen
+- ✅ **Warnung bei Force-Updates** - Tippende User werden gefragt ob sie überschrieben werden wollen
+- ✅ **Visuelles Feedback** "⚡ Force-Update geladen" wenn Prioritäts-Button verwendet wurde
+
+### Technische Verbesserungen:
+- Neuer API-Endpunkt `protocol_clear_editing.php` für sofortiges Status-Clearing
+- `is_typing` Flag verhindert unnötige Editing-Status Updates
+- `force_update_at` Timestamp für besseres Force-Update Tracking
 
 ## Klassischer Modus vs. Kollaborativer Modus:
 

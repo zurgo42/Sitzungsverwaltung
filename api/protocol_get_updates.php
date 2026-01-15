@@ -76,12 +76,17 @@ try {
 
     // Aktuellen Protokoll-Text laden
     $stmt = $pdo->prepare("
-        SELECT protocol_notes, top_number, title
+        SELECT protocol_notes, top_number, title, force_update_at
         FROM svagenda_items
         WHERE item_id = ?
     ");
     $stmt->execute([$item_id]);
     $item = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Fallback wenn force_update_at Spalte nicht existiert
+    if (!isset($item['force_update_at'])) {
+        $item['force_update_at'] = null;
+    }
 
     $content = $item['protocol_notes'] ?? '';
     $content_hash = md5($content);
@@ -140,6 +145,7 @@ try {
         'editor_count' => count($editor_names),
         'last_modified_by' => $last_change ? ($last_change['first_name'] . ' ' . $last_change['last_name']) : null,
         'last_modified_at' => $last_change ? $last_change['modified_at'] : null,
+        'force_update_at' => $item['force_update_at'],
         'server_time' => date('Y-m-d H:i:s')
     ]);
 

@@ -29,6 +29,7 @@ $content = isset($data['content']) ? $data['content'] : '';
 $cursor_pos = isset($data['cursor_pos']) ? (int)$data['cursor_pos'] : 0;
 $client_hash = isset($data['client_hash']) ? $data['client_hash'] : '';
 $is_typing = isset($data['is_typing']) ? (bool)$data['is_typing'] : false;
+$force = isset($data['force']) ? (bool)$data['force'] : false;
 
 if ($item_id <= 0) {
     http_response_code(400);
@@ -98,12 +99,32 @@ try {
     }
 
     // Protokoll-Text speichern
-    $stmt = $pdo->prepare("
-        UPDATE svagenda_items
-        SET protocol_notes = ?
-        WHERE item_id = ?
-    ");
-    $stmt->execute([$content, $item_id]);
+    if ($force) {
+        // Bei Force-Save auch force_update_at setzen (falls Spalte existiert)
+        try {
+            $stmt = $pdo->prepare("
+                UPDATE svagenda_items
+                SET protocol_notes = ?, force_update_at = NOW()
+                WHERE item_id = ?
+            ");
+            $stmt->execute([$content, $item_id]);
+        } catch (PDOException $e) {
+            // Spalte existiert noch nicht - normales Update
+            $stmt = $pdo->prepare("
+                UPDATE svagenda_items
+                SET protocol_notes = ?
+                WHERE item_id = ?
+            ");
+            $stmt->execute([$content, $item_id]);
+        }
+    } else {
+        $stmt = $pdo->prepare("
+            UPDATE svagenda_items
+            SET protocol_notes = ?
+            WHERE item_id = ?
+        ");
+        $stmt->execute([$content, $item_id]);
+    }
 
     // Version für History speichern (falls Tabelle existiert)
     $new_hash = md5($content);
@@ -134,11 +155,23 @@ try {
         }
     }
 
+    // Force-Update Timestamp laden (falls vorhanden)
+    $force_update_at = null;
+    try {
+        $stmt = $pdo->prepare("SELECT force_update_at FROM svagenda_items WHERE item_id = ?");
+        $stmt->execute([$item_id]);
+        $force_update_at = $stmt->fetchColumn();
+    } catch (PDOException $e) {
+        // Spalte existiert noch nicht
+    }
+
     echo json_encode([
         'success' => true,
         'new_hash' => $new_hash,
         'has_conflict' => $has_conflict,
-        'saved_at' => date('Y-m-d H:i:s')
+        'saved_at' => date('Y-m-d H:i:s'),
+        'force_update_at' => $force_update_at,
+        'is_force' => $force
     ]);
 
 } catch (PDOException $e) {

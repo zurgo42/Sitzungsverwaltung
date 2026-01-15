@@ -46,7 +46,8 @@
                 typingTimeout: null,
                 autoSaveInterval: null,
                 autoLoadInterval: null,
-                cursorPosition: 0
+                cursorPosition: 0,
+                lastForceUpdateAt: null // Tracking für Force-Updates
             };
 
             textareaStates.set(itemId, state);
@@ -163,14 +164,39 @@
     }
 
     /**
-     * Auto-Load: Lädt Updates von anderen wenn User nicht tippt
+     * Wendet Content-Update auf Textarea an (mit Cursor-Preservation)
      */
-    async function autoLoad(state) {
-        // Nicht laden wenn User gerade tippt
-        if (state.isTyping) {
-            return;
+    function applyContentUpdate(state, newContent, newHash) {
+        // Cursor-Position merken
+        const cursorPos = state.textarea.selectionStart;
+        const hasFocus = document.activeElement === state.textarea;
+
+        // Content aktualisieren
+        state.textarea.value = newContent;
+        state.lastSavedContent = newContent;
+        state.currentHash = newHash;
+
+        // Cursor-Position wiederherstellen (nur wenn Feld fokussiert war)
+        if (hasFocus) {
+            try {
+                state.textarea.setSelectionRange(cursorPos, cursorPos);
+            } catch (e) {
+                // Ignorieren wenn Position ungültig
+            }
         }
 
+        // Visuelles Feedback
+        state.textarea.style.borderColor = '#4caf50';
+        setTimeout(() => {
+            state.textarea.style.borderColor = '';
+        }, 300);
+    }
+
+    /**
+     * Auto-Load: Lädt Updates von anderen wenn User nicht tippt
+     * AUSNAHME: Force-Updates werden immer geladen (mit Warnung)
+     */
+    async function autoLoad(state) {
         try {
             const response = await fetch(`api/protocol_get_updates.php?item_id=${state.itemId}`);
             const data = await response.json();
@@ -183,37 +209,47 @@
             // Editoren-Anzeige aktualisieren
             updateEditors(state.itemId, data.editors, data.editor_count);
 
+            // Prüfen ob es ein neues Force-Update gibt
+            const hasForceUpdate = data.force_update_at &&
+                                   data.force_update_at !== state.lastForceUpdateAt;
+
+            if (hasForceUpdate) {
+                // Force-Update erkannt - laden auch wenn User tippt
+                state.lastForceUpdateAt = data.force_update_at;
+
+                if (state.isTyping) {
+                    // User tippt gerade - Warnung anzeigen
+                    if (confirm('⚠️ Ein anderer Teilnehmer hat den Prioritäts-Button verwendet.\n\n' +
+                               'Deine aktuellen Änderungen werden überschrieben!\n\n' +
+                               'OK = Überschreiben, Abbrechen = Deine Version behalten')) {
+                        // User akzeptiert Überschreiben
+                        applyContentUpdate(state, data.content, data.content_hash);
+                        updateStatus(state.itemId, 'saved', '⚡ Force-Update geladen');
+                    } else {
+                        // User will seine Version behalten - dann sofort speichern
+                        autoSave(state);
+                    }
+                } else {
+                    // User tippt nicht - einfach laden
+                    applyContentUpdate(state, data.content, data.content_hash);
+                    updateStatus(state.itemId, 'saved', '⚡ Force-Update geladen');
+                }
+                return;
+            }
+
+            // Nicht laden wenn User gerade tippt (außer bei Force-Update oben)
+            if (state.isTyping) {
+                return;
+            }
+
             // Content nur aktualisieren wenn:
             // 1. Hash unterschiedlich ist
-            // 2. User nicht am Tippen ist
-            // 3. Content tatsächlich anders ist
+            // 2. Content tatsächlich anders ist
             if (data.content_hash !== state.currentHash &&
-                !state.isTyping &&
                 data.content !== state.textarea.value) {
 
-                // Cursor-Position merken
-                const cursorPos = state.textarea.selectionStart;
-                const hasFocus = document.activeElement === state.textarea;
+                applyContentUpdate(state, data.content, data.content_hash);
 
-                // Content aktualisieren
-                state.textarea.value = data.content;
-                state.lastSavedContent = data.content;
-                state.currentHash = data.content_hash;
-
-                // Cursor-Position wiederherstellen (nur wenn Feld fokussiert war)
-                if (hasFocus) {
-                    try {
-                        state.textarea.setSelectionRange(cursorPos, cursorPos);
-                    } catch (e) {
-                        // Ignorieren wenn Position ungültig
-                    }
-                }
-
-                // Visuelles Feedback
-                state.textarea.style.borderColor = '#4caf50';
-                setTimeout(() => {
-                    state.textarea.style.borderColor = '';
-                }, 300);
             } else if (data.content_hash === state.currentHash && state.textarea.value !== data.content) {
                 // Edge case: Hash gleich aber Content anders
                 // Dann unseren Hash neu berechnen
@@ -394,6 +430,11 @@
                 state.lastSavedContent = currentContent;
                 state.currentHash = data.new_hash;
 
+                // Force-Update Timestamp aktualisieren
+                if (data.force_update_at) {
+                    state.lastForceUpdateAt = data.force_update_at;
+                }
+
                 updateStatus(itemId, 'saved', '✓ Forciert gespeichert');
                 updateLastSaved(itemId, 'Deine Version hat Priorität');
 
@@ -402,7 +443,7 @@
                     updateLastSaved(itemId, '');
                 }, 3000);
 
-                alert('✅ Deine Version wurde gespeichert und hat nun Priorität!');
+                alert('✅ Deine Version wurde gespeichert und hat nun Priorität!\n\nAlle anderen Teilnehmer werden benachrichtigt.');
             } else {
                 updateStatus(itemId, 'error', '❌ Fehler');
                 alert('Fehler beim Speichern: ' + (data.error || 'Unbekannt'));
