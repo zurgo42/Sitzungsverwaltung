@@ -75,11 +75,28 @@ try {
     }
 
     // Aktuellen Protokoll-Text laden
-    $stmt = $pdo->prepare("
-        SELECT protocol_notes, top_number, title, force_update_at
-        FROM svagenda_items
-        WHERE item_id = ?
-    ");
+    // Erst prüfen ob force_update_at Spalte existiert
+    $has_force_update_column = false;
+    try {
+        $columns_check = $pdo->query("SHOW COLUMNS FROM svagenda_items LIKE 'force_update_at'")->fetchAll();
+        $has_force_update_column = !empty($columns_check);
+    } catch (PDOException $e) {
+        // Ignorieren
+    }
+
+    if ($has_force_update_column) {
+        $stmt = $pdo->prepare("
+            SELECT protocol_notes, top_number, title, force_update_at
+            FROM svagenda_items
+            WHERE item_id = ?
+        ");
+    } else {
+        $stmt = $pdo->prepare("
+            SELECT protocol_notes, top_number, title
+            FROM svagenda_items
+            WHERE item_id = ?
+        ");
+    }
     $stmt->execute([$item_id]);
     $item = $stmt->fetch(PDO::FETCH_ASSOC);
 
