@@ -318,10 +318,72 @@
     // Cleanup beim Verlassen
     window.addEventListener('beforeunload', cleanup);
 
+    /**
+     * Force-Save: "Meine Version hat Priorität"
+     * Wird bei Konflikten verwendet um die eigene Version durchzusetzen
+     */
+    window.forceSaveProtocol = async function(itemId) {
+        const state = textareaStates.get(itemId);
+        if (!state) {
+            alert('Fehler: Protokoll-Feld nicht gefunden');
+            return;
+        }
+
+        // Bestätigung
+        if (!confirm('⚠️ ACHTUNG!\n\nDies überschreibt ALLE anderen Änderungen mit deinem aktuellen Text.\n\nBist du sicher?')) {
+            return;
+        }
+
+        try {
+            updateStatus(itemId, 'saving', '💾 Speichere (forciert)...');
+
+            const currentContent = state.textarea.value;
+
+            const response = await fetch('api/protocol_autosave.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    item_id: itemId,
+                    content: currentContent,
+                    cursor_pos: state.textarea.selectionStart,
+                    client_hash: state.currentHash,
+                    force: true // Marker für Force-Save
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                state.lastSavedContent = currentContent;
+                state.currentHash = data.new_hash;
+
+                updateStatus(itemId, 'saved', '✓ Forciert gespeichert');
+                updateLastSaved(itemId, 'Deine Version hat Priorität');
+
+                // Nach 3 Sekunden normalen Status wiederherstellen
+                setTimeout(() => {
+                    updateLastSaved(itemId, '');
+                }, 3000);
+
+                alert('✅ Deine Version wurde gespeichert und hat nun Priorität!');
+            } else {
+                updateStatus(itemId, 'error', '❌ Fehler');
+                alert('Fehler beim Speichern: ' + (data.error || 'Unbekannt'));
+            }
+        } catch (error) {
+            updateStatus(itemId, 'error', '❌ Netzwerkfehler');
+            alert('Netzwerkfehler beim Speichern: ' + error.message);
+            console.error('Force-Save Exception:', error);
+        }
+    };
+
     // Global verfügbar machen für Debug
     window.collabProtocol = {
         textareaStates: textareaStates,
-        reinit: initCollaborativeProtocol
+        reinit: initCollaborativeProtocol,
+        forceSave: window.forceSaveProtocol
     };
 
 })();

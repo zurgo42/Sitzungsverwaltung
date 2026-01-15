@@ -839,7 +839,14 @@ foreach ($agenda_items as $item):
             <?php
             // Prüfen ob kollaborativer Protokoll-Modus aktiv ist
             $is_collaborative = ($meeting['collaborative_protocol'] == 1);
-            $can_edit_protocol = $is_secretary || $is_collaborative;
+
+            // WICHTIG: Im kollaborativen Modus NUR beim aktiven TOP schreiben!
+            // Das verhindert Konflikte und fokussiert die Diskussion
+            if ($is_collaborative) {
+                $can_edit_protocol = $is_active; // Nur aktiver TOP
+            } else {
+                $can_edit_protocol = $is_secretary; // Klassisch: nur Sekretär
+            }
             ?>
 
             <?php if ($can_edit_protocol): ?>
@@ -868,6 +875,21 @@ foreach ($agenda_items as $item):
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; font-size: 11px; color: #666;">
                                 <span id="collab-status-<?php echo $item['item_id']; ?>">●  Bereit</span>
                                 <span id="collab-last-saved-<?php echo $item['item_id']; ?>"></span>
+                            </div>
+
+                            <!-- Konflikt-Lösung: "Meine Version hat Priorität" -->
+                            <div style="margin-top: 10px; padding: 8px; background: #fff3cd; border-left: 4px solid #ff9800; border-radius: 4px;">
+                                <div style="font-size: 12px; color: #856404; margin-bottom: 5px;">
+                                    ⚠️ <strong>Bei Konflikten:</strong> Falls mehrere gleichzeitig schreiben und Inhalte verloren gehen
+                                </div>
+                                <button type="button"
+                                        onclick="forceSaveProtocol(<?php echo $item['item_id']; ?>)"
+                                        style="background: #ff9800; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px;">
+                                    🔒 Meine Version hat Priorität
+                                </button>
+                                <small style="display: block; margin-top: 4px; color: #856404; font-size: 10px;">
+                                    Dies überschreibt alle anderen Änderungen mit deinem aktuellen Text
+                                </small>
                             </div>
                         </div>
                     <?php else: ?>
@@ -970,9 +992,15 @@ foreach ($agenda_items as $item):
                 
             </div>
         <?php else: ?>
-            <!-- Protokoll-Anzeige für andere Teilnehmer (Live-Update) -->
-            <div style="margin-top: 15px; padding: 10px; background: #f0f7ff; border-left: 4px solid #2196f3; border-radius: 4px;">
-                <strong style="color: #1976d2;">📝 Protokoll:</strong><br>
+            <!-- Protokoll-Anzeige für andere Teilnehmer oder nicht-aktive TOPs (Read-only) -->
+            <div style="margin-top: 15px; padding: 10px; background: <?php echo $is_collaborative ? '#f1f8e9' : '#f0f7ff'; ?>; border-left: 4px solid <?php echo $is_collaborative ? '#8bc34a' : '#2196f3'; ?>; border-radius: 4px;">
+                <strong style="color: <?php echo $is_collaborative ? '#558b2f' : '#1976d2'; ?>;">📝 Protokoll:</strong>
+                <?php if ($is_collaborative && !$is_active): ?>
+                    <span style="font-size: 11px; color: #666; font-style: italic;">
+                        (Nur bei aktivem TOP editierbar)
+                    </span>
+                <?php endif; ?>
+                <br>
                 <div id="protocol-display-<?php echo $item['item_id']; ?>" style="margin-top: 6px; color: #333; font-size: 14px;">
                     <?php echo nl2br(linkify_text($item['protocol_notes'] ?? 'Noch kein Protokolleintrag...')); ?>
                 </div>
