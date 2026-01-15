@@ -86,7 +86,7 @@ try {
     $content = $item['protocol_notes'] ?? '';
     $content_hash = md5($content);
 
-    // Wer editiert gerade? (aktiv in letzten 30 Sekunden)
+    // Wer editiert gerade? (aktiv in letzten 10 Sekunden - schnelleres Timeout)
     $editors = [];
     try {
         $stmt = $pdo->prepare("
@@ -95,7 +95,7 @@ try {
             FROM svprotocol_editing pe
             JOIN svmembers m ON pe.member_id = m.member_id
             WHERE pe.item_id = ?
-            AND pe.last_activity > DATE_SUB(NOW(), INTERVAL 30 SECOND)
+            AND pe.last_activity > DATE_SUB(NOW(), INTERVAL 10 SECOND)
             AND pe.member_id != ?
         ");
         $stmt->execute([$item_id, $member_id]);

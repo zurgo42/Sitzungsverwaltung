@@ -9,7 +9,8 @@
     // Konfiguration
     const AUTO_SAVE_INTERVAL = 2000; // Auto-Save alle 2 Sekunden
     const AUTO_LOAD_INTERVAL = 2000; // Updates laden alle 2 Sekunden
-    const TYPING_TIMEOUT = 1500; // Nach 1,5s ohne Tippen als "nicht am Tippen" gelten
+    const TYPING_TIMEOUT = 1000; // Nach 1s ohne Tippen als "nicht am Tippen" gelten
+    const EDITOR_DISPLAY_TIMEOUT = 10; // "Schreibt gerade" nach 10 Sekunden ausblenden
 
     // State für jedes Textarea
     const textareaStates = new Map();
@@ -101,6 +102,12 @@
     function handleBlur(state) {
         // Sofort speichern bei Blur
         autoSave(state);
+
+        // "Schreibt gerade" sofort ausschalten
+        state.isTyping = false;
+
+        // Sofort signalisieren dass wir nicht mehr schreiben
+        clearEditingStatus(state.itemId);
     }
 
     /**
@@ -126,7 +133,8 @@
                     item_id: state.itemId,
                     content: currentContent,
                     cursor_pos: state.cursorPosition,
-                    client_hash: state.currentHash
+                    client_hash: state.currentHash,
+                    is_typing: state.isTyping // Nur bei aktivem Tippen Editing-Status aktualisieren
                 })
             });
 
@@ -142,10 +150,8 @@
                 updateStatus(state.itemId, 'saved', '✓ Gespeichert');
                 updateLastSaved(state.itemId, `Zuletzt gespeichert: ${timeStr}`);
 
-                // Konflikt-Warnung wenn nötig
-                if (data.has_conflict) {
-                    showConflictWarning(state.itemId);
-                }
+                // WICHTIG: Kein Konflikt-Warning mehr nach erfolgreichem Save
+                // Der Hash ist jetzt synchronisiert
             } else {
                 updateStatus(state.itemId, 'error', '❌ Fehler');
                 console.error('Auto-Save Fehler:', data.error);
@@ -187,17 +193,20 @@
 
                 // Cursor-Position merken
                 const cursorPos = state.textarea.selectionStart;
+                const hasFocus = document.activeElement === state.textarea;
 
                 // Content aktualisieren
                 state.textarea.value = data.content;
                 state.lastSavedContent = data.content;
                 state.currentHash = data.content_hash;
 
-                // Cursor-Position wiederherstellen (ungefähr)
-                try {
-                    state.textarea.setSelectionRange(cursorPos, cursorPos);
-                } catch (e) {
-                    // Ignorieren wenn Position ungültig
+                // Cursor-Position wiederherstellen (nur wenn Feld fokussiert war)
+                if (hasFocus) {
+                    try {
+                        state.textarea.setSelectionRange(cursorPos, cursorPos);
+                    } catch (e) {
+                        // Ignorieren wenn Position ungültig
+                    }
                 }
 
                 // Visuelles Feedback
@@ -205,6 +214,11 @@
                 setTimeout(() => {
                     state.textarea.style.borderColor = '';
                 }, 300);
+            } else if (data.content_hash === state.currentHash && state.textarea.value !== data.content) {
+                // Edge case: Hash gleich aber Content anders
+                // Dann unseren Hash neu berechnen
+                state.currentHash = data.content_hash;
+                state.lastSavedContent = state.textarea.value;
             }
         } catch (error) {
             console.error('Auto-Load Exception:', error);
@@ -275,6 +289,27 @@
         setTimeout(() => {
             statusEl.style.fontWeight = '';
         }, 5000);
+    }
+
+    /**
+     * Editing-Status sofort löschen (z.B. bei Blur)
+     */
+    async function clearEditingStatus(itemId) {
+        try {
+            await fetch('api/protocol_clear_editing.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    item_id: itemId
+                })
+            });
+            // Kein Fehler-Handling nötig - best effort
+        } catch (error) {
+            // Ignorieren - nicht kritisch
+            console.log('Clear editing status failed (ignored):', error);
+        }
     }
 
     /**

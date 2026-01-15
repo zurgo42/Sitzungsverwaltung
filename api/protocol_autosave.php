@@ -28,6 +28,7 @@ $item_id = isset($data['item_id']) ? (int)$data['item_id'] : 0;
 $content = isset($data['content']) ? $data['content'] : '';
 $cursor_pos = isset($data['cursor_pos']) ? (int)$data['cursor_pos'] : 0;
 $client_hash = isset($data['client_hash']) ? $data['client_hash'] : '';
+$is_typing = isset($data['is_typing']) ? (bool)$data['is_typing'] : false;
 
 if ($item_id <= 0) {
     http_response_code(400);
@@ -118,17 +119,19 @@ try {
         error_log("svprotocol_versions insert failed: " . $e->getMessage());
     }
 
-    // "Wer editiert gerade" aktualisieren (falls Tabelle existiert)
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO svprotocol_editing (item_id, member_id, last_activity)
-            VALUES (?, ?, NOW())
-            ON DUPLICATE KEY UPDATE member_id = ?, last_activity = NOW()
-        ");
-        $stmt->execute([$item_id, $member_id, $member_id]);
-    } catch (PDOException $e) {
-        // Tabelle existiert noch nicht - ignorieren
-        error_log("svprotocol_editing update failed: " . $e->getMessage());
+    // "Wer editiert gerade" aktualisieren (nur wenn User gerade tippt)
+    if ($is_typing) {
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO svprotocol_editing (item_id, member_id, last_activity)
+                VALUES (?, ?, NOW())
+                ON DUPLICATE KEY UPDATE member_id = ?, last_activity = NOW()
+            ");
+            $stmt->execute([$item_id, $member_id, $member_id]);
+        } catch (PDOException $e) {
+            // Tabelle existiert noch nicht - ignorieren
+            error_log("svprotocol_editing update failed: " . $e->getMessage());
+        }
     }
 
     echo json_encode([
