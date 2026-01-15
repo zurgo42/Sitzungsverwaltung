@@ -46,7 +46,7 @@ try {
 
     // Prüfen ob User Zugriff auf dieses Meeting hat
     $stmt = $pdo->prepare("
-        SELECT m.meeting_id, m.collaborative_protocol
+        SELECT m.meeting_id, m.collaborative_protocol, m.secretary_id
         FROM svagenda_items ai
         JOIN svmeetings m ON ai.meeting_id = m.meeting_id
         WHERE ai.item_id = ?
@@ -59,6 +59,9 @@ try {
         echo json_encode(['error' => 'Item not found']);
         exit;
     }
+
+    // Ist User Protokollführung?
+    $is_secretary = ($item_data['secretary_id'] == $member_id);
 
     // Prüfen ob User Teilnehmer ist
     $stmt = $pdo->prepare("
@@ -151,6 +154,43 @@ try {
         error_log("svprotocol_versions table not found: " . $e->getMessage());
     }
 
+    // Queue-Informationen (für Master-Slave Pattern)
+    $queue_size = 0;
+    $queue_waiting = [];
+    try {
+        // Anzahl wartender Einträge
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM svprotocol_changes_queue
+            WHERE item_id = ? AND processed = 0
+        ");
+        $stmt->execute([$item_id]);
+        $queue_size = (int)$stmt->fetchColumn();
+
+        // Details zu wartenden Einträgen (für Anzeige)
+        if ($queue_size > 0 && $is_secretary) {
+            $stmt = $pdo->prepare("
+                SELECT q.change_id, q.submitted_at, m.first_name, m.last_name
+                FROM svprotocol_changes_queue q
+                JOIN svmembers m ON q.member_id = m.member_id
+                WHERE q.item_id = ? AND q.processed = 0
+                ORDER BY q.submitted_at ASC
+                LIMIT 5
+            ");
+            $stmt->execute([$item_id]);
+            $queue_entries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($queue_entries as $entry) {
+                $queue_waiting[] = [
+                    'name' => $entry['first_name'] . ' ' . $entry['last_name'],
+                    'submitted_at' => $entry['submitted_at']
+                ];
+            }
+        }
+    } catch (PDOException $e) {
+        // Queue-Tabelle existiert noch nicht - ignorieren
+        error_log("svprotocol_changes_queue table not found: " . $e->getMessage());
+    }
+
     echo json_encode([
         'success' => true,
         'content' => $content,
@@ -158,11 +198,14 @@ try {
         'top_number' => $item['top_number'],
         'title' => $item['title'],
         'collaborative_mode' => (bool)$item_data['collaborative_protocol'],
+        'is_secretary' => $is_secretary,
         'editors' => $editor_names,
         'editor_count' => count($editor_names),
         'last_modified_by' => $last_change ? ($last_change['first_name'] . ' ' . $last_change['last_name']) : null,
         'last_modified_at' => $last_change ? $last_change['modified_at'] : null,
         'force_update_at' => $item['force_update_at'],
+        'queue_size' => $queue_size,
+        'queue_waiting' => $queue_waiting,
         'server_time' => date('Y-m-d H:i:s')
     ]);
 

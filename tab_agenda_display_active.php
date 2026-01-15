@@ -10,8 +10,8 @@ require_once 'module_agenda_overview.php';
 
 // Kollaboratives Protokoll JavaScript einbinden (wenn aktiv)
 if (!empty($meeting['collaborative_protocol']) && $meeting['collaborative_protocol'] == 1) {
-    // Cache-Buster: Version 2.1 (MD5 Hash Fix - KRITISCH)
-    echo '<script src="js/collab_protocol.js?v=2.1"></script>';
+    // Cache-Buster: Version 3.0 (Master-Slave Queue-System)
+    echo '<script src="js/collab_protocol_queue.js?v=3.0"></script>';
 }
 
 if (empty($agenda_items)) {
@@ -861,38 +861,80 @@ foreach ($agenda_items as $item):
                     </h4>
 
                     <?php if ($is_collaborative): ?>
-                        <!-- KOLLABORATIVER MODUS: Auto-Sync -->
-                        <div class="form-group">
-                            <label style="font-weight: 600;">Protokollnotizen:</label>
-                            <div id="collab-editors-<?php echo $item['item_id']; ?>" style="font-size: 11px; color: #666; margin-bottom: 5px; min-height: 16px;">
-                                <!-- Wird per JavaScript gefüllt -->
-                            </div>
-                            <textarea id="protocol-text-<?php echo $item['item_id']; ?>"
-                                      class="collab-protocol-textarea"
-                                      data-item-id="<?php echo $item['item_id']; ?>"
-                                      rows="5"
-                                      placeholder="Notizen zu diesem TOP... (Änderungen werden automatisch gespeichert)"
-                                      style="width: 100%; padding: 8px; border: 2px solid #4caf50; border-radius: 4px;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; font-size: 11px; color: #666;">
-                                <span id="collab-status-<?php echo $item['item_id']; ?>">●  Bereit</span>
-                                <span id="collab-last-saved-<?php echo $item['item_id']; ?>"></span>
+                        <!-- KOLLABORATIVER MODUS: Master-Slave Queue-System -->
+
+                        <?php if ($is_secretary): ?>
+                            <!-- PROTOKOLLFÜHRUNG: 2 Felder (Hauptsystem + Fortsetzung) -->
+                            <div class="form-group" style="background: #e8f5e9; padding: 12px; border-radius: 8px; border: 2px solid #4caf50;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <label style="font-weight: 600; color: #2e7d32;">
+                                        📝 Protokoll (Hauptsystem)
+                                    </label>
+                                    <div id="queue-display-<?php echo $item['item_id']; ?>" style="font-size: 11px; padding: 4px 8px; background: #fff3cd; border-radius: 4px; display: none;">
+                                        <!-- Queue-Anzeige wird per JavaScript gefüllt -->
+                                    </div>
+                                </div>
+
+                                <textarea id="protocol-main-<?php echo $item['item_id']; ?>"
+                                          class="collab-protocol-main"
+                                          data-item-id="<?php echo $item['item_id']; ?>"
+                                          data-is-secretary="1"
+                                          rows="6"
+                                          placeholder="Aktueller Protokollstand (alle sehen diesen Text)"
+                                          style="width: 100%; padding: 8px; border: 2px solid #4caf50; border-radius: 4px; background: white;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
+
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; font-size: 11px; color: #666;">
+                                    <span id="collab-status-<?php echo $item['item_id']; ?>">● Bereit</span>
+                                    <span id="collab-last-saved-<?php echo $item['item_id']; ?>"></span>
+                                </div>
                             </div>
 
-                            <!-- Konflikt-Lösung: "Meine Version hat Priorität" -->
-                            <div style="margin-top: 10px; padding: 8px; background: #fff3cd; border-left: 4px solid #ff9800; border-radius: 4px;">
-                                <div style="font-size: 12px; color: #856404; margin-bottom: 5px;">
-                                    ⚠️ <strong>Bei Konflikten:</strong> Falls mehrere gleichzeitig schreiben und Inhalte verloren gehen
-                                </div>
-                                <button type="button"
-                                        onclick="forceSaveProtocol(<?php echo $item['item_id']; ?>)"
-                                        style="background: #ff9800; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px;">
-                                    🔒 Meine Version hat Priorität
-                                </button>
-                                <small style="display: block; margin-top: 4px; color: #856404; font-size: 10px;">
-                                    Dies überschreibt alle anderen Änderungen mit deinem aktuellen Text
+                            <!-- FORTSETZUNGSFELD (nur Protokollführung) -->
+                            <div class="form-group" style="background: #e3f2fd; padding: 12px; border-radius: 8px; border: 2px solid #2196f3; margin-top: 10px;">
+                                <label style="font-weight: 600; color: #1976d2;">
+                                    ✍️ Fortsetzungsfeld (priorisiert)
+                                </label>
+                                <small style="display: block; margin-bottom: 8px; color: #666; font-size: 11px;">
+                                    Text hier wird direkt ans Hauptsystem angehängt (nach 2s Pause). Feld wird dann geleert.
                                 </small>
+
+                                <textarea id="protocol-append-<?php echo $item['item_id']; ?>"
+                                          class="collab-protocol-append"
+                                          data-item-id="<?php echo $item['item_id']; ?>"
+                                          rows="3"
+                                          placeholder="Neuen Text hier eingeben..."
+                                          style="width: 100%; padding: 8px; border: 2px solid #2196f3; border-radius: 4px; background: white;"></textarea>
+
+                                <div style="margin-top: 5px; font-size: 11px; color: #666;">
+                                    <span id="append-status-<?php echo $item['item_id']; ?>"></span>
+                                </div>
                             </div>
-                        </div>
+
+                        <?php else: ?>
+                            <!-- NORMALE USER: 1 Feld (über Queue) -->
+                            <div class="form-group" style="background: #fff8e1; padding: 12px; border-radius: 8px; border: 2px solid #ffc107;">
+                                <label style="font-weight: 600; color: #f57c00;">
+                                    📝 Protokoll (schreibt an Protokollführung)
+                                </label>
+                                <small style="display: block; margin-bottom: 8px; color: #666; font-size: 11px;">
+                                    Änderungen werden in Queue eingereiht und chronologisch verarbeitet
+                                </small>
+
+                                <textarea id="protocol-main-<?php echo $item['item_id']; ?>"
+                                          class="collab-protocol-main"
+                                          data-item-id="<?php echo $item['item_id']; ?>"
+                                          data-is-secretary="0"
+                                          rows="6"
+                                          placeholder="Protokollbeiträge... (werden automatisch gespeichert)"
+                                          style="width: 100%; padding: 8px; border: 2px solid #ffc107; border-radius: 4px; background: white;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
+
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; font-size: 11px; color: #666;">
+                                    <span id="collab-status-<?php echo $item['item_id']; ?>">● Bereit</span>
+                                    <span id="collab-last-saved-<?php echo $item['item_id']; ?>"></span>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
                     <?php else: ?>
                         <!-- KLASSISCHER MODUS: Nur Sekretär, manuelles Speichern -->
                         <form method="POST" action="">
