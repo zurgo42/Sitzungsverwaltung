@@ -10,7 +10,8 @@ require_once 'module_agenda_overview.php';
 
 // Kollaboratives Protokoll JavaScript einbinden (wenn aktiv)
 if (!empty($meeting['collaborative_protocol']) && $meeting['collaborative_protocol'] == 1) {
-    echo '<script src="js/collab_protocol.js"></script>';
+    // Cache-Buster: Version 2.0 (Force-Update Fixes)
+    echo '<script src="js/collab_protocol.js?v=2.0"></script>';
 }
 
 if (empty($agenda_items)) {

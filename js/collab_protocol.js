@@ -1,10 +1,13 @@
 /**
  * collab_protocol.js - Kollaboratives Protokoll Auto-Sync
  * Ermöglicht mehreren Teilnehmern gleichzeitig ins Protokoll zu schreiben
+ * Version: 2.0 - Force-Update Fixes
  */
 
 (function() {
     'use strict';
+
+    console.log('📋 Kollaboratives Protokoll v2.0 geladen (Force-Update Fixes)');
 
     // Konfiguration
     const AUTO_SAVE_INTERVAL = 2000; // Auto-Save alle 2 Sekunden
@@ -151,8 +154,13 @@
                 updateStatus(state.itemId, 'saved', '✓ Gespeichert');
                 updateLastSaved(state.itemId, `Zuletzt gespeichert: ${timeStr}`);
 
+                // Debug: Warnung wenn Server einen Konflikt erkannt hat (aber nicht blockiert)
+                if (data.has_conflict) {
+                    console.log(`ℹ️ Server meldete Konflikt (ignoriert), Hash synchronisiert: ${data.new_hash}`);
+                }
+
                 // WICHTIG: Kein Konflikt-Warning mehr nach erfolgreichem Save
-                // Der Hash ist jetzt synchronisiert
+                // Der Hash ist jetzt synchronisiert - has_conflict wird ignoriert
             } else {
                 updateStatus(state.itemId, 'error', '❌ Fehler');
                 console.error('Auto-Save Fehler:', data.error);
@@ -307,24 +315,6 @@
             el.textContent = `✍️ ${count} Personen schreiben gerade: ${editors.join(', ')}`;
             el.style.color = '#ff9800';
         }
-    }
-
-    /**
-     * Konflikt-Warnung anzeigen
-     */
-    function showConflictWarning(itemId) {
-        const statusEl = document.getElementById(`collab-status-${itemId}`);
-        if (!statusEl) return;
-
-        const originalColor = statusEl.style.color;
-        statusEl.textContent = '⚠️ Konflikt erkannt - Überprüfe den Text';
-        statusEl.style.color = '#ff9800';
-        statusEl.style.fontWeight = 'bold';
-
-        // Nach 5 Sekunden zurücksetzen
-        setTimeout(() => {
-            statusEl.style.fontWeight = '';
-        }, 5000);
     }
 
     /**
