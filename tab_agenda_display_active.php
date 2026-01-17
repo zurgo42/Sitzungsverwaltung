@@ -1080,7 +1080,9 @@ function setActiveTop(itemId, meetingId) {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('setActiveTop Response:', data);
         if (data.success) {
+            console.log('Redirect zu:', `?tab=agenda&meeting_id=${meetingId}#top-${itemId}`);
             // Zum aktivierten TOP redirecten (wie beim Speichern des Protokolls)
             window.location.href = `?tab=agenda&meeting_id=${meetingId}#top-${itemId}`;
         } else {
