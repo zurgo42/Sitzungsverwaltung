@@ -46,6 +46,20 @@ if (!$current_user) {
 }
 
 // ============================================
+// FEATURE-FLAGS: Prüfen ob neue Features verfügbar sind
+// ============================================
+
+// Prüfen ob collaborative_protocol Spalte existiert (v3.0 Feature)
+$has_collaborative_protocol = false;
+try {
+    $columns = $pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'collaborative_protocol'")->fetchAll();
+    $has_collaborative_protocol = !empty($columns);
+} catch (PDOException $e) {
+    // Tabelle oder Spalte nicht gefunden - Feature nicht verfügbar
+    $has_collaborative_protocol = false;
+}
+
+// ============================================
 // HILFSFUNKTIONEN
 // ============================================
 
@@ -215,25 +229,48 @@ if (isset($_POST['create_meeting'])) {
         // 1. Meeting erstellen
         $collaborative_protocol = isset($_POST['collaborative_protocol']) && $_POST['collaborative_protocol'] == 1 ? 1 : 0;
 
-        $stmt = $pdo->prepare("
-            INSERT INTO svmeetings
-            (meeting_name, meeting_date, expected_end_date, submission_deadline, location, video_link,
-             chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, collaborative_protocol, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
-        ");
-        $stmt->execute([
-            $meeting_name,
-            $meeting_date,
-            $expected_end_date,
-            $submission_deadline,
-            $location,
-            $video_link,
-            $chairman_member_id,
-            $secretary_member_id,
-            $current_user['member_id'],
-            $visibility_type,
-            $collaborative_protocol
-        ]);
+        // SQL-Query dynamisch bauen je nachdem ob Feature verfügbar ist
+        if ($has_collaborative_protocol) {
+            $stmt = $pdo->prepare("
+                INSERT INTO svmeetings
+                (meeting_name, meeting_date, expected_end_date, submission_deadline, location, video_link,
+                 chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, collaborative_protocol, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
+            ");
+            $stmt->execute([
+                $meeting_name,
+                $meeting_date,
+                $expected_end_date,
+                $submission_deadline,
+                $location,
+                $video_link,
+                $chairman_member_id,
+                $secretary_member_id,
+                $current_user['member_id'],
+                $visibility_type,
+                $collaborative_protocol
+            ]);
+        } else {
+            // Ohne collaborative_protocol Spalte (vor Migration)
+            $stmt = $pdo->prepare("
+                INSERT INTO svmeetings
+                (meeting_name, meeting_date, expected_end_date, submission_deadline, location, video_link,
+                 chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
+            ");
+            $stmt->execute([
+                $meeting_name,
+                $meeting_date,
+                $expected_end_date,
+                $submission_deadline,
+                $location,
+                $video_link,
+                $chairman_member_id,
+                $secretary_member_id,
+                $current_user['member_id'],
+                $visibility_type
+            ]);
+        }
         
         $meeting_id = $pdo->lastInsertId();
         
@@ -333,25 +370,48 @@ if (isset($_POST['edit_meeting'])) {
         $pdo->beginTransaction();
 
         // 1. Meeting aktualisieren
-        $stmt = $pdo->prepare("
-            UPDATE svmeetings
-            SET meeting_name = ?, meeting_date = ?, expected_end_date = ?, submission_deadline = ?,
-                location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?, visibility_type = ?, collaborative_protocol = ?
-            WHERE meeting_id = ?
-        ");
-        $stmt->execute([
-            $meeting_name,
-            $meeting_date,
-            $expected_end_date,
-            $submission_deadline,
-            $location,
-            $video_link,
-            $chairman_member_id,
-            $secretary_member_id,
-            $visibility_type,
-            $collaborative_protocol,
-            $meeting_id
-        ]);
+        // SQL-Query dynamisch bauen je nachdem ob Feature verfügbar ist
+        if ($has_collaborative_protocol) {
+            $stmt = $pdo->prepare("
+                UPDATE svmeetings
+                SET meeting_name = ?, meeting_date = ?, expected_end_date = ?, submission_deadline = ?,
+                    location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?, visibility_type = ?, collaborative_protocol = ?
+                WHERE meeting_id = ?
+            ");
+            $stmt->execute([
+                $meeting_name,
+                $meeting_date,
+                $expected_end_date,
+                $submission_deadline,
+                $location,
+                $video_link,
+                $chairman_member_id,
+                $secretary_member_id,
+                $visibility_type,
+                $collaborative_protocol,
+                $meeting_id
+            ]);
+        } else {
+            // Ohne collaborative_protocol Spalte (vor Migration)
+            $stmt = $pdo->prepare("
+                UPDATE svmeetings
+                SET meeting_name = ?, meeting_date = ?, expected_end_date = ?, submission_deadline = ?,
+                    location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?, visibility_type = ?
+                WHERE meeting_id = ?
+            ");
+            $stmt->execute([
+                $meeting_name,
+                $meeting_date,
+                $expected_end_date,
+                $submission_deadline,
+                $location,
+                $video_link,
+                $chairman_member_id,
+                $secretary_member_id,
+                $visibility_type,
+                $meeting_id
+            ]);
+        }
         
         // 2. Teilnehmer neu setzen
         $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
