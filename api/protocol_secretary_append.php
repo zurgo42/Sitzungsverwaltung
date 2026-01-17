@@ -47,7 +47,7 @@ if (empty($append_text)) {
 try {
     // Prüfen ob User Zugriff auf dieses Meeting hat
     $stmt = $pdo->prepare("
-        SELECT ai.meeting_id, ai.protocol_notes, m.collaborative_protocol, m.secretary_id
+        SELECT ai.meeting_id, ai.protocol_notes, m.collaborative_protocol, m.secretary_member_id
         FROM svagenda_items ai
         JOIN svmeetings m ON ai.meeting_id = m.meeting_id
         WHERE ai.item_id = ?
@@ -62,7 +62,7 @@ try {
     }
 
     // Prüfen ob User Protokollführung ist
-    if ($item_data['secretary_id'] != $member_id) {
+    if ($item_data['secretary_member_id'] != $member_id) {
         http_response_code(403);
         echo json_encode(['error' => 'Only secretary can use append field']);
         exit;
