@@ -1083,8 +1083,10 @@ function setActiveTop(itemId, meetingId) {
         console.log('setActiveTop Response:', data);
         if (data.success) {
             console.log('Redirect zu:', `?tab=agenda&meeting_id=${meetingId}#top-${itemId}`);
-            // Zum aktivierten TOP redirecten (wie beim Speichern des Protokolls)
-            window.location.href = `?tab=agenda&meeting_id=${meetingId}#top-${itemId}`;
+            // Kurze Verzögerung, damit DB-Transaktion committed wird
+            setTimeout(() => {
+                window.location.href = `?tab=agenda&meeting_id=${meetingId}#top-${itemId}`;
+            }, 200);
         } else {
             alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
         }
