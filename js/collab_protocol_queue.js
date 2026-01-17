@@ -39,9 +39,17 @@
                 return;
             }
 
-            // Prüfen ob bereits initialisiert
-            if (textareaStates.has(`main_${itemId}`)) {
-                return; // Bereits initialisiert, überspringen
+            const key = `main_${itemId}`;
+
+            // Prüfen ob bereits initialisiert UND ob es das gleiche Element ist
+            if (textareaStates.has(key)) {
+                const existingState = textareaStates.get(key);
+                // Ist es das gleiche Textarea? (nicht nur gleiche ID)
+                if (existingState.textarea === textarea) {
+                    return; // Bereits initialisiert, überspringen
+                }
+                // Anderes Textarea mit gleicher ID → altes aufräumen
+                cleanupField(itemId, 'main');
             }
 
             const state = {
@@ -85,9 +93,17 @@
                 return;
             }
 
-            // Prüfen ob bereits initialisiert
-            if (textareaStates.has(`append_${itemId}`)) {
-                return; // Bereits initialisiert, überspringen
+            const key = `append_${itemId}`;
+
+            // Prüfen ob bereits initialisiert UND ob es das gleiche Element ist
+            if (textareaStates.has(key)) {
+                const existingState = textareaStates.get(key);
+                // Ist es das gleiche Textarea? (nicht nur gleiche ID)
+                if (existingState.textarea === textarea) {
+                    return; // Bereits initialisiert, überspringen
+                }
+                // Anderes Textarea mit gleicher ID → altes aufräumen
+                cleanupField(itemId, 'append');
             }
 
             const state = {
