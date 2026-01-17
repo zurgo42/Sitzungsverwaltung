@@ -46,7 +46,7 @@ try {
 
     // Prüfen ob User Zugriff auf dieses Meeting hat
     $stmt = $pdo->prepare("
-        SELECT m.meeting_id, m.collaborative_protocol, m.secretary_id
+        SELECT m.meeting_id, m.collaborative_protocol, m.secretary_member_id
         FROM svagenda_items ai
         JOIN svmeetings m ON ai.meeting_id = m.meeting_id
         WHERE ai.item_id = ?
@@ -61,7 +61,7 @@ try {
     }
 
     // Ist User Protokollführung?
-    $is_secretary = ($item_data['secretary_id'] == $member_id);
+    $is_secretary = ($item_data['secretary_member_id'] == $member_id);
 
     // Prüfen ob User Teilnehmer ist
     $stmt = $pdo->prepare("
