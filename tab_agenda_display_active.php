@@ -839,7 +839,8 @@ foreach ($agenda_items as $item):
         <?php if ($item['top_number'] != 999): ?>
             <?php
             // Prüfen ob kollaborativer Protokoll-Modus aktiv ist
-            $is_collaborative = ($meeting['collaborative_protocol'] == 1);
+            // Null-Safe: Falls Meeting vor Migration erstellt wurde
+            $is_collaborative = (isset($meeting['collaborative_protocol']) && $meeting['collaborative_protocol'] == 1);
 
             // WICHTIG: Im kollaborativen Modus NUR beim aktiven TOP schreiben!
             // Das verhindert Konflikte und fokussiert die Diskussion
