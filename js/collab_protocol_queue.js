@@ -9,8 +9,6 @@
 (function() {
     'use strict';
 
-    console.log('📋 Kollaboratives Protokoll v3.0 - Master-Slave mit Queue');
-
     // Konfiguration
     const AUTO_LOAD_INTERVAL = 2000; // Hauptsystem laden alle 2 Sekunden
     const QUEUE_PROCESS_INTERVAL = 2000; // Queue verarbeiten alle 2 Sekunden (nur Master)
@@ -28,11 +26,8 @@
         const appendFields = document.querySelectorAll('.collab-protocol-append');
 
         if (mainFields.length === 0 && appendFields.length === 0) {
-            console.log('Kein kollaboratives Protokoll aktiv');
             return;
         }
-
-        console.log(`Initialisiere Hauptfelder: ${mainFields.length}, Fortsetzungsfelder: ${appendFields.length}`);
 
         // Hauptfelder initialisieren (für alle User)
         mainFields.forEach(textarea => {
@@ -101,8 +96,6 @@
             textarea.addEventListener('input', () => handleAppendInput(state));
             textarea.addEventListener('blur', () => handleAppendBlur(state));
         });
-
-        console.log('Kollaboratives Protokoll initialisiert (Queue-System)');
     }
 
     /**
@@ -211,8 +204,6 @@
 
                 updateStatus(state.itemId, 'saved', `⏳ In Queue (Pos. ${data.queue_position})`);
                 updateLastSaved(state.itemId, `Gespeichert: ${timeStr}`);
-
-                console.log(`In Queue gespeichert - Position ${data.queue_position}/${data.queue_size}`);
             } else {
                 updateStatus(state.itemId, 'error', '❌ Fehler');
                 console.error('Queue-Save Fehler:', data.error);
@@ -269,8 +260,6 @@
                 setTimeout(() => {
                     updateAppendStatus(state.itemId, '');
                 }, 2000);
-
-                console.log(`Fortsetzungsfeld übertragen: ${data.appended_length} Zeichen`);
 
                 // Hauptfeld SOFORT neu laden (damit der angehängte Text erscheint)
                 const mainState = textareaStates.get(`main_${state.itemId}`);
@@ -357,8 +346,6 @@
             const data = await response.json();
 
             if (data.success && data.processed > 0) {
-                console.log(`Queue verarbeitet: ${data.processed} Einträge`);
-
                 // Hauptfeld neu laden
                 const mainState = textareaStates.get(`main_${itemId}`);
                 if (mainState && !mainState.isTyping) {

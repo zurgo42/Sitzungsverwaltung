@@ -252,9 +252,6 @@ if (isset($_POST['edit_agenda_item'])) {
     $category = $_POST['category'] ?? 'information';
     $proposal_text = ($category === 'antrag_beschluss') ? trim($_POST['proposal_text'] ?? '') : '';
 
-    // Debug-Log
-    error_log("EDIT TOP: item_id=$item_id, category=$category, title=$title");
-
     if ($item_id && $title) {
         try {
             // TOP-Informationen und Meeting-Status laden
@@ -272,8 +269,6 @@ if (isset($_POST['edit_agenda_item'])) {
                 $is_admin = ($current_user['role'] === 'admin');
                 $is_secretary = ($item['secretary_member_id'] == $current_user['member_id']);
                 $is_assistenz = in_array(strtolower($current_user['role'] ?? ''), ['assistenz']);
-
-                error_log("EDIT TOP Check: is_creator=$is_creator, is_admin=$is_admin, is_secretary=$is_secretary, is_assistenz=$is_assistenz, status={$item['status']}");
 
                 // Editierbar wenn: (Ersteller ODER Admin ODER Protokollführung ODER Assistenz) UND Meeting in (preparation ODER active ODER ended)
                 $allowed_statuses = ['preparation', 'active', 'ended'];
@@ -295,7 +290,6 @@ if (isset($_POST['edit_agenda_item'])) {
                             WHERE item_id = ?
                         ");
                         $stmt->execute([$title, $description, $category, $proposal_text, $new_creator_id, $item_id]);
-                        error_log("EDIT TOP Success: Updated with new creator $new_creator_id");
                     } else {
                         // Ersteller bleibt gleich
                         $stmt = $pdo->prepare("
@@ -304,22 +298,15 @@ if (isset($_POST['edit_agenda_item'])) {
                             WHERE item_id = ?
                         ");
                         $stmt->execute([$title, $description, $category, $proposal_text, $item_id]);
-                        error_log("EDIT TOP Success: Updated category from {$item['old_category']} to $category");
                     }
 
                     header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}#top-$item_id");
                     exit;
-                } else {
-                    error_log("EDIT TOP FAILED: Berechtigung verweigert oder falscher Status");
                 }
-            } else {
-                error_log("EDIT TOP FAILED: TOP nicht gefunden");
             }
         } catch (PDOException $e) {
             error_log("Fehler beim Editieren des TOP: " . $e->getMessage());
         }
-    } else {
-        error_log("EDIT TOP FAILED: Missing item_id or title");
     }
 }
 
@@ -416,11 +403,7 @@ if (isset($_POST['delete_agenda_item'])) {
 
                     header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}");
                     exit;
-                } else {
-                    error_log("DELETE TOP FAILED: Keine Berechtigung (nicht Admin oder Protokollführung)");
                 }
-            } else {
-                error_log("DELETE TOP FAILED: TOP nicht gefunden (item_id=$item_id)");
             }
         } catch (PDOException $e) {
             if ($pdo->inTransaction()) {
