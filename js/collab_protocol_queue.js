@@ -39,6 +39,11 @@
                 return;
             }
 
+            // Prüfen ob bereits initialisiert
+            if (textareaStates.has(`main_${itemId}`)) {
+                return; // Bereits initialisiert, überspringen
+            }
+
             const state = {
                 itemId: itemId,
                 textarea: textarea,
@@ -78,6 +83,11 @@
             if (!itemId) {
                 console.error('Keine item_id gefunden', textarea);
                 return;
+            }
+
+            // Prüfen ob bereits initialisiert
+            if (textareaStates.has(`append_${itemId}`)) {
+                return; // Bereits initialisiert, überspringen
             }
 
             const state = {
@@ -590,12 +600,53 @@
         });
     }
 
+    /**
+     * Cleanup für einzelnes Feld
+     */
+    function cleanupField(itemId, fieldType) {
+        const key = `${fieldType}_${itemId}`;
+        const state = textareaStates.get(key);
+        if (state) {
+            if (state.autoLoadInterval) clearInterval(state.autoLoadInterval);
+            if (state.queueProcessInterval) clearInterval(state.queueProcessInterval);
+            if (state.typingTimeout) clearTimeout(state.typingTimeout);
+            if (state.saveTimeout) clearTimeout(state.saveTimeout);
+            textareaStates.delete(key);
+        }
+    }
+
     // Beim Seitenladen initialisieren
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initCollaborativeProtocol);
     } else {
         initCollaborativeProtocol();
     }
+
+    // MutationObserver: Neue Felder automatisch initialisieren (bei TOP-Wechsel)
+    const observer = new MutationObserver((mutations) => {
+        let needsReinit = false;
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === 1) { // Element node
+                    if (node.classList?.contains('collab-protocol-main') ||
+                        node.classList?.contains('collab-protocol-append') ||
+                        node.querySelector?.('.collab-protocol-main') ||
+                        node.querySelector?.('.collab-protocol-append')) {
+                        needsReinit = true;
+                    }
+                }
+            });
+        });
+        if (needsReinit) {
+            initCollaborativeProtocol();
+        }
+    });
+
+    // Observer starten
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
 
     // Cleanup beim Verlassen
     window.addEventListener('beforeunload', cleanup);
