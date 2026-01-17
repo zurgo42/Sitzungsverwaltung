@@ -622,30 +622,10 @@
         initCollaborativeProtocol();
     }
 
-    // MutationObserver: Neue Felder automatisch initialisieren (bei TOP-Wechsel)
-    const observer = new MutationObserver((mutations) => {
-        let needsReinit = false;
-        mutations.forEach((mutation) => {
-            mutation.addedNodes.forEach((node) => {
-                if (node.nodeType === 1) { // Element node
-                    if (node.classList?.contains('collab-protocol-main') ||
-                        node.classList?.contains('collab-protocol-append') ||
-                        node.querySelector?.('.collab-protocol-main') ||
-                        node.querySelector?.('.collab-protocol-append')) {
-                        needsReinit = true;
-                    }
-                }
-            });
-        });
-        if (needsReinit) {
-            initCollaborativeProtocol();
-        }
-    });
-
-    // Observer starten
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
+    // Bei TOP-Wechsel (URL Hash ändert sich: #top-xxx)
+    window.addEventListener('hashchange', () => {
+        // Kurze Verzögerung, damit der neue TOP-Inhalt geladen ist
+        setTimeout(initCollaborativeProtocol, 100);
     });
 
     // Cleanup beim Verlassen
