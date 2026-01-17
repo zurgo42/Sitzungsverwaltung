@@ -120,5 +120,11 @@ try {
 } catch (PDOException $e) {
     error_log("protocol_secretary_append Error: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Database error']);
+    echo json_encode([
+        'error' => 'Database error',
+        'message' => $e->getMessage(),
+        'code' => $e->getCode(),
+        'file' => basename($e->getFile()),
+        'line' => $e->getLine()
+    ]);
 }
