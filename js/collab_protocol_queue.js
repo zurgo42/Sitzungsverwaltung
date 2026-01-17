@@ -245,6 +245,12 @@
                 })
             });
 
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Append HTTP Error:', response.status, errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
             const data = await response.json();
 
             if (data.success && data.appended) {
@@ -268,7 +274,7 @@
                 }
             } else {
                 updateAppendStatus(state.itemId, '❌ Fehler');
-                console.error('Append Fehler:', data.error);
+                console.error('Append Fehler:', data);
             }
         } catch (error) {
             updateAppendStatus(state.itemId, '❌ Netzwerkfehler');
