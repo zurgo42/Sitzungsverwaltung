@@ -278,17 +278,13 @@ foreach ($agenda_items as $item):
                               placeholder="Ihre nachträgliche Anmerkung..."
                               style="width: 100%; padding: 6px; border: 1px solid #4caf50; border-radius: 4px; font-size: 13px;"><?php echo htmlspecialchars($my_post_comment['comment_text'] ?? ''); ?></textarea>
                 </div>
-
-                <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; font-size: 12px; color: #666; font-style: italic;">
-                    ℹ️ Kommentare in diesem Feld bleiben bis zur Protokollgenehmigung sichtbar und werden dann verworfen
-                </div>
             </div>
         <?php endif; ?>
 
         <!-- KOMMENTARFELD FÜR SITZUNGSLEITER -->
         <?php if ($is_chairman): ?>
             <div style="margin-top: 15px; padding: 12px; background: #ffebee; border: 2px solid #f44336; border-radius: 6px;">
-                <h4 style="color: #c62828; margin-bottom: 8px;">💭 Deine Anmerkungen als Sitzungsleiter</h4>
+                <h4 style="color: #c62828; margin-bottom: 8px;">💭 Formulierungshinweise zum Protokoll</h4>
 
                 <?php
                 // Bestehende Kommentare des Sitzungsleiters laden
@@ -314,13 +310,9 @@ foreach ($agenda_items as $item):
                         💾 Speichern
                     </button>
                 </form>
-
-                <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; font-size: 12px; color: #666; font-style: italic;">
-                    ℹ️ Kommentare in diesem Feld bleiben bis zur Protokollgenehmigung sichtbar und werden dann verworfen
-                </div>
             </div>
         <?php endif; ?>
-        
+
     </div>
 <?php endforeach; ?>
 

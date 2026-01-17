@@ -340,7 +340,7 @@ if (isset($_POST['delete_agenda_item'])) {
         try {
             // TOP-Informationen laden
             $stmt = $pdo->prepare("
-                SELECT ai.meeting_id, ai.top_number, ai.title, m.status,
+                SELECT ai.meeting_id, ai.top_number, ai.title, ai.creator_member_id, m.status,
                        m.secretary_member_id
                 FROM svagenda_items ai
                 JOIN svmeetings m ON ai.meeting_id = m.meeting_id
@@ -352,9 +352,10 @@ if (isset($_POST['delete_agenda_item'])) {
             if ($item) {
                 $is_admin = ($current_user['role'] === 'admin');
                 $is_secretary = ($item['secretary_member_id'] == $current_user['member_id']);
+                $is_creator = ($item['creator_member_id'] == $current_user['member_id']);
 
-                // Berechtigung prüfen: Admin ODER Protokollführung
-                if ($is_admin || $is_secretary) {
+                // Berechtigung prüfen: Admin ODER Protokollführung ODER Ersteller
+                if ($is_admin || $is_secretary || $is_creator) {
                     $pdo->beginTransaction();
 
                     // 1. Dateianhänge aus Kommentaren löschen
@@ -1490,6 +1491,34 @@ if (isset($_POST['update_attendance']) && $is_secretary && in_array($meeting['st
         exit;
     } catch (PDOException $e) {
         error_log("Fehler beim Update der Teilnehmerliste: " . $e->getMessage());
+    }
+}
+
+/**
+ * Sitzungsende aktualisieren (nur Protokollführung)
+ */
+if (isset($_POST['update_meeting_end_time']) && $is_secretary && in_array($meeting['status'], ['ended', 'protocol_ready'])) {
+    $new_ended_at = $_POST['new_ended_at'] ?? '';
+
+    if (!empty($new_ended_at)) {
+        try {
+            // datetime-local Format zu MySQL datetime konvertieren
+            $ended_datetime = date('Y-m-d H:i:s', strtotime($new_ended_at));
+
+            $stmt = $pdo->prepare("
+                UPDATE svmeetings
+                SET ended_at = ?
+                WHERE meeting_id = ?
+            ");
+            $stmt->execute([$ended_datetime, $current_meeting_id]);
+
+            $_SESSION['success'] = 'Sitzungsende aktualisiert';
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
+            exit;
+        } catch (PDOException $e) {
+            error_log("Fehler beim Update des Sitzungsendes: " . $e->getMessage());
+            $_SESSION['error'] = 'Fehler beim Aktualisieren des Sitzungsendes';
+        }
     }
 }
 

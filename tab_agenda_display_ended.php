@@ -85,6 +85,39 @@ if (empty($agenda_items)) {
         </script>
     </details>
 
+    <!-- Sitzungsende editieren -->
+    <details style="margin: 20px 0; padding: 15px; background: #fff9e6; border: 2px solid #ff9800; border-radius: 8px;">
+        <summary style="cursor: pointer; font-weight: 600; color: #f57c00; font-size: 16px; margin-bottom: 10px;">
+            🕐 Sitzungsende korrigieren (klicken zum Auf-/Zuklappen)
+        </summary>
+
+        <form method="POST" action="">
+            <input type="hidden" name="update_meeting_end_time" value="1">
+
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 5px;">
+                    Sitzungsende:
+                </label>
+                <?php
+                $ended_at_value = '';
+                if (!empty($meeting['ended_at'])) {
+                    // Format: YYYY-MM-DDTHH:MM für datetime-local input
+                    $ended_at_value = date('Y-m-d\TH:i', strtotime($meeting['ended_at']));
+                }
+                ?>
+                <input type="datetime-local"
+                       name="new_ended_at"
+                       value="<?php echo $ended_at_value; ?>"
+                       required
+                       style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 100%; max-width: 300px;">
+            </div>
+
+            <button type="submit" style="background: #ff9800; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                💾 Sitzungsende aktualisieren
+            </button>
+        </form>
+    </details>
+
     <!-- Vorsitz und Protokollführung -->
     <?php
     global $members_by_id;
@@ -306,7 +339,7 @@ foreach ($agenda_items as $item):
             if (!empty($post_comments)):
             ?>
                 <div style="margin-top: 15px; padding: 12px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 6px;">
-                    <h4 style="color: #e65100; margin-bottom: 8px;">💭 Nachträgliche Anmerkungen der Teilnehmer</h4>
+                    <h4 style="color: #e65100; margin-bottom: 8px;">💭 Formulierungshinweise der Teilnehmer</h4>
                     <div style="background: white; padding: 10px; border-radius: 4px;">
                         <?php foreach ($post_comments as $pc): ?>
                             <div style="padding: 6px 0; border-bottom: 1px solid #eee; font-size: 13px;">
@@ -339,9 +372,9 @@ foreach ($agenda_items as $item):
                 ?>
             </div>
 
-            <!-- Nachträgliche Anmerkungen auch für Protokollant -->
+            <!-- Formulierungshinweise auch für Protokollant -->
             <div style="margin-top: 15px; padding: 12px; background: #e8f5e9; border: 2px solid #4caf50; border-radius: 6px;">
-                <h4 style="color: #2e7d32; margin-bottom: 8px;">💭 Deine nachträgliche Anmerkung zum Protokoll</h4>
+                <h4 style="color: #2e7d32; margin-bottom: 8px;">💭 Formulierungshinweise zum Protokoll</h4>
 
                 <?php
                 // Eigene nachträgliche Anmerkung des Protokollanten laden
@@ -363,10 +396,6 @@ foreach ($agenda_items as $item):
                               placeholder="Ihre nachträgliche Anmerkung..."
                               style="width: 100%; padding: 6px; border: 1px solid #4caf50; border-radius: 4px; font-size: 13px;"><?php echo htmlspecialchars($my_post_comment['comment_text'] ?? ''); ?></textarea>
                 </div>
-
-                <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; font-size: 12px; color: #666; font-style: italic;">
-                    ℹ️ Kommentare in diesem Feld bleiben bis zur Protokollgenehmigung sichtbar und werden dann verworfen
-                </div>
             </div>
         <?php elseif (!empty($item['protocol_notes'])): ?>
             <!-- Andere Teilnehmer sehen Protokoll read-only -->
@@ -379,10 +408,10 @@ foreach ($agenda_items as $item):
             </div>
         <?php endif; ?>
         
-        <!-- NACHTRÄGLICHE KOMMENTARE (nur für Teilnehmer, nicht für Protokollant) -->
+        <!-- FORMULIERUNGSHINWEISE (nur für Teilnehmer, nicht für Protokollant) -->
         <?php if (!$is_secretary): ?>
             <div style="margin-top: 15px; padding: 12px; background: #e8f5e9; border: 2px solid #4caf50; border-radius: 6px;">
-                <h4 style="color: #2e7d32; margin-bottom: 8px;">💭 Nachträgliche Anmerkungen zum Protokollentwurf</h4>
+                <h4 style="color: #2e7d32; margin-bottom: 8px;">💭 Formulierungshinweise zum Protokoll</h4>
                 
                 <!-- Bestehende nachträgliche Kommentare anzeigen -->
                 <?php
@@ -418,13 +447,9 @@ foreach ($agenda_items as $item):
                               placeholder="Ihre nachträgliche Anmerkung..."
                               style="width: 100%; padding: 6px; border: 1px solid #4caf50; border-radius: 4px; font-size: 13px;"><?php echo htmlspecialchars($my_post_comment['comment_text'] ?? ''); ?></textarea>
                 </div>
-
-                <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; font-size: 12px; color: #666; font-style: italic;">
-                    ℹ️ Kommentare in diesem Feld bleiben bis zur Protokollgenehmigung sichtbar und werden dann verworfen
-                </div>
             </div>
         <?php endif; ?>
-        
+
     </div>
 <?php endforeach; ?>
 

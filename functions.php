@@ -427,6 +427,33 @@ function render_agenda_item($item, $meeting, $current_user, $can_edit = false, $
                     <div class="comment">
                         <span class="comment-author"><?php echo htmlspecialchars($comment['first_name'] . ' ' . $comment['last_name']); ?>:</span>
                         <span class="comment-text"><?php echo nl2br(htmlspecialchars($comment['comment_text'])); ?></span>
+
+                        <!-- Formulierungshinweise dieses Users anzeigen -->
+                        <?php
+                        global $pdo;
+                        try {
+                            $stmt = $pdo->prepare("
+                                SELECT apc.comment_text, apc.created_at
+                                FROM svagenda_post_comments apc
+                                WHERE apc.item_id = ? AND apc.member_id = ?
+                                ORDER BY apc.created_at DESC
+                                LIMIT 1
+                            ");
+                            $stmt->execute([$item['item_id'], $comment['member_id']]);
+                            $post_comment = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                            if ($post_comment && !empty($post_comment['comment_text'])):
+                        ?>
+                            <div style="margin-top: 5px; padding: 8px; background: #e8f5e9; border-left: 3px solid #4caf50; border-radius: 4px;">
+                                <strong style="color: #2e7d32; font-size: 12px;">💭 Formulierungshinweis:</strong>
+                                <div style="color: #333; font-size: 13px; margin-top: 3px;"><?php echo nl2br(htmlspecialchars($post_comment['comment_text'])); ?></div>
+                            </div>
+                        <?php
+                            endif;
+                        } catch (PDOException $e) {
+                            // Fehler ignorieren
+                        }
+                        ?>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
