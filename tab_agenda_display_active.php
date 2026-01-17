@@ -892,7 +892,7 @@ foreach ($agenda_items as $item):
                                     ✍️ Fortsetzungsfeld (priorisiert)
                                 </label>
                                 <small style="display: block; margin-bottom: 8px; color: #666; font-size: 11px;">
-                                    Text hier wird direkt ans Hauptsystem angehängt (nach 2s Pause). Feld wird dann geleert.
+                                    Text hier wird direkt ans Hauptsystem angehängt. Klicken Sie auf "Anhängen" wenn fertig.
                                 </small>
 
                                 <textarea id="protocol-append-<?php echo $item['item_id']; ?>"
@@ -902,8 +902,14 @@ foreach ($agenda_items as $item):
                                           placeholder="Neuen Text hier eingeben..."
                                           style="width: 100%; padding: 8px; border: 2px solid #2196f3; border-radius: 4px; background: white;"></textarea>
 
-                                <div style="margin-top: 5px; font-size: 11px; color: #666;">
-                                    <span id="append-status-<?php echo $item['item_id']; ?>"></span>
+                                <div style="margin-top: 8px; display: flex; align-items: center; gap: 10px;">
+                                    <button type="button"
+                                            class="append-button"
+                                            data-item-id="<?php echo $item['item_id']; ?>"
+                                            style="padding: 8px 16px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                                        ↓ Text ans Protokoll anhängen
+                                    </button>
+                                    <span id="append-status-<?php echo $item['item_id']; ?>" style="font-size: 11px; color: #666;"></span>
                                 </div>
                             </div>
 

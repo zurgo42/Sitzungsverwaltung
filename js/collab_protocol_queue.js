@@ -112,17 +112,20 @@
                 itemId: itemId,
                 textarea: textarea,
                 fieldType: 'append',
-                lastSavedContent: textarea.value,
-                isTyping: false,
-                typingTimeout: null,
-                saveTimeout: null
+                lastSavedContent: textarea.value
             };
 
             textareaStates.set(`append_${itemId}`, state);
+        });
 
-            // Event Listener
-            textarea.addEventListener('input', () => handleAppendInput(state));
-            textarea.addEventListener('blur', () => handleAppendBlur(state));
+        // Anhängen-Buttons initialisieren (nur Protokollführung)
+        const appendButtons = document.querySelectorAll('.append-button');
+        appendButtons.forEach(button => {
+            const itemId = parseInt(button.dataset.itemId);
+            if (!itemId) return;
+
+            // Event Listener für Button-Click
+            button.addEventListener('click', () => handleAppendButtonClick(itemId));
         });
     }
 
@@ -174,33 +177,15 @@
     }
 
     /**
-     * FORTSETZUNGSFELD: Input-Event (nur Protokollführung)
+     * FORTSETZUNGSFELD: Button-Click Handler
      */
-    function handleAppendInput(state) {
-        state.isTyping = true;
-
-        // Save-Timeout zurücksetzen
-        if (state.saveTimeout) {
-            clearTimeout(state.saveTimeout);
+    function handleAppendButtonClick(itemId) {
+        const state = textareaStates.get(`append_${itemId}`);
+        if (!state) {
+            console.error('Append-State nicht gefunden für item_id:', itemId);
+            return;
         }
 
-        state.saveTimeout = setTimeout(() => {
-            saveAppendField(state);
-        }, APPEND_SAVE_DELAY);
-
-        updateAppendStatus(state.itemId, '✏️ Schreibe...');
-    }
-
-    /**
-     * FORTSETZUNGSFELD: Blur-Event
-     */
-    function handleAppendBlur(state) {
-        state.isTyping = false;
-
-        // Sofort speichern
-        if (state.saveTimeout) {
-            clearTimeout(state.saveTimeout);
-        }
         saveAppendField(state);
     }
 
@@ -257,12 +242,10 @@
 
         // Leer → nichts zu tun
         if (!currentContent) {
-            updateAppendStatus(state.itemId, '');
-            return;
-        }
-
-        // Nur speichern wenn geändert
-        if (currentContent === state.lastSavedContent) {
+            updateAppendStatus(state.itemId, 'Feld ist leer');
+            setTimeout(() => {
+                updateAppendStatus(state.itemId, '');
+            }, 2000);
             return;
         }
 
@@ -289,23 +272,21 @@
             const data = await response.json();
 
             if (data.success && data.appended) {
-                state.lastSavedContent = currentContent;
-
                 // Feld leeren nach erfolgreicher Übertragung
                 state.textarea.value = '';
                 state.lastSavedContent = '';
 
-                updateAppendStatus(state.itemId, '✅ Übertragen');
+                updateAppendStatus(state.itemId, '✅ Übertragen und angehängt');
 
                 // Status nach 2 Sekunden zurücksetzen
                 setTimeout(() => {
                     updateAppendStatus(state.itemId, '');
                 }, 2000);
 
-                // Hauptfeld SOFORT neu laden (damit der angehängte Text erscheint)
+                // Hauptfeld FORCE-RELOAD (auch wenn User gerade tippt)
                 const mainState = textareaStates.get(`main_${state.itemId}`);
                 if (mainState) {
-                    autoLoadMain(mainState);
+                    forceLoadMain(mainState);
                 }
             } else {
                 updateAppendStatus(state.itemId, '❌ Fehler');
@@ -326,12 +307,26 @@
             return;
         }
 
+        await loadMainContent(state, false);
+    }
+
+    /**
+     * Force-Reload des Hauptfelds (ignoriert isTyping)
+     */
+    async function forceLoadMain(state) {
+        await loadMainContent(state, true);
+    }
+
+    /**
+     * Interne Funktion: Lädt Hauptfeld-Content
+     */
+    async function loadMainContent(state, forceReload) {
         try {
             const response = await fetch(`api/protocol_get_updates.php?item_id=${state.itemId}`);
             const data = await response.json();
 
             if (!data.success) {
-                console.error('Auto-Load Fehler:', data.error);
+                console.error('Load Fehler:', data.error);
                 return;
             }
 
@@ -359,21 +354,21 @@
                 state.lastSavedContent = data.content;
                 state.currentHash = data.content_hash;
 
-                // Cursor nur wiederherstellen wenn fokussiert
-                if (hasFocus) {
+                // Cursor nur wiederherstellen wenn fokussiert UND kein Force-Reload
+                if (hasFocus && !forceReload) {
                     try {
                         state.textarea.setSelectionRange(cursorPos, cursorPos);
                     } catch (e) {}
                 }
 
                 // Visuelles Feedback
-                state.textarea.style.borderColor = '#4caf50';
+                state.textarea.style.borderColor = forceReload ? '#2196f3' : '#4caf50';
                 setTimeout(() => {
                     state.textarea.style.borderColor = '';
                 }, 300);
             }
         } catch (error) {
-            console.error('Auto-Load Exception:', error);
+            console.error('Load Exception:', error);
         }
     }
 
