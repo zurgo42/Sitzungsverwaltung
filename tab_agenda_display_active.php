@@ -1082,11 +1082,12 @@ function setActiveTop(itemId, meetingId) {
     .then(data => {
         console.log('setActiveTop Response:', data);
         if (data.success) {
-            console.log('Redirect zu:', `?tab=agenda&meeting_id=${meetingId}#top-${itemId}`);
-            // Kurze Verzögerung, damit DB-Transaktion committed wird
+            console.log('Reload mit neuem TOP:', itemId);
+            // Kurze Verzögerung, damit DB-Transaktion committed wird, dann FORCE RELOAD
             setTimeout(() => {
-                window.location.href = `?tab=agenda&meeting_id=${meetingId}#top-${itemId}`;
-            }, 200);
+                // Force reload from server (nicht aus Cache) mit neuem Hash
+                window.location.replace(`?tab=agenda&meeting_id=${meetingId}&_reload=${Date.now()}#top-${itemId}`);
+            }, 300);
         } else {
             alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
         }
