@@ -36,6 +36,20 @@ try {
 
     echo "🔌 Datenbankverbindung erfolgreich\n\n";
 
+    // Prüfen ob Spalte überhaupt existiert
+    $columns = $pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'collaborative_protocol'")->fetchAll();
+
+    if (empty($columns)) {
+        echo "❌ Spalte 'collaborative_protocol' existiert noch nicht!\n\n";
+        echo "Du musst zuerst die Migration ausführen:\n";
+        echo "php run_complete_migration.php\n\n";
+        echo "Oder im Browser:\n";
+        echo "http://localhost/Sitzungsverwaltung/run_complete_migration.php\n";
+        exit(1);
+    }
+
+    echo "✅ Spalte 'collaborative_protocol' gefunden\n\n";
+
     // Prüfen wie viele Meetings NULL-Werte haben
     $stmt = $pdo->query("SELECT COUNT(*) as count FROM svmeetings WHERE collaborative_protocol IS NULL");
     $result = $stmt->fetch();
