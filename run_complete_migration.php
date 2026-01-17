@@ -45,11 +45,24 @@ try {
 
     $sql = file_get_contents($migration_file);
 
-    // SQL in einzelne Statements aufteilen
+    // Kommentare entfernen (-- Zeilen)
+    $lines = explode("\n", $sql);
+    $cleaned_lines = [];
+    foreach ($lines as $line) {
+        $trimmed = trim($line);
+        // Überspringe Kommentar-Zeilen und leere Zeilen
+        if (empty($trimmed) || strpos($trimmed, '--') === 0) {
+            continue;
+        }
+        $cleaned_lines[] = $line;
+    }
+    $sql_cleaned = implode("\n", $cleaned_lines);
+
+    // SQL in einzelne Statements aufteilen (am Semikolon)
     $statements = array_filter(
-        array_map('trim', explode(';', $sql)),
+        array_map('trim', explode(';', $sql_cleaned)),
         function($stmt) {
-            return !empty($stmt) && !preg_match('/^--/', $stmt);
+            return !empty($stmt);
         }
     );
 
