@@ -91,7 +91,19 @@ try {
         SET protocol_notes = ?, protocol_master_id = ?
         WHERE item_id = ?
     ");
-    $stmt->execute([$new_text, $member_id, $item_id]);
+
+    // Versuche mit member_id, falls Foreign Key Fehler → NULL verwenden
+    try {
+        $stmt->execute([$new_text, $member_id, $item_id]);
+    } catch (PDOException $fk_error) {
+        // Foreign Key Constraint Violation? Dann member_id = NULL
+        if ($fk_error->getCode() == '23000') {
+            error_log("WARNING: member_id $member_id not found in svmembers, setting protocol_master_id to NULL");
+            $stmt->execute([$new_text, null, $item_id]);
+        } else {
+            throw $fk_error; // Anderen Fehler weiterwerfen
+        }
+    }
 
     // Version für History speichern (falls Tabelle existiert)
     $new_hash = md5($new_text);
