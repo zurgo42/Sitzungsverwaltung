@@ -14,6 +14,7 @@
     const QUEUE_PROCESS_INTERVAL = 2000; // Queue verarbeiten alle 2 Sekunden (nur Master)
     const APPEND_SAVE_DELAY = 2000; // Fortsetzungsfeld nach 2s Pause speichern
     const QUEUE_SAVE_DELAY = 1500; // Queue-Save nach 1.5s Pause
+    const EDITING_SIGNAL_INTERVAL = 3000; // Editing-Signal alle 3 Sekunden senden
 
     // State für jedes Textarea
     const textareaStates = new Map();
@@ -63,7 +64,8 @@
                 typingTimeout: null,
                 saveTimeout: null,
                 autoLoadInterval: null,
-                queueProcessInterval: null
+                queueProcessInterval: null,
+                editingSignalInterval: null
             };
 
             textareaStates.set(`main_${itemId}`, state);
@@ -137,6 +139,7 @@
 
         state.typingTimeout = setTimeout(() => {
             state.isTyping = false;
+            stopEditingSignal(state);
         }, 1000);
 
         // Save-Timeout zurücksetzen
@@ -148,6 +151,9 @@
             saveToQueue(state);
         }, QUEUE_SAVE_DELAY);
 
+        // Editing-Signal starten (falls noch nicht aktiv)
+        startEditingSignal(state);
+
         updateStatus(state.itemId, 'editing', '✏️ Schreibe...');
     }
 
@@ -156,6 +162,9 @@
      */
     function handleMainBlur(state) {
         state.isTyping = false;
+
+        // Editing-Signal stoppen
+        stopEditingSignal(state);
 
         // Sofort in Queue speichern
         if (state.saveTimeout) {
@@ -333,6 +342,14 @@
                 updateQueueDisplay(state.itemId, 0, []);
             }
 
+            // Konflikt-Warnung anzeigen wenn andere User editieren
+            if (data.editors && data.editors.length > 0) {
+                const editorNames = data.editors.map(e => e.name).join(', ');
+                showEditingWarning(state.itemId, editorNames);
+            } else {
+                hideEditingWarning(state.itemId);
+            }
+
             // Content nur aktualisieren wenn Hash unterschiedlich
             if (data.content_hash !== state.currentHash && data.content !== state.textarea.value) {
                 const cursorPos = state.textarea.selectionStart;
@@ -386,6 +403,95 @@
             }
         } catch (error) {
             console.error('Queue-Processing Exception:', error);
+        }
+    }
+
+    /**
+     * Startet Editing-Signal Interval
+     */
+    function startEditingSignal(state) {
+        // Falls bereits aktiv → nichts tun
+        if (state.editingSignalInterval) {
+            return;
+        }
+
+        // Sofort einmal signalisieren
+        signalEditing(state.itemId);
+
+        // Dann alle 3 Sekunden
+        state.editingSignalInterval = setInterval(() => {
+            signalEditing(state.itemId);
+        }, EDITING_SIGNAL_INTERVAL);
+    }
+
+    /**
+     * Stoppt Editing-Signal Interval
+     */
+    function stopEditingSignal(state) {
+        if (state.editingSignalInterval) {
+            clearInterval(state.editingSignalInterval);
+            state.editingSignalInterval = null;
+        }
+    }
+
+    /**
+     * Sendet Editing-Signal an Server
+     */
+    async function signalEditing(itemId) {
+        try {
+            await fetch('api/protocol_set_editing.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    item_id: itemId
+                })
+            });
+        } catch (error) {
+            // Fehler ignorieren (nicht kritisch)
+        }
+    }
+
+    /**
+     * Zeigt Konflikt-Warnung
+     */
+    function showEditingWarning(itemId, editorNames) {
+        const warningId = `editing-warning-${itemId}`;
+        let warningEl = document.getElementById(warningId);
+
+        // Warnung erstellen falls noch nicht vorhanden
+        if (!warningEl) {
+            const textarea = document.querySelector(`.collab-protocol-main[data-item-id="${itemId}"]`);
+            if (!textarea) return;
+
+            warningEl = document.createElement('div');
+            warningEl.id = warningId;
+            warningEl.style.cssText = `
+                padding: 12px 15px;
+                margin-bottom: 10px;
+                background: #fff3cd;
+                border: 2px solid #ff9800;
+                border-radius: 4px;
+                color: #856404;
+                font-weight: bold;
+            `;
+
+            textarea.parentNode.insertBefore(warningEl, textarea);
+        }
+
+        // Text aktualisieren
+        warningEl.innerHTML = `⚠️ <strong>Achtung:</strong> ${editorNames} editiert gerade. Gleichzeitiges Bearbeiten kann zu Datenverlusten führen!`;
+        warningEl.style.display = 'block';
+    }
+
+    /**
+     * Versteckt Konflikt-Warnung
+     */
+    function hideEditingWarning(itemId) {
+        const warningEl = document.getElementById(`editing-warning-${itemId}`);
+        if (warningEl) {
+            warningEl.style.display = 'none';
         }
     }
 
@@ -611,6 +717,7 @@
             // Intervals stoppen
             if (state.autoLoadInterval) clearInterval(state.autoLoadInterval);
             if (state.queueProcessInterval) clearInterval(state.queueProcessInterval);
+            if (state.editingSignalInterval) clearInterval(state.editingSignalInterval);
             if (state.typingTimeout) clearTimeout(state.typingTimeout);
             if (state.saveTimeout) clearTimeout(state.saveTimeout);
         });
@@ -625,6 +732,7 @@
         if (state) {
             if (state.autoLoadInterval) clearInterval(state.autoLoadInterval);
             if (state.queueProcessInterval) clearInterval(state.queueProcessInterval);
+            if (state.editingSignalInterval) clearInterval(state.editingSignalInterval);
             if (state.typingTimeout) clearTimeout(state.typingTimeout);
             if (state.saveTimeout) clearTimeout(state.saveTimeout);
             textareaStates.delete(key);
