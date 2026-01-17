@@ -11,6 +11,15 @@
 $all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
 $all_members = get_all_members($pdo);
 
+// Feature-Flag: Prüfen ob kollaboratives Protokoll verfügbar ist
+$has_collaborative_protocol = false;
+try {
+    $columns = $pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'collaborative_protocol'")->fetchAll();
+    $has_collaborative_protocol = !empty($columns);
+} catch (PDOException $e) {
+    $has_collaborative_protocol = false;
+}
+
 // Abwesenheiten für alle Mitglieder laden (zukünftig und aktuell)
 // Nutzt Adapter-kompatible Funktion statt direktem JOIN auf svmembers
 $all_absences_raw = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
@@ -184,6 +193,7 @@ require_once 'module_notifications.php';
                 </small>
             </div>
 
+            <?php if ($has_collaborative_protocol): ?>
             <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 10px;">
                     <input type="checkbox" name="collaborative_protocol" value="1"
@@ -192,9 +202,10 @@ require_once 'module_notifications.php';
                 </label>
                 <small style="display: block; margin-top: 8px; padding: 8px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
                     <strong>Standard-Modus (Checkbox aus):</strong> Nur Protokollführung schreibt Protokoll, andere sehen read-only<br>
-                    <strong>Kollaborativ-Modus (Checkbox an):</strong> Alle Teilnehmer können parallel ins Protokoll schreiben (wie Confluence/Google Docs)
+                    <strong>Kollaborativ-Modus (Checkbox an):</strong> Alle Teilnehmer können parallel ins Protokoll schreiben (Master-Slave Queue-System v3.0)
                 </small>
             </div>
+            <?php endif; ?>
 
             <div class="form-group">
                 <label>Teilnehmer auswählen:</label>
@@ -450,6 +461,7 @@ require_once 'module_notifications.php';
                             </small>
                         </div>
 
+                        <?php if ($has_collaborative_protocol): ?>
                         <div class="form-group">
                             <label style="display: flex; align-items: center; gap: 10px;">
                                 <input type="checkbox" name="collaborative_protocol" value="1"
@@ -459,9 +471,10 @@ require_once 'module_notifications.php';
                             </label>
                             <small style="display: block; margin-top: 8px; padding: 8px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
                                 <strong>Standard-Modus (Checkbox aus):</strong> Nur Protokollführung schreibt Protokoll, andere sehen read-only<br>
-                                <strong>Kollaborativ-Modus (Checkbox an):</strong> Alle Teilnehmer können parallel ins Protokoll schreiben (wie Confluence/Google Docs)
+                                <strong>Kollaborativ-Modus (Checkbox an):</strong> Alle Teilnehmer können parallel ins Protokoll schreiben (Master-Slave Queue-System v3.0)
                             </small>
                         </div>
+                        <?php endif; ?>
 
                         <div class="form-group">
                             <label>Teilnehmer auswählen:</label>
