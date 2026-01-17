@@ -272,10 +272,10 @@
 
                 console.log(`Fortsetzungsfeld übertragen: ${data.appended_length} Zeichen`);
 
-                // Hauptfeld aktualisieren
+                // Hauptfeld SOFORT neu laden (damit der angehängte Text erscheint)
                 const mainState = textareaStates.get(`main_${state.itemId}`);
                 if (mainState) {
-                    mainState.currentHash = data.new_hash;
+                    autoLoadMain(mainState);
                 }
             } else {
                 updateAppendStatus(state.itemId, '❌ Fehler');
