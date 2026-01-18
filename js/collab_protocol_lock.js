@@ -407,6 +407,7 @@
      */
     async function acquireLock(itemId) {
         try {
+            console.log('[LOCK] Sende Lock-Request für item', itemId);
             const response = await fetch('api/protocol_acquire_lock.php', {
                 method: 'POST',
                 headers: {
@@ -417,10 +418,13 @@
                 })
             });
 
-            return await response.json();
+            console.log('[LOCK] Response erhalten, status:', response.status);
+            const data = await response.json();
+            console.log('[LOCK] JSON geparst:', data);
+            return data;
         } catch (error) {
-            console.error('Lock acquire error:', error);
-            return { success: false, error: 'Network error' };
+            console.error('[LOCK] acquire error:', error);
+            return { success: false, error: 'Network error', locked_by_name: 'Fehler beim Lock-Abruf' };
         }
     }
 
