@@ -10,8 +10,8 @@ require_once 'module_agenda_overview.php';
 
 // Kollaboratives Protokoll JavaScript einbinden (wenn aktiv)
 if (!empty($meeting['collaborative_protocol']) && $meeting['collaborative_protocol'] == 1) {
-    // Cache-Buster: Version 3.0 (Master-Slave Queue-System)
-    echo '<script src="js/collab_protocol_queue.js?v=3.0"></script>';
+    // Cache-Buster: Version 4.0 (Lock-basiertes System)
+    echo '<script src="js/collab_protocol_lock.js?v=4.0"></script>';
 }
 
 if (empty($agenda_items)) {
@@ -851,21 +851,21 @@ foreach ($agenda_items as $item):
                 <!-- PROTOKOLL-FORMULAR (klassisch: nur Sekretär | kollaborativ: alle Teilnehmer) -->
                 <div style="margin-top: 15px; padding: 12px; background: <?php echo $is_collaborative ? '#e8f5e9' : '#f0f7ff'; ?>; border: 2px solid <?php echo $is_collaborative ? '#4caf50' : '#2196f3'; ?>; border-radius: 6px;">
                     <h4 style="color: <?php echo $is_collaborative ? '#2e7d32' : '#1976d2'; ?>; margin-bottom: 10px;">
-                        📝 Protokoll
+                        📝 <?php echo $is_collaborative ? 'Mitschrift' : 'Protokoll'; ?>
                         <?php if ($is_collaborative): ?>
-                            <span style="font-size: 12px; color: #666; font-weight: normal;">🤝 Kollaborativ-Modus</span>
+                            <span style="font-size: 12px; color: #666; font-weight: normal;">🔒 Lock-System</span>
                         <?php endif; ?>
                     </h4>
 
                     <?php if ($is_collaborative): ?>
-                        <!-- KOLLABORATIVER MODUS: Master-Slave Queue-System -->
+                        <!-- KOLLABORATIVER MODUS: Lock-basiertes System -->
 
                         <?php if ($is_secretary): ?>
                             <!-- PROTOKOLLFÜHRUNG: 2 Felder (Hauptsystem + Fortsetzung) -->
                             <div class="form-group" style="background: #e8f5e9; padding: 12px; border-radius: 8px; border: 2px solid #4caf50;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                     <label style="font-weight: 600; color: #2e7d32;">
-                                        📝 Protokoll (Hauptsystem)
+                                        📝 Mitschrift (Hauptsystem)
                                     </label>
                                     <div id="queue-display-<?php echo $item['item_id']; ?>" style="font-size: 11px; padding: 4px 8px; background: #fff3cd; border-radius: 4px; display: none;">
                                         <!-- Queue-Anzeige wird per JavaScript gefüllt -->
@@ -914,13 +914,13 @@ foreach ($agenda_items as $item):
                             </div>
 
                         <?php else: ?>
-                            <!-- NORMALE USER: 1 Feld (über Queue) -->
+                            <!-- NORMALE USER: 1 Feld (mit Lock-System) -->
                             <div class="form-group" style="background: #fff8e1; padding: 12px; border-radius: 8px; border: 2px solid #ffc107;">
                                 <label style="font-weight: 600; color: #f57c00;">
-                                    📝 Protokoll (schreibt an Protokollführung)
+                                    📝 Mitschrift
                                 </label>
                                 <small style="display: block; margin-bottom: 8px; color: #666; font-size: 11px;">
-                                    Änderungen werden in Queue eingereiht und chronologisch verarbeitet
+                                    Nur eine Person kann gleichzeitig schreiben (Lock-System)
                                 </small>
 
                                 <textarea id="protocol-main-<?php echo $item['item_id']; ?>"
@@ -928,7 +928,7 @@ foreach ($agenda_items as $item):
                                           data-item-id="<?php echo $item['item_id']; ?>"
                                           data-is-secretary="0"
                                           rows="6"
-                                          placeholder="Protokollbeiträge... (werden automatisch gespeichert)"
+                                          placeholder="Mitschrift... (Lock wird beim Tippen angefordert)"
                                           style="width: 100%; padding: 8px; border: 2px solid #ffc107; border-radius: 4px; background: white;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
 
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; font-size: 11px; color: #666;">
@@ -1040,7 +1040,7 @@ foreach ($agenda_items as $item):
         <?php else: ?>
             <!-- Protokoll-Anzeige für andere Teilnehmer oder nicht-aktive TOPs (Read-only) -->
             <div style="margin-top: 15px; padding: 10px; background: <?php echo $is_collaborative ? '#f1f8e9' : '#f0f7ff'; ?>; border-left: 4px solid <?php echo $is_collaborative ? '#8bc34a' : '#2196f3'; ?>; border-radius: 4px;">
-                <strong style="color: <?php echo $is_collaborative ? '#558b2f' : '#1976d2'; ?>;">📝 Protokoll:</strong>
+                <strong style="color: <?php echo $is_collaborative ? '#558b2f' : '#1976d2'; ?>;">📝 <?php echo $is_collaborative ? 'Mitschrift:' : 'Protokoll:'; ?></strong>
                 <?php if ($is_collaborative && !$is_active): ?>
                     <span style="font-size: 11px; color: #666; font-style: italic;">
                         (Nur bei aktivem TOP editierbar)
@@ -1048,7 +1048,7 @@ foreach ($agenda_items as $item):
                 <?php endif; ?>
                 <br>
                 <div id="protocol-display-<?php echo $item['item_id']; ?>" style="margin-top: 6px; color: #333; font-size: 14px;">
-                    <?php echo nl2br(linkify_text($item['protocol_notes'] ?? 'Noch kein Protokolleintrag...')); ?>
+                    <?php echo nl2br(linkify_text($item['protocol_notes'] ?? 'Noch kein Eintrag...')); ?>
                 </div>
                 <div id="vote-display-<?php echo $item['item_id']; ?>" style="margin-top: 8px;">
                     <?php render_voting_result($item); ?>

@@ -111,84 +111,36 @@ try {
     $content = $item['protocol_notes'] ?? '';
     $content_hash = md5($content);
 
-    // Wer editiert gerade? (aktiv in letzten 10 Sekunden - schnelleres Timeout)
-    $editors = [];
+    // Lock-Status prüfen
+    $lock_info = null;
     try {
         $stmt = $pdo->prepare("
-            SELECT pe.member_id, m.first_name, m.last_name,
-                   TIMESTAMPDIFF(SECOND, pe.last_activity, NOW()) as seconds_ago
-            FROM svprotocol_editing pe
-            JOIN svmembers m ON pe.member_id = m.member_id
-            WHERE pe.item_id = ?
-            AND pe.last_activity > DATE_SUB(NOW(), INTERVAL 10 SECOND)
-            AND pe.member_id != ?
-        ");
-        $stmt->execute([$item_id, $member_id]);
-        $editors = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        // Tabelle existiert noch nicht - ignorieren
-        error_log("svprotocol_editing table not found: " . $e->getMessage());
-    }
-
-    // Editoren-Namen zusammenbauen
-    $editor_names = [];
-    foreach ($editors as $editor) {
-        $editor_names[] = $editor['first_name'] . ' ' . $editor['last_name'];
-    }
-
-    // Letzte Änderung
-    $last_change = null;
-    try {
-        $stmt = $pdo->prepare("
-            SELECT pv.modified_at, m.first_name, m.last_name
-            FROM svprotocol_versions pv
-            JOIN svmembers m ON pv.modified_by = m.member_id
-            WHERE pv.item_id = ?
-            ORDER BY pv.modified_at DESC
-            LIMIT 1
+            SELECT l.member_id, l.locked_at,
+                   m.first_name, m.last_name,
+                   TIMESTAMPDIFF(SECOND, l.locked_at, NOW()) as lock_age
+            FROM svprotocol_lock l
+            LEFT JOIN svmembers m ON l.member_id = m.member_id
+            WHERE l.item_id = ?
+            AND TIMESTAMPDIFF(SECOND, l.locked_at, NOW()) <= 30
         ");
         $stmt->execute([$item_id]);
-        $last_change = $stmt->fetch(PDO::FETCH_ASSOC);
+        $lock_info = $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
-        // Tabelle existiert noch nicht - ignorieren
-        error_log("svprotocol_versions table not found: " . $e->getMessage());
+        // Lock-Tabelle existiert noch nicht - ignorieren
+        error_log("svprotocol_lock table not found: " . $e->getMessage());
     }
 
-    // Queue-Informationen (für Master-Slave Pattern)
-    $queue_size = 0;
-    $queue_waiting = [];
-    try {
-        // Anzahl wartender Einträge
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) FROM svprotocol_changes_queue
-            WHERE item_id = ? AND processed = 0
-        ");
-        $stmt->execute([$item_id]);
-        $queue_size = (int)$stmt->fetchColumn();
+    $is_locked = ($lock_info !== false && $lock_info !== null);
+    $locked_by_me = $is_locked && ($lock_info['member_id'] == $member_id);
+    $locked_by_name = null;
+    $locked_by_id = null;
 
-        // Details zu wartenden Einträgen (für Anzeige)
-        if ($queue_size > 0 && $is_secretary) {
-            $stmt = $pdo->prepare("
-                SELECT q.change_id, q.submitted_at, m.first_name, m.last_name
-                FROM svprotocol_changes_queue q
-                JOIN svmembers m ON q.member_id = m.member_id
-                WHERE q.item_id = ? AND q.processed = 0
-                ORDER BY q.submitted_at ASC
-                LIMIT 5
-            ");
-            $stmt->execute([$item_id]);
-            $queue_entries = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            foreach ($queue_entries as $entry) {
-                $queue_waiting[] = [
-                    'name' => $entry['first_name'] . ' ' . $entry['last_name'],
-                    'submitted_at' => $entry['submitted_at']
-                ];
-            }
+    if ($is_locked) {
+        $locked_by_id = $lock_info['member_id'];
+        $locked_by_name = trim(($lock_info['first_name'] ?? '') . ' ' . ($lock_info['last_name'] ?? ''));
+        if (empty($locked_by_name)) {
+            $locked_by_name = "User #" . $locked_by_id;
         }
-    } catch (PDOException $e) {
-        // Queue-Tabelle existiert noch nicht - ignorieren
-        error_log("svprotocol_changes_queue table not found: " . $e->getMessage());
     }
 
     echo json_encode([
@@ -199,13 +151,11 @@ try {
         'title' => $item['title'],
         'collaborative_mode' => (bool)$item_data['collaborative_protocol'],
         'is_secretary' => $is_secretary,
-        'editors' => $editor_names,
-        'editor_count' => count($editor_names),
-        'last_modified_by' => $last_change ? ($last_change['first_name'] . ' ' . $last_change['last_name']) : null,
-        'last_modified_at' => $last_change ? $last_change['modified_at'] : null,
+        'is_locked' => $is_locked,
+        'locked_by_me' => $locked_by_me,
+        'locked_by_id' => $locked_by_id,
+        'locked_by_name' => $locked_by_name,
         'force_update_at' => $item['force_update_at'],
-        'queue_size' => $queue_size,
-        'queue_waiting' => $queue_waiting,
         'server_time' => date('Y-m-d H:i:s')
     ]);
 
