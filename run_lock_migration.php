@@ -5,14 +5,35 @@
 
 require_once 'config.php';
 
-header('Content-Type: text/plain; charset=utf-8');
+// CLI oder Browser?
+$is_cli = (php_sapi_name() === 'cli');
+
+if (!$is_cli) {
+    // Im Browser: Login-Prüfung
+    session_start();
+    if (!isset($_SESSION['member_id'])) {
+        die('❌ Nicht eingeloggt. Bitte erst einloggen.');
+    }
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<pre>';
+} else {
+    header('Content-Type: text/plain; charset=utf-8');
+}
 
 echo "🔧 Migration: Lock-System für kollaborative Mitschrift\n";
 echo str_repeat('=', 60) . "\n\n";
 
 try {
     // Datenbankverbindung
-    $pdo = get_db_connection();
+    $pdo = new PDO(
+        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+        DB_USER,
+        DB_PASS,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]
+    );
     echo "🔌 Datenbankverbindung erfolgreich\n\n";
 
     // Migration-Datei lesen
@@ -69,11 +90,19 @@ try {
         echo "❌ Tabelle 'svprotocol_lock' nicht gefunden!\n";
     }
 
+    if (!$is_cli) {
+        echo "\n\n" . '<a href="index.php" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4caf50; color: white; text-decoration: none; border-radius: 4px;">Zurück zur Anwendung</a>';
+    }
+
 } catch (Exception $e) {
     echo "\n❌ FEHLER: " . $e->getMessage() . "\n";
     echo "\nStack Trace:\n";
     echo $e->getTraceAsString() . "\n";
     exit(1);
+}
+
+if (!$is_cli) {
+    echo '</pre>';
 }
 
 echo "\n✅ Migration erfolgreich abgeschlossen!\n";
