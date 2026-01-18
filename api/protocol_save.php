@@ -3,18 +3,22 @@
  * API: Speichert Mitschrift (direktes Speichern, kein Queue)
  * Voraussetzung: User muss Lock halten
  */
-
-require_once '../config.php';
-require_once '../functions.php';
+session_start();
+require_once('../config.php');
+require_once('db_connection.php');
 
 header('Content-Type: application/json');
 
-// Login-Check
-$current_user = check_login();
-if (!$current_user) {
-    echo json_encode(['success' => false, 'error' => 'Not logged in']);
+// Authentifizierung prüfen
+if (!isset($_SESSION['member_id'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'Not authenticated']);
     exit;
 }
+
+// Session-Daten gelesen → Session sofort schließen
+$member_id = $_SESSION['member_id'];
+session_write_close();
 
 // Input validieren
 $input = json_decode(file_get_contents('php://input'), true);
@@ -22,15 +26,12 @@ $item_id = isset($input['item_id']) ? intval($input['item_id']) : 0;
 $content = isset($input['content']) ? $input['content'] : '';
 
 if (!$item_id) {
+    http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Missing item_id']);
     exit;
 }
 
-$member_id = $current_user['member_id'];
-
 try {
-    $pdo = get_db_connection();
-
     // Prüfen ob Meeting kollaborativ ist
     $stmt = $pdo->prepare("
         SELECT m.collaborative_protocol
@@ -42,6 +43,7 @@ try {
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$meeting || $meeting['collaborative_protocol'] != 1) {
+        http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Not a collaborative meeting']);
         exit;
     }
@@ -57,6 +59,7 @@ try {
     $has_lock = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$has_lock) {
+        http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'No lock held']);
         exit;
     }
@@ -98,6 +101,7 @@ try {
 
 } catch (PDOException $e) {
     error_log("Protocol save error: " . $e->getMessage());
+    http_response_code(500);
     echo json_encode([
         'success' => false,
         'error' => 'Database error',

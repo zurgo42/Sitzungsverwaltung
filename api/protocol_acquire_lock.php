@@ -3,33 +3,34 @@
  * API: Lock für Mitschrift-Feld anfordern
  * Nur ein User kann gleichzeitig schreiben
  */
-
-require_once '../config.php';
-require_once '../functions.php';
+session_start();
+require_once('../config.php');
+require_once('db_connection.php');
 
 header('Content-Type: application/json');
 
-// Login-Check
-$current_user = check_login();
-if (!$current_user) {
-    echo json_encode(['success' => false, 'error' => 'Not logged in']);
+// Authentifizierung prüfen
+if (!isset($_SESSION['member_id'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'Not authenticated']);
     exit;
 }
+
+// Session-Daten gelesen → Session sofort schließen
+$member_id = $_SESSION['member_id'];
+session_write_close();
 
 // Input validieren
 $input = json_decode(file_get_contents('php://input'), true);
 $item_id = isset($input['item_id']) ? intval($input['item_id']) : 0;
 
 if (!$item_id) {
+    http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Missing item_id']);
     exit;
 }
 
-$member_id = $current_user['member_id'];
-
 try {
-    $pdo = get_db_connection();
-
     // Timeout: 30 Sekunden
     $lock_timeout = 30;
 
@@ -102,6 +103,7 @@ try {
 
 } catch (PDOException $e) {
     error_log("Lock acquire error: " . $e->getMessage());
+    http_response_code(500);
     echo json_encode([
         'success' => false,
         'error' => 'Database error',
