@@ -126,14 +126,19 @@
 
         // Beim ersten Buchstaben: Lock anfordern
         if (!state.hasLock) {
+            console.log('[LOCK] Fordere Lock an für item', state.itemId);
             const lockResult = await acquireLock(state.itemId);
+            console.log('[LOCK] Lock-Result:', lockResult);
+
             if (!lockResult.success || !lockResult.own_lock) {
                 // Lock fehlgeschlagen → Textarea disabled
+                console.log('[LOCK] Lock fehlgeschlagen - disabled textarea');
                 state.textarea.disabled = true;
                 showLockWarning(state.itemId, lockResult.locked_by_name);
                 return;
             }
             state.hasLock = true;
+            console.log('[LOCK] Lock erfolgreich erhalten');
 
             // Lock-Refresh starten
             state.lockRefreshInterval = setInterval(() => {
@@ -156,6 +161,7 @@
         }
 
         state.saveTimeout = setTimeout(() => {
+            console.log('[SAVE] Timeout abgelaufen - rufe saveContent auf');
             saveContent(state);
         }, SAVE_DELAY);
 
@@ -166,6 +172,7 @@
      * HAUPTFELD: Blur-Event
      */
     async function handleMainBlur(state) {
+        console.log('[BLUR] Blur-Event, hasLock:', state.hasLock);
         state.isTyping = false;
 
         // Sofort speichern
@@ -174,8 +181,10 @@
         }
 
         if (state.hasLock) {
+            console.log('[BLUR] Speichere und gebe Lock frei');
             await saveContent(state);
             await releaseLock(state);
+            console.log('[BLUR] Lock freigegeben, hasLock:', state.hasLock);
         }
     }
 
@@ -196,19 +205,23 @@
      * Speichert Hauptfeld
      */
     async function saveContent(state) {
+        console.log('[SAVE] saveContent aufgerufen, hasLock:', state.hasLock);
         const currentContent = state.textarea.value;
 
         // Nur speichern wenn geändert
         if (currentContent === state.lastSavedContent) {
+            console.log('[SAVE] Kein Save - Content unverändert');
             return;
         }
 
         if (!state.hasLock) {
-            console.error('Cannot save without lock');
+            console.error('[SAVE] Cannot save without lock');
+            updateStatus(state.itemId, 'error', '❌ Kein Lock');
             return;
         }
 
         try {
+            console.log('[SAVE] Speichere Content für item', state.itemId);
             updateStatus(state.itemId, 'saving', '💾 Speichere...');
 
             const response = await fetch('api/protocol_save.php', {
@@ -222,7 +235,9 @@
                 })
             });
 
+            console.log('[SAVE] Response status:', response.status);
             const data = await response.json();
+            console.log('[SAVE] Response data:', data);
 
             if (data.success) {
                 state.lastSavedContent = currentContent;
@@ -239,12 +254,12 @@
                     updateStatus(state.itemId, 'idle', '');
                 }, 2000);
             } else {
-                updateStatus(state.itemId, 'error', '❌ Fehler');
-                console.error('Save Fehler:', data.error);
+                console.error('[SAVE] Save fehlgeschlagen:', data.error);
+                updateStatus(state.itemId, 'error', '❌ Fehler: ' + (data.error || 'Unbekannt'));
             }
         } catch (error) {
+            console.error('[SAVE] Exception:', error);
             updateStatus(state.itemId, 'error', '❌ Netzwerkfehler');
-            console.error('Save Exception:', error);
         }
     }
 
