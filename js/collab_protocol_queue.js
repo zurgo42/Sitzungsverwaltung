@@ -222,8 +222,13 @@
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
 
-                updateStatus(state.itemId, 'saved', `⏳ In Queue (Pos. ${data.queue_position})`);
+                updateStatus(state.itemId, 'saved', `✅ Gespeichert`);
                 updateLastSaved(state.itemId, `Gespeichert: ${timeStr}`);
+
+                // Status nach 2 Sekunden zurücksetzen
+                setTimeout(() => {
+                    updateStatus(state.itemId, 'idle', '');
+                }, 2000);
             } else {
                 updateStatus(state.itemId, 'error', '❌ Fehler');
                 console.error('Queue-Save Fehler:', data.error);
