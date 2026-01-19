@@ -24,6 +24,11 @@ echo "🔧 Migration: Lock-System für kollaborative Mitschrift\n";
 echo str_repeat('=', 60) . "\n\n";
 
 try {
+    // Debug: Zeige DB-Konfiguration
+    echo "🔍 Debug: DB_HOST = " . DB_HOST . "\n";
+    echo "🔍 Debug: DB_NAME = " . DB_NAME . "\n";
+    echo "🔍 Debug: DB_USER = " . DB_USER . "\n\n";
+
     // Datenbankverbindung
     $pdo = new PDO(
         "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
