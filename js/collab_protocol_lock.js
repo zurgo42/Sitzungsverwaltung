@@ -131,19 +131,16 @@
 
         // Beim ersten Buchstaben: Lock anfordern
         if (!state.hasLock) {
-            console.log('[LOCK] Fordere Lock an für item', state.itemId);
             const lockResult = await acquireLock(state.itemId);
-            console.log('[LOCK] Lock-Result:', lockResult);
 
             if (!lockResult.success || !lockResult.own_lock) {
                 // Lock fehlgeschlagen → Textarea disabled
-                console.log('[LOCK] Lock fehlgeschlagen - disabled textarea');
+                console.error('Lock konnte nicht erworben werden für item', state.itemId, lockResult);
                 state.textarea.disabled = true;
                 showLockWarning(state.itemId, lockResult.locked_by_name);
                 return;
             }
             state.hasLock = true;
-            console.log('[LOCK] Lock erfolgreich erhalten');
 
             // Lock-Refresh starten
             state.lockRefreshInterval = setInterval(() => {
@@ -166,7 +163,6 @@
         }
 
         state.saveTimeout = setTimeout(() => {
-            console.log('[SAVE] Timeout abgelaufen - rufe saveContent auf');
             saveContent(state);
         }, SAVE_DELAY);
 
@@ -176,12 +172,10 @@
         }
 
         state.inactivityTimeout = setTimeout(async () => {
-            console.log('[INACTIVITY] 5 Sekunden keine Eingabe - gebe Lock frei');
             if (state.hasLock) {
-                await saveContent(state); // Zuerst speichern
-                await releaseLock(state); // Dann Lock freigeben
+                await saveContent(state);
+                await releaseLock(state);
                 updateStatus(state.itemId, 'idle', '');
-                console.log('[INACTIVITY] Lock automatisch freigegeben');
             }
         }, INACTIVITY_TIMEOUT);
 
@@ -192,7 +186,6 @@
      * HAUPTFELD: Blur-Event
      */
     async function handleMainBlur(state) {
-        console.log('[BLUR] Blur-Event, hasLock:', state.hasLock);
         state.isTyping = false;
 
         // Alle Timeouts stoppen
@@ -204,10 +197,8 @@
         }
 
         if (state.hasLock) {
-            console.log('[BLUR] Speichere und gebe Lock frei');
             await saveContent(state);
             await releaseLock(state);
-            console.log('[BLUR] Lock freigegeben, hasLock:', state.hasLock);
         }
     }
 
@@ -228,23 +219,20 @@
      * Speichert Hauptfeld
      */
     async function saveContent(state) {
-        console.log('[SAVE] saveContent aufgerufen, hasLock:', state.hasLock);
         const currentContent = state.textarea.value;
 
         // Nur speichern wenn geändert
         if (currentContent === state.lastSavedContent) {
-            console.log('[SAVE] Kein Save - Content unverändert');
             return;
         }
 
         if (!state.hasLock) {
-            console.error('[SAVE] Cannot save without lock');
+            console.error('Cannot save without lock for item', state.itemId);
             updateStatus(state.itemId, 'error', '❌ Kein Lock');
             return;
         }
 
         try {
-            console.log('[SAVE] Speichere Content für item', state.itemId);
             updateStatus(state.itemId, 'saving', '💾 Speichere...');
 
             const response = await fetch('api/protocol_save.php', {
@@ -258,9 +246,7 @@
                 })
             });
 
-            console.log('[SAVE] Response status:', response.status);
             const data = await response.json();
-            console.log('[SAVE] Response data:', data);
 
             if (data.success) {
                 state.lastSavedContent = currentContent;
@@ -276,11 +262,11 @@
                     updateStatus(state.itemId, 'idle', '');
                 }, 2000);
             } else {
-                console.error('[SAVE] Save fehlgeschlagen:', data.error);
+                console.error('Save failed for item', state.itemId, ':', data.error);
                 updateStatus(state.itemId, 'error', '❌ Fehler: ' + (data.error || 'Unbekannt'));
             }
         } catch (error) {
-            console.error('[SAVE] Exception:', error);
+            console.error('Save exception for item', state.itemId, ':', error);
             updateStatus(state.itemId, 'error', '❌ Netzwerkfehler');
         }
     }
@@ -429,7 +415,6 @@
      */
     async function acquireLock(itemId) {
         try {
-            console.log('[LOCK] Sende Lock-Request für item', itemId);
             const response = await fetch('api/protocol_acquire_lock.php', {
                 method: 'POST',
                 headers: {
@@ -440,12 +425,10 @@
                 })
             });
 
-            console.log('[LOCK] Response erhalten, status:', response.status);
             const data = await response.json();
-            console.log('[LOCK] JSON geparst:', data);
             return data;
         } catch (error) {
-            console.error('[LOCK] acquire error:', error);
+            console.error('Lock acquire error for item', itemId, ':', error);
             return { success: false, error: 'Network error', locked_by_name: 'Fehler beim Lock-Abruf' };
         }
     }
@@ -463,12 +446,10 @@
      */
     async function releaseLock(state) {
         if (!state.hasLock) {
-            console.log('[UNLOCK] Kein Lock zum Freigeben');
             return;
         }
 
         try {
-            console.log('[UNLOCK] Sende Release-Request für item', state.itemId);
             const response = await fetch('api/protocol_release_lock.php', {
                 method: 'POST',
                 headers: {
@@ -479,15 +460,12 @@
                 })
             });
 
-            console.log('[UNLOCK] Response erhalten, status:', response.status);
             const data = await response.json();
-            console.log('[UNLOCK] Response data:', data);
 
             if (data.success) {
                 state.hasLock = false;
-                console.log('[UNLOCK] Lock erfolgreich freigegeben');
             } else {
-                console.error('[UNLOCK] Lock-Release fehlgeschlagen:', data);
+                console.error('Lock release failed for item', state.itemId, ':', data);
             }
 
             // Lock-Refresh stoppen
@@ -496,7 +474,7 @@
                 state.lockRefreshInterval = null;
             }
         } catch (error) {
-            console.error('Lock release error:', error);
+            console.error('Lock release error for item', state.itemId, ':', error);
         }
     }
 
