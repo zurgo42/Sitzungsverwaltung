@@ -2288,21 +2288,32 @@ if (isset($_POST['save_chairman_comment']) && $is_chairman && $meeting['status']
 
     if ($item_id) {
         try {
-            // Einfacher Ansatz: Erst alte löschen, dann neu einfügen (falls nicht leer)
-            // Garantiert: Maximal 1 Kommentar pro User+TOP
+            // Prüfen ob bereits ein Kommentar existiert
             $stmt = $pdo->prepare("
-                DELETE FROM svagenda_post_comments
+                SELECT comment_id
+                FROM svagenda_post_comments
                 WHERE item_id = ? AND member_id = ?
             ");
             $stmt->execute([$item_id, $current_user['member_id']]);
+            $existing = $stmt->fetch();
 
-            // Wenn nicht leer: Neuen Kommentar einfügen
-            if (!empty($comment_text)) {
+            if ($existing) {
+                // UPDATE bestehenden Kommentar
                 $stmt = $pdo->prepare("
-                    INSERT INTO svagenda_post_comments (item_id, member_id, comment_text, created_at)
-                    VALUES (?, ?, ?, NOW())
+                    UPDATE svagenda_post_comments
+                    SET comment_text = ?, created_at = NOW()
+                    WHERE comment_id = ?
                 ");
-                $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+                $stmt->execute([$comment_text, $existing['comment_id']]);
+            } else {
+                // INSERT neuen Kommentar (nur wenn nicht leer)
+                if (!empty($comment_text)) {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svagenda_post_comments (item_id, member_id, comment_text, created_at)
+                        VALUES (?, ?, ?, NOW())
+                    ");
+                    $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+                }
             }
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
