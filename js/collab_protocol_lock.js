@@ -241,7 +241,6 @@
 
             if (data.success) {
                 state.lastSavedContent = currentContent;
-                state.currentHash = data.content_hash;
 
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
@@ -441,11 +440,13 @@
      */
     async function releaseLock(state) {
         if (!state.hasLock) {
+            console.log('[UNLOCK] Kein Lock zum Freigeben');
             return;
         }
 
         try {
-            await fetch('api/protocol_release_lock.php', {
+            console.log('[UNLOCK] Sende Release-Request für item', state.itemId);
+            const response = await fetch('api/protocol_release_lock.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -455,7 +456,16 @@
                 })
             });
 
-            state.hasLock = false;
+            console.log('[UNLOCK] Response erhalten, status:', response.status);
+            const data = await response.json();
+            console.log('[UNLOCK] Response data:', data);
+
+            if (data.success) {
+                state.hasLock = false;
+                console.log('[UNLOCK] Lock erfolgreich freigegeben');
+            } else {
+                console.error('[UNLOCK] Lock-Release fehlgeschlagen:', data);
+            }
 
             // Lock-Refresh stoppen
             if (state.lockRefreshInterval) {

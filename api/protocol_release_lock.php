@@ -30,6 +30,9 @@ if (!$item_id) {
 }
 
 try {
+    // Debug-Logging
+    error_log("Release Lock: item_id=$item_id, member_id=$member_id");
+
     // Nur eigenen Lock freigeben
     $stmt = $pdo->prepare("
         DELETE FROM svprotocol_lock
@@ -39,9 +42,12 @@ try {
 
     $released = $stmt->rowCount() > 0;
 
+    error_log("Release Lock Result: released=" . ($released ? 'true' : 'false'));
+
     echo json_encode([
         'success' => true,
-        'released' => $released
+        'released' => $released,
+        'item_id' => $item_id
     ]);
 
 } catch (PDOException $e) {
