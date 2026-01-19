@@ -2288,40 +2288,16 @@ if (isset($_POST['save_chairman_comment']) && $is_chairman && $meeting['status']
 
     if ($item_id) {
         try {
-            // Prüfen ob bereits ein Kommentar existiert (neuesten holen)
+            // Einfacher Ansatz: Erst alte löschen, dann neu einfügen (falls nicht leer)
+            // Garantiert: Maximal 1 Kommentar pro User+TOP
             $stmt = $pdo->prepare("
-                SELECT comment_id
-                FROM svagenda_post_comments
+                DELETE FROM svagenda_post_comments
                 WHERE item_id = ? AND member_id = ?
-                ORDER BY created_at DESC
-                LIMIT 1
             ");
             $stmt->execute([$item_id, $current_user['member_id']]);
-            $existing = $stmt->fetch();
 
-            if ($existing) {
-                // Erst alte Duplikate aufräumen (falls vorhanden)
-                $stmt = $pdo->prepare("
-                    DELETE FROM svagenda_post_comments
-                    WHERE item_id = ? AND member_id = ? AND comment_id != ?
-                ");
-                $stmt->execute([$item_id, $current_user['member_id'], $existing['comment_id']]);
-
-                // Update existierenden Kommentar
-                if (!empty($comment_text)) {
-                    $stmt = $pdo->prepare("
-                        UPDATE svagenda_post_comments
-                        SET comment_text = ?, created_at = NOW()
-                        WHERE comment_id = ?
-                    ");
-                    $stmt->execute([$comment_text, $existing['comment_id']]);
-                } else {
-                    // Löschen wenn leer
-                    $stmt = $pdo->prepare("DELETE FROM svagenda_post_comments WHERE comment_id = ?");
-                    $stmt->execute([$existing['comment_id']]);
-                }
-            } elseif (!empty($comment_text)) {
-                // Neuen Kommentar erstellen
+            // Wenn nicht leer: Neuen Kommentar einfügen
+            if (!empty($comment_text)) {
                 $stmt = $pdo->prepare("
                     INSERT INTO svagenda_post_comments (item_id, member_id, comment_text, created_at)
                     VALUES (?, ?, ?, NOW())
