@@ -89,10 +89,14 @@ try {
 
 } catch (PDOException $e) {
     error_log("Protocol save error: " . $e->getMessage());
+    error_log("Protocol save SQL state: " . $e->getCode());
+    error_log("Protocol save trace: " . $e->getTraceAsString());
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'error' => 'Database error',
-        'message' => $e->getMessage()
+        'message' => $e->getMessage(),
+        'code' => $e->getCode(),
+        'item_id' => $item_id
     ]);
 }
