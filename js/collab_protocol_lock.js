@@ -16,6 +16,7 @@
     const LOCK_REFRESH_INTERVAL = 5000; // Lock alle 5 Sekunden refreshen
     const SAVE_DELAY = 1500; // Nach 1.5s Pause speichern
     const ACTIVE_TOP_CHECK_INTERVAL = 3000; // Aktiven TOP alle 3 Sekunden prüfen
+    const INACTIVITY_TIMEOUT = 5000; // Nach 5s Inaktivität Lock freigeben
 
     // State für jedes Textarea
     const textareaStates = new Map();
@@ -169,6 +170,21 @@
             saveContent(state);
         }, SAVE_DELAY);
 
+        // Inaktivitäts-Timeout zurücksetzen
+        if (state.inactivityTimeout) {
+            clearTimeout(state.inactivityTimeout);
+        }
+
+        state.inactivityTimeout = setTimeout(async () => {
+            console.log('[INACTIVITY] 5 Sekunden keine Eingabe - gebe Lock frei');
+            if (state.hasLock) {
+                await saveContent(state); // Zuerst speichern
+                await releaseLock(state); // Dann Lock freigeben
+                updateStatus(state.itemId, 'idle', '');
+                console.log('[INACTIVITY] Lock automatisch freigegeben');
+            }
+        }, INACTIVITY_TIMEOUT);
+
         updateStatus(state.itemId, 'editing', '✏️ Schreibe...');
     }
 
@@ -179,9 +195,12 @@
         console.log('[BLUR] Blur-Event, hasLock:', state.hasLock);
         state.isTyping = false;
 
-        // Sofort speichern
+        // Alle Timeouts stoppen
         if (state.saveTimeout) {
             clearTimeout(state.saveTimeout);
+        }
+        if (state.inactivityTimeout) {
+            clearTimeout(state.inactivityTimeout);
         }
 
         if (state.hasLock) {
@@ -725,6 +744,7 @@
             if (state.lockRefreshInterval) clearInterval(state.lockRefreshInterval);
             if (state.typingTimeout) clearTimeout(state.typingTimeout);
             if (state.saveTimeout) clearTimeout(state.saveTimeout);
+            if (state.inactivityTimeout) clearTimeout(state.inactivityTimeout);
 
             // Lock freigeben
             if (state.hasLock) {
@@ -744,6 +764,7 @@
             if (state.lockRefreshInterval) clearInterval(state.lockRefreshInterval);
             if (state.typingTimeout) clearTimeout(state.typingTimeout);
             if (state.saveTimeout) clearTimeout(state.saveTimeout);
+            if (state.inactivityTimeout) clearTimeout(state.inactivityTimeout);
 
             if (state.hasLock) {
                 releaseLock(state);
