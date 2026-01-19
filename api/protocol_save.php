@@ -74,13 +74,15 @@ try {
     $stmt->execute([$content, $item_id]);
 
     // Version speichern (mit korrekten Spaltennamen)
+    $version_hash = md5($content);
+
     $stmt = $pdo->prepare("
-        INSERT INTO svprotocol_versions (item_id, protocol_text, modified_by)
-        VALUES (?, ?, ?)
+        INSERT INTO svprotocol_versions (item_id, protocol_text, modified_by, version_hash)
+        VALUES (?, ?, ?, ?)
     ");
 
     // modified_at wird automatisch auf CURRENT_TIMESTAMP gesetzt
-    $stmt->execute([$item_id, $content, $member_id]);
+    $stmt->execute([$item_id, $content, $member_id, $version_hash]);
 
     echo json_encode([
         'success' => true,
