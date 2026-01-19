@@ -73,29 +73,17 @@ try {
     ");
     $stmt->execute([$content, $item_id]);
 
-    // Version speichern
+    // Version speichern (mit korrekten Spaltennamen)
     $stmt = $pdo->prepare("
-        INSERT INTO svprotocol_versions (item_id, protocol_master_id, content, content_hash, created_at)
-        VALUES (?, ?, ?, ?, NOW())
+        INSERT INTO svprotocol_versions (item_id, protocol_text, modified_by)
+        VALUES (?, ?, ?)
     ");
 
-    $content_hash = md5($content);
-
-    // Try mit FK, fallback ohne
-    try {
-        $stmt->execute([$item_id, $member_id, $content, $content_hash]);
-    } catch (PDOException $fk_error) {
-        if ($fk_error->getCode() == '23000') {
-            // FK Constraint → NULL verwenden
-            $stmt->execute([$item_id, null, $content, $content_hash]);
-        } else {
-            throw $fk_error;
-        }
-    }
+    // modified_at wird automatisch auf CURRENT_TIMESTAMP gesetzt
+    $stmt->execute([$item_id, $content, $member_id]);
 
     echo json_encode([
         'success' => true,
-        'content_hash' => $content_hash,
         'message' => 'Saved successfully'
     ]);
 
