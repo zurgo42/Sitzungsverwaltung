@@ -15,9 +15,13 @@
     const AUTO_LOAD_INTERVAL = 2000; // Status alle 2 Sekunden prüfen
     const LOCK_REFRESH_INTERVAL = 5000; // Lock alle 5 Sekunden refreshen
     const SAVE_DELAY = 1500; // Nach 1.5s Pause speichern
+    const ACTIVE_TOP_CHECK_INTERVAL = 3000; // Aktiven TOP alle 3 Sekunden prüfen
 
     // State für jedes Textarea
     const textareaStates = new Map();
+
+    // Aktueller aktiver TOP (für Change-Detection)
+    let currentActiveTopId = null;
 
     /**
      * Initialisiert kollaborative Mitschrift
@@ -749,11 +753,62 @@
         }
     }
 
+    /**
+     * Prüft ob sich der aktive TOP geändert hat
+     * Wenn ja → Seite neu laden
+     */
+    async function checkActiveTopChange() {
+        // Meeting ID aus URL extrahieren
+        const urlParams = new URLSearchParams(window.location.search);
+        const meetingId = urlParams.get('meeting_id');
+
+        if (!meetingId) {
+            return; // Keine Meeting ID → nicht in aktiver Sitzung
+        }
+
+        try {
+            const response = await fetch(`api/get_active_top.php?meeting_id=${meetingId}`);
+            const data = await response.json();
+
+            if (!data.success) {
+                return;
+            }
+
+            const activeTopId = data.active_item_id;
+
+            // Beim ersten Aufruf: Initialisieren
+            if (currentActiveTopId === null) {
+                currentActiveTopId = activeTopId;
+                console.log('[TOP-MONITOR] Initialer aktiver TOP:', activeTopId);
+                return;
+            }
+
+            // TOP hat sich geändert → Seite neu laden
+            if (currentActiveTopId !== activeTopId) {
+                console.log('[TOP-MONITOR] TOP hat sich geändert:', currentActiveTopId, '→', activeTopId);
+                console.log('[TOP-MONITOR] Lade Seite neu...');
+
+                // Seite neu laden (mit Cache-Buster)
+                const newUrl = `?tab=agenda&meeting_id=${meetingId}&_reload=${Date.now()}${activeTopId ? '#top-' + activeTopId : ''}`;
+                window.location.replace(newUrl);
+            }
+
+        } catch (error) {
+            console.error('[TOP-MONITOR] Fehler beim Prüfen des aktiven TOPs:', error);
+        }
+    }
+
     // Beim Seitenladen initialisieren
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initCollaborativeProtocol);
+        document.addEventListener('DOMContentLoaded', () => {
+            initCollaborativeProtocol();
+            checkActiveTopChange(); // Initial check
+            setInterval(checkActiveTopChange, ACTIVE_TOP_CHECK_INTERVAL); // Regelmäßig prüfen
+        });
     } else {
         initCollaborativeProtocol();
+        checkActiveTopChange(); // Initial check
+        setInterval(checkActiveTopChange, ACTIVE_TOP_CHECK_INTERVAL); // Regelmäßig prüfen
     }
 
     // Bei TOP-Wechsel
