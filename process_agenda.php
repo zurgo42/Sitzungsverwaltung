@@ -2142,17 +2142,18 @@ if (isset($_POST['save_protocol_ready_changes']) && $is_secretary && $meeting['s
         $vote_no = $_POST['vote_no'] ?? [];
         $vote_abstain = $_POST['vote_abstain'] ?? [];
         $vote_result = $_POST['vote_result'] ?? [];
-        
+        $post_comments = $_POST['post_comment'] ?? [];
+
         foreach ($protocol_texts as $item_id => $text) {
             $item_id = intval($item_id);
             $text = trim($text);
-            
+
             $stmt = $pdo->prepare("UPDATE svagenda_items SET protocol_notes = ? WHERE item_id = ?");
             $stmt->execute([$text, $item_id]);
-            
+
             if (isset($vote_result[$item_id]) && !empty($vote_result[$item_id])) {
                 $stmt = $pdo->prepare("
-                    UPDATE svagenda_items 
+                    UPDATE svagenda_items
                     SET vote_yes = ?, vote_no = ?, vote_abstain = ?, vote_result = ?
                     WHERE item_id = ?
                 ");
@@ -2165,7 +2166,41 @@ if (isset($_POST['save_protocol_ready_changes']) && $is_secretary && $meeting['s
                 ]);
             }
         }
-        
+
+        // Nachträgliche Anmerkungen des Protokollanten speichern
+        foreach ($post_comments as $item_id => $comment_text) {
+            $item_id = intval($item_id);
+            $comment_text = trim($comment_text);
+
+            // Prüfen ob bereits ein Kommentar existiert
+            $stmt = $pdo->prepare("
+                SELECT comment_id
+                FROM svagenda_post_comments
+                WHERE item_id = ? AND member_id = ?
+            ");
+            $stmt->execute([$item_id, $current_user['member_id']]);
+            $existing = $stmt->fetch();
+
+            if ($existing) {
+                // UPDATE bestehenden Kommentar
+                $stmt = $pdo->prepare("
+                    UPDATE svagenda_post_comments
+                    SET comment_text = ?, created_at = NOW()
+                    WHERE comment_id = ?
+                ");
+                $stmt->execute([$comment_text, $existing['comment_id']]);
+            } else {
+                // INSERT neuen Kommentar (nur wenn nicht leer)
+                if (!empty($comment_text)) {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svagenda_post_comments (item_id, member_id, comment_text, created_at)
+                        VALUES (?, ?, ?, NOW())
+                    ");
+                    $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+                }
+            }
+        }
+
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
     } catch (PDOException $e) {
