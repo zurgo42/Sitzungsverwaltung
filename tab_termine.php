@@ -24,10 +24,12 @@ if (!isset($standalone_mode)) {
     $standalone_mode = false;
 }
 
-// Aktuellen User holen
-$current_user = null;
-if (isset($_SESSION['member_id'])) {
-    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+// Aktuellen User holen (nur wenn noch nicht gesetzt, z.B. von Simple-Script)
+if (!isset($current_user)) {
+    $current_user = null;
+    if (isset($_SESSION['member_id'])) {
+        $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+    }
 }
 
 // View-Parameter
