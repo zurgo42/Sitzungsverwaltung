@@ -2,10 +2,19 @@
 /**
  * tab_opinion.php - Meinungsbild-Tool UI
  * Erstellt: 2025-11-18
+ *
+ * STANDALONE-MODUS:
+ * Kann auch außerhalb der Sitzungsverwaltung verwendet werden.
+ * Dazu vor dem Include setzen: $standalone_mode = true;
  */
 
 require_once __DIR__ . '/opinion_functions.php';
 require_once __DIR__ . '/external_participants_functions.php';
+
+// Standalone-Modus erkennen (Standard: false = volle Features)
+if (!isset($standalone_mode)) {
+    $standalone_mode = false;
+}
 
 // Aktuellen User holen
 $current_user = null;

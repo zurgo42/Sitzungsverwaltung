@@ -1,11 +1,20 @@
 <?php
 /**
  * Meinungsbild erstellen
+ *
+ * Unterstützt Standalone-Modus (ohne vorgefertigte Gruppen)
+ * via $standalone_mode Variable
  */
 
 if (!$current_user) {
     echo "<p>Bitte melde dich an.</p>";
     return;
+}
+
+// Standalone-Modus aus Parent übernehmen
+global $standalone_mode;
+if (!isset($standalone_mode)) {
+    $standalone_mode = false;
 }
 
 // Templates laden
@@ -61,12 +70,19 @@ if (!isset($all_members)) {
 
         <div id="list-selection" style="display: none; margin-top: 15px;">
             <label>Teilnehmer auswählen (nur diese können antworten):*</label>
+            <?php if (!$standalone_mode): ?>
             <div class="participant-buttons" style="margin: 10px 0;">
                 <button type="button" onclick="toggleAllOpinionParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
                 <button type="button" onclick="toggleAllOpinionParticipants(false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
                 <button type="button" onclick="toggleOpinionLeadershipRoles()" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
                 <button type="button" onclick="toggleOpinionTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
             </div>
+            <?php else: ?>
+            <div class="participant-buttons" style="margin: 10px 0;">
+                <button type="button" onclick="toggleAllOpinionParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
+                <button type="button" onclick="toggleAllOpinionParticipants(false)" class="btn-secondary" style="padding: 5px 10px;">✗ Alle abwählen</button>
+            </div>
+            <?php endif; ?>
             <div class="participants-selector" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #f9f9f9;">
                 <?php foreach ($all_members as $member): ?>
                     <label style="display: block; margin: 5px 0;">

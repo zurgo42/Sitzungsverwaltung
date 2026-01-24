@@ -13,7 +13,16 @@ require_once 'external_participants_functions.php';
  *
  * Zeigt Terminumfragen und Abstimmungen
  * Nur Darstellung - alle Verarbeitungen in process_termine.php
+ *
+ * STANDALONE-MODUS:
+ * Kann auch außerhalb der Sitzungsverwaltung verwendet werden.
+ * Dazu vor dem Include setzen: $standalone_mode = true;
  */
+
+// Standalone-Modus erkennen (Standard: false = volle Features)
+if (!isset($standalone_mode)) {
+    $standalone_mode = false;
+}
 
 // View-Parameter
 $view = $_GET['view'] ?? 'dashboard';
@@ -637,12 +646,19 @@ if (isset($_SESSION['error'])) {
                 <!-- Teilnehmer auswählen (nur bei target_type='list') -->
                 <div class="form-group" id="poll-participant-list-selection">
                     <label>Teilnehmer auswählen (nur diese sehen die Umfrage):*</label>
+                    <?php if (!$standalone_mode): ?>
                     <div class="participant-buttons">
                         <button type="button" onclick="toggleAllPollParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
                         <button type="button" onclick="toggleAllPollParticipants(false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
                         <button type="button" onclick="togglePollLeadershipRoles()" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
                         <button type="button" onclick="togglePollTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
                     </div>
+                    <?php else: ?>
+                    <div class="participant-buttons">
+                        <button type="button" onclick="toggleAllPollParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
+                        <button type="button" onclick="toggleAllPollParticipants(false)" class="btn-secondary" style="padding: 5px 10px;">✗ Alle abwählen</button>
+                    </div>
+                    <?php endif; ?>
                     <div class="participants-selector">
                         <?php foreach ($all_members as $member): ?>
                             <label class="participant-label">
