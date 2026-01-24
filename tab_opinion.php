@@ -8,8 +8,14 @@
  * Dazu vor dem Include setzen: $standalone_mode = true;
  */
 
-require_once __DIR__ . '/opinion_functions.php';
-require_once __DIR__ . '/external_participants_functions.php';
+// Opinion-Functions laden (wenn noch nicht geladen)
+if (!function_exists('get_all_opinion_polls')) {
+    require_once __DIR__ . '/opinion_functions.php';
+}
+// Externe Teilnehmer-Functions laden (wenn noch nicht geladen)
+if (!function_exists('get_external_participant')) {
+    require_once __DIR__ . '/external_participants_functions.php';
+}
 
 // Standalone-Modus erkennen (Standard: false = volle Features)
 if (!isset($standalone_mode)) {

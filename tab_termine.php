@@ -1,11 +1,17 @@
 <?php
 
-// Benachrichtigungsmodul laden
-require_once 'module_notifications.php';
-// Member-Functions mit Adapter-Support laden
-require_once 'member_functions.php';
-// Externe Teilnehmer-Functions laden
-require_once 'external_participants_functions.php';
+// Benachrichtigungsmodul laden (wenn noch nicht geladen)
+if (!function_exists('render_user_notifications')) {
+    require_once 'module_notifications.php';
+}
+// Member-Functions mit Adapter-Support laden (wenn noch nicht geladen)
+if (!function_exists('get_member_by_id')) {
+    require_once 'member_functions.php';
+}
+// Externe Teilnehmer-Functions laden (wenn noch nicht geladen)
+if (!function_exists('get_external_participant')) {
+    require_once 'external_participants_functions.php';
+}
 
 /**
  * tab_termine.php - Terminplanung/Umfragen (Präsentation)

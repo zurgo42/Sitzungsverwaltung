@@ -25,6 +25,10 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Error Reporting für Debug (in Produktion auskommentieren)
+// error_reporting(E_ALL);
+// ini_set('display_errors', 1);
+
 // Voraussetzungen prüfen
 if (!isset($pdo)) {
     echo '<div style="background: #f8d7da; color: #721c24; padding: 20px; border: 2px solid #f5c6cb; margin: 20px; border-radius: 5px;">';
@@ -48,14 +52,20 @@ $_SESSION['member_id'] = $MNr;
 // Standalone-Modus aktivieren (versteckt vorgefertigte Gruppen)
 $standalone_mode = true;
 
-// User-Data-Helper laden (MNr → User-Daten)
-if (!function_exists('get_user_data')) {
-    require_once __DIR__ . '/user_data_helper.php';
-}
+// Alle benötigten Module laden (in richtiger Reihenfolge)
+$required_files = [
+    'user_data_helper.php',
+    'functions.php',               // Basis-Funktionen
+    'member_functions.php',        // Member-Adapter-Funktionen
+    'external_participants_functions.php',
+    'opinion_functions.php'
+];
 
-// Member-Functions laden (wenn noch nicht geladen)
-if (!function_exists('get_member_by_id')) {
-    require_once __DIR__ . '/member_functions.php';
+foreach ($required_files as $file) {
+    $file_path = __DIR__ . '/' . $file;
+    if (file_exists($file_path)) {
+        require_once $file_path;
+    }
 }
 
 // User-Daten über MNr laden (aus berechtigte oder LDAP)
