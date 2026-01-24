@@ -11,8 +11,8 @@ if (!$current_user) {
     return;
 }
 
-// Standalone-Modus aus Parent übernehmen
-global $standalone_mode;
+// Standalone-Modus aus Parent-Scope übernehmen (wird in tab_opinion.php oder Simple-Script gesetzt)
+// Durch include ist die Variable automatisch verfügbar
 if (!isset($standalone_mode)) {
     $standalone_mode = false;
 }

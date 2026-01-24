@@ -35,12 +35,23 @@ if (!isset($MNr) || empty($MNr)) {
 }
 
 // Session-Context minimal aufsetzen (für tab_termine.php)
-if (!isset($_SESSION['member_id'])) {
-    $_SESSION['member_id'] = $MNr;
-}
+$_SESSION['member_id'] = $MNr;
 
 // Standalone-Modus aktivieren (versteckt vorgefertigte Gruppen)
 $standalone_mode = true;
+
+// Member-Functions laden (wenn noch nicht geladen)
+if (!function_exists('get_member_by_id')) {
+    require_once __DIR__ . '/member_functions.php';
+}
+
+// Sicherstellen dass $current_user gesetzt ist
+$current_user = get_member_by_id($pdo, $MNr);
+
+// Debug: User-Laden prüfen
+if (!$current_user) {
+    die('FEHLER: Konnte User mit MNr ' . htmlspecialchars($MNr) . ' nicht laden.');
+}
 
 // Tab mit allen Features laden (außer vorgefertigte Gruppen)
 require_once __DIR__ . '/tab_termine.php';

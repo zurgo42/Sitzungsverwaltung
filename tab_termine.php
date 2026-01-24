@@ -91,9 +91,14 @@ foreach ($all_polls as &$poll) {
     }
 }
 
-// Meetings für Dropdown laden
-$all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
-$all_members = get_all_members($pdo);
+// Meetings für Dropdown laden (nur wenn User eingeloggt)
+if ($current_user) {
+    $all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
+    $all_members = get_all_members($pdo);
+} else {
+    $all_meetings = [];
+    $all_members = [];
+}
 
 // Hilfsfunktion: Deutsche Wochentage (kurz)
 function get_german_weekday($date_string) {
