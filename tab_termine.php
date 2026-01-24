@@ -24,51 +24,61 @@ if (!isset($standalone_mode)) {
     $standalone_mode = false;
 }
 
+// Aktuellen User holen
+$current_user = null;
+if (isset($_SESSION['member_id'])) {
+    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+}
+
 // View-Parameter
 $view = $_GET['view'] ?? 'dashboard';
 $poll_id = intval($_GET['poll_id'] ?? 0);
 
 // Umfragen laden (nur die, bei denen User Teilnehmer oder Ersteller ist)
-$is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
+$is_admin = $current_user ? in_array($current_user['role'], ['assistenz', 'gf']) : false;
 
-if ($is_admin) {
-    // Admins sehen alle Umfragen
-    $stmt = $pdo->prepare("
-        SELECT p.*,
-               COUNT(DISTINCT pd.date_id) as date_count,
-               COUNT(DISTINCT pr.member_id) as response_count,
-               final_pd.suggested_date as final_date,
-               final_pd.suggested_end_date as final_end_date
-        FROM svpolls p
-        LEFT JOIN svpoll_dates pd ON p.poll_id = pd.poll_id
-        LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id
-        LEFT JOIN svpoll_dates final_pd ON p.final_date_id = final_pd.date_id
-        GROUP BY p.poll_id
-        ORDER BY p.created_at DESC
-    ");
-    $stmt->execute();
+if ($current_user) {
+    if ($is_admin) {
+        // Admins sehen alle Umfragen
+        $stmt = $pdo->prepare("
+            SELECT p.*,
+                   COUNT(DISTINCT pd.date_id) as date_count,
+                   COUNT(DISTINCT pr.member_id) as response_count,
+                   final_pd.suggested_date as final_date,
+                   final_pd.suggested_end_date as final_end_date
+            FROM svpolls p
+            LEFT JOIN svpoll_dates pd ON p.poll_id = pd.poll_id
+            LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id
+            LEFT JOIN svpoll_dates final_pd ON p.final_date_id = final_pd.date_id
+            GROUP BY p.poll_id
+            ORDER BY p.created_at DESC
+        ");
+        $stmt->execute();
+    } else {
+        // Normale User sehen:
+        // 1. Umfragen, bei denen sie Teilnehmer sind
+        // 2. Umfragen, die sie selbst erstellt haben
+        $stmt = $pdo->prepare("
+            SELECT DISTINCT p.*,
+                   COUNT(DISTINCT pd.date_id) as date_count,
+                   COUNT(DISTINCT pr.member_id) as response_count,
+                   final_pd.suggested_date as final_date,
+                   final_pd.suggested_end_date as final_end_date
+            FROM svpolls p
+            LEFT JOIN svpoll_dates pd ON p.poll_id = pd.poll_id
+            LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id
+            LEFT JOIN svpoll_dates final_pd ON p.final_date_id = final_pd.date_id
+            LEFT JOIN svpoll_participants pp ON p.poll_id = pp.poll_id AND pp.member_id = ?
+            WHERE pp.member_id = ? OR p.created_by_member_id = ?
+            GROUP BY p.poll_id
+            ORDER BY p.created_at DESC
+        ");
+        $stmt->execute([$current_user['member_id'], $current_user['member_id'], $current_user['member_id']]);
+    }
+    $all_polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    // Normale User sehen:
-    // 1. Umfragen, bei denen sie Teilnehmer sind
-    // 2. Umfragen, die sie selbst erstellt haben
-    $stmt = $pdo->prepare("
-        SELECT DISTINCT p.*,
-               COUNT(DISTINCT pd.date_id) as date_count,
-               COUNT(DISTINCT pr.member_id) as response_count,
-               final_pd.suggested_date as final_date,
-               final_pd.suggested_end_date as final_end_date
-        FROM svpolls p
-        LEFT JOIN svpoll_dates pd ON p.poll_id = pd.poll_id
-        LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id
-        LEFT JOIN svpoll_dates final_pd ON p.final_date_id = final_pd.date_id
-        LEFT JOIN svpoll_participants pp ON p.poll_id = pp.poll_id AND pp.member_id = ?
-        WHERE pp.member_id = ? OR p.created_by_member_id = ?
-        GROUP BY p.poll_id
-        ORDER BY p.created_at DESC
-    ");
-    $stmt->execute([$current_user['member_id'], $current_user['member_id'], $current_user['member_id']]);
+    $all_polls = [];
 }
-$all_polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Creator-Namen über Adapter nachladen
 foreach ($all_polls as &$poll) {
@@ -582,10 +592,17 @@ function copyToClipboard(text) {
 </script>
 
 <!-- BENACHRICHTIGUNGEN -->
-<?php render_user_notifications($pdo, $current_user['member_id']); ?>
+<?php if ($current_user): render_user_notifications($pdo, $current_user['member_id']); endif; ?>
 
 <h2>📆 Terminplanung & Umfragen</h2>
 
+<?php
+// Login-Prüfung
+if (!$current_user) {
+    echo '<div class="error-message">Bitte melde dich an, um Terminplanungen zu sehen.</div>';
+    return;
+}
+?>
 
 <?php
 
