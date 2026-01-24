@@ -27,11 +27,19 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Voraussetzungen prüfen
 if (!isset($pdo)) {
-    die('FEHLER: $pdo nicht definiert. Bitte PDO-Verbindung vor dem Include erstellen.');
+    echo '<div style="background: #f8d7da; color: #721c24; padding: 20px; border: 2px solid #f5c6cb; margin: 20px; border-radius: 5px;">';
+    echo '<h2>Fehler: Datenbankverbindung fehlt</h2>';
+    echo '<p>Die Variable <code>$pdo</code> ist nicht definiert. Bitte stelle sicher, dass du eine PDO-Datenbankverbindung erstellst, bevor du dieses Skript includest.</p>';
+    echo '</div>';
+    return;
 }
 
 if (!isset($MNr) || empty($MNr)) {
-    die('FEHLER: $MNr nicht definiert. Bitte Mitgliedsnummer übergeben.');
+    echo '<div style="background: #f8d7da; color: #721c24; padding: 20px; border: 2px solid #f5c6cb; margin: 20px; border-radius: 5px;">';
+    echo '<h2>Fehler: Mitgliedsnummer fehlt</h2>';
+    echo '<p>Die Variable <code>$MNr</code> ist nicht definiert oder leer. Bitte übergebe eine gültige Mitgliedsnummer.</p>';
+    echo '</div>';
+    return;
 }
 
 // Session-Context minimal aufsetzen (für tab_termine.php)
@@ -54,7 +62,18 @@ if (!function_exists('get_member_by_id')) {
 $user_data = get_user_data($pdo, $MNr);
 
 if (!$user_data) {
-    die('FEHLER: Konnte User mit MNr ' . htmlspecialchars($MNr) . ' nicht laden. Weder in berechtigte-Tabelle noch in LDAP gefunden.');
+    echo '<div style="background: #f8d7da; color: #721c24; padding: 20px; border: 2px solid #f5c6cb; margin: 20px; border-radius: 5px;">';
+    echo '<h2>Fehler: Benutzer nicht gefunden</h2>';
+    echo '<p>Der Benutzer mit der Mitgliedsnummer <strong>' . htmlspecialchars($MNr) . '</strong> konnte nicht geladen werden.</p>';
+    echo '<p>Weder in der berechtigte-Tabelle noch in LDAP wurde ein passender Eintrag gefunden.</p>';
+    echo '<p><strong>Mögliche Ursachen:</strong></p>';
+    echo '<ul>';
+    echo '<li>Die Mitgliedsnummer existiert nicht in der Datenbank</li>';
+    echo '<li>Der LDAP-Server ist nicht erreichbar</li>';
+    echo '<li>Die berechtigte-Tabelle ist leer oder enthält keine passenden Einträge</li>';
+    echo '</ul>';
+    echo '</div>';
+    return;
 }
 
 // Prüfen ob User in berechtigte-Tabelle existiert

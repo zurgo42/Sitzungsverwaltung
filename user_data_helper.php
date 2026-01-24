@@ -37,14 +37,21 @@ function get_user_data($pdo, $MNr) {
     // LDAP-Suche (falls ldapsuche_neu() verfügbar ist)
     if (function_exists('ldapsuche_neu')) {
         global $data;
-        ldapsuche_neu($MNr, 1, "a");
 
-        if (isset($data[0]['givenname'][0]) && isset($data[0]['sn'][0])) {
-            return [
-                'first_name' => $data[0]['givenname'][0],
-                'last_name' => $data[0]['sn'][0],
-                'email' => $data[0]['mail'][0] ?? ''
-            ];
+        // LDAP-Suche durchführen
+        try {
+            ldapsuche_neu($MNr, 1, "a");
+
+            if (isset($data[0]['givenname'][0]) && isset($data[0]['sn'][0])) {
+                return [
+                    'first_name' => $data[0]['givenname'][0],
+                    'last_name' => $data[0]['sn'][0],
+                    'email' => $data[0]['mail'][0] ?? ''
+                ];
+            }
+        } catch (Exception $e) {
+            // LDAP-Fehler ignorieren, NULL zurückgeben
+            error_log("LDAP-Fehler bei MNr $MNr: " . $e->getMessage());
         }
     }
 
