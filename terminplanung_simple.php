@@ -40,18 +40,36 @@ $_SESSION['member_id'] = $MNr;
 // Standalone-Modus aktivieren (versteckt vorgefertigte Gruppen)
 $standalone_mode = true;
 
+// User-Data-Helper laden (MNr → User-Daten)
+if (!function_exists('get_user_data')) {
+    require_once __DIR__ . '/user_data_helper.php';
+}
+
 // Member-Functions laden (wenn noch nicht geladen)
 if (!function_exists('get_member_by_id')) {
     require_once __DIR__ . '/member_functions.php';
 }
 
-// Sicherstellen dass $current_user gesetzt ist
-$current_user = get_member_by_id($pdo, $MNr);
+// User-Daten über MNr laden (aus berechtigte oder LDAP)
+$user_data = get_user_data($pdo, $MNr);
 
-// Debug: User-Laden prüfen
-if (!$current_user) {
-    die('FEHLER: Konnte User mit MNr ' . htmlspecialchars($MNr) . ' nicht laden.');
+if (!$user_data) {
+    die('FEHLER: Konnte User mit MNr ' . htmlspecialchars($MNr) . ' nicht laden. Weder in berechtigte-Tabelle noch in LDAP gefunden.');
 }
+
+// Prüfen ob User in berechtigte-Tabelle existiert
+$stmt = $pdo->prepare("SELECT MNr, Vorname, Name, eMail, rolle FROM berechtigte WHERE MNr = ?");
+$stmt->execute([$MNr]);
+$db_user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// $current_user im erwarteten Format aufbauen
+$current_user = [
+    'member_id' => $MNr,  // MNr als ID verwenden
+    'first_name' => $user_data['first_name'],
+    'last_name' => $user_data['last_name'],
+    'email' => $user_data['email'],
+    'role' => $db_user['rolle'] ?? 'mitglied'  // Default: mitglied
+];
 
 // Tab mit allen Features laden (außer vorgefertigte Gruppen)
 require_once __DIR__ . '/tab_termine.php';
