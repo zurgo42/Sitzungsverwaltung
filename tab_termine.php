@@ -755,7 +755,8 @@ if (isset($_SESSION['error'])) {
         </div>
     </div>
 
-    <!-- Umfragen-Liste -->
+    <!-- Umfragen-Liste (im Standalone-Modus ausblenden) -->
+    <?php if (!$standalone_mode): ?>
     <h3>Bestehende Umfragen</h3>
 
     <?php if (empty($all_polls)): ?>
@@ -841,6 +842,7 @@ if (isset($_SESSION['error'])) {
             </div>
         <?php endforeach; ?>
     <?php endif; ?>
+    <?php endif; // Ende if (!$standalone_mode) ?>
 
 <?php elseif ($view === 'poll' && $poll_id > 0): ?>
 
