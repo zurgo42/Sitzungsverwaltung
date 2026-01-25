@@ -604,8 +604,8 @@ function copyToClipboard(text) {
 }
 </script>
 
-<!-- BENACHRICHTIGUNGEN -->
-<?php if ($current_user): render_user_notifications($pdo, $current_user['member_id']); endif; ?>
+<!-- BENACHRICHTIGUNGEN (nur im normalen Modus) -->
+<?php if ($current_user && !$standalone_mode): render_user_notifications($pdo, $current_user['member_id']); endif; ?>
 
 <h2>📆 Terminplanung & Umfragen</h2>
 
@@ -663,32 +663,35 @@ if (isset($_SESSION['error'])) {
                 <!-- Zielgruppe wählen -->
                 <div class="form-group" style="margin-top: 25px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
                     <h4 style="margin: 0 0 15px 0;">Zielgruppe wählen</h4>
-                    <label style="display: block; margin-bottom: 10px;">
-                        <input type="radio" name="target_type" value="individual" onchange="updatePollTargetOptions()">
-                        <strong>Individuell</strong> - Link, den du weitergeben kannst
-                    </label>
-                    <label style="display: block; margin-bottom: 10px;">
-                        <input type="radio" name="target_type" value="list" checked onchange="updatePollTargetOptions()">
-                        <strong>Ausgewählte registrierte Teilnehmer</strong>
-                    </label>
+                    <?php if ($standalone_mode): ?>
+                        <!-- Standalone: Nur individueller Link -->
+                        <input type="hidden" name="target_type" value="individual">
+                        <p style="margin: 0;">
+                            <strong>🔗 Individueller Link</strong> - Du erhältst einen Link, den du weitergeben kannst
+                        </p>
+                    <?php else: ?>
+                        <!-- Normal: Alle Optionen -->
+                        <label style="display: block; margin-bottom: 10px;">
+                            <input type="radio" name="target_type" value="individual" onchange="updatePollTargetOptions()">
+                            <strong>Individuell</strong> - Link, den du weitergeben kannst
+                        </label>
+                        <label style="display: block; margin-bottom: 10px;">
+                            <input type="radio" name="target_type" value="list" checked onchange="updatePollTargetOptions()">
+                            <strong>Ausgewählte registrierte Teilnehmer</strong>
+                        </label>
+                    <?php endif; ?>
                 </div>
 
-                <!-- Teilnehmer auswählen (nur bei target_type='list') -->
+                <!-- Teilnehmer auswählen (nur bei target_type='list' UND nicht im Standalone-Modus) -->
+                <?php if (!$standalone_mode): ?>
                 <div class="form-group" id="poll-participant-list-selection">
                     <label>Teilnehmer auswählen (nur diese sehen die Umfrage):*</label>
-                    <?php if (!$standalone_mode): ?>
                     <div class="participant-buttons">
                         <button type="button" onclick="toggleAllPollParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
                         <button type="button" onclick="toggleAllPollParticipants(false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
                         <button type="button" onclick="togglePollLeadershipRoles()" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
                         <button type="button" onclick="togglePollTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
                     </div>
-                    <?php else: ?>
-                    <div class="participant-buttons">
-                        <button type="button" onclick="toggleAllPollParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
-                        <button type="button" onclick="toggleAllPollParticipants(false)" class="btn-secondary" style="padding: 5px 10px;">✗ Alle abwählen</button>
-                    </div>
-                    <?php endif; ?>
                     <div class="participants-selector">
                         <?php foreach ($all_members as $member): ?>
                             <label class="participant-label">
@@ -713,6 +716,7 @@ if (isset($_SESSION['error'])) {
                         </small>
                     </div>
                 </div>
+                <?php endif; // Ende if (!$standalone_mode) ?>
 
                 <!-- Terminvorschläge -->
                 <h3 style="margin-top: 25px; margin-bottom: 15px;">Terminvorschläge</h3>
@@ -755,8 +759,7 @@ if (isset($_SESSION['error'])) {
         </div>
     </div>
 
-    <!-- Umfragen-Liste (im Standalone-Modus ausblenden) -->
-    <?php if (!$standalone_mode): ?>
+    <!-- Umfragen-Liste -->
     <h3>Bestehende Umfragen</h3>
 
     <?php if (empty($all_polls)): ?>
@@ -842,7 +845,6 @@ if (isset($_SESSION['error'])) {
             </div>
         <?php endforeach; ?>
     <?php endif; ?>
-    <?php endif; // Ende if (!$standalone_mode) ?>
 
 <?php elseif ($view === 'poll' && $poll_id > 0): ?>
 

@@ -55,11 +55,6 @@ $_SESSION['member_id'] = $MNr;
 // Standalone-Modus aktivieren (versteckt vorgefertigte Gruppen)
 $standalone_mode = true;
 
-// Im Standalone-Modus direkt zur Create-View
-if (!isset($_GET['view'])) {
-    $_GET['view'] = 'create';
-}
-
 // Alle benötigten Module laden (in richtiger Reihenfolge)
 $required_files = [
     'user_data_helper.php',

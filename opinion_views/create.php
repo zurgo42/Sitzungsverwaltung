@@ -54,35 +54,38 @@ if (!isset($all_members)) {
     <div class="opinion-card">
         <h4>2. Zielgruppe wählen</h4>
         <div class="form-group">
-            <label style="display: block; margin-bottom: 10px;">
-                <input type="radio" name="target_type" value="individual" checked onchange="updateTargetOptions()">
-                <strong>Individuell</strong> - Link, den du weitergeben kannst
-            </label>
-            <label style="display: block; margin-bottom: 10px;">
-                <input type="radio" name="target_type" value="list" onchange="updateTargetOptions()">
-                <strong>Ausgewählte registrierte Teilnehmer</strong>
-            </label>
-            <label style="display: block; margin-bottom: 10px;">
-                <input type="radio" name="target_type" value="public" onchange="updateTargetOptions()">
-                <strong>Öffentlich</strong> - Jeder Besucher der Seite kann antworten
-            </label>
+            <?php if ($standalone_mode): ?>
+                <!-- Standalone: Nur individueller Link -->
+                <input type="hidden" name="target_type" value="individual">
+                <p style="margin: 0;">
+                    <strong>🔗 Individueller Link</strong> - Du erhältst einen Link, den du weitergeben kannst
+                </p>
+            <?php else: ?>
+                <!-- Normal: Alle Optionen -->
+                <label style="display: block; margin-bottom: 10px;">
+                    <input type="radio" name="target_type" value="individual" checked onchange="updateTargetOptions()">
+                    <strong>Individuell</strong> - Link, den du weitergeben kannst
+                </label>
+                <label style="display: block; margin-bottom: 10px;">
+                    <input type="radio" name="target_type" value="list" onchange="updateTargetOptions()">
+                    <strong>Ausgewählte registrierte Teilnehmer</strong>
+                </label>
+                <label style="display: block; margin-bottom: 10px;">
+                    <input type="radio" name="target_type" value="public" onchange="updateTargetOptions()">
+                    <strong>Öffentlich</strong> - Jeder Besucher der Seite kann antworten
+                </label>
+            <?php endif; ?>
         </div>
 
+        <?php if (!$standalone_mode): ?>
         <div id="list-selection" style="display: none; margin-top: 15px;">
             <label>Teilnehmer auswählen (nur diese können antworten):*</label>
-            <?php if (!$standalone_mode): ?>
             <div class="participant-buttons" style="margin: 10px 0;">
                 <button type="button" onclick="toggleAllOpinionParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
                 <button type="button" onclick="toggleAllOpinionParticipants(false)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✗ Alle abwählen</button>
                 <button type="button" onclick="toggleOpinionLeadershipRoles()" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
                 <button type="button" onclick="toggleOpinionTopManagement()" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
             </div>
-            <?php else: ?>
-            <div class="participant-buttons" style="margin: 10px 0;">
-                <button type="button" onclick="toggleAllOpinionParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
-                <button type="button" onclick="toggleAllOpinionParticipants(false)" class="btn-secondary" style="padding: 5px 10px;">✗ Alle abwählen</button>
-            </div>
-            <?php endif; ?>
             <div class="participants-selector" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #f9f9f9;">
                 <?php foreach ($all_members as $member): ?>
                     <label style="display: block; margin: 5px 0;">
@@ -96,6 +99,7 @@ if (!isset($all_members)) {
                 <?php endforeach; ?>
             </div>
         </div>
+        <?php endif; ?>
     </div>
 
     <div class="opinion-card">
