@@ -89,18 +89,13 @@ if (!$user_data) {
     return;
 }
 
-// Prüfen ob User in berechtigte-Tabelle existiert
-$stmt = $pdo->prepare("SELECT MNr, Vorname, Name, eMail, rolle FROM berechtigte WHERE MNr = ?");
-$stmt->execute([$MNr]);
-$db_user = $stmt->fetch(PDO::FETCH_ASSOC);
-
 // $current_user im erwarteten Format aufbauen
 $current_user = [
     'member_id' => $MNr,  // MNr als ID verwenden
     'first_name' => $user_data['first_name'],
     'last_name' => $user_data['last_name'],
     'email' => $user_data['email'],
-    'role' => $db_user['rolle'] ?? 'mitglied'  // Default: mitglied
+    'role' => 'mitglied'  // Default für Standalone-Modus
 ];
 
 // Tab mit allen Features laden (außer vorgefertigte Gruppen)
