@@ -25,9 +25,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Error Reporting für Debug (in Produktion auskommentieren)
-// error_reporting(E_ALL);
-// ini_set('display_errors', 1);
+// Error Reporting für Debug aktiviert
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+
+echo "<!-- DEBUG: terminplanung_simple.php gestartet -->\n";
 
 // Voraussetzungen prüfen
 if (!isset($pdo)) {
@@ -45,6 +48,8 @@ if (!isset($MNr) || empty($MNr)) {
     echo '</div>';
     return;
 }
+
+echo "<!-- DEBUG: Voraussetzungen OK, lade Module... -->\n";
 
 // Session-Context minimal aufsetzen (für tab_termine.php)
 $_SESSION['member_id'] = $MNr;
@@ -65,11 +70,18 @@ foreach ($required_files as $file) {
     $file_path = __DIR__ . '/' . $file;
     if (file_exists($file_path)) {
         require_once $file_path;
+        echo "<!-- DEBUG: Geladen: $file -->\n";
+    } else {
+        echo "<!-- DEBUG: NICHT GEFUNDEN: $file -->\n";
     }
 }
 
+echo "<!-- DEBUG: Alle Module geladen, lade User-Daten... -->\n";
+
 // User-Daten über MNr laden (aus berechtigte oder LDAP)
 $user_data = get_user_data($pdo, $MNr);
+
+echo "<!-- DEBUG: get_user_data() abgeschlossen -->\n";
 
 if (!$user_data) {
     echo '<div style="background: #f8d7da; color: #721c24; padding: 20px; border: 2px solid #f5c6cb; margin: 20px; border-radius: 5px;">';
@@ -100,5 +112,10 @@ $current_user = [
     'role' => $db_user['rolle'] ?? 'mitglied'  // Default: mitglied
 ];
 
+echo "<!-- DEBUG: \$current_user aufgebaut: " . $current_user['first_name'] . " " . $current_user['last_name'] . " -->\n";
+echo "<!-- DEBUG: Lade jetzt tab_termine.php... -->\n";
+
 // Tab mit allen Features laden (außer vorgefertigte Gruppen)
 require_once __DIR__ . '/tab_termine.php';
+
+echo "<!-- DEBUG: tab_termine.php komplett geladen! -->\n";
