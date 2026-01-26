@@ -6,19 +6,29 @@
 
 ```php
 <?php
-// Session-Konfiguration (WICHTIG: Muss identisch mit Sitzungsverwaltung sein!)
+/**
+ * WICHTIGE REIHENFOLGE:
+ * 1. Session-Konfiguration (ini_set)
+ * 2. Session starten (session_start)
+ * 3. Config/DB-Verbindung laden
+ * 4. Simple-Script includieren
+ */
+
+// SCHRITT 1: Session-Konfiguration (MUSS vor session_start() kommen!)
 ini_set('session.cookie_path', '/');
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.use_only_cookies', 1);
 
 // Falls HTTPS:
 if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
     ini_set('session.cookie_secure', 1);
 }
 
+// SCHRITT 2: Session starten
 session_start();
 
-// DB-Verbindung herstellen
+// SCHRITT 3: DB-Verbindung herstellen
 require_once '../Sitzungsverwaltung/config.php';
 
 // Mitgliedsnummer des eingeloggten Users
@@ -27,7 +37,7 @@ $MNr = $_SESSION['MNr'] ?? '0495018';
 // WICHTIG: Form-Action-Pfad setzen (relativ zum aktuellen Script)
 $form_action_path = '../Sitzungsverwaltung/';
 
-// Terminplanung laden
+// SCHRITT 4: Terminplanung laden
 require_once '../Sitzungsverwaltung/terminplanung_simple.php';
 
 // ODER: Meinungsbild laden
@@ -36,6 +46,21 @@ require_once '../Sitzungsverwaltung/terminplanung_simple.php';
 ```
 
 ### WICHTIG: Session-Konfiguration
+
+**KRITISCHE REIHENFOLGE:**
+Die Session-Einstellungen (`ini_set()`) müssen **VOR** `session_start()` gesetzt werden!
+
+```php
+// ✅ RICHTIG:
+ini_set('session.cookie_path', '/');
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_samesite', 'Lax');
+session_start();
+
+// ❌ FALSCH:
+session_start();
+ini_set('session.cookie_path', '/');  // Zu spät! Gibt Warnings
+```
 
 Die Session-Einstellungen müssen in **BEIDEN** Systemen identisch sein:
 - `/MTool/test.php` (oder deine Anwendung)
@@ -70,24 +95,34 @@ Beide müssen die **gleichen** Session-Cookie-Einstellungen haben, damit die Ses
 <?php
 /**
  * Beispiel: test.php in /MTool/
+ *
+ * WICHTIG: Reihenfolge beachten!
  */
 
-// Session starten
+// SCHRITT 1: Session-Konfiguration (MUSS vor session_start!)
+ini_set('session.cookie_path', '/');
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.use_only_cookies', 1);
+
+if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+    ini_set('session.cookie_secure', 1);
+}
+
+// SCHRITT 2: Session starten
 session_start();
 
-// DB-Config laden
+// SCHRITT 3: DB-Config und Verbindung
 require_once '../Sitzungsverwaltung/config.php';
+// $pdo wird in config.php initialisiert
 
-// PDO-Verbindung (anpassen an deine config.php)
-$pdo = new PDO("mysql:host=localhost;dbname=mydb", "user", "password");
+// SCHRITT 4: Mitgliedsnummer aus Session oder Login
+$MNr = $_SESSION['MNr'] ?? '0495018';
 
-// Mitgliedsnummer aus Session oder Login
-$MNr = $_SESSION['mnr'] ?? '0495018';
-
-// Form-Action-Pfad setzen
+// SCHRITT 5: Form-Action-Pfad setzen
 $form_action_path = '../Sitzungsverwaltung/';
 
-// Terminplanung einbinden
+// SCHRITT 6: Terminplanung einbinden
 require_once '../Sitzungsverwaltung/terminplanung_simple.php';
 ?>
 ```
@@ -119,3 +154,26 @@ var_dump($stmt->fetch());
 1. Die Session-Cookie-Einstellungen unterschiedlich sind
 2. Die MNr in der Session nicht korrekt gesetzt ist
 3. Die Simple-Scripts nicht korrekt die Standalone-Session-Variablen setzen
+
+### Problem: "Warning: ini_set(): Session ini settings cannot be changed when a session is active"
+**Lösung:** Die Session-Einstellungen werden zu spät gesetzt. Die `ini_set()`-Aufrufe für Session-Parameter **müssen VOR** `session_start()` stehen.
+
+**Richtige Reihenfolge:**
+```php
+// 1. Session-Config
+ini_set('session.cookie_path', '/');
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_samesite', 'Lax');
+
+// 2. Session starten
+session_start();
+
+// 3. Dann erst config.php laden
+require_once '../Sitzungsverwaltung/config.php';
+```
+
+**Falsche Reihenfolge (verursacht Warnings):**
+```php
+session_start();                        // Session bereits aktiv!
+require_once '../Sitzungsverwaltung/config.php';  // ini_set() hier zu spät
+```

@@ -20,9 +20,15 @@
  * - Nutzt die gleiche Funktionalität wie die volle Sitzungsverwaltung
  */
 
-// Session starten falls noch nicht geschehen
+// WICHTIG: Session muss vom aufrufenden Script bereits gestartet sein!
+// Das aufrufende Script muss die Session-Konfiguration VOR session_start() setzen.
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    echo '<div style="background: #f8d7da; color: #721c24; padding: 20px; border: 2px solid #f5c6cb; margin: 20px; border-radius: 5px;">';
+    echo '<h2>Fehler: Session nicht gestartet</h2>';
+    echo '<p>Die Session wurde noch nicht gestartet. Bitte starte die Session im aufrufenden Script <strong>nach</strong> dem Setzen der Session-Konfiguration.</p>';
+    echo '<p>Siehe <code>STANDALONE_USAGE.md</code> für ein vollständiges Beispiel.</p>';
+    echo '</div>';
+    return;
 }
 
 // Error Reporting für Debug aktiviert
