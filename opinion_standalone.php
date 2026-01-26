@@ -363,9 +363,20 @@ if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $
 // VIEW RENDERING
 // ============================================
 
-// tab_opinion.php nur für eingeloggte Benutzer laden
-// (externe Teilnehmer benötigen das Standalone-Rendering weiter unten)
-if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_opinion.php')) {
+// tab_opinion.php für eingeloggte Benutzer UND externe Teilnehmer laden
+$has_participant = isset($current_participant_type) && $current_participant_type !== 'none';
+if ($is_sitzungsverwaltung && ($current_user || $has_participant) && file_exists(__DIR__ . '/tab_opinion.php')) {
+    // Für externe Teilnehmer: Direkten Zugriff auf poll erlauben
+    if ($has_participant && !$current_user && $poll_id_param > 0) {
+        $_GET['view'] = 'participate';
+        $_GET['poll_id'] = $poll_id_param;
+    }
+
+    // Form-Action-Pfad ist leer (wir sind bereits in /Sitzungsverwaltung/)
+    if (!isset($form_action_path)) {
+        $form_action_path = '';
+    }
+
     include __DIR__ . '/tab_opinion.php';
     return; // Beende hier
 }

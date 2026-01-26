@@ -79,7 +79,10 @@ $can_edit_poll = $is_creator && $stats['total_responses'] <= 1;
         </div>
     <?php endif; ?>
 
-        <form method="POST" action="<?php echo $current_user ? 'process_opinion.php' : 'opinion_standalone.php'; ?>">
+        <form method="POST" action="<?php
+            $target = $current_user ? 'process_opinion.php' : 'opinion_standalone.php';
+            echo (isset($form_action_path) ? $form_action_path : '') . $target;
+        ?>">
             <input type="hidden" name="action" value="submit_response">
             <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
 

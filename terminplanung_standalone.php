@@ -390,12 +390,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
 // VIEW RENDERING
 // ============================================
 
-// Wenn in Sitzungsverwaltung integriert UND User eingeloggt, nutze die bestehenden Tab-Dateien
-// Externe Teilnehmer (ohne Login) brauchen die komplette Tab-Ansicht nicht
-if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_termine.php')) {
+// Wenn in Sitzungsverwaltung integriert UND (User eingeloggt ODER externer Teilnehmer), nutze die bestehenden Tab-Dateien
+$has_participant = isset($current_participant_type) && $current_participant_type !== 'none';
+if ($is_sitzungsverwaltung && ($current_user || $has_participant) && file_exists(__DIR__ . '/tab_termine.php')) {
     // functions.php laden für get_visible_meetings() etc.
     if (file_exists(__DIR__ . '/functions.php')) {
         require_once __DIR__ . '/functions.php';
+    }
+
+    // Für externe Teilnehmer: Direkten Zugriff auf poll erlauben
+    if ($has_participant && !$current_user && $poll_id_param > 0) {
+        $_GET['view'] = 'poll';
+        $_GET['poll_id'] = $poll_id_param;
+    }
+
+    // Form-Action-Pfad ist leer (wir sind bereits in /Sitzungsverwaltung/)
+    if (!isset($form_action_path)) {
+        $form_action_path = '';
     }
 
     include __DIR__ . '/tab_termine.php';
