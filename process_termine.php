@@ -27,10 +27,18 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // DEBUG: Session-Info ausgeben
-error_log("DEBUG process_termine.php: Session ID = " . session_id());
-error_log("DEBUG process_termine.php: standalone_mode = " . (isset($_SESSION['standalone_mode']) ? 'true' : 'false'));
-error_log("DEBUG process_termine.php: standalone_user exists = " . (isset($_SESSION['standalone_user']) ? 'true' : 'false'));
-error_log("DEBUG process_termine.php: member_id = " . ($_SESSION['member_id'] ?? 'not set'));
+error_log("=== PROCESS_TERMINE.PHP DEBUG ===");
+error_log("Session ID: " . session_id());
+error_log("Session Name: " . session_name());
+error_log("Session Cookie Params: " . print_r(session_get_cookie_params(), true));
+error_log("Cookie Header gesendet: " . (isset($_COOKIE[session_name()]) ? 'JA' : 'NEIN'));
+error_log("Cookie Session ID: " . ($_COOKIE[session_name()] ?? 'N/A'));
+error_log("standalone_mode gesetzt: " . (isset($_SESSION['standalone_mode']) ? 'JA' : 'NEIN'));
+error_log("standalone_user gesetzt: " . (isset($_SESSION['standalone_user']) ? 'JA' : 'NEIN'));
+error_log("standalone_user member_id: " . ($_SESSION['standalone_user']['member_id'] ?? 'N/A'));
+error_log("member_id in Session: " . ($_SESSION['member_id'] ?? 'N/A'));
+error_log("Alle Session-Keys: " . implode(', ', array_keys($_SESSION)));
+error_log("==================================");
 
 // ============================================
 // AUTHENTIFIZIERUNG
