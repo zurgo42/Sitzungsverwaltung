@@ -61,7 +61,7 @@ if ($poll['target_type'] === 'list') {
     Sobald weitere Personen geantwortet haben, ist eine Bearbeitung nicht mehr möglich.
 </div>
 
-<form method="POST" action="process_opinion.php" onsubmit="return validateOpinionForm()">
+<form method="POST" action="<?php echo (isset($form_action_path) ? $form_action_path : '') . 'process_opinion.php'; ?>" onsubmit="return validateOpinionForm()">
     <input type="hidden" name="action" value="update_opinion">
     <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
     <input type="hidden" name="template_id" id="template_id" value="">

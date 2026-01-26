@@ -822,20 +822,20 @@ if (isset($_SESSION['error'])) {
 
                     <?php if ($can_edit): ?>
                         <?php if ($poll['status'] === 'open'): ?>
-                            <form method="POST" action="process_termine.php" style="display: inline;">
+                            <form method="POST" action="<?php echo (isset($form_action_path) ? $form_action_path : '') . 'process_termine.php'; ?>" style="display: inline;">
                                 <input type="hidden" name="action" value="close_poll">
                                 <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
                                 <button type="submit" class="btn-secondary" onclick="return confirm('Umfrage schließen?')">🔒 Schließen</button>
                             </form>
                         <?php elseif ($poll['status'] === 'closed'): ?>
-                            <form method="POST" action="process_termine.php" style="display: inline;">
+                            <form method="POST" action="<?php echo (isset($form_action_path) ? $form_action_path : '') . 'process_termine.php'; ?>" style="display: inline;">
                                 <input type="hidden" name="action" value="reopen_poll">
                                 <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
                                 <button type="submit" class="btn-secondary">🔓 Wieder öffnen</button>
                             </form>
                         <?php endif; ?>
 
-                        <form method="POST" action="process_termine.php" style="display: inline;">
+                        <form method="POST" action="<?php echo (isset($form_action_path) ? $form_action_path : '') . 'process_termine.php'; ?>" style="display: inline;">
                             <input type="hidden" name="action" value="delete_poll">
                             <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
                             <button type="submit" class="btn-danger" onclick="return confirm('Umfrage wirklich löschen? Alle Abstimmungen gehen verloren!')">🗑️ Löschen</button>
@@ -1065,7 +1065,7 @@ if (isset($_SESSION['error'])) {
                 <strong>❌ Passt nicht</strong> – Der Termin passt mir nicht
             </p>
 
-            <form method="POST" action="process_termine.php">
+            <form method="POST" action="<?php echo (isset($form_action_path) ? $form_action_path : '') . 'process_termine.php'; ?>">
                 <input type="hidden" name="action" value="submit_vote">
                 <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
 
@@ -1282,7 +1282,7 @@ if (isset($_SESSION['error'])) {
                     🔒 Finalisierung
                 </button>
                 <div class="accordion-content <?php echo $is_creator ? 'active' : ''; ?>">
-            <form method="POST" action="process_termine.php">
+            <form method="POST" action="<?php echo (isset($form_action_path) ? $form_action_path : '') . 'process_termine.php'; ?>">
                 <input type="hidden" name="action" value="finalize_poll">
                 <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
 
@@ -1304,6 +1304,7 @@ if (isset($_SESSION['error'])) {
                 </div>
 
                 <!-- Meeting-Option -->
+                <?php if (!$standalone_mode): ?>
                 <div class="form-group" style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 5px;">
                     <label style="display: block; margin-bottom: 10px;">
                         <input type="checkbox" name="create_meeting" value="1" checked>
@@ -1313,6 +1314,10 @@ if (isset($_SESSION['error'])) {
                         Wenn aktiviert, wird automatisch ein Meeting mit dem finalen Termin, Titel und Teilnehmern erstellt
                     </small>
                 </div>
+                <?php else: ?>
+                <!-- Hidden field im Standalone-Modus: kein automatisches Meeting -->
+                <input type="hidden" name="create_meeting" value="0">
+                <?php endif; ?>
 
                 <!-- E-Mail-Optionen -->
                 <div class="form-group" style="margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px;">
@@ -1324,10 +1329,12 @@ if (isset($_SESSION['error'])) {
                             <input type="radio" name="notification_recipients" value="voters" checked>
                             Nur Teilnehmer, die abgestimmt haben
                         </label>
+                        <?php if (!$standalone_mode): ?>
                         <label style="display: block; margin-bottom: 5px;">
                             <input type="radio" name="notification_recipients" value="all">
                             Alle ausgewählten Teilnehmer (auch ohne Abstimmung)
                         </label>
+                        <?php endif; ?>
                         <label style="display: block;">
                             <input type="radio" name="notification_recipients" value="none">
                             Keine E-Mail senden

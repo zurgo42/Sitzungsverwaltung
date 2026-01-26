@@ -77,14 +77,14 @@ $stats = get_opinion_results($pdo, $poll_id);
 
             <?php if ($is_creator || $is_admin): ?>
                 <?php if ($is_active): ?>
-                    <form method="POST" action="process_opinion.php" style="margin: 0;" onsubmit="return confirm('Umfrage jetzt beenden?')">
+                    <form method="POST" action="<?php echo (isset($form_action_path) ? $form_action_path : '') . 'process_opinion.php'; ?>" style="margin: 0;" onsubmit="return confirm('Umfrage jetzt beenden?')">
                         <input type="hidden" name="action" value="end_opinion">
                         <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
                         <button type="submit" class="btn-secondary" style="width: 100%;">⏸️ Beenden</button>
                     </form>
                 <?php endif; ?>
 
-                <form method="POST" action="process_opinion.php" style="margin: 0;" onsubmit="return confirm('Umfrage wirklich löschen?')">
+                <form method="POST" action="<?php echo (isset($form_action_path) ? $form_action_path : '') . 'process_opinion.php'; ?>" style="margin: 0;" onsubmit="return confirm('Umfrage wirklich löschen?')">
                     <input type="hidden" name="action" value="delete_opinion">
                     <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
                     <button type="submit" class="btn-secondary" style="width: 100%; background: #f44336; color: white;">🗑️ Löschen</button>
