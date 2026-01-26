@@ -62,11 +62,24 @@ session_start();
 ini_set('session.cookie_path', '/');  // Zu spät! Gibt Warnings
 ```
 
-Die Session-Einstellungen müssen in **BEIDEN** Systemen identisch sein:
-- `/MTool/test.php` (oder deine Anwendung)
-- `/Sitzungsverwaltung/config.php`
+**Hinweis:** `config.php` setzt die Session-Einstellungen automatisch, wenn die Session noch nicht aktiv ist. Du hast also zwei Optionen:
 
-Beide müssen die **gleichen** Session-Cookie-Einstellungen haben, damit die Session nach dem Submit erhalten bleibt.
+**Option 1 (empfohlen):** Session im aufrufenden Script konfigurieren und starten
+```php
+ini_set('session.cookie_path', '/');
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_samesite', 'Lax');
+session_start();
+require_once '../Sitzungsverwaltung/config.php';  // Überspringt ini_set()
+```
+
+**Option 2:** Config laden, dann Session starten
+```php
+require_once '../Sitzungsverwaltung/config.php';  // Setzt ini_set() automatisch
+session_start();
+```
+
+Beide Optionen funktionieren - wichtig ist nur, dass die Session-Einstellungen identisch sind!
 
 ### Erklärung
 
@@ -156,24 +169,22 @@ var_dump($stmt->fetch());
 3. Die Simple-Scripts nicht korrekt die Standalone-Session-Variablen setzen
 
 ### Problem: "Warning: ini_set(): Session ini settings cannot be changed when a session is active"
-**Lösung:** Die Session-Einstellungen werden zu spät gesetzt. Die `ini_set()`-Aufrufe für Session-Parameter **müssen VOR** `session_start()` stehen.
+**Lösung:** Dieses Problem sollte mit der aktuellen Version nicht mehr auftreten, da `config.php` die Session-Einstellungen nur setzt, wenn die Session noch nicht aktiv ist.
 
-**Richtige Reihenfolge:**
+Falls das Problem dennoch auftritt:
+1. Stelle sicher, dass du die neueste Version von `config.php` verwendest
+2. Die Session-Einstellungen müssen VOR `session_start()` gesetzt werden
+
+**Korrekte Reihenfolge (beide funktionieren):**
 ```php
-// 1. Session-Config
+// Option 1: Session selbst konfigurieren und starten
 ini_set('session.cookie_path', '/');
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_samesite', 'Lax');
-
-// 2. Session starten
 session_start();
+require_once '../Sitzungsverwaltung/config.php';  // Überspringt ini_set()
 
-// 3. Dann erst config.php laden
-require_once '../Sitzungsverwaltung/config.php';
-```
-
-**Falsche Reihenfolge (verursacht Warnings):**
-```php
-session_start();                        // Session bereits aktiv!
-require_once '../Sitzungsverwaltung/config.php';  // ini_set() hier zu spät
+// Option 2: config.php die Session konfigurieren lassen
+require_once '../Sitzungsverwaltung/config.php';  // Setzt ini_set()
+session_start();
 ```

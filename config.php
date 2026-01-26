@@ -131,14 +131,19 @@ if (DEBUG_MODE) {
 // ============= SESSION-KONFIGURATION =============
 // WICHTIG: Für Standalone-Nutzung (externe Aufrufe) müssen diese
 // Einstellungen identisch sein mit dem aufrufenden Script!
-ini_set('session.cookie_path', '/');           // Cookie für gesamte Domain
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_samesite', 'Lax');
-ini_set('session.use_only_cookies', 1);
 
-// Falls HTTPS:
-if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
-    ini_set('session.cookie_secure', 1);
+// Session-Einstellungen nur setzen wenn Session noch nicht aktiv ist
+// (verhindert Warnings wenn externes Script bereits session_start() aufgerufen hat)
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_path', '/');           // Cookie für gesamte Domain
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.cookie_samesite', 'Lax');
+    ini_set('session.use_only_cookies', 1);
+
+    // Falls HTTPS:
+    if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+        ini_set('session.cookie_secure', 1);
+    }
 }
 
 // ============= FOOTER-KONFIGURATION =============
