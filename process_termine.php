@@ -219,11 +219,36 @@ try {
 
             // Umfrage erstellen (meeting_id wird später beim Finalisieren gesetzt)
             // access_token wird automatisch via Trigger generiert wenn target_type='individual'
+
+            // Im Standalone-Modus: Prüfe ob member_id in svmembers existiert
+            $creator_id = $current_user['member_id'];
+            if (isset($_SESSION['standalone_mode']) && $_SESSION['standalone_mode'] === true) {
+                // Prüfe ob User in svmembers existiert
+                $stmt_check = $pdo->prepare("SELECT member_id FROM svmembers WHERE member_id = ?");
+                $stmt_check->execute([$creator_id]);
+
+                if (!$stmt_check->fetch()) {
+                    // User existiert nicht - erstelle temporären Eintrag
+                    error_log("DEBUG: Member $creator_id existiert nicht in svmembers - erstelle temporären Eintrag");
+                    $stmt_insert = $pdo->prepare("
+                        INSERT INTO svmembers (member_id, first_name, last_name, email, role, created_at)
+                        VALUES (?, ?, ?, ?, 'mitglied', NOW())
+                        ON DUPLICATE KEY UPDATE member_id = member_id
+                    ");
+                    $stmt_insert->execute([
+                        $creator_id,
+                        $current_user['first_name'],
+                        $current_user['last_name'],
+                        $current_user['email']
+                    ]);
+                }
+            }
+
             $stmt = $pdo->prepare("
                 INSERT INTO svpolls (title, description, location, created_by_member_id, meeting_id, target_type, status, created_at)
                 VALUES (?, ?, ?, ?, NULL, ?, 'open', NOW())
             ");
-            $stmt->execute([$title, $description, $location, $current_user['member_id'], $target_type]);
+            $stmt->execute([$title, $description, $location, $creator_id, $target_type]);
             $poll_id = $pdo->lastInsertId();
 
             // Teilnehmer nur bei target_type='list' hinzufügen

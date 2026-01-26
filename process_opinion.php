@@ -190,6 +190,30 @@ try {
                 exit;
             }
 
+            // Im Standalone-Modus: Prüfe ob member_id in svmembers existiert
+            $creator_id = $current_user['member_id'];
+            if (isset($_SESSION['standalone_mode']) && $_SESSION['standalone_mode'] === true) {
+                // Prüfe ob User in svmembers existiert
+                $stmt_check = $pdo->prepare("SELECT member_id FROM svmembers WHERE member_id = ?");
+                $stmt_check->execute([$creator_id]);
+
+                if (!$stmt_check->fetch()) {
+                    // User existiert nicht - erstelle temporären Eintrag
+                    error_log("DEBUG: Member $creator_id existiert nicht in svmembers - erstelle temporären Eintrag");
+                    $stmt_insert = $pdo->prepare("
+                        INSERT INTO svmembers (member_id, first_name, last_name, email, role, created_at)
+                        VALUES (?, ?, ?, ?, 'mitglied', NOW())
+                        ON DUPLICATE KEY UPDATE member_id = member_id
+                    ");
+                    $stmt_insert->execute([
+                        $creator_id,
+                        $current_user['first_name'],
+                        $current_user['last_name'],
+                        $current_user['email']
+                    ]);
+                }
+            }
+
             // Umfrage erstellen
             $stmt = $pdo->prepare("
                 INSERT INTO svopinion_polls
@@ -199,7 +223,7 @@ try {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())
             ");
             $stmt->execute([
-                $title, $current_user['member_id'], $target_type, $list_id,
+                $title, $creator_id, $target_type, $list_id,
                 $template_id, $allow_multiple, $is_anonymous, $duration_days,
                 $show_intermediate_after_days, $delete_after_days
             ]);
