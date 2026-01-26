@@ -190,6 +190,9 @@ function cleanup_old_polls($pdo) {
 
 $action = $_POST['action'] ?? '';
 
+error_log("DEBUG: Action Handling Start - action='$action'");
+error_log("DEBUG: POST-Daten: " . print_r($_POST, true));
+
 try {
     switch ($action) {
 
@@ -567,8 +570,10 @@ try {
     }
 
 } catch (Exception $e) {
+    error_log("DEBUG: EXCEPTION gefangen: " . $e->getMessage());
+    error_log("DEBUG: Exception Stack Trace: " . $e->getTraceAsString());
     $_SESSION['error'] = 'Ein Fehler ist aufgetreten: ' . $e->getMessage();
-    header('Location: index.php?tab=termine');
+    header('Location: ' . get_redirect_url());
     exit;
 }
 
