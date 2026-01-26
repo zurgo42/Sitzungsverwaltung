@@ -24,40 +24,18 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // DEBUG: Session-Info ausgeben
-error_log("DEBUG process_opinion.php: Session ID = " . session_id());
-error_log("DEBUG process_opinion.php: standalone_mode = " . (isset($_SESSION['standalone_mode']) ? 'true' : 'false'));
-error_log("DEBUG process_opinion.php: standalone_user exists = " . (isset($_SESSION['standalone_user']) ? 'true' : 'false'));
-error_log("DEBUG process_opinion.php: member_id = " . ($_SESSION['member_id'] ?? 'not set'));
-
-// Authentifizierung (Member ODER Externer Teilnehmer)
-$current_user = null;
-$is_authenticated = false;
-
-// Standalone-Modus: User aus Session laden (von Simple-Script gesetzt)
-if (isset($_SESSION['standalone_mode']) && $_SESSION['standalone_mode'] === true) {
-    if (isset($_SESSION['standalone_user'])) {
-        $current_user = $_SESSION['standalone_user'];
-        $is_authenticated = true;
-    }
-} elseif (isset($_SESSION['member_id'])) {
-    // Normaler Modus: User aus DB laden
-    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
-
-    // Session ist ungültig (z.B. nach DB-Reset)
-    if (!$current_user) {
-        session_destroy();
-        session_start();
-        $_SESSION['error'] = 'Deine Session ist abgelaufen. Bitte melde dich erneut an.';
-        header('Location: index.php');
-        exit;
-    }
-
-    $is_authenticated = true;
-}
-
-// Externe Teilnehmer-Session prüfen
-$external_session = get_external_participant_session();
-$is_external_participant = ($external_session !== null);
+error_log("=== PROCESS_OPINION.PHP DEBUG ===");
+error_log("Session ID: " . session_id());
+error_log("Session Name: " . session_name());
+error_log("Session Cookie Params: " . print_r(session_get_cookie_params(), true));
+error_log("Cookie Header gesendet: " . (isset($_COOKIE[session_name()]) ? 'JA' : 'NEIN'));
+error_log("Cookie Session ID: " . ($_COOKIE[session_name()] ?? 'N/A'));
+error_log("standalone_mode gesetzt: " . (isset($_SESSION['standalone_mode']) ? 'JA' : 'NEIN'));
+error_log("standalone_user gesetzt: " . (isset($_SESSION['standalone_user']) ? 'JA' : 'NEIN'));
+error_log("standalone_user member_id: " . ($_SESSION['standalone_user']['member_id'] ?? 'N/A'));
+error_log("member_id in Session: " . ($_SESSION['member_id'] ?? 'N/A'));
+error_log("Alle Session-Keys: " . implode(', ', array_keys($_SESSION)));
+error_log("==================================");
 
 // ============================================
 // REDIRECT-HELPER für Standalone-Modus
@@ -75,6 +53,50 @@ function get_redirect_url($suffix = '') {
     // Normal: index.php mit Tab-Parameter
     return 'index.php?tab=opinion' . $suffix;
 }
+
+// Authentifizierung (Member ODER Externer Teilnehmer)
+$current_user = null;
+$is_authenticated = false;
+
+// Standalone-Modus: User aus Session laden (von Simple-Script gesetzt)
+if (isset($_SESSION['standalone_mode']) && $_SESSION['standalone_mode'] === true) {
+    if (isset($_SESSION['standalone_user'])) {
+        $current_user = $_SESSION['standalone_user'];
+        $is_authenticated = true;
+        error_log("DEBUG: current_user aus standalone_user geladen: " . print_r($current_user, true));
+    } else {
+        error_log("DEBUG: standalone_mode ist true, ABER standalone_user fehlt!");
+    }
+} elseif (isset($_SESSION['member_id'])) {
+    // Normaler Modus: User aus DB laden
+    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+    error_log("DEBUG: current_user aus DB geladen (normaler Modus)");
+
+    // Session ist ungültig (z.B. nach DB-Reset)
+    if (!$current_user) {
+        // NICHT session_destroy() im Standalone-Modus!
+        if (!isset($_SESSION['standalone_mode']) || $_SESSION['standalone_mode'] !== true) {
+            session_destroy();
+            session_start();
+        }
+        $_SESSION['error'] = 'Deine Session ist abgelaufen. Bitte melde dich erneut an.';
+        error_log("DEBUG: REDIRECT - Session ungültig (normaler Modus)");
+        header('Location: ' . get_redirect_url());
+        exit;
+    }
+
+    $is_authenticated = true;
+} else {
+    error_log("DEBUG: Weder standalone_mode noch member_id gesetzt!");
+}
+
+// Externe Teilnehmer-Session prüfen
+$external_session = get_external_participant_session();
+$is_external_participant = ($external_session !== null);
+
+error_log("DEBUG: current_user ist " . ($current_user ? "GESETZT" : "NULL"));
+error_log("DEBUG: is_external_participant ist " . ($is_external_participant ? "TRUE" : "FALSE"));
+error_log("DEBUG: is_authenticated ist " . ($is_authenticated ? "TRUE" : "FALSE"));
 
 // ============================================
 // HILFSFUNKTIONEN

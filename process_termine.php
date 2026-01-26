@@ -41,43 +41,6 @@ error_log("Alle Session-Keys: " . implode(', ', array_keys($_SESSION)));
 error_log("==================================");
 
 // ============================================
-// AUTHENTIFIZIERUNG
-// ============================================
-
-// User-Daten laden (kann NULL sein bei externen Teilnehmern)
-$current_user = null;
-
-// Standalone-Modus: User aus Session laden (von Simple-Script gesetzt)
-if (isset($_SESSION['standalone_mode']) && $_SESSION['standalone_mode'] === true) {
-    if (isset($_SESSION['standalone_user'])) {
-        $current_user = $_SESSION['standalone_user'];
-    }
-} elseif (isset($_SESSION['member_id'])) {
-    // Normaler Modus: User aus DB laden
-    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
-
-    // Session ist ungültig (z.B. nach DB-Reset)
-    if (!$current_user) {
-        session_destroy();
-        $_SESSION['error'] = 'Deine Session ist abgelaufen. Bitte melde dich erneut an.';
-        header('Location: index.php');
-        exit;
-    }
-}
-
-// Externe Teilnehmer-Session prüfen
-$external_session = get_external_participant_session();
-$is_external_participant = ($external_session !== null);
-
-// Mindestens einer muss identifiziert sein
-if (!$current_user && !$is_external_participant) {
-    // Weder eingeloggt noch als externer Teilnehmer registriert
-    $_SESSION['error'] = 'Du musst eingeloggt sein um Termine zu erstellen';
-    header('Location: index.php');
-    exit;
-}
-
-// ============================================
 // REDIRECT-HELPER für Standalone-Modus
 // ============================================
 
@@ -92,6 +55,57 @@ function get_redirect_url($suffix = '') {
     }
     // Normal: index.php mit Tab-Parameter
     return 'index.php?tab=termine' . $suffix;
+}
+
+// ============================================
+// AUTHENTIFIZIERUNG
+// ============================================
+
+// User-Daten laden (kann NULL sein bei externen Teilnehmern)
+$current_user = null;
+
+// Standalone-Modus: User aus Session laden (von Simple-Script gesetzt)
+if (isset($_SESSION['standalone_mode']) && $_SESSION['standalone_mode'] === true) {
+    if (isset($_SESSION['standalone_user'])) {
+        $current_user = $_SESSION['standalone_user'];
+        error_log("DEBUG: current_user aus standalone_user geladen: " . print_r($current_user, true));
+    } else {
+        error_log("DEBUG: standalone_mode ist true, ABER standalone_user fehlt!");
+    }
+} elseif (isset($_SESSION['member_id'])) {
+    // Normaler Modus: User aus DB laden
+    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+    error_log("DEBUG: current_user aus DB geladen (normaler Modus)");
+
+    // Session ist ungültig (z.B. nach DB-Reset)
+    if (!$current_user) {
+        // NICHT session_destroy() im Standalone-Modus!
+        if (!isset($_SESSION['standalone_mode']) || $_SESSION['standalone_mode'] !== true) {
+            session_destroy();
+        }
+        $_SESSION['error'] = 'Deine Session ist abgelaufen. Bitte melde dich erneut an.';
+        error_log("DEBUG: REDIRECT - Session ungültig (normaler Modus)");
+        header('Location: ' . get_redirect_url());
+        exit;
+    }
+} else {
+    error_log("DEBUG: Weder standalone_mode noch member_id gesetzt!");
+}
+
+// Externe Teilnehmer-Session prüfen
+$external_session = get_external_participant_session();
+$is_external_participant = ($external_session !== null);
+
+error_log("DEBUG: current_user ist " . ($current_user ? "GESETZT" : "NULL"));
+error_log("DEBUG: is_external_participant ist " . ($is_external_participant ? "TRUE" : "FALSE"));
+
+// Mindestens einer muss identifiziert sein
+if (!$current_user && !$is_external_participant) {
+    // Weder eingeloggt noch als externer Teilnehmer registriert
+    $_SESSION['error'] = 'Du musst eingeloggt sein um Termine zu erstellen';
+    error_log("DEBUG: REDIRECT - Keine Authentifizierung erkannt");
+    header('Location: ' . get_redirect_url());
+    exit;
 }
 
 // ============================================

@@ -122,5 +122,17 @@ if (!isset($_SESSION['standalone_redirect'])) {
     $_SESSION['standalone_redirect'] = $_SERVER['PHP_SELF'];
 }
 
+// DEBUG: Session-Info ausgeben
+error_log("=== OPINION_SIMPLE.PHP DEBUG ===");
+error_log("Session ID: " . session_id());
+error_log("Session Name: " . session_name());
+error_log("Session Cookie Params: " . print_r(session_get_cookie_params(), true));
+error_log("standalone_mode gesetzt: " . (isset($_SESSION['standalone_mode']) ? 'JA' : 'NEIN'));
+error_log("standalone_user gesetzt: " . (isset($_SESSION['standalone_user']) ? 'JA' : 'NEIN'));
+error_log("standalone_user member_id: " . ($_SESSION['standalone_user']['member_id'] ?? 'N/A'));
+error_log("member_id in Session: " . ($_SESSION['member_id'] ?? 'N/A'));
+error_log("MNr Variable: " . $MNr);
+error_log("======================================");
+
 // Tab mit allen Features laden (außer vorgefertigte Gruppen)
 require_once __DIR__ . '/tab_opinion.php';
