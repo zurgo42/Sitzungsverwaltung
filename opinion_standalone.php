@@ -42,13 +42,21 @@
 // UMGEBUNGS-ERKENNUNG
 // ============================================
 
-// Session starten falls noch nicht geschehen
+// Prüfen ob wir in der Sitzungsverwaltung sind
+$is_sitzungsverwaltung = file_exists(__DIR__ . '/member_functions.php');
+
+// WICHTIG: config.php VOR session_start() laden (für Session-Cookie-Einstellungen)
+if ($is_sitzungsverwaltung) {
+    // In Sitzungsverwaltung: Konfiguration laden
+    if (!defined('DB_HOST')) {
+        require_once __DIR__ . '/config.php';
+    }
+}
+
+// Session starten (NACH config.php, damit Session-Einstellungen korrekt sind)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-// Prüfen ob wir in der Sitzungsverwaltung sind
-$is_sitzungsverwaltung = file_exists(__DIR__ . '/member_functions.php');
 
 // Prüfen ob via Access-Token zugegriffen wird
 $access_token = $_GET['token'] ?? null;
@@ -60,10 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$poll_id_param && isset($_POST['po
 }
 
 if ($is_sitzungsverwaltung) {
-    // Konfiguration und Datenbank laden
-    if (!defined('DB_HOST')) {
-        require_once __DIR__ . '/config.php';
-    }
 
     // PDO-Verbindung initialisieren falls noch nicht vorhanden
     if (!isset($pdo)) {

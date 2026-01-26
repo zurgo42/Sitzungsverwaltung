@@ -36,21 +36,29 @@
 // UMGEBUNGS-ERKENNUNG
 // ============================================
 
-// Session starten falls noch nicht geschehen
+// Prüfen ob wir in der Sitzungsverwaltung sind (dann existiert member_functions.php)
+$is_sitzungsverwaltung = file_exists(__DIR__ . '/member_functions.php');
+
+// WICHTIG: config.php VOR session_start() laden (für Session-Cookie-Einstellungen)
+if ($is_sitzungsverwaltung) {
+    // In Sitzungsverwaltung: Konfiguration laden
+    if (!defined('DB_HOST')) {
+        require_once __DIR__ . '/config.php';
+    }
+}
+
+// Session starten (NACH config.php, damit Session-Einstellungen korrekt sind)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Prüfen ob wir in der Sitzungsverwaltung sind (dann existiert member_functions.php)
-$is_sitzungsverwaltung = file_exists(__DIR__ . '/member_functions.php');
+// DEBUG: Session-Info
+error_log("=== TERMINPLANUNG_STANDALONE.PHP ===");
+error_log("Session ID: " . session_id());
+error_log("Session Cookie Params: " . print_r(session_get_cookie_params(), true));
 
 if ($is_sitzungsverwaltung) {
     // In Sitzungsverwaltung: Adapter-System nutzen
-
-    // Konfiguration und Datenbank laden
-    if (!defined('DB_HOST')) {
-        require_once __DIR__ . '/config.php';
-    }
 
     // PDO-Verbindung initialisieren falls noch nicht vorhanden
     if (!isset($pdo)) {
@@ -200,6 +208,12 @@ if ($poll_id_param > 0) {
     if ($poll) {
         // Aktuellen Teilnehmer ermitteln (Member oder Extern)
         $participant = get_current_participant($current_user, $pdo, 'termine', $poll_id_param);
+
+        // DEBUG: Teilnehmer-Info
+        error_log("Token: " . ($_GET['token'] ?? 'N/A'));
+        error_log("Poll ID: " . $poll_id_param);
+        error_log("Participant Type: " . $participant['type']);
+        error_log("External Session Data: " . print_r(get_external_participant_session(), true));
 
         // Wenn niemand identifiziert: Registrierungsformular anzeigen
         if ($participant['type'] === 'none') {
