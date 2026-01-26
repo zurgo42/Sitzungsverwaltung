@@ -118,6 +118,16 @@ $current_user = [
 echo "<!-- DEBUG: \$current_user aufgebaut: " . $current_user['first_name'] . " " . $current_user['last_name'] . " -->\n";
 echo "<!-- DEBUG: Lade jetzt tab_termine.php... -->\n";
 
+// WICHTIG: Für Standalone-Zugriff Flag setzen
+$_SESSION['standalone_mode'] = true;
+$_SESSION['standalone_user'] = $current_user;  // Komplett-Objekt für Process-Skripte
+
+// Redirect-Basis für Process-Skripte setzen (wo soll nach erfolg zurück redirected werden?)
+// Wenn nicht gesetzt, wird vom aufrufenden Script der aktuelle Pfad verwendet
+if (!isset($_SESSION['standalone_redirect'])) {
+    $_SESSION['standalone_redirect'] = $_SERVER['PHP_SELF'];
+}
+
 // Tab mit allen Features laden (außer vorgefertigte Gruppen)
 require_once __DIR__ . '/tab_termine.php';
 

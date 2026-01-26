@@ -32,7 +32,14 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // User-Daten laden (kann NULL sein bei externen Teilnehmern)
 $current_user = null;
-if (isset($_SESSION['member_id'])) {
+
+// Standalone-Modus: User aus Session laden (von Simple-Script gesetzt)
+if (isset($_SESSION['standalone_mode']) && $_SESSION['standalone_mode'] === true) {
+    if (isset($_SESSION['standalone_user'])) {
+        $current_user = $_SESSION['standalone_user'];
+    }
+} elseif (isset($_SESSION['member_id'])) {
+    // Normaler Modus: User aus DB laden
     $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
 
     // Session ist ungültig (z.B. nach DB-Reset)
@@ -54,6 +61,23 @@ if (!$current_user && !$is_external_participant) {
     $_SESSION['error'] = 'Du musst eingeloggt sein um Termine zu erstellen';
     header('Location: index.php');
     exit;
+}
+
+// ============================================
+// REDIRECT-HELPER für Standalone-Modus
+// ============================================
+
+/**
+ * Gibt die richtige Redirect-URL zurück (Standalone oder Normal)
+ */
+function get_redirect_url($suffix = '') {
+    if (isset($_SESSION['standalone_mode']) && $_SESSION['standalone_mode'] === true) {
+        // Standalone: Zurück zum aufrufenden Script
+        $base = $_SESSION['standalone_redirect'] ?? $_SERVER['HTTP_REFERER'] ?? 'index.php';
+        return $base . $suffix;
+    }
+    // Normal: index.php mit Tab-Parameter
+    return 'index.php?tab=termine' . $suffix;
 }
 
 // ============================================
@@ -138,14 +162,14 @@ try {
 
             if (empty($title)) {
                 $_SESSION['error'] = 'Bitte gib einen Titel ein';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
             // Teilnehmer nur bei target_type='list' erforderlich
             if ($target_type === 'list' && empty($participant_ids)) {
                 $_SESSION['error'] = 'Bitte wähle mindestens einen Teilnehmer aus';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
@@ -213,7 +237,7 @@ try {
             }
 
             $_SESSION['success'] = $success_message;
-            header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+            header('Location: ' . get_redirect_url('&view=poll&poll_id=' . $poll_id));
             exit;
 
         // ====== ABSTIMMUNG ABGEBEN ======
@@ -223,7 +247,7 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
@@ -298,7 +322,7 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
@@ -416,7 +440,7 @@ try {
             }
 
             $_SESSION['success'] = $success_message;
-            header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+            header('Location: ' . get_redirect_url('&view=poll&poll_id=' . $poll_id));
             exit;
 
         // ====== UMFRAGE SCHLIESSEN (ohne Finalisierung) ======
@@ -426,7 +450,7 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
@@ -451,7 +475,7 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
@@ -476,14 +500,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
             // Berechtigung prüfen
             if (!can_edit_poll($poll, $current_user)) {
                 $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 

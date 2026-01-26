@@ -27,7 +27,14 @@ if (session_status() === PHP_SESSION_NONE) {
 $current_user = null;
 $is_authenticated = false;
 
-if (isset($_SESSION['member_id'])) {
+// Standalone-Modus: User aus Session laden (von Simple-Script gesetzt)
+if (isset($_SESSION['standalone_mode']) && $_SESSION['standalone_mode'] === true) {
+    if (isset($_SESSION['standalone_user'])) {
+        $current_user = $_SESSION['standalone_user'];
+        $is_authenticated = true;
+    }
+} elseif (isset($_SESSION['member_id'])) {
+    // Normaler Modus: User aus DB laden
     $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
 
     // Session ist ungültig (z.B. nach DB-Reset)
@@ -45,6 +52,23 @@ if (isset($_SESSION['member_id'])) {
 // Externe Teilnehmer-Session prüfen
 $external_session = get_external_participant_session();
 $is_external_participant = ($external_session !== null);
+
+// ============================================
+// REDIRECT-HELPER für Standalone-Modus
+// ============================================
+
+/**
+ * Gibt die richtige Redirect-URL zurück (Standalone oder Normal)
+ */
+function get_redirect_url($suffix = '') {
+    if (isset($_SESSION['standalone_mode']) && $_SESSION['standalone_mode'] === true) {
+        // Standalone: Zurück zum aufrufenden Script
+        $base = $_SESSION['standalone_redirect'] ?? $_SERVER['HTTP_REFERER'] ?? 'index.php';
+        return $base . $suffix;
+    }
+    // Normal: index.php mit Tab-Parameter
+    return 'index.php?tab=opinion' . $suffix;
+}
 
 // ============================================
 // HILFSFUNKTIONEN
@@ -101,7 +125,7 @@ try {
         case 'create_opinion':
             if (!$is_authenticated) {
                 $_SESSION['error'] = 'Bitte melde dich an';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
@@ -118,7 +142,7 @@ try {
 
             if (empty($title)) {
                 $_SESSION['error'] = 'Bitte gib eine Frage ein';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
@@ -217,7 +241,7 @@ try {
             }
 
             $_SESSION['success'] = 'Meinungsbild erfolgreich erstellt!';
-            header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+            header('Location: ' . get_redirect_url('&view=detail&poll_id=' . $poll_id));
             exit;
 
         // ====== ANTWORT ABGEBEN ======
@@ -227,7 +251,7 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
@@ -349,7 +373,7 @@ try {
         case 'update_opinion':
             if (!$is_authenticated) {
                 $_SESSION['error'] = 'Bitte melde dich an';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
@@ -358,7 +382,7 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
@@ -452,7 +476,7 @@ try {
             }
 
             $_SESSION['success'] = 'Meinungsbild erfolgreich aktualisiert!';
-            header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+            header('Location: ' . get_redirect_url('&view=detail&poll_id=' . $poll_id));
             exit;
 
         // ====== UMFRAGE LÖSCHEN ======
@@ -462,14 +486,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
             // Berechtigung prüfen
             if (!is_creator($poll, $current_user) && !is_admin($current_user)) {
                 $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
@@ -488,7 +512,7 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . get_redirect_url());
                 exit;
             }
 
