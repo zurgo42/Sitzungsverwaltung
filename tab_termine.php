@@ -639,7 +639,7 @@ if (isset($_SESSION['error'])) {
     <div style="margin-bottom: 30px;">
         <button class="accordion-button create-poll-button" onclick="toggleAccordion(this)">➕ Neue Terminumfrage erstellen</button>
         <div class="accordion-content">
-            <form method="POST" action="process_termine.php" id="poll-create-form">
+            <form method="POST" action="<?php echo (isset($form_action_path) ? $form_action_path : '') . 'process_termine.php'; ?>" id="poll-create-form">
                 <input type="hidden" name="action" value="create_poll">
 
                 <div class="form-group">

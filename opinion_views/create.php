@@ -39,7 +39,7 @@ if (!isset($all_members)) {
 
 <h3>Neues Meinungsbild erstellen</h3>
 
-<form method="POST" action="process_opinion.php" onsubmit="return validateOpinionForm()">
+<form method="POST" action="<?php echo (isset($form_action_path) ? $form_action_path : '') . 'process_opinion.php'; ?>" onsubmit="return validateOpinionForm()">
     <input type="hidden" name="action" value="create_opinion">
     <input type="hidden" name="template_id" id="template_id" value="">
 

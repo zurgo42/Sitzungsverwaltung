@@ -57,6 +57,14 @@ $_SESSION['member_id'] = $MNr;
 // Standalone-Modus aktivieren (versteckt vorgefertigte Gruppen)
 $standalone_mode = true;
 
+// Basis-Pfad für Formulare setzen (für externe Aufrufe)
+// Standard: Relativ zum Sitzungsverwaltung-Verzeichnis
+// Kann vom aufrufenden Script überschrieben werden, z.B.:
+// $form_action_path = '../Sitzungsverwaltung/';
+if (!isset($form_action_path)) {
+    $form_action_path = '';  // Standard: gleicher Pfad wie Script
+}
+
 // Alle benötigten Module laden (in richtiger Reihenfolge)
 $required_files = [
     'user_data_helper.php',
