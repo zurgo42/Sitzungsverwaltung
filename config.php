@@ -128,10 +128,18 @@ if (DEBUG_MODE) {
     ini_set('display_errors', 0);
 }
 
-// ============= SESSION-SICHERHEIT =============
-//ini_set('session.cookie_httponly', 1);
-//ini_set('session.use_only_cookies', 1);
-// ini_set('session.cookie_secure', 1); // Nur bei HTTPS aktivieren!
+// ============= SESSION-KONFIGURATION =============
+// WICHTIG: Für Standalone-Nutzung (externe Aufrufe) müssen diese
+// Einstellungen identisch sein mit dem aufrufenden Script!
+ini_set('session.cookie_path', '/');           // Cookie für gesamte Domain
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.use_only_cookies', 1);
+
+// Falls HTTPS:
+if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+    ini_set('session.cookie_secure', 1);
+}
 
 // ============= FOOTER-KONFIGURATION =============
 define('FOOTER_COPYRIGHT', '&copy; Dr. Hermann Meier, Horstmannsmühle 1a, 42781 Haan Tel. 02129 379 2870 eMail meier@zurgo.de');

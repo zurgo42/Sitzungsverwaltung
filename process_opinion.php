@@ -23,6 +23,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// DEBUG: Session-Info ausgeben
+error_log("DEBUG process_opinion.php: Session ID = " . session_id());
+error_log("DEBUG process_opinion.php: standalone_mode = " . (isset($_SESSION['standalone_mode']) ? 'true' : 'false'));
+error_log("DEBUG process_opinion.php: standalone_user exists = " . (isset($_SESSION['standalone_user']) ? 'true' : 'false'));
+error_log("DEBUG process_opinion.php: member_id = " . ($_SESSION['member_id'] ?? 'not set'));
+
 // Authentifizierung (Member ODER Externer Teilnehmer)
 $current_user = null;
 $is_authenticated = false;
