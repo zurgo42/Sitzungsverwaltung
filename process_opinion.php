@@ -48,10 +48,23 @@ function get_redirect_url($suffix = '') {
     if (isset($_SESSION['standalone_mode']) && $_SESSION['standalone_mode'] === true) {
         // Standalone: Zurück zum aufrufenden Script
         $base = $_SESSION['standalone_redirect'] ?? $_SERVER['HTTP_REFERER'] ?? 'index.php';
-        return $base . $suffix;
+
+        // Suffix anpassen: & -> ? wenn nötig
+        if (!empty($suffix)) {
+            // Wenn Suffix mit & beginnt und base keine Query-Parameter hat
+            if (substr($suffix, 0, 1) === '&' && strpos($base, '?') === false) {
+                $suffix = '?' . substr($suffix, 1);  // & zu ? umwandeln
+            }
+        }
+
+        $url = $base . $suffix;
+        error_log("DEBUG get_redirect_url() [STANDALONE]: base='$base', suffix='$suffix', result='$url'");
+        return $url;
     }
     // Normal: index.php mit Tab-Parameter
-    return 'index.php?tab=opinion' . $suffix;
+    $url = 'index.php?tab=opinion' . $suffix;
+    error_log("DEBUG get_redirect_url() [NORMAL]: result='$url'");
+    return $url;
 }
 
 // Authentifizierung (Member ODER Externer Teilnehmer)
