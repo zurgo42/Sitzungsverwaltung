@@ -6,12 +6,23 @@
 
 ```php
 <?php
+// Session-Konfiguration (WICHTIG: Muss identisch mit Sitzungsverwaltung sein!)
+ini_set('session.cookie_path', '/');
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_samesite', 'Lax');
+
+// Falls HTTPS:
+if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+    ini_set('session.cookie_secure', 1);
+}
+
+session_start();
+
 // DB-Verbindung herstellen
 require_once '../Sitzungsverwaltung/config.php';
-$pdo = new PDO(...);
 
 // Mitgliedsnummer des eingeloggten Users
-$MNr = '0495018';
+$MNr = $_SESSION['MNr'] ?? '0495018';
 
 // WICHTIG: Form-Action-Pfad setzen (relativ zum aktuellen Script)
 $form_action_path = '../Sitzungsverwaltung/';
@@ -23,6 +34,14 @@ require_once '../Sitzungsverwaltung/terminplanung_simple.php';
 // require_once '../Sitzungsverwaltung/opinion_simple.php';
 ?>
 ```
+
+### WICHTIG: Session-Konfiguration
+
+Die Session-Einstellungen müssen in **BEIDEN** Systemen identisch sein:
+- `/MTool/test.php` (oder deine Anwendung)
+- `/Sitzungsverwaltung/config.php`
+
+Beide müssen die **gleichen** Session-Cookie-Einstellungen haben, damit die Session nach dem Submit erhalten bleibt.
 
 ### Erklärung
 
@@ -88,3 +107,15 @@ $stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE MNr = ?");
 $stmt->execute([$MNr]);
 var_dump($stmt->fetch());
 ```
+
+### Problem: "Nach Submit landet man auf welcome.php"
+**Lösung:** Die Session-Konfiguration ist unterschiedlich. Stelle sicher dass:
+1. `session.cookie_path` in beiden Systemen identisch ist (z.B. `/`)
+2. Die Session-Einstellungen VOR `session_start()` gesetzt werden
+3. Die `$form_action_path` Variable korrekt gesetzt ist
+
+### Problem: "Session abgelaufen" nach Submit
+**Lösung:** Die Process-Skripte (`process_termine.php`, `process_opinion.php`) können den User nicht aus der Session laden. Das passiert wenn:
+1. Die Session-Cookie-Einstellungen unterschiedlich sind
+2. Die MNr in der Session nicht korrekt gesetzt ist
+3. Die Simple-Scripts nicht korrekt die Standalone-Session-Variablen setzen
