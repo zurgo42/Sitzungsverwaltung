@@ -12,27 +12,39 @@
  */
 function is_local_environment() {
     // Prüfe verschiedene Indikatoren für lokale Entwicklung
-    $local_indicators = [
-        // Prüfe Server-Name (localhost, 127.0.0.1, ::1)
-        isset($_SERVER['SERVER_NAME']) && in_array($_SERVER['SERVER_NAME'], ['localhost', '127.0.0.1', '::1']),
+    $indicators = [];
 
-        // Prüfe HTTP-Host
-        isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false,
+    // Prüfe Server-Name (localhost, 127.0.0.1, ::1)
+    $indicators['server_name'] = isset($_SERVER['SERVER_NAME']) && in_array($_SERVER['SERVER_NAME'], ['localhost', '127.0.0.1', '::1']);
 
-        // Prüfe Server-Adresse
-        isset($_SERVER['SERVER_ADDR']) && in_array($_SERVER['SERVER_ADDR'], ['127.0.0.1', '::1']),
+    // Prüfe HTTP-Host
+    $indicators['http_host'] = isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false;
 
-        // Prüfe ob im XAMPP-Pfad (Windows oder Linux XAMPP)
-        stripos(__FILE__, 'xampp') !== false,
+    // Prüfe Server-Adresse
+    $indicators['server_addr'] = isset($_SERVER['SERVER_ADDR']) && in_array($_SERVER['SERVER_ADDR'], ['127.0.0.1', '::1']);
 
-        // Prüfe ob im LAMPP-Pfad (Linux alternative)
-        stripos(__FILE__, '/opt/lampp') !== false,
+    // Prüfe ob im XAMPP-Pfad (Windows oder Linux XAMPP)
+    $indicators['xampp'] = stripos(__FILE__, 'xampp') !== false;
 
-        // Prüfe ob im htdocs-Pfad (typisch für XAMPP, aber NICHT für Produktivserver in /srv/www/)
-        (stripos(__FILE__, 'htdocs') !== false && stripos(__FILE__, '/srv/www/') === false)
-    ];
+    // Prüfe ob im LAMPP-Pfad (Linux alternative)
+    $indicators['lampp'] = stripos(__FILE__, '/opt/lampp') !== false;
 
-    return in_array(true, $local_indicators, true);
+    // Prüfe ob im htdocs-Pfad (typisch für XAMPP, aber NICHT für Produktivserver in /srv/www/)
+    $indicators['htdocs'] = (stripos(__FILE__, 'htdocs') !== false && stripos(__FILE__, '/srv/www/') === false);
+
+    $is_local = in_array(true, $indicators, true);
+
+    // Debug-Logging
+    error_log("=== IS_LOCAL_ENVIRONMENT DEBUG ===");
+    error_log("File: " . __FILE__);
+    error_log("SERVER_NAME: " . ($_SERVER['SERVER_NAME'] ?? 'N/A'));
+    error_log("HTTP_HOST: " . ($_SERVER['HTTP_HOST'] ?? 'N/A'));
+    error_log("SERVER_ADDR: " . ($_SERVER['SERVER_ADDR'] ?? 'N/A'));
+    error_log("Indicators: " . json_encode($indicators));
+    error_log("Result: " . ($is_local ? 'LOCAL' : 'PRODUCTION'));
+    error_log("===================================");
+
+    return $is_local;
 }
 
 // Umgebung setzen
@@ -104,7 +116,7 @@ define('MAIL_QUEUE_MAX_ATTEMPTS', 3);   // Max. Zustellversuche pro Mail
 
 // ============= WEITERE EINSTELLUNGEN =============
 define('TOP_CONFIDENTIAL_START', 101);  // Ab welcher TOP-Nummer ist es vertraulich
-define('DEBUG_MODE', IS_LOCAL);  // Automatisch aktiviert in lokaler Umgebung
+define('DEBUG_MODE', true);  // TEMPORÄR: Immer aktiviert für Debugging (normalerweise: IS_LOCAL)
 
 // ============= STANDALONE-SKRIPTE =============
 // Pfad zu standalone-Skripten (für externe Teilnehmer ohne Login)
