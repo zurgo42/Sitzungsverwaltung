@@ -11,7 +11,22 @@
  * @return bool true wenn lokal (XAMPP), false wenn Produktivserver
  */
 function is_local_environment() {
-    // Prüfe verschiedene Indikatoren für lokale Entwicklung
+    // ZUERST: Produktivserver explizit ausschließen
+    $production_paths = [
+        '/srv/www/vhosts',  // Typischer Produktivserver-Pfad (Plesk, etc.)
+        '/var/www/vhosts',  // Alternative Produktivserver-Pfade
+        '/home/www',
+        '/usr/share/nginx',
+    ];
+
+    foreach ($production_paths as $prod_path) {
+        if (stripos(__FILE__, $prod_path) !== false) {
+            error_log("=== IS_LOCAL_ENVIRONMENT: PRODUCTION (Pfad enthält " . $prod_path . ") ===");
+            return false;  // Definitiv Produktivserver
+        }
+    }
+
+    // DANN: Prüfe Indikatoren für lokale Entwicklung
     $indicators = [];
 
     // Prüfe Server-Name (localhost, 127.0.0.1, ::1)
@@ -29,8 +44,8 @@ function is_local_environment() {
     // Prüfe ob im LAMPP-Pfad (Linux alternative)
     $indicators['lampp'] = stripos(__FILE__, '/opt/lampp') !== false;
 
-    // Prüfe ob im htdocs-Pfad (typisch für XAMPP, aber NICHT für Produktivserver in /srv/www/)
-    $indicators['htdocs'] = (stripos(__FILE__, 'htdocs') !== false && stripos(__FILE__, '/srv/www/') === false);
+    // Prüfe ob im typischen lokalen htdocs-Pfad (nach Produktivserver-Check)
+    $indicators['htdocs'] = stripos(__FILE__, 'htdocs') !== false;
 
     $is_local = in_array(true, $indicators, true);
 
