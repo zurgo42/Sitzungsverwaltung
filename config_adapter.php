@@ -141,7 +141,7 @@ $ADAPTER_CONFIG = [
     'berechtigte' => [
         // Falls separate Datenbank
         'db_host' => MYSQL_HOST,  // oder anderer Host
-        'db_name' => MYSQL_NAME,  // oder andere DB
+        'db_name' => MYSQL_DATABASE,  // oder andere DB
         'db_user' => MYSQL_USER,
         'db_pass' => MYSQL_PASS,
 

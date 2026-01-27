@@ -73,7 +73,7 @@ if ($is_sitzungsverwaltung) {
     if (!isset($pdo)) {
         try {
             $pdo = new PDO(
-                "mysql:host=" . MYSQL_HOST . ";dbname=" . MYSQL_NAME . ";charset=utf8mb4",
+                "mysql:host=" . MYSQL_HOST . ";dbname=" . MYSQL_DATABASE . ";charset=utf8mb4",
                 MYSQL_USER,
                 MYSQL_PASS,
                 [
