@@ -55,11 +55,15 @@ if (!isset($all_members)) {
         <h4>2. Zielgruppe wählen</h4>
         <div class="form-group">
             <?php if ($standalone_mode): ?>
-                <!-- Standalone: Nur individueller Link -->
-                <input type="hidden" name="target_type" value="individual">
-                <p style="margin: 0;">
+                <!-- Standalone: Individuell oder Öffentlich -->
+                <label style="display: block; margin-bottom: 10px;">
+                    <input type="radio" name="target_type" value="individual" checked>
                     <strong>🔗 Individueller Link</strong> - Du erhältst einen Link, den du weitergeben kannst
-                </p>
+                </label>
+                <label style="display: block; margin-bottom: 10px;">
+                    <input type="radio" name="target_type" value="public">
+                    <strong>🌐 Öffentlich</strong> - Jeder Besucher der Seite kann antworten
+                </label>
             <?php else: ?>
                 <!-- Normal: Alle Optionen -->
                 <label style="display: block; margin-bottom: 10px;">

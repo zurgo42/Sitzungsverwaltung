@@ -407,6 +407,15 @@ if ($is_sitzungsverwaltung && ($current_user || $has_participant) && file_exists
                 <p>Ihre Daten (Name, E-Mail) werden nur für diese Umfrage gespeichert und nach Abschluss der Umfrage gelöscht.</p>
                 <p style="margin-top: 10px;">Bei Fragen kontaktieren Sie bitte den Umfrage-Ersteller.</p>
             </div>
+
+            <!-- Footer mit rechtlichen Angaben -->
+            <footer class="page-footer">
+                <?php echo FOOTER_COPYRIGHT; ?> |
+                <a href="dokumentation.php" target="_blank">📖 Dokumentation</a> |
+                <a href="<?php echo FOOTER_IMPRESSUM_URL; ?>" target="_blank">Impressum</a> |
+                <a href="<?php echo FOOTER_DATENSCHUTZ_URL; ?>" target="_blank">Datenschutz</a>
+            </footer>
+
             </div>
         </body>
         </html>

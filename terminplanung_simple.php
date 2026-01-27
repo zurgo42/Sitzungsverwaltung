@@ -146,7 +146,37 @@ error_log("member_id in Session: " . ($_SESSION['member_id'] ?? 'N/A'));
 error_log("MNr Variable: " . $MNr);
 error_log("======================================");
 
+// HTML-Header ausgeben
+?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminplanung & Umfragen</title>
+    <link rel="stylesheet" href="<?php echo (isset($form_action_path) && $form_action_path !== '' ? $form_action_path : ''); ?>style.css">
+</head>
+<body>
+    <div class="container">
+<?php
+
 // Tab mit allen Features laden (außer vorgefertigte Gruppen)
 require_once __DIR__ . '/tab_termine.php';
 
 echo "<!-- DEBUG: tab_termine.php komplett geladen! -->\n";
+
+// HTML-Footer ausgeben
+?>
+
+    <!-- Footer mit rechtlichen Angaben -->
+    <footer class="page-footer">
+        <?php echo defined('FOOTER_COPYRIGHT') ? FOOTER_COPYRIGHT : '© 2025'; ?> |
+        <a href="<?php echo (isset($form_action_path) && $form_action_path !== '' ? $form_action_path : ''); ?>dokumentation.php" target="_blank">📖 Dokumentation</a> |
+        <a href="<?php echo defined('FOOTER_IMPRESSUM_URL') ? FOOTER_IMPRESSUM_URL : '#'; ?>" target="_blank">Impressum</a> |
+        <a href="<?php echo defined('FOOTER_DATENSCHUTZ_URL') ? FOOTER_DATENSCHUTZ_URL : '#'; ?>" target="_blank">Datenschutz</a>
+    </footer>
+
+    </div>
+</body>
+</html>
+<?php
