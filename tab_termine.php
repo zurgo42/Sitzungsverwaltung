@@ -720,7 +720,7 @@ if (isset($_SESSION['error'])) {
 
                 <div class="form-group">
                     <label>Voraussichtliche Dauer (Minuten):</label>
-                    <input type="number" name="poll_duration" id="poll_duration" placeholder="z.B. 120" min="1" step="5" style="width: 150px;">
+                    <input type="number" name="poll_duration" id="poll_duration" placeholder="z.B. 120" min="5" step="5" style="width: 150px;">
                     <small style="display: block; margin-top: 5px; color: #666;">
                         Optional: Wenn angegeben, wird die Ende-Zeit automatisch berechnet
                     </small>
