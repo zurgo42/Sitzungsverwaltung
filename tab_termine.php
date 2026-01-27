@@ -938,20 +938,35 @@ if (isset($_SESSION['error'])) {
         });
 
         // User's aktuelle Antworten laden
-        $stmt = $pdo->prepare("
-            SELECT date_id, vote
-            FROM svpoll_responses
-            WHERE poll_id = ? AND member_id = ?
-        ");
-        $stmt->execute([$poll_id, $current_user['member_id']]);
         $user_votes = [];
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $user_votes[$row['date_id']] = (int)$row['vote'];
+
+        if ($current_user) {
+            // Eingeloggter User
+            $stmt = $pdo->prepare("
+                SELECT date_id, vote
+                FROM svpoll_responses
+                WHERE poll_id = ? AND member_id = ?
+            ");
+            $stmt->execute([$poll_id, $current_user['member_id']]);
+        } elseif (isset($current_participant_type) && $current_participant_type === 'external' && isset($current_participant_id)) {
+            // Externer Teilnehmer
+            $stmt = $pdo->prepare("
+                SELECT date_id, vote
+                FROM svpoll_responses
+                WHERE poll_id = ? AND external_participant_id = ?
+            ");
+            $stmt->execute([$poll_id, $current_participant_id]);
+        }
+
+        if (isset($stmt)) {
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $user_votes[$row['date_id']] = (int)$row['vote'];
+            }
         }
 
         // Berechtigungen
-        $is_creator = ($poll['created_by_member_id'] == $current_user['member_id']);
-        $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
+        $is_creator = $current_user ? ($poll['created_by_member_id'] == $current_user['member_id']) : false;
+        $is_admin = $current_user ? in_array($current_user['role'], ['assistenz', 'gf']) : false;
         $can_edit = $is_creator || $is_admin;
         $can_vote = $poll['status'] === 'open';
     ?>

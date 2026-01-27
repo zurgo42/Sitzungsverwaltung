@@ -381,7 +381,38 @@ if ($is_sitzungsverwaltung && ($current_user || $has_participant) && file_exists
         $form_action_path = '';
     }
 
+    // HTML-Header für externe Teilnehmer ausgeben (haben kein index.php drum herum)
+    if ($has_participant && !$current_user) {
+        ?>
+        <!DOCTYPE html>
+        <html lang="de">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Meinungsbild & Umfragen</title>
+            <link rel="stylesheet" href="style.css">
+        </head>
+        <body>
+            <div class="container">
+        <?php
+    }
+
     include __DIR__ . '/tab_opinion.php';
+
+    // HTML-Footer für externe Teilnehmer
+    if ($has_participant && !$current_user) {
+        ?>
+            <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center; font-size: 14px; color: #666;">
+                <p><strong>ℹ️ Datenschutzhinweis:</strong></p>
+                <p>Ihre Daten (Name, E-Mail) werden nur für diese Umfrage gespeichert und nach Abschluss der Umfrage gelöscht.</p>
+                <p style="margin-top: 10px;">Bei Fragen kontaktieren Sie bitte den Umfrage-Ersteller.</p>
+            </div>
+            </div>
+        </body>
+        </html>
+        <?php
+    }
+
     return; // Beende hier
 }
 
