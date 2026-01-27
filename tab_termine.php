@@ -610,8 +610,9 @@ function copyToClipboard(text) {
 <h2>📆 Terminplanung & Umfragen</h2>
 
 <?php
-// Login-Prüfung
-if (!$current_user) {
+// Login-Prüfung: User ODER externer Teilnehmer muss vorhanden sein
+$has_external_participant = isset($current_participant_type) && $current_participant_type === 'external';
+if (!$current_user && !$has_external_participant) {
     echo '<div class="error-message">Bitte melde dich an, um Terminplanungen zu sehen.</div>';
     return;
 }
