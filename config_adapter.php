@@ -140,10 +140,10 @@ $SSO_DIRECT_CONFIG = [
 $ADAPTER_CONFIG = [
     'berechtigte' => [
         // Falls separate Datenbank
-        'db_host' => DB_HOST,  // oder anderer Host
-        'db_name' => DB_NAME,  // oder andere DB
-        'db_user' => DB_USER,
-        'db_pass' => DB_PASS,
+        'db_host' => MYSQL_HOST,  // oder anderer Host
+        'db_name' => MYSQL_NAME,  // oder andere DB
+        'db_user' => MYSQL_USER,
+        'db_pass' => MYSQL_PASS,
 
         // Spezielle Mappings können hier definiert werden
         'role_mapping' => [

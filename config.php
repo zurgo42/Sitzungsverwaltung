@@ -36,19 +36,26 @@ function is_local_environment() {
 define('IS_LOCAL', is_local_environment());
 
 // ============= DATENBANK-ZUGANGSDATEN =============
+// Primäre Konstanten: MYSQL_*
 if (IS_LOCAL) {
     // XAMPP / Lokale Entwicklungsumgebung
-    define('DB_HOST', 'localhost');
-    define('DB_USER', 'root');
-    define('DB_PASS', '');  // XAMPP Standard: kein Passwort
-    define('DB_NAME', 'k126904_div');  // Lokale Datenbank
+    define('MYSQL_HOST', 'localhost');
+    define('MYSQL_USER', 'root');
+    define('MYSQL_PASS', '');  // XAMPP Standard: kein Passwort
+    define('MYSQL_NAME', 'k126904_div');  // Lokale Datenbank
 } else {
     // Produktivserver
-    define('DB_HOST', '...');
-    define('DB_USER', '...');
-    define('DB_PASS', '...');
-    define('DB_NAME', '...');
+    define('MYSQL_HOST', '...');
+    define('MYSQL_USER', '...');
+    define('MYSQL_PASS', '...');
+    define('MYSQL_NAME', '...');
 }
+
+// Aliases für Abwärtskompatibilität: DB_*
+define('DB_HOST', MYSQL_HOST);
+define('DB_USER', MYSQL_USER);
+define('DB_PASS', MYSQL_PASS);
+define('DB_NAME', MYSQL_NAME);
 
 // ============= SYSTEM-EINSTELLUNGEN =============
 define('TIMEZONE', 'Europe/Berlin');
