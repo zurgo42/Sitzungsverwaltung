@@ -662,16 +662,12 @@ if (isset($_SESSION['error'])) {
                 </div>
 
                 <!-- Zielgruppe wählen -->
-                <div class="form-group" style="margin-top: 25px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
-                    <h4 style="margin: 0 0 15px 0;">Zielgruppe wählen</h4>
-                    <?php if ($standalone_mode): ?>
-                        <!-- Standalone: Nur individueller Link -->
-                        <input type="hidden" name="target_type" value="individual">
-                        <p style="margin: 0;">
-                            <strong>🔗 Individueller Link</strong> - Du erhältst einen Link, den du weitergeben kannst
-                        </p>
-                    <?php else: ?>
-                        <!-- Normal: Alle Optionen -->
+                <?php if ($standalone_mode): ?>
+                    <!-- Standalone: Nur individueller Link (hidden field, kein UI) -->
+                    <input type="hidden" name="target_type" value="individual">
+                <?php else: ?>
+                    <div class="form-group" style="margin-top: 25px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+                        <h4 style="margin: 0 0 15px 0;">Zielgruppe wählen</h4>
                         <label style="display: block; margin-bottom: 10px;">
                             <input type="radio" name="target_type" value="individual" onchange="updatePollTargetOptions()">
                             <strong>Individuell</strong> - Link, den du weitergeben kannst
@@ -680,8 +676,8 @@ if (isset($_SESSION['error'])) {
                             <input type="radio" name="target_type" value="list" checked onchange="updatePollTargetOptions()">
                             <strong>Ausgewählte registrierte Teilnehmer</strong>
                         </label>
-                    <?php endif; ?>
-                </div>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Teilnehmer auswählen (nur bei target_type='list' UND nicht im Standalone-Modus) -->
                 <?php if (!$standalone_mode): ?>
@@ -724,7 +720,7 @@ if (isset($_SESSION['error'])) {
 
                 <div class="form-group">
                     <label>Voraussichtliche Dauer (Minuten):</label>
-                    <input type="number" name="poll_duration" id="poll_duration" placeholder="z.B. 120" min="15" step="15" style="width: 150px;">
+                    <input type="number" name="poll_duration" id="poll_duration" placeholder="z.B. 120" min="1" step="5" style="width: 150px;">
                     <small style="display: block; margin-top: 5px; color: #666;">
                         Optional: Wenn angegeben, wird die Ende-Zeit automatisch berechnet
                     </small>
