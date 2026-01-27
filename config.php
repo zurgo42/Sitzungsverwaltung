@@ -22,11 +22,14 @@ function is_local_environment() {
         // Prüfe Server-Adresse
         isset($_SERVER['SERVER_ADDR']) && in_array($_SERVER['SERVER_ADDR'], ['127.0.0.1', '::1']),
 
-        // Prüfe ob im XAMPP-Pfad
+        // Prüfe ob im XAMPP-Pfad (Windows oder Linux XAMPP)
         stripos(__FILE__, 'xampp') !== false,
 
-        // Prüfe ob im htdocs-Pfad (typisch für XAMPP)
-        stripos(__FILE__, 'htdocs') !== false
+        // Prüfe ob im LAMPP-Pfad (Linux alternative)
+        stripos(__FILE__, '/opt/lampp') !== false,
+
+        // Prüfe ob im htdocs-Pfad (typisch für XAMPP, aber NICHT für Produktivserver in /srv/www/)
+        (stripos(__FILE__, 'htdocs') !== false && stripos(__FILE__, '/srv/www/') === false)
     ];
 
     return in_array(true, $local_indicators, true);
