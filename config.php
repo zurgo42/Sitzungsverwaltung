@@ -75,10 +75,10 @@ if (IS_LOCAL) {
     define('MYSQL_DATABASE', 'k126904_div');  // Lokale Datenbank
 } else {
     // Produktivserver
-    define('MYSQL_HOST', '...');
-    define('MYSQL_USER', '...');
-    define('MYSQL_PASS', '...');
-    define('MYSQL_DATABASE', '...');
+    define('MYSQL_HOST', 'localhost');
+    define('MYSQL_USER', 'aktive');
+    define('MYSQL_PASS', 'ahHee7Ah');
+    define('MYSQL_DATABASE', 'aktive');
 }
 
 // Aliases für Abwärtskompatibilität: DB_*
@@ -131,7 +131,7 @@ define('MAIL_QUEUE_MAX_ATTEMPTS', 3);   // Max. Zustellversuche pro Mail
 
 // ============= WEITERE EINSTELLUNGEN =============
 define('TOP_CONFIDENTIAL_START', 101);  // Ab welcher TOP-Nummer ist es vertraulich
-define('DEBUG_MODE', true);  // TEMPORÄR: Immer aktiviert für Debugging (normalerweise: IS_LOCAL)
+define('DEBUG_MODE', IS_LOCAL);  // Automatisch aktiviert in lokaler Umgebung
 
 // ============= STANDALONE-SKRIPTE =============
 // Pfad zu standalone-Skripten (für externe Teilnehmer ohne Login)
