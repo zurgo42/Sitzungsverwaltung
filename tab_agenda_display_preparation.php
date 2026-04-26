@@ -90,6 +90,24 @@ if (!$submission_deadline_passed) {
     // Nach Antragsschluss: Nur Protokollant und Admins
     $can_add_tops = ($is_secretary || $is_admin);
 }
+
+// Künftige Sitzungen für TOP-Verschiebung laden
+// Nur für Einladende, Protokollant und Sitzungsleiter
+$is_inviter = ($meeting['created_by_member_id'] == $current_user['member_id']);
+$can_move_tops = ($is_inviter || $is_secretary || $is_chairman);
+
+$future_meetings = [];
+if ($can_move_tops) {
+    $stmt = $pdo->prepare("
+        SELECT meeting_id, meeting_name, meeting_date
+        FROM svmeetings
+        WHERE meeting_date > NOW() AND meeting_id != ?
+        ORDER BY meeting_date ASC
+        LIMIT 20
+    ");
+    $stmt->execute([$current_meeting_id]);
+    $future_meetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
 
 <!-- Teilnehmer hinzufügen (nur für Admins) -->
@@ -557,6 +575,39 @@ foreach ($agenda_items as $item):
                         🗑️ Löschen
                     </button>
                 </div>
+            </form>
+        </details>
+        <?php endif; ?>
+
+        <!-- TOP verschieben (nur für Einladende, Protokollant, Sitzungsleiter) -->
+        <?php if ($can_move_tops && !empty($future_meetings)): ?>
+        <details style="margin-bottom: 15px; border: 1px solid #ff9800; border-radius: 5px; padding: 10px; background: #fff8f0;">
+            <summary style="cursor: pointer; font-weight: bold; color: #e65100;">
+                📤 TOP zu künftiger Sitzung verschieben
+            </summary>
+            <form method="POST" action="" style="margin-top: 10px;" onsubmit="return confirm('TOP wirklich zur ausgewählten Sitzung verschieben?');">
+                <input type="hidden" name="move_agenda_item" value="1">
+                <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Zielsitzung:</label>
+                    <select name="target_meeting_id" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="">-- Bitte wählen --</option>
+                        <?php foreach ($future_meetings as $fm): ?>
+                            <option value="<?php echo $fm['meeting_id']; ?>">
+                                <?php echo htmlspecialchars($fm['meeting_name']); ?>
+                                (<?php echo date('d.m.Y H:i', strtotime($fm['meeting_date'])); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="display: block; margin-top: 5px; color: #666;">
+                        Der TOP wird aus dieser Sitzung entfernt und zur ausgewählten Sitzung verschoben.
+                    </small>
+                </div>
+
+                <button type="submit" style="background: #ff9800; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">
+                    📤 Verschieben
+                </button>
             </form>
         </details>
         <?php endif; ?>

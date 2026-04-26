@@ -202,6 +202,50 @@ $can_edit_meeting = ($is_secretary || $is_chairman);
         ?>
     </div>
 
+    <!-- Success/Error Messages -->
+    <?php if (isset($_GET['success'])): ?>
+        <div class="message" style="background: #d4edda; color: #155724; padding: 12px; margin: 15px 0; border-radius: 5px; border: 1px solid #c3e6cb;">
+            <?php
+            switch($_GET['success']) {
+                case 'top_moved':
+                    echo '✅ TOP erfolgreich zu künftiger Sitzung verschoben!';
+                    break;
+                default:
+                    echo '✅ Aktion erfolgreich durchgeführt!';
+            }
+            ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_GET['error'])): ?>
+        <div class="error-message" style="background: #f8d7da; color: #721c24; padding: 12px; margin: 15px 0; border-radius: 5px; border: 1px solid #f5c6cb;">
+            <?php
+            switch($_GET['error']) {
+                case 'item_not_found':
+                    echo '❌ TOP nicht gefunden.';
+                    break;
+                case 'no_permission':
+                    echo '❌ Keine Berechtigung für diese Aktion. Nur Einladende, Protokollant und Sitzungsleiter dürfen TOPs verschieben.';
+                    break;
+                case 'wrong_status':
+                    echo '❌ TOPs können nur während der Vorbereitungsphase verschoben werden.';
+                    break;
+                case 'invalid_target':
+                    echo '❌ Ungültige Zielsitzung. Die Sitzung muss in der Zukunft liegen.';
+                    break;
+                case 'move_failed':
+                    echo '❌ Fehler beim Verschieben des TOPs.';
+                    break;
+                case 'missing_data':
+                    echo '❌ Fehlende Daten. Bitte wählen Sie eine Zielsitzung aus.';
+                    break;
+                default:
+                    echo '❌ Ein Fehler ist aufgetreten.';
+            }
+            ?>
+        </div>
+    <?php endif; ?>
+
     <?php
     // ============================================
     // 4. FORMULARE JE NACH STATUS

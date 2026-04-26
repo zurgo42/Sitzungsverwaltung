@@ -169,16 +169,121 @@ if (isset($_POST['edit_agenda_item'])) {
         error_log("EDIT TOP FAILED: Missing item_id or title");
     }
 }
+
+/**
+ * TOP zu künftiger Sitzung verschieben
+ *
+ * POST-Parameter:
+ * - move_agenda_item: 1
+ * - item_id: Int (required)
+ * - target_meeting_id: Int (required)
+ *
+ * Berechtigung: Einladende, Protokollant oder Sitzungsleiter der AKTUELLEN Sitzung
+ * Status: Nur während "preparation"
+ * Redirect: ?tab=agenda&meeting_id=X
+ */
+if (isset($_POST['move_agenda_item'])) {
+    $item_id = intval($_POST['item_id'] ?? 0);
+    $target_meeting_id = intval($_POST['target_meeting_id'] ?? 0);
+
+    if ($item_id && $target_meeting_id) {
+        try {
+            // Aktuelle Sitzung und TOP-Daten laden
+            $stmt = $pdo->prepare("
+                SELECT ai.meeting_id, ai.title, ai.is_confidential,
+                       m.status, m.created_by_member_id, m.secretary_member_id, m.chairman_member_id
+                FROM svagenda_items ai
+                JOIN svmeetings m ON ai.meeting_id = m.meeting_id
+                WHERE ai.item_id = ?
+            ");
+            $stmt->execute([$item_id]);
+            $item = $stmt->fetch();
+
+            if (!$item) {
+                error_log("MOVE TOP FAILED: Item not found");
+                header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=item_not_found");
+                exit;
+            }
+
+            // Berechtigung prüfen: Einladende, Protokollant oder Sitzungsleiter
+            $is_inviter = ($item['created_by_member_id'] == $current_user['member_id']);
+            $is_secretary = ($item['secretary_member_id'] == $current_user['member_id']);
+            $is_chairman = ($item['chairman_member_id'] == $current_user['member_id']);
+
+            if (!$is_inviter && !$is_secretary && !$is_chairman) {
+                error_log("MOVE TOP FAILED: No permission (user={$current_user['member_id']})");
+                header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&error=no_permission");
+                exit;
+            }
+
+            // Nur in Vorbereitungsphase erlaubt
+            if ($item['status'] !== 'preparation') {
+                error_log("MOVE TOP FAILED: Wrong status ({$item['status']})");
+                header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&error=wrong_status");
+                exit;
+            }
+
+            // Ziel-Sitzung validieren (muss existieren und in Zukunft liegen)
+            $stmt = $pdo->prepare("
+                SELECT meeting_id, meeting_date, status
+                FROM svmeetings
+                WHERE meeting_id = ? AND meeting_date > NOW()
+            ");
+            $stmt->execute([$target_meeting_id]);
+            $target_meeting = $stmt->fetch();
+
+            if (!$target_meeting) {
+                error_log("MOVE TOP FAILED: Target meeting not found or not in future");
+                header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&error=invalid_target");
+                exit;
+            }
+
+            // TOP verschieben
+            $pdo->beginTransaction();
+
+            // Neue TOP-Nummer in Zielsitzung bestimmen
+            $new_top_number = get_next_top_number($pdo, $target_meeting_id, $item['is_confidential']);
+
+            // TOP aktualisieren
+            $stmt = $pdo->prepare("
+                UPDATE svagenda_items
+                SET meeting_id = ?, top_number = ?
+                WHERE item_id = ?
+            ");
+            $stmt->execute([$target_meeting_id, $new_top_number, $item_id]);
+
+            $pdo->commit();
+
+            error_log("MOVE TOP Success: Item $item_id moved to meeting $target_meeting_id with TOP# $new_top_number");
+
+            header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&success=top_moved");
+            exit;
+
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("MOVE TOP Error: " . $e->getMessage());
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=move_failed");
+            exit;
+        }
+    } else {
+        error_log("MOVE TOP FAILED: Missing item_id or target_meeting_id");
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=missing_data");
+        exit;
+    }
+}
+
 /**
  * Alle TOP-Änderungen speichern
- * 
+ *
  * POST-Parameter:
  * - save_all_changes: 1
  * - edit_title[ITEM_ID]: String (optional, pro editierbarem TOP)
  * - edit_description[ITEM_ID]: String (optional, pro editierbarem TOP)
  * - priority[ITEM_ID]: Float (optional, für Bewertungen)
  * - duration[ITEM_ID]: Int (optional, für Bewertungen)
- * 
+ *
  * Verwendet von: tab_agenda.php - Großes Formular im Status "preparation"
  * Redirect: ?tab=agenda&meeting_id=X
  */
