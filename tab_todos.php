@@ -84,36 +84,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // TODO ZURÜCKZIEHEN
     if (isset($_POST['action']) && $_POST['action'] === 'retract') {
         $todo_id = (int)($_POST['todo_id'] ?? 0);
-        
+
         if (!$todo_id) {
             die('❌ Ungültige Aufgaben-ID.');
         }
-        
+
         $stmt = $pdo->prepare("SELECT created_by_member_id, status, title FROM svtodos WHERE todo_id = ?");
         $stmt->execute([$todo_id]);
         $todo = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if (!$todo || $todo['created_by_member_id'] != $currentMemberID) {
             die('❌ Keine Berechtigung.');
         }
-        
+
         if (!in_array($todo['status'], ['open', 'in progress'])) {
             die('❌ Nur offene Aufgaben können zurückgezogen werden.');
         }
-        
+
         try {
             // Logging (vor dem Löschen!)
             $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'aufgabe-zurueckziehen', ?, NULL)");
             $log->execute([$todo_id, $currentMemberID, $todo['status']]);
-            
+
             $delete = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
             $delete->execute([$todo_id]);
-            
+
             header('Location: index.php?tab=todos&msg=todo_retracted');
             exit;
         } catch (PDOException $e) {
             error_log('Todo Retract Error: ' . $e->getMessage());
             die('❌ Fehler beim Zurückziehen.');
+        }
+    }
+
+    // NEUES TODO ERSTELLEN
+    if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $due_date = trim($_POST['due_date'] ?? '');
+        $assigned_to = (int)($_POST['assigned_to_member_id'] ?? 0);
+        $is_private = isset($_POST['is_private']) ? 1 : 0;
+
+        // Validierung
+        if (empty($title)) {
+            $_SESSION['error'] = 'Titel ist erforderlich';
+            header('Location: index.php?tab=todos');
+            exit;
+        }
+
+        // Berechtigung prüfen
+        $is_admin = in_array($current_user['role'] ?? '', ['assistenz', 'gf']);
+
+        // Wenn kein Empfänger angegeben oder User ist kein Admin -> sich selbst zuweisen
+        if (!$assigned_to || !$is_admin) {
+            $assigned_to = $currentMemberID;
+        }
+
+        // Due date validieren
+        if (!empty($due_date)) {
+            $date_obj = DateTime::createFromFormat('Y-m-d', $due_date);
+            if (!$date_obj || $date_obj->format('Y-m-d') !== $due_date) {
+                $_SESSION['error'] = 'Ungültiges Datum';
+                header('Location: index.php?tab=todos');
+                exit;
+            }
+        } else {
+            $due_date = null;
+        }
+
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO svtodos (
+                    title, description, assigned_to_member_id, created_by_member_id,
+                    due_date, status, is_private, entry_date
+                ) VALUES (?, ?, ?, ?, ?, 'open', ?, NOW())
+            ");
+            $stmt->execute([
+                $title,
+                $description,
+                $assigned_to,
+                $currentMemberID,
+                $due_date,
+                $is_private
+            ]);
+
+            $todo_id = $pdo->lastInsertId();
+
+            // Logging
+            $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'todo-erstellt', NULL, ?)");
+            $log->execute([$todo_id, $currentMemberID, $title]);
+
+            $_SESSION['success'] = 'ToDo erfolgreich erstellt';
+            header('Location: index.php?tab=todos');
+            exit;
+        } catch (PDOException $e) {
+            error_log('Todo Create Error: ' . $e->getMessage());
+            $_SESSION['error'] = 'Fehler beim Erstellen des ToDos';
+            header('Location: index.php?tab=todos');
+            exit;
         }
     }
 }
@@ -201,6 +269,87 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
 
 <h2>Meine ToDos</h2>
+
+<?php
+// Success/Error Messages
+if (isset($_SESSION['success'])) {
+    echo '<div style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px; border-radius: 4px; margin-bottom: 20px;">' . htmlspecialchars($_SESSION['success']) . '</div>';
+    unset($_SESSION['success']);
+}
+
+if (isset($_SESSION['error'])) {
+    echo '<div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px; border-radius: 4px; margin-bottom: 20px;">' . htmlspecialchars($_SESSION['error']) . '</div>';
+    unset($_SESSION['error']);
+}
+
+$is_admin = in_array($current_user['role'] ?? '', ['assistenz', 'gf']);
+?>
+
+<!-- NEUES TODO ERSTELLEN -->
+<div style="margin-bottom: 30px;">
+    <button class="accordion-button" onclick="this.classList.toggle('active'); this.nextElementSibling.classList.toggle('active');" style="width: 100%; text-align: left; padding: 12px 15px; background: #4CAF50; border: none; cursor: pointer; font-size: 16px; font-weight: bold; color: white; border-radius: 5px;">
+        ➕ Neues ToDo erstellen
+    </button>
+    <div class="accordion-content" style="display: none; padding: 20px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 5px 5px; background: white;">
+        <form method="POST" action="index.php?tab=todos">
+            <input type="hidden" name="action" value="create_todo">
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px;">Titel *</label>
+                <input type="text" name="title" required placeholder="z.B. Präsentation vorbereiten" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px;">Beschreibung</label>
+                <textarea name="description" rows="4" placeholder="Details zur Aufgabe..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px;">Fälligkeitsdatum</label>
+                <input type="date" name="due_date" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+
+            <?php if ($is_admin): ?>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px;">Zuweisen an</label>
+                <select name="assigned_to_member_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="<?php echo $currentMemberID; ?>">Mir selbst</option>
+                    <?php
+                    $members_stmt = $pdo->query("SELECT member_id, first_name, last_name, role FROM svmembers ORDER BY last_name, first_name");
+                    while ($member = $members_stmt->fetch(PDO::FETCH_ASSOC)) {
+                        if ($member['member_id'] != $currentMemberID) {
+                            echo '<option value="' . $member['member_id'] . '">';
+                            echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')');
+                            echo '</option>';
+                        }
+                    }
+                    ?>
+                </select>
+            </div>
+            <?php endif; ?>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block;">
+                    <input type="checkbox" name="is_private" value="1">
+                    <strong>Privat</strong> (nur für mich und den Empfänger sichtbar)
+                </label>
+            </div>
+
+            <button type="submit" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-size: 14px;">
+                ✓ ToDo erstellen
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+.accordion-button.active {
+    background: #45a049 !important;
+}
+.accordion-content.active {
+    display: block !important;
+}
+</style>
 
 
 <?php if (empty($own_todos_open)): ?>
