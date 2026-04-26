@@ -249,7 +249,7 @@ if (isset($_POST['move_agenda_item'])) {
             // Aktuelle Sitzung und TOP-Daten laden
             $stmt = $pdo->prepare("
                 SELECT ai.meeting_id, ai.title, ai.is_confidential,
-                       m.status, m.created_by_member_id, m.secretary_member_id, m.chairman_member_id
+                       m.status, m.invited_by_member_id, m.secretary_member_id, m.chairman_member_id
                 FROM svagenda_items ai
                 JOIN svmeetings m ON ai.meeting_id = m.meeting_id
                 WHERE ai.item_id = ?
@@ -266,7 +266,7 @@ if (isset($_POST['move_agenda_item'])) {
             }
 
             // Berechtigung prüfen: Einladende, Protokollant oder Sitzungsleiter
-            $is_inviter = ($item['created_by_member_id'] == $current_user['member_id']);
+            $is_inviter = ($item['invited_by_member_id'] == $current_user['member_id']);
             $is_secretary = ($item['secretary_member_id'] == $current_user['member_id']);
             $is_chairman = ($item['chairman_member_id'] == $current_user['member_id']);
 

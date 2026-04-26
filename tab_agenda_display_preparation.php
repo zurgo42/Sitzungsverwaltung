@@ -93,7 +93,7 @@ if (!$submission_deadline_passed) {
 
 // Künftige Sitzungen für TOP-Verschiebung laden
 // Nur für Einladende, Protokollant und Sitzungsleiter
-$is_inviter = ($meeting['created_by_member_id'] == $current_user['member_id']);
+$is_inviter = ($meeting['invited_by_member_id'] == $current_user['member_id']);
 $can_move_tops = ($is_inviter || $is_secretary || $is_chairman);
 
 $future_meetings = [];
