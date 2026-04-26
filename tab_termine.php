@@ -68,6 +68,7 @@ foreach ($all_polls as &$poll) {
         }
     }
 }
+unset($poll); // Referenz aufheben, sonst wird letzter Eintrag doppelt angezeigt
 
 // Meetings für Dropdown laden
 $all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
