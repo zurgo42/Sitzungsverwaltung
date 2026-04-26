@@ -870,65 +870,6 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
 });
 </script>
 
-<!-- Offene ToDos -->
-<div id="admin-todos" class="admin-section">
-    <h3 class="admin-section-header" onclick="toggleSection(this)">📝 Offene ToDos</h3>
-
-    <div class="admin-section-content">
-
-    <?php if (empty($open_todos)): ?>
-        <div class="info-box">Keine offenen ToDos vorhanden.</div>
-    <?php else: ?>
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Meeting</th>
-                    <th>TOP</th>
-                    <th>Aufgabe</th>
-                    <th>Zugewiesen an</th>
-                    <th>Fällig am</th>
-                    <th>Aktion</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($open_todos as $todo): ?>
-                    <tr>
-                        <td>
-                            <?php if ($todo['meeting_name']): ?>
-                                <strong><?php echo htmlspecialchars($todo['meeting_name']); ?></strong><br>
-                                <small><?php echo date('d.m.Y', strtotime($todo['meeting_date'])); ?></small>
-                            <?php else: ?>
-                                -
-                            <?php endif; ?>
-                        </td>
-                        <td><?php echo $todo['agenda_title'] ? htmlspecialchars($todo['agenda_title']) : '-'; ?></td>
-                        <td>
-                            <?php if (!empty($todo['title'])): ?>
-                                <strong><?php echo htmlspecialchars($todo['title']); ?></strong><br>
-                            <?php endif; ?>
-                            <?php echo htmlspecialchars($todo['description']); ?>
-                        </td>
-                        <td><?php echo htmlspecialchars($todo['first_name'] . ' ' . $todo['last_name']); ?></td>
-                        <td><?php echo $todo['due_date'] ? date('d.m.Y', strtotime($todo['due_date'])) : '-'; ?></td>
-                        <td class="action-buttons">
-                            <button class="btn-view" onclick="editTodo(<?php echo $todo['todo_id']; ?>)">✏️</button>
-                            <form method="POST" onsubmit="return confirm('ToDo als erledigt markieren?');" style="display: inline;">
-                                <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
-                                <button type="submit" name="close_todo" class="btn-primary">✓ Erledigt</button>
-                            </form>
-                            <form method="POST" onsubmit="return confirm('ToDo wirklich löschen?');" style="display: inline;">
-                                <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
-                                <button type="submit" name="delete_todo" class="btn-delete">🗑️</button>
-                            </form>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    <?php endif; ?>
-    </div> <!-- End admin-section-content -->
-</div>
-
 <!-- Textbearbeitung-Verwaltung -->
 <div id="admin-texts" class="admin-section">
     <h3 class="admin-section-header" onclick="toggleSection(this)">✍️ Textbearbeitung-Verwaltung</h3>
