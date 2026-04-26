@@ -762,6 +762,177 @@ if (isset($_POST['delete_collab_text'])) {
 }
 
 // ============================================
+// 3.5 TODO-VERWALTUNG (ADMIN)
+// ============================================
+
+/**
+ * Admin: Neues ToDo erstellen
+ */
+if (isset($_POST['admin_create_todo'])) {
+    $title = trim($_POST['title'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $assigned_to = (int)($_POST['assigned_to_member_id'] ?? 0);
+    $due_date = trim($_POST['due_date'] ?? '');
+    $is_private = isset($_POST['is_private']) ? 1 : 0;
+
+    if (empty($title) || !$assigned_to) {
+        $error_message = "Titel und Empfänger sind erforderlich.";
+    } else {
+        // Due date validieren
+        if (!empty($due_date)) {
+            $date_obj = DateTime::createFromFormat('Y-m-d', $due_date);
+            if (!$date_obj || $date_obj->format('Y-m-d') !== $due_date) {
+                $error_message = "Ungültiges Datum.";
+            }
+        } else {
+            $due_date = null;
+        }
+
+        if (!isset($error_message)) {
+            try {
+                $stmt = $pdo->prepare("
+                    INSERT INTO svtodos (
+                        title, description, assigned_to_member_id, created_by_member_id,
+                        due_date, status, is_private, entry_date
+                    ) VALUES (?, ?, ?, ?, ?, 'open', ?, NOW())
+                ");
+                $stmt->execute([
+                    $title,
+                    $description,
+                    $assigned_to,
+                    $current_user['member_id'],
+                    $due_date,
+                    $is_private
+                ]);
+
+                $todo_id = $pdo->lastInsertId();
+
+                // Logging
+                $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'admin-todo-erstellt', NULL, ?)");
+                $log->execute([$todo_id, $current_user['member_id'], $title]);
+
+                $success_message = '✅ ToDo erfolgreich erstellt.';
+            } catch (PDOException $e) {
+                error_log('Admin Todo Create Error: ' . $e->getMessage());
+                $error_message = '❌ Fehler beim Erstellen: ' . $e->getMessage();
+            }
+        }
+    }
+}
+
+/**
+ * Admin: ToDo bearbeiten
+ */
+if (isset($_POST['admin_edit_todo'])) {
+    $todo_id = (int)($_POST['todo_id'] ?? 0);
+    $title = trim($_POST['title'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $assigned_to = (int)($_POST['assigned_to_member_id'] ?? 0);
+    $status = $_POST['status'] ?? 'open';
+    $due_date = trim($_POST['due_date'] ?? '');
+    $is_private = isset($_POST['is_private']) ? 1 : 0;
+
+    $allowed_statuses = ['open', 'in progress', 'delayed', 'done'];
+
+    if (!$todo_id || empty($title) || !$assigned_to || !in_array($status, $allowed_statuses)) {
+        $error_message = "Ungültige Eingabe.";
+    } else {
+        // Due date validieren
+        if (!empty($due_date)) {
+            $date_obj = DateTime::createFromFormat('Y-m-d', $due_date);
+            if (!$date_obj || $date_obj->format('Y-m-d') !== $due_date) {
+                $error_message = "Ungültiges Datum.";
+            }
+        } else {
+            $due_date = null;
+        }
+
+        if (!isset($error_message)) {
+            try {
+                // Alte Daten für Log
+                $stmt = $pdo->prepare("SELECT * FROM svtodos WHERE todo_id = ?");
+                $stmt->execute([$todo_id]);
+                $old_todo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$old_todo) {
+                    $error_message = "ToDo nicht gefunden.";
+                } else {
+                    // Update mit completed_at
+                    if ($status === 'done' && $old_todo['status'] !== 'done') {
+                        $stmt = $pdo->prepare("
+                            UPDATE svtodos
+                            SET title = ?, description = ?, assigned_to_member_id = ?,
+                                status = ?, due_date = ?, is_private = ?, completed_at = NOW()
+                            WHERE todo_id = ?
+                        ");
+                    } elseif ($status !== 'done' && $old_todo['status'] === 'done') {
+                        $stmt = $pdo->prepare("
+                            UPDATE svtodos
+                            SET title = ?, description = ?, assigned_to_member_id = ?,
+                                status = ?, due_date = ?, is_private = ?, completed_at = NULL
+                            WHERE todo_id = ?
+                        ");
+                    } else {
+                        $stmt = $pdo->prepare("
+                            UPDATE svtodos
+                            SET title = ?, description = ?, assigned_to_member_id = ?,
+                                status = ?, due_date = ?, is_private = ?
+                            WHERE todo_id = ?
+                        ");
+                    }
+
+                    $params = [$title, $description, $assigned_to, $status, $due_date, $is_private, $todo_id];
+                    $stmt->execute($params);
+
+                    // Logging
+                    $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'admin-todo-bearbeitet', ?, ?)");
+                    $log->execute([$todo_id, $current_user['member_id'], json_encode($old_todo), json_encode($params)]);
+
+                    $success_message = '✅ ToDo erfolgreich aktualisiert.';
+                }
+            } catch (PDOException $e) {
+                error_log('Admin Todo Edit Error: ' . $e->getMessage());
+                $error_message = '❌ Fehler beim Aktualisieren: ' . $e->getMessage();
+            }
+        }
+    }
+}
+
+/**
+ * Admin: ToDo löschen
+ */
+if (isset($_POST['admin_delete_todo'])) {
+    $todo_id = (int)($_POST['todo_id'] ?? 0);
+
+    if (!$todo_id) {
+        $error_message = "Ungültige ToDo-ID.";
+    } else {
+        try {
+            $stmt = $pdo->prepare("SELECT title FROM svtodos WHERE todo_id = ?");
+            $stmt->execute([$todo_id]);
+            $todo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$todo) {
+                $error_message = "ToDo nicht gefunden.";
+            } else {
+                // Logging (vor dem Löschen)
+                $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'admin-todo-geloescht', ?, NULL)");
+                $log->execute([$todo_id, $current_user['member_id'], $todo['title']]);
+
+                // Löschen
+                $stmt = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
+                $stmt->execute([$todo_id]);
+
+                $success_message = '✅ ToDo erfolgreich gelöscht.';
+            }
+        } catch (PDOException $e) {
+            error_log('Admin Todo Delete Error: ' . $e->getMessage());
+            $error_message = '❌ Fehler beim Löschen: ' . $e->getMessage();
+        }
+    }
+}
+
+// ============================================
 // 4. DATEN LADEN
 // ============================================
 

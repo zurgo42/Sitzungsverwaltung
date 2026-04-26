@@ -135,7 +135,8 @@ if (isset($_SESSION['error'])) {
     unset($_SESSION['error']);
 }
 
-$is_admin = in_array($current_user['role'] ?? '', ['assistenz', 'gf']);
+// Admin-Check: assistenz, gf, vorstand oder is_admin=1
+$is_admin = in_array($current_user['role'] ?? '', ['assistenz', 'gf', 'vorstand']) || ($current_user['is_admin'] ?? 0) == 1;
 ?>
 
 <!-- NEUES TODO ERSTELLEN -->

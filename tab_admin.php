@@ -277,6 +277,194 @@ require_once 'process_admin.php';
     </div> <!-- End admin-section-content -->
 </div>
 
+<!-- ToDo-Verwaltung -->
+<div id="admin-todos" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">✅ ToDo-Verwaltung</h3>
+
+    <div class="admin-section-content">
+        <button onclick="showAddTodoForm()" class="btn-primary" style="margin-bottom: 15px;">+ Neues ToDo erstellen</button>
+
+        <!-- Add Todo Form -->
+        <div id="add-todo-form" class="form-box" style="display: none; margin-bottom: 20px;">
+            <h4>Neues ToDo erstellen</h4>
+            <form method="POST">
+                <input type="hidden" name="admin_create_todo" value="1">
+                <div class="form-group">
+                    <label>Titel *</label>
+                    <input type="text" name="title" required placeholder="z.B. Präsentation vorbereiten">
+                </div>
+                <div class="form-group">
+                    <label>Beschreibung</label>
+                    <textarea name="description" rows="3" placeholder="Details zur Aufgabe..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Zuweisen an *</label>
+                        <select name="assigned_to_member_id" required>
+                            <option value="">-- Bitte wählen --</option>
+                            <?php foreach ($members as $m): ?>
+                                <option value="<?php echo $m['member_id']; ?>">
+                                    <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name'] . ' (' . $m['role'] . ')'); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fälligkeitsdatum</label>
+                        <input type="date" name="due_date">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="is_private" value="1">
+                        Privat (nur für Ersteller und Empfänger sichtbar)
+                    </label>
+                </div>
+                <button type="submit" class="btn-primary">ToDo erstellen</button>
+                <button type="button" onclick="hideAddTodoForm()" class="btn-secondary">Abbrechen</button>
+            </form>
+        </div>
+
+        <!-- Todos Tabelle -->
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Titel</th>
+                    <th>Zugewiesen an</th>
+                    <th>Erstellt von</th>
+                    <th>Status</th>
+                    <th>Fällig am</th>
+                    <th>Privat</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                // Alle TODOs laden (Admin sieht alle)
+                $all_todos_stmt = $pdo->query("
+                    SELECT t.*,
+                        m_assigned.first_name as assigned_first,
+                        m_assigned.last_name as assigned_last,
+                        m_created.first_name as created_first,
+                        m_created.last_name as created_last
+                    FROM svtodos t
+                    LEFT JOIN svmembers m_assigned ON t.assigned_to_member_id = m_assigned.member_id
+                    LEFT JOIN svmembers m_created ON t.created_by_member_id = m_created.member_id
+                    ORDER BY
+                        CASE t.status
+                            WHEN 'open' THEN 1
+                            WHEN 'in progress' THEN 2
+                            WHEN 'delayed' THEN 3
+                            WHEN 'done' THEN 4
+                        END,
+                        t.due_date ASC NULLS LAST,
+                        t.todo_id DESC
+                ");
+                $all_todos = $all_todos_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if (empty($all_todos)):
+                ?>
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: #999;">Keine TODOs vorhanden</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($all_todos as $todo):
+                        $status_colors = [
+                            'open' => '#ffc107',
+                            'in progress' => '#2196f3',
+                            'delayed' => '#f44336',
+                            'done' => '#4caf50'
+                        ];
+                        $status_color = $status_colors[$todo['status']] ?? '#999';
+                    ?>
+                        <tr>
+                            <td><?php echo $todo['todo_id']; ?></td>
+                            <td>
+                                <strong><?php echo htmlspecialchars($todo['title']); ?></strong>
+                                <?php if ($todo['description']): ?>
+                                    <br><small style="color: #666;"><?php echo htmlspecialchars(mb_substr($todo['description'], 0, 100)); ?><?php echo mb_strlen($todo['description']) > 100 ? '...' : ''; ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo htmlspecialchars(($todo['assigned_first'] ?? '') . ' ' . ($todo['assigned_last'] ?? '')); ?></td>
+                            <td><?php echo htmlspecialchars(($todo['created_first'] ?? '') . ' ' . ($todo['created_last'] ?? '')); ?></td>
+                            <td>
+                                <span class="status-badge" style="background: <?php echo $status_color; ?>; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">
+                                    <?php echo htmlspecialchars($todo['status']); ?>
+                                </span>
+                            </td>
+                            <td><?php echo $todo['due_date'] && $todo['due_date'] !== '0000-00-00' ? date('d.m.Y', strtotime($todo['due_date'])) : '-'; ?></td>
+                            <td><?php echo $todo['is_private'] ? '🔒' : ''; ?></td>
+                            <td>
+                                <button class="btn-view" onclick="editTodo(<?php echo $todo['todo_id']; ?>)" title="Bearbeiten">✏️</button>
+                                <form method="POST" style="display: inline;" onsubmit="return confirm('ToDo wirklich löschen?');">
+                                    <input type="hidden" name="admin_delete_todo" value="1">
+                                    <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
+                                    <button type="submit" class="btn-delete" title="Löschen">🗑️</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+        <!-- Edit Todo Modal -->
+        <div id="edit-todo-modal" class="modal">
+            <div class="modal-content">
+                <h3>ToDo bearbeiten</h3>
+                <form method="POST" id="edit-todo-form">
+                    <input type="hidden" name="admin_edit_todo" value="1">
+                    <input type="hidden" name="todo_id" id="edit_todo_id">
+                    <div class="form-group">
+                        <label>Titel *</label>
+                        <input type="text" name="title" id="edit_todo_title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Beschreibung</label>
+                        <textarea name="description" id="edit_todo_description" rows="3"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Zugewiesen an *</label>
+                            <select name="assigned_to_member_id" id="edit_todo_assigned_to" required>
+                                <?php foreach ($members as $m): ?>
+                                    <option value="<?php echo $m['member_id']; ?>">
+                                        <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name'] . ' (' . $m['role'] . ')'); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Status *</label>
+                            <select name="status" id="edit_todo_status" required>
+                                <option value="open">Open</option>
+                                <option value="in progress">In Progress</option>
+                                <option value="delayed">Delayed</option>
+                                <option value="done">Done</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Fälligkeitsdatum</label>
+                            <input type="date" name="due_date" id="edit_todo_due_date">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" name="is_private" id="edit_todo_is_private" value="1">
+                                Privat
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary">Speichern</button>
+                    <button type="button" onclick="closeEditTodoModal()" class="btn-secondary">Abbrechen</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Mitgliederverwaltung -->
 <div id="admin-members" class="admin-section">
     <h3 class="admin-section-header" onclick="toggleSection(this)">👥 Mitgliederverwaltung</h3>
@@ -1230,7 +1418,7 @@ function toggleSection(header) {
 
 // ToDo bearbeiten
 function editTodo(todoId) {
-    const todos = <?php echo json_encode($open_todos); ?>;
+    const todos = <?php echo json_encode($all_todos ?? []); ?>;
     const todo = todos.find(t => t.todo_id == todoId);
 
     if (todo) {
@@ -1239,14 +1427,22 @@ function editTodo(todoId) {
         document.getElementById('edit_todo_description').value = todo.description || '';
         document.getElementById('edit_todo_assigned_to').value = todo.assigned_to_member_id || '';
         document.getElementById('edit_todo_status').value = todo.status || 'open';
-        document.getElementById('edit_todo_entry_date').value = todo.entry_date || '';
-        document.getElementById('edit_todo_due_date').value = todo.due_date || '';
+        document.getElementById('edit_todo_due_date').value = todo.due_date && todo.due_date !== '0000-00-00' ? todo.due_date : '';
+        document.getElementById('edit_todo_is_private').checked = todo.is_private == 1;
         document.getElementById('edit-todo-modal').classList.add('show');
     }
 }
 
 function closeEditTodoModal() {
     document.getElementById('edit-todo-modal').classList.remove('show');
+}
+
+function showAddTodoForm() {
+    document.getElementById('add-todo-form').style.display = 'block';
+}
+
+function hideAddTodoForm() {
+    document.getElementById('add-todo-form').style.display = 'none';
 }
 
 // Initialize: Start with all sections collapsed

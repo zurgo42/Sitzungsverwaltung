@@ -123,7 +123,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
     }
 
     // Berechtigung prüfen
-    $is_admin = in_array($current_user['role'] ?? '', ['assistenz', 'gf']);
+    $is_admin = in_array($current_user['role'] ?? '', ['assistenz', 'gf', 'vorstand']) || ($current_user['is_admin'] ?? 0) == 1;
 
     // Wenn kein Empfänger angegeben oder User ist kein Admin -> sich selbst zuweisen
     if (!$assigned_to || !$is_admin) {
