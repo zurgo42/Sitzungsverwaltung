@@ -192,6 +192,14 @@ require_once 'process_admin.php';
                     <input type="datetime-local" name="expected_end_date" id="edit_expected_end_date">
                 </div>
                 <div class="form-group">
+                    <label>Antragsschluss:</label>
+                    <input type="datetime-local" name="submission_deadline" id="edit_submission_deadline">
+                    <small style="display: block; margin-top: 5px; color: #666;">
+                        Bis zu diesem Zeitpunkt dürfen Teilnehmer neue Tagesordnungspunkte hinzufügen.<br>
+                        Standard: 24 Stunden vor Sitzungsbeginn. Danach können nur noch Protokollant und Admins TOPs hinzufügen.
+                    </small>
+                </div>
+                <div class="form-group">
                     <label>Ort:</label>
                     <input type="text" name="location" id="edit_location">
                 </div>
@@ -1118,6 +1126,7 @@ function editMeeting(meetingId) {
         document.getElementById('edit_meeting_name').value = meeting.meeting_name;
         document.getElementById('edit_meeting_date').value = meeting.meeting_date.replace(' ', 'T').substring(0, 16);
         document.getElementById('edit_expected_end_date').value = meeting.expected_end_date ? meeting.expected_end_date.replace(' ', 'T').substring(0, 16) : '';
+        document.getElementById('edit_submission_deadline').value = meeting.submission_deadline ? meeting.submission_deadline.replace(' ', 'T').substring(0, 16) : '';
         document.getElementById('edit_location').value = meeting.location || '';
         document.getElementById('edit_video_link').value = meeting.video_link || '';
         document.getElementById('edit_status').value = meeting.status;

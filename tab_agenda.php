@@ -210,6 +210,9 @@ $can_edit_meeting = ($is_secretary || $is_chairman);
                 case 'top_moved':
                     echo '✅ TOP erfolgreich zu künftiger Sitzung verschoben!';
                     break;
+                case 'top_deleted':
+                    echo '✅ TOP erfolgreich gelöscht!';
+                    break;
                 default:
                     echo '✅ Aktion erfolgreich durchgeführt!';
             }

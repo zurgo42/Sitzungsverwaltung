@@ -115,9 +115,65 @@ if (isset($_POST['add_agenda_item'])) {
 }
 
 /**
+ * Einzelnen TOP löschen (Ersteller in Vorbereitung)
+ *
+ * POST-Parameter:
+ * - delete_agenda_item: 1
+ * - item_id: Int (required)
+ *
+ * Verwendet von: tab_agenda_display_preparation.php - "Löschen" Button beim Bearbeiten
+ * Redirect: ?tab=agenda&meeting_id=X
+ */
+if (isset($_POST['delete_agenda_item']) && isset($_POST['item_id'])) {
+    $item_id = intval($_POST['item_id'] ?? 0);
+
+    if ($item_id) {
+        try {
+            // Prüfen ob User der Ersteller ist und Meeting in Vorbereitung
+            $stmt = $pdo->prepare("
+                SELECT ai.created_by_member_id, ai.meeting_id, m.status, ai.title
+                FROM svagenda_items ai
+                JOIN svmeetings m ON ai.meeting_id = m.meeting_id
+                WHERE ai.item_id = ?
+            ");
+            $stmt->execute([$item_id]);
+            $item = $stmt->fetch();
+
+            if (!$item) {
+                error_log("DELETE TOP FAILED: Item not found");
+                header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
+                exit;
+            }
+
+            // Nur löschbar wenn Ersteller UND Meeting in Vorbereitung
+            if ($item['created_by_member_id'] == $current_user['member_id'] &&
+                $item['status'] === 'preparation') {
+
+                // TOP löschen
+                $stmt = $pdo->prepare("DELETE FROM svagenda_items WHERE item_id = ?");
+                $stmt->execute([$item_id]);
+
+                error_log("DELETE TOP Success: Item $item_id ({$item['title']}) deleted");
+
+                header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&success=top_deleted");
+                exit;
+            } else {
+                error_log("DELETE TOP FAILED: No permission or wrong status");
+                header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&error=no_permission");
+                exit;
+            }
+        } catch (PDOException $e) {
+            error_log("DELETE TOP Error: " . $e->getMessage());
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=delete_failed");
+            exit;
+        }
+    }
+}
+
+/**
  * Einzelnen TOP editieren (Ersteller in Vorbereitung)
  */
-if (isset($_POST['edit_agenda_item'])) {
+if (isset($_POST['edit_agenda_item']) && !isset($_POST['delete_agenda_item'])) {
     $item_id = intval($_POST['item_id'] ?? 0);
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -186,6 +242,8 @@ if (isset($_POST['move_agenda_item'])) {
     $item_id = intval($_POST['item_id'] ?? 0);
     $target_meeting_id = intval($_POST['target_meeting_id'] ?? 0);
 
+    error_log("MOVE TOP: Received request - item_id=$item_id, target_meeting_id=$target_meeting_id, user={$current_user['member_id']}");
+
     if ($item_id && $target_meeting_id) {
         try {
             // Aktuelle Sitzung und TOP-Daten laden
@@ -199,6 +257,8 @@ if (isset($_POST['move_agenda_item'])) {
             $stmt->execute([$item_id]);
             $item = $stmt->fetch();
 
+            error_log("MOVE TOP: Item loaded - " . ($item ? json_encode($item) : 'NOT FOUND'));
+
             if (!$item) {
                 error_log("MOVE TOP FAILED: Item not found");
                 header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=item_not_found");
@@ -209,6 +269,8 @@ if (isset($_POST['move_agenda_item'])) {
             $is_inviter = ($item['created_by_member_id'] == $current_user['member_id']);
             $is_secretary = ($item['secretary_member_id'] == $current_user['member_id']);
             $is_chairman = ($item['chairman_member_id'] == $current_user['member_id']);
+
+            error_log("MOVE TOP: Permission check - inviter=$is_inviter, secretary=$is_secretary, chairman=$is_chairman");
 
             if (!$is_inviter && !$is_secretary && !$is_chairman) {
                 error_log("MOVE TOP FAILED: No permission (user={$current_user['member_id']})");

@@ -93,6 +93,7 @@ if (isset($_POST['edit_meeting'])) {
     $meeting_name = trim($_POST['meeting_name'] ?? '');
     $meeting_date = $_POST['meeting_date'] ?? '';
     $expected_end_date = !empty($_POST['expected_end_date']) ? $_POST['expected_end_date'] : null;
+    $submission_deadline = !empty($_POST['submission_deadline']) ? $_POST['submission_deadline'] : null;
     $location = trim($_POST['location'] ?? '');
     $video_link = trim($_POST['video_link'] ?? '');
     $status = $_POST['status'] ?? '';
@@ -121,6 +122,7 @@ if (isset($_POST['edit_meeting'])) {
                     SET meeting_name = ?,
                         meeting_date = ?,
                         expected_end_date = ?,
+                        submission_deadline = ?,
                         location = ?,
                         video_link = ?,
                         status = ?,
@@ -134,6 +136,7 @@ if (isset($_POST['edit_meeting'])) {
                     $meeting_name,
                     $meeting_date,
                     $expected_end_date,
+                    $submission_deadline,
                     $location,
                     $video_link,
                     $status,
@@ -163,6 +166,7 @@ if (isset($_POST['edit_meeting'])) {
                     'meeting_name' => $meeting_name,
                     'meeting_date' => $meeting_date,
                     'expected_end_date' => $expected_end_date,
+                    'submission_deadline' => $submission_deadline,
                     'location' => $location,
                     'video_link' => $video_link,
                     'status' => $status,
