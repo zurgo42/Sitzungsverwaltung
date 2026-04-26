@@ -169,8 +169,9 @@ $is_admin = in_array($current_user['role'] ?? '', ['assistenz', 'gf', 'vorstand'
                 <select name="assigned_to_member_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                     <option value="<?php echo $currentMemberID; ?>">Mir selbst</option>
                     <?php
-                    $members_stmt = $pdo->query("SELECT member_id, first_name, last_name, role FROM svmembers ORDER BY last_name, first_name");
-                    while ($member = $members_stmt->fetch(PDO::FETCH_ASSOC)) {
+                    // Adapter-kompatibel: get_all_members() verwenden
+                    $all_members_for_assign = get_all_members($pdo);
+                    foreach ($all_members_for_assign as $member) {
                         if ($member['member_id'] != $currentMemberID) {
                             echo '<option value="' . $member['member_id'] . '">';
                             echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')');

@@ -341,27 +341,41 @@ require_once 'process_admin.php';
             </thead>
             <tbody>
                 <?php
-                // Alle TODOs laden (Admin sieht alle)
-                $all_todos_stmt = $pdo->query("
-                    SELECT t.*,
-                        m_assigned.first_name as assigned_first,
-                        m_assigned.last_name as assigned_last,
-                        m_created.first_name as created_first,
-                        m_created.last_name as created_last
-                    FROM svtodos t
-                    LEFT JOIN svmembers m_assigned ON t.assigned_to_member_id = m_assigned.member_id
-                    LEFT JOIN svmembers m_created ON t.created_by_member_id = m_created.member_id
-                    ORDER BY
-                        CASE t.status
-                            WHEN 'open' THEN 1
-                            WHEN 'in progress' THEN 2
-                            WHEN 'delayed' THEN 3
-                            WHEN 'done' THEN 4
-                        END,
-                        t.due_date ASC NULLS LAST,
-                        t.todo_id DESC
-                ");
-                $all_todos = $all_todos_stmt->fetchAll(PDO::FETCH_ASSOC);
+                // Alle TODOs laden (Admin sieht alle) - Adapter-kompatibel
+                try {
+                    $all_todos_stmt = $pdo->query("
+                        SELECT t.*
+                        FROM svtodos t
+                        ORDER BY
+                            CASE t.status
+                                WHEN 'open' THEN 1
+                                WHEN 'in progress' THEN 2
+                                WHEN 'delayed' THEN 3
+                                WHEN 'done' THEN 4
+                            END,
+                            t.due_date ASC,
+                            t.todo_id DESC
+                    ");
+                    $all_todos = $all_todos_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    // Member-Daten über Adapter holen
+                    foreach ($all_todos as &$todo) {
+                        if ($todo['assigned_to_member_id']) {
+                            $assigned = get_member_by_id($pdo, $todo['assigned_to_member_id']);
+                            $todo['assigned_first'] = $assigned['first_name'] ?? '';
+                            $todo['assigned_last'] = $assigned['last_name'] ?? '';
+                        }
+                        if ($todo['created_by_member_id']) {
+                            $created = get_member_by_id($pdo, $todo['created_by_member_id']);
+                            $todo['created_first'] = $created['first_name'] ?? '';
+                            $todo['created_last'] = $created['last_name'] ?? '';
+                        }
+                    }
+                    unset($todo);
+                } catch (PDOException $e) {
+                    error_log("Admin TODO Load Error: " . $e->getMessage());
+                    $all_todos = [];
+                }
 
                 if (empty($all_todos)):
                 ?>
