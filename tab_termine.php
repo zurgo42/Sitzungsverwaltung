@@ -38,7 +38,7 @@ if ($is_admin) {
     // 1. Umfragen, bei denen sie Teilnehmer sind
     // 2. Umfragen, die sie selbst erstellt haben
     $stmt = $pdo->prepare("
-        SELECT DISTINCT p.*,
+        SELECT p.*,
                COUNT(DISTINCT pd.date_id) as date_count,
                COUNT(DISTINCT pr.member_id) as response_count,
                final_pd.suggested_date as final_date,
@@ -47,12 +47,14 @@ if ($is_admin) {
         LEFT JOIN svpoll_dates pd ON p.poll_id = pd.poll_id
         LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id
         LEFT JOIN svpoll_dates final_pd ON p.final_date_id = final_pd.date_id
-        LEFT JOIN svpoll_participants pp ON p.poll_id = pp.poll_id AND pp.member_id = ?
-        WHERE pp.member_id = ? OR p.created_by_member_id = ?
+        WHERE (
+            EXISTS (SELECT 1 FROM svpoll_participants WHERE poll_id = p.poll_id AND member_id = ?)
+            OR p.created_by_member_id = ?
+        )
         GROUP BY p.poll_id
         ORDER BY p.created_at DESC
     ");
-    $stmt->execute([$current_user['member_id'], $current_user['member_id'], $current_user['member_id']]);
+    $stmt->execute([$current_user['member_id'], $current_user['member_id']]);
 }
 $all_polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -770,9 +772,11 @@ if (isset($_SESSION['error'])) {
                         👥 <strong><?php echo $poll['response_count']; ?></strong> Teilnehmer abgestimmt ·
                         👤 Erstellt von <strong><?php echo htmlspecialchars($poll['creator_first_name'] . ' ' . $poll['creator_last_name']); ?></strong> ·
                         Zielgruppe: <?php
-                            if ($poll['target_type'] === 'individual') echo '🔗 Individuell (Link)';
-                            elseif ($poll['target_type'] === 'list') echo '📋 Ausgewählte Teilnehmer';
-                            elseif ($poll['target_type'] === 'public') echo '🌐 Öffentlich';
+                            $target_type = $poll['target_type'] ?? '';
+                            if ($target_type === 'individual') echo '🔗 Individuell (Link)';
+                            elseif ($target_type === 'list') echo '📋 Ausgewählte Teilnehmer';
+                            elseif ($target_type === 'public') echo '🌐 Öffentlich';
+                            else echo '–';
                         ?> ·
                         📅 <?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?>
                     </p>
@@ -972,9 +976,11 @@ if (isset($_SESSION['error'])) {
                 <p>
                     👤 Erstellt von <strong><?php echo htmlspecialchars($poll['creator_first_name'] . ' ' . $poll['creator_last_name']); ?></strong> ·
                     Zielgruppe: <?php
-                        if ($poll['target_type'] === 'individual') echo '🔗 Individuell (Link)';
-                        elseif ($poll['target_type'] === 'list') echo '📋 Ausgewählte Teilnehmer';
-                        elseif ($poll['target_type'] === 'public') echo '🌐 Öffentlich';
+                        $target_type_detail = $poll['target_type'] ?? '';
+                        if ($target_type_detail === 'individual') echo '🔗 Individuell (Link)';
+                        elseif ($target_type_detail === 'list') echo '📋 Ausgewählte Teilnehmer';
+                        elseif ($target_type_detail === 'public') echo '🌐 Öffentlich';
+                        else echo '–';
                     ?> ·
                     📅 <?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?>
                 </p>
