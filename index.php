@@ -424,6 +424,12 @@ if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
     error_log("Meeting Status nach process: " . ($meeting['status'] ?? 'NULL'));
 }
 
+// PROCESS TODOS
+// Wird bei POST-Requests auf dem ToDo-Tab ausgeführt
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'todos') {
+    require_once 'process_todos.php';
+}
+
 // PROCESS ADMIN
 // Wird bei POST-Requests auf dem Admin-Tab eingebunden
 // Dies geschieht bereits in der Presentation-Datei (tab_admin.php)
