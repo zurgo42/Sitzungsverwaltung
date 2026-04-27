@@ -644,7 +644,10 @@ foreach ($agenda_items as $item):
                                         <br>
                                         <small style="color: #999;">
                                             Hochgeladen: <?php echo date('d.m.Y H:i', strtotime($att['uploaded_at'])); ?>
-                                            von <?php echo htmlspecialchars(($att['first_name'] ?? '') . ' ' . ($att['last_name'] ?? '')); ?>
+                                            <?php
+                                            $uploader_name = trim(($att['first_name'] ?? '') . ' ' . ($att['last_name'] ?? ''));
+                                            echo $uploader_name ? 'von ' . htmlspecialchars($uploader_name) : '(Uploader gelöscht)';
+                                            ?>
                                         </small>
                                     </div>
                                     <div>

@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS svagenda_attachments (
     filepath VARCHAR(500) NOT NULL COMMENT 'Pfad zur Datei relativ zu uploads/',
     filesize INT NOT NULL COMMENT 'Dateigröße in Bytes',
     filetype VARCHAR(100) NOT NULL COMMENT 'MIME-Type',
-    uploaded_by_member_id INT NOT NULL COMMENT 'Wer hat hochgeladen',
+    uploaded_by_member_id INT DEFAULT NULL COMMENT 'Wer hat hochgeladen (NULL wenn Member gelöscht)',
     uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     INDEX idx_item_id (item_id),
