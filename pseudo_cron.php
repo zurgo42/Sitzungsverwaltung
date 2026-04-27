@@ -45,18 +45,19 @@ if ($should_run) {
         require_once __DIR__ . '/functions.php';
         require_once __DIR__ . '/notifications_functions.php';
 
-        // Meetings in 29-31 Minuten finden
+        // Meetings in 15-45 Minuten finden (breites Fenster für Pseudo-Cron)
+        // Verhindert verpasste Erinnerungen bei seltenen Seitenaufrufen
         $stmt = $pdo->query("
             SELECT meeting_id, meeting_name, meeting_date
             FROM svmeetings
             WHERE status IN ('preparation', 'active')
-            AND meeting_date BETWEEN DATE_ADD(NOW(), INTERVAL 29 MINUTE) AND DATE_ADD(NOW(), INTERVAL 31 MINUTE)
+            AND meeting_date BETWEEN DATE_ADD(NOW(), INTERVAL 15 MINUTE) AND DATE_ADD(NOW(), INTERVAL 45 MINUTE)
             AND meeting_id NOT IN (
                 SELECT DISTINCT related_meeting_id
                 FROM svnotifications
                 WHERE type = 'reminder'
                 AND related_meeting_id IS NOT NULL
-                AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                AND created_at > DATE_SUB(NOW(), INTERVAL 2 HOUR)
             )
         ");
 

@@ -20,26 +20,26 @@ if (php_sapi_name() !== 'cli' && !defined('ALLOW_CRON_WEB')) {
 echo "[" . date('Y-m-d H:i:s') . "] Meeting Reminder Cron started\n";
 
 try {
-    // Meetings in genau 30 Minuten finden
-    // Zeitfenster: 29-31 Minuten (um Timing-Probleme zu vermeiden)
+    // Meetings in 15-45 Minuten finden
+    // Breites Zeitfenster um verpasste Erinnerungen zu vermeiden
     $stmt = $pdo->query("
         SELECT meeting_id, meeting_name, meeting_date
         FROM svmeetings
         WHERE status IN ('preparation', 'active')
-        AND meeting_date BETWEEN DATE_ADD(NOW(), INTERVAL 29 MINUTE) AND DATE_ADD(NOW(), INTERVAL 31 MINUTE)
+        AND meeting_date BETWEEN DATE_ADD(NOW(), INTERVAL 15 MINUTE) AND DATE_ADD(NOW(), INTERVAL 45 MINUTE)
         AND meeting_id NOT IN (
             -- Keine doppelten Erinnerungen
             SELECT DISTINCT related_meeting_id
             FROM svnotifications
             WHERE type = 'reminder'
             AND related_meeting_id IS NOT NULL
-            AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+            AND created_at > DATE_SUB(NOW(), INTERVAL 2 HOUR)
         )
     ");
 
     $meetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    echo "Found " . count($meetings) . " meeting(s) starting in ~30 minutes\n";
+    echo "Found " . count($meetings) . " meeting(s) starting in 15-45 minutes\n";
 
     foreach ($meetings as $meeting) {
         echo "  - Sending reminders for: {$meeting['meeting_name']} ({$meeting['meeting_id']})\n";
