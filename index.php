@@ -370,7 +370,13 @@ if (!$current_user) {
 
 // Pseudo-Cron: Meeting-Erinnerungen im Hintergrund prüfen
 // Läuft max. 1x pro Minute bei Seitenaufrufen (nur für eingeloggte User)
-require_once 'pseudo_cron.php';
+// Fehler werden abgefangen, um die Seite nicht zu beeinträchtigen
+try {
+    @include_once 'pseudo_cron.php';
+} catch (Exception $e) {
+    // Fehler stillschweigend ignorieren - Pseudo-Cron ist optional
+    error_log("Pseudo-Cron Error: " . $e->getMessage());
+}
 
 // Aktiven Tab aus URL ermitteln (Standard: 'meetings')
 $active_tab = $_GET['tab'] ?? 'meetings';
