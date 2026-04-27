@@ -368,6 +368,10 @@ if (!$current_user) {
     exit;
 }
 
+// Pseudo-Cron: Meeting-Erinnerungen im Hintergrund prüfen
+// Läuft max. 1x pro Minute bei Seitenaufrufen (nur für eingeloggte User)
+require_once 'pseudo_cron.php';
+
 // Aktiven Tab aus URL ermitteln (Standard: 'meetings')
 $active_tab = $_GET['tab'] ?? 'meetings';
 
