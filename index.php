@@ -809,6 +809,9 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                 ⚙️ Admin
             </a>
         <?php endif; ?>
+
+        <!-- Benachrichtigungs-Center -->
+        <?php include 'notification_center.php'; ?>
     </div>
     
     <!-- HAUPTINHALT / CONTENT -->
