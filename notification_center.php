@@ -39,6 +39,7 @@ $type_icons = [
     transition: all 0.3s;
     font-weight: 500;
     font-size: 14px;
+    white-space: nowrap;
 }
 
 .notification-bell:hover {
@@ -151,7 +152,7 @@ $type_icons = [
 
 <!-- Notification Bell -->
 <div class="notification-bell" id="notification-bell" onclick="toggleNotificationDropdown()">
-    🔔
+    🔔 Nachricht
     <?php if ($unread_count > 0): ?>
         <span class="notification-badge" id="notification-badge"><?php echo $unread_count; ?></span>
     <?php endif; ?>
