@@ -237,8 +237,18 @@ function markAllRead() {
     fetch('mark_all_notifications_read.php', {
         method: 'POST'
     })
-    .then(() => {
-        location.reload();
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            console.error('Mark all read failed:', data);
+            location.reload(); // Trotzdem neu laden
+        }
+    })
+    .catch(error => {
+        console.error('Mark all read error:', error);
+        location.reload(); // Trotzdem neu laden
     });
 }
 

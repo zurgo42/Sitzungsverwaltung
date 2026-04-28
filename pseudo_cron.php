@@ -23,18 +23,22 @@ $should_run = false;
 if (!file_exists($lock_file)) {
     $should_run = true;
 } else {
-    $last_run = intval(@file_get_contents($lock_file));
-    $time_since_last = time() - $last_run;
-
-    if ($time_since_last >= $lock_timeout) {
+    $last_run = intval(file_get_contents($lock_file));
+    if ($last_run === 0) {
+        // Datei existiert aber ist leer oder korrupt
         $should_run = true;
+    } else {
+        $time_since_last = time() - $last_run;
+        if ($time_since_last >= $lock_timeout) {
+            $should_run = true;
+        }
     }
 }
 
 // Nur ausführen wenn Intervall abgelaufen
 if ($should_run) {
-    // Lock-File aktualisieren (verhindert parallele Ausführung)
-    @file_put_contents($lock_file, time());
+    // Lock-File SOFORT aktualisieren (verhindert Race Conditions)
+    file_put_contents($lock_file, time());
 
     // Meeting-Erinnerungen im Hintergrund ausführen
     try {
