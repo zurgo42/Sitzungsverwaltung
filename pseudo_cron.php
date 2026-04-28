@@ -8,12 +8,8 @@
  * Performance: Nur 1x pro Minute, auch bei vielen Seitenaufrufen
  */
 
-echo "<!-- DEBUG: pseudo_cron.php START -->\n";
-flush();
-
 // Nur ausführen wenn nicht CLI
 if (php_sapi_name() === 'cli') {
-    echo "<!-- DEBUG: Skipped (CLI mode) -->\n";
     return;
 }
 
@@ -27,7 +23,7 @@ $should_run = false;
 if (!file_exists($lock_file)) {
     $should_run = true;
 } else {
-    $last_run = intval(file_get_contents($lock_file));
+    $last_run = intval(@file_get_contents($lock_file));
     $time_since_last = time() - $last_run;
 
     if ($time_since_last >= $lock_timeout) {
@@ -37,52 +33,32 @@ if (!file_exists($lock_file)) {
 
 // Nur ausführen wenn Intervall abgelaufen
 if ($should_run) {
-    echo "<!-- DEBUG: Should run = TRUE -->\n";
-    flush();
-
     // Lock-File aktualisieren (verhindert parallele Ausführung)
-    file_put_contents($lock_file, time());
+    @file_put_contents($lock_file, time());
 
     // Meeting-Erinnerungen im Hintergrund ausführen
     try {
-        echo "<!-- DEBUG: Inside try block -->\n";
-        flush();
-
         // Prüfen ob $pdo verfügbar ist (aus index.php)
         if (!isset($pdo)) {
-            echo "<!-- DEBUG: PDO not set -->\n";
             return; // Kein Fehler - einfach überspringen
         }
 
-        echo "<!-- DEBUG: PDO is set -->\n";
-        flush();
-
         // Prüfen ob notifications_functions.php geladen wurde
         if (!function_exists('send_meeting_reminder')) {
-            echo "<!-- DEBUG: Loading notifications_functions.php -->\n";
-            flush();
             // Nachladen falls noch nicht vorhanden
             if (file_exists(__DIR__ . '/notifications_functions.php')) {
                 require_once __DIR__ . '/notifications_functions.php';
             } else {
-                echo "<!-- DEBUG: notifications_functions.php not found -->\n";
                 return; // Funktion nicht verfügbar
             }
         }
 
-        echo "<!-- DEBUG: Checking for svnotifications table -->\n";
-        flush();
-
         // Prüfen ob svnotifications Tabelle existiert
-        $table_check = $pdo->query("SHOW TABLES LIKE 'svnotifications'");
+        $table_check = @$pdo->query("SHOW TABLES LIKE 'svnotifications'");
         if (!$table_check || $table_check->rowCount() === 0) {
-            echo "<!-- DEBUG: svnotifications table not found -->\n";
             // Tabelle existiert noch nicht - Migration wurde nicht ausgeführt
             return; // Kein Fehler - einfach überspringen
         }
-
-        echo "<!-- DEBUG: Table check passed, querying meetings -->\n";
-        flush();
 
         // Meetings in 15-45 Minuten finden (breites Fenster für Pseudo-Cron)
         // Verhindert verpasste Erinnerungen bei seltenen Seitenaufrufen
@@ -114,16 +90,9 @@ if ($should_run) {
         }
 
     } catch (Exception $e) {
-        // TEMPORÄR: Fehler ausgeben für Debugging
+        // Fehler loggen aber nicht ausgeben (um Seite nicht zu stören)
         $error_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron Error: " . $e->getMessage() . "\n";
-        file_put_contents(__DIR__ . '/pseudo_cron.log', $error_msg, FILE_APPEND);
-
-        // Fehler auch ausgeben
-        throw $e; // Weiterwerfen für besseres Debugging
+        @file_put_contents(__DIR__ . '/pseudo_cron.log', $error_msg, FILE_APPEND);
+        // Wichtig: Exception nicht weiterwerfen - Seite soll normal laden
     }
-} else {
-    echo "<!-- DEBUG: Should run = FALSE (too soon) -->\n";
 }
-
-echo "<!-- DEBUG: pseudo_cron.php END -->\n";
-flush();

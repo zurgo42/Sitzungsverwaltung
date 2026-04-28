@@ -368,27 +368,14 @@ if (!$current_user) {
     exit;
 }
 
-// DEBUG: Zeige wo wir sind
-echo "<!-- DEBUG: Before pseudo_cron.php -->\n";
-flush();
-
 // Pseudo-Cron: Meeting-Erinnerungen im Hintergrund prüfen
 // Läuft max. 1x pro Minute bei Seitenaufrufen (nur für eingeloggte User)
-// TEMPORÄR: Fehlerausgabe aktiviert für Debugging
 try {
-    include_once 'pseudo_cron.php';
+    @include_once 'pseudo_cron.php';
 } catch (Exception $e) {
-    // Fehler anzeigen für Debugging
-    echo "<div style='background: red; color: white; padding: 10px; margin: 10px;'>";
-    echo "<strong>Pseudo-Cron Error:</strong> " . htmlspecialchars($e->getMessage());
-    echo "<br><strong>File:</strong> " . htmlspecialchars($e->getFile());
-    echo "<br><strong>Line:</strong> " . $e->getLine();
-    echo "<br><strong>Trace:</strong><pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
-    echo "</div>";
+    // Fehler stillschweigend ignorieren - Pseudo-Cron ist optional
+    error_log("Pseudo-Cron Error: " . $e->getMessage());
 }
-
-echo "<!-- DEBUG: After pseudo_cron.php -->\n";
-flush();
 
 // Aktiven Tab aus URL ermitteln (Standard: 'meetings')
 $active_tab = $_GET['tab'] ?? 'meetings';
@@ -833,21 +820,7 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         <?php endif; ?>
 
         <!-- Benachrichtigungs-Center -->
-        <?php
-        echo "<!-- DEBUG: Before notification_center.php include -->\n";
-        flush();
-
-        if (file_exists('notification_center.php')) {
-            echo "<!-- DEBUG: notification_center.php file exists -->\n";
-            flush();
-            include 'notification_center.php';
-        } else {
-            echo "<!-- DEBUG: notification_center.php file NOT FOUND -->\n";
-        }
-
-        echo "<!-- DEBUG: After notification_center.php include -->\n";
-        flush();
-        ?>
+        <?php include 'notification_center.php'; ?>
     </div>
     
     <!-- HAUPTINHALT / CONTENT -->
