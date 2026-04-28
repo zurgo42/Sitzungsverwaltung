@@ -120,13 +120,10 @@ define('ROLES_CONFIDENTIAL_ACCESS', ['vorstand', 'gf', 'assistenz']); // Rollen 
 date_default_timezone_set(TIMEZONE);
 
 // ============= DEBUG MODE =============
-if (DEBUG_MODE) {
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-} else {
-    error_reporting(0);
-    ini_set('display_errors', 0);
-}
+// TEMPORÄR: Error Reporting IMMER aktiviert für Debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
 
 // ============= SESSION-SICHERHEIT =============
 //ini_set('session.cookie_httponly', 1);
