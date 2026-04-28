@@ -361,7 +361,9 @@ if (isset($_POST['edit_meeting'])) {
             $meeting_id
         ]);
 
-        error_log("DEBUG process_meetings: Meeting UPDATE executed"); // DEBUG
+        $rows_affected = $stmt->rowCount();
+        error_log("DEBUG process_meetings: Meeting UPDATE executed - ROWS AFFECTED: $rows_affected"); // DEBUG
+        error_log("DEBUG process_meetings: Update values - name='$meeting_name', date='$meeting_date', end='$expected_end_date', deadline='$submission_deadline'"); // DEBUG
 
         // 2. Teilnehmer neu setzen
         $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
