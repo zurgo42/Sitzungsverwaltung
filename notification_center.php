@@ -32,13 +32,18 @@ $type_icons = [
     position: relative;
     display: inline-block;
     cursor: pointer;
-    padding: 8px 12px;
-    margin-left: 15px;
+    padding: 8px 14px;
+    background: var(--grau);
+    color: #333;
+    border-radius: 5px;
+    transition: all 0.3s;
+    font-weight: 500;
+    font-size: 14px;
 }
 
 .notification-bell:hover {
-    background: rgba(255,255,255,0.1);
-    border-radius: 4px;
+    background: var(--primary-lighter);
+    color: #333;
 }
 
 .notification-badge {
