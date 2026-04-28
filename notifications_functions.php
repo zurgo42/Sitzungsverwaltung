@@ -47,14 +47,15 @@ function create_notification($pdo, $member_id, $type, $title, $message, $link = 
  * @return array
  */
 function get_unread_notifications($pdo, $member_id, $limit = 20) {
+    $limit = intval($limit); // Sicherstellen dass es ein Integer ist
     $stmt = $pdo->prepare("
         SELECT *
         FROM svnotifications
         WHERE member_id = ? AND is_read = 0
         ORDER BY created_at DESC
-        LIMIT ?
+        LIMIT $limit
     ");
-    $stmt->execute([$member_id, $limit]);
+    $stmt->execute([$member_id]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
