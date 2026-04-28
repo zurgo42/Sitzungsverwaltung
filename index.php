@@ -833,7 +833,21 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         <?php endif; ?>
 
         <!-- Benachrichtigungs-Center -->
-        <?php include 'notification_center.php'; ?>
+        <?php
+        echo "<!-- DEBUG: Before notification_center.php include -->\n";
+        flush();
+
+        if (file_exists('notification_center.php')) {
+            echo "<!-- DEBUG: notification_center.php file exists -->\n";
+            flush();
+            include 'notification_center.php';
+        } else {
+            echo "<!-- DEBUG: notification_center.php file NOT FOUND -->\n";
+        }
+
+        echo "<!-- DEBUG: After notification_center.php include -->\n";
+        flush();
+        ?>
     </div>
     
     <!-- HAUPTINHALT / CONTENT -->
