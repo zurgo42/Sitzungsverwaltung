@@ -1,10 +1,25 @@
 <?php
+// Error Reporting aktivieren
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Alle vorherigen Ausgaben löschen (wichtig für sauberes JSON)
 if (ob_get_level()) ob_end_clean();
 
 session_start();
-require_once 'config.php';
-require_once 'notifications_functions.php';
+
+try {
+    require_once 'config.php';
+} catch (Exception $e) {
+    die(json_encode(['success' => false, 'error' => 'Config load failed: ' . $e->getMessage()]));
+}
+
+try {
+    require_once 'notifications_functions.php';
+} catch (Exception $e) {
+    die(json_encode(['success' => false, 'error' => 'Functions load failed: ' . $e->getMessage()]));
+}
 
 header('Content-Type: application/json');
 
