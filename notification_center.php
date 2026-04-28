@@ -151,7 +151,7 @@ $type_icons = [
 
 <!-- Notification Bell -->
 <div class="notification-bell" id="notification-bell" onclick="toggleNotificationDropdown()">
-    🔔 <span class="desktop-only">Nachricht</span>
+    🔔
     <?php if ($unread_count > 0): ?>
         <span class="notification-badge" id="notification-badge"><?php echo $unread_count; ?></span>
     <?php endif; ?>
