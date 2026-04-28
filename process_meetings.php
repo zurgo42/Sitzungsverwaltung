@@ -281,19 +281,28 @@ if (isset($_POST['create_meeting'])) {
  * Redirect: index.php?tab=meetings&success=updated&meeting_id=X
  */
 if (isset($_POST['edit_meeting'])) {
+    error_log("DEBUG process_meetings: edit_meeting POST received"); // DEBUG
+    error_log("DEBUG process_meetings: POST data: " . print_r($_POST, true)); // DEBUG
+
     $meeting_id = intval($_POST['meeting_id'] ?? 0);
-    
+
+    error_log("DEBUG process_meetings: meeting_id=$meeting_id"); // DEBUG
+
     if (!$meeting_id) {
+        error_log("DEBUG process_meetings: No meeting_id - redirecting to error"); // DEBUG
         header("Location: index.php?tab=meetings&error=invalid_id");
         exit;
     }
-    
+
     // Meeting laden und Berechtigung prüfen
     $stmt = $pdo->prepare("SELECT * FROM svmeetings WHERE meeting_id = ?");
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
+    error_log("DEBUG process_meetings: Meeting loaded: " . ($meeting ? 'YES' : 'NO')); // DEBUG
+
     if (!is_authorized_for_meeting($meeting, $current_user, ['preparation'])) {
+        error_log("DEBUG process_meetings: Authorization failed - redirecting"); // DEBUG
         header("Location: index.php?tab=meetings&error=permission");
         exit;
     }
@@ -310,7 +319,10 @@ if (isset($_POST['edit_meeting'])) {
     $participant_ids = $_POST['participant_ids'] ?? [];
     $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
 
+    error_log("DEBUG process_meetings: meeting_name=$meeting_name, meeting_date=$meeting_date"); // DEBUG
+
     if (empty($meeting_name) || empty($meeting_date)) {
+        error_log("DEBUG process_meetings: Validation failed - missing data"); // DEBUG
         header("Location: index.php?tab=meetings&error=missing_data&meeting_id=$meeting_id");
         exit;
     }
@@ -325,6 +337,7 @@ if (isset($_POST['edit_meeting'])) {
         $visibility_type = 'invited_only';
     }
 
+    error_log("DEBUG process_meetings: Starting transaction"); // DEBUG
     try {
         $pdo->beginTransaction();
 
@@ -347,20 +360,27 @@ if (isset($_POST['edit_meeting'])) {
             $visibility_type,
             $meeting_id
         ]);
-        
+
+        error_log("DEBUG process_meetings: Meeting UPDATE executed"); // DEBUG
+
         // 2. Teilnehmer neu setzen
         $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
         $stmt->execute([$meeting_id]);
-        
+
         add_participants($pdo, $meeting_id, $participant_ids);
-        
+
+        error_log("DEBUG process_meetings: Participants updated, committing transaction"); // DEBUG
+
         $pdo->commit();
-        
+
+        error_log("DEBUG process_meetings: Transaction committed, redirecting to success"); // DEBUG
+
         header("Location: index.php?tab=meetings&success=updated&meeting_id=$meeting_id");
         exit;
-        
+
     } catch (PDOException $e) {
         $pdo->rollBack();
+        error_log("DEBUG process_meetings: EXCEPTION during update: " . $e->getMessage()); // DEBUG
         error_log("Fehler beim Meeting-Aktualisieren: " . $e->getMessage());
         header("Location: index.php?tab=meetings&error=update_failed&meeting_id=$meeting_id");
         exit;

@@ -89,6 +89,9 @@ function log_admin_action($pdo, $admin_id, $action_type, $description, $target_t
  * - Admin-Aktion protokollieren
  */
 if (isset($_POST['edit_meeting'])) {
+    error_log("DEBUG: edit_meeting POST received"); // DEBUG
+    error_log("DEBUG: POST data: " . print_r($_POST, true)); // DEBUG
+
     $meeting_id = intval($_POST['meeting_id'] ?? 0);
     $meeting_name = trim($_POST['meeting_name'] ?? '');
     $meeting_date = $_POST['meeting_date'] ?? '';
@@ -103,9 +106,12 @@ if (isset($_POST['edit_meeting'])) {
     $secretary_id = !empty($_POST['secretary_id']) ? intval($_POST['secretary_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
 
+    error_log("DEBUG: meeting_id=$meeting_id, invited_by=$invited_by_member_id"); // DEBUG
+
     // Validierung
     if (!$meeting_id || !$meeting_name || !$meeting_date || !$status || !$invited_by_member_id) {
         $error_message = "Pflichtfelder fehlen.";
+        error_log("DEBUG: Validation failed: " . $error_message); // DEBUG
     } else {
         try {
             // Alte Daten für Log abrufen
