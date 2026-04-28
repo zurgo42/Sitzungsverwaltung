@@ -23,7 +23,7 @@ $should_run = false;
 if (!file_exists($lock_file)) {
     $should_run = true;
 } else {
-    $last_run = intval(@file_get_contents($lock_file));
+    $last_run = intval(file_get_contents($lock_file));
     $time_since_last = time() - $last_run;
 
     if ($time_since_last >= $lock_timeout) {
@@ -34,7 +34,7 @@ if (!file_exists($lock_file)) {
 // Nur ausführen wenn Intervall abgelaufen
 if ($should_run) {
     // Lock-File aktualisieren (verhindert parallele Ausführung)
-    @file_put_contents($lock_file, time());
+    file_put_contents($lock_file, time());
 
     // Meeting-Erinnerungen im Hintergrund ausführen
     try {
@@ -54,7 +54,7 @@ if ($should_run) {
         }
 
         // Prüfen ob svnotifications Tabelle existiert
-        $table_check = @$pdo->query("SHOW TABLES LIKE 'svnotifications'");
+        $table_check = $pdo->query("SHOW TABLES LIKE 'svnotifications'");
         if (!$table_check || $table_check->rowCount() === 0) {
             // Tabelle existiert noch nicht - Migration wurde nicht ausgeführt
             return; // Kein Fehler - einfach überspringen
@@ -90,9 +90,11 @@ if ($should_run) {
         }
 
     } catch (Exception $e) {
-        // Fehler loggen aber nicht ausgeben (um Seite nicht zu stören)
+        // TEMPORÄR: Fehler ausgeben für Debugging
         $error_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron Error: " . $e->getMessage() . "\n";
-        @file_put_contents(__DIR__ . '/pseudo_cron.log', $error_msg, FILE_APPEND);
-        // Wichtig: Nicht die Seite stoppen, sondern einfach weitermachen
+        file_put_contents(__DIR__ . '/pseudo_cron.log', $error_msg, FILE_APPEND);
+
+        // Fehler auch ausgeben
+        throw $e; // Weiterwerfen für besseres Debugging
     }
 }
