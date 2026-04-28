@@ -234,21 +234,30 @@ function handleNotificationClick(notificationId, link) {
 }
 
 function markAllRead() {
+    console.log('markAllRead called'); // DEBUG
+
     fetch('mark_all_notifications_read.php', {
         method: 'POST'
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response received:', response); // DEBUG
+        return response.json();
+    })
     .then(data => {
+        console.log('Data received:', data); // DEBUG
         if (data.success) {
+            console.log('Success - reloading'); // DEBUG
             location.reload();
         } else {
             console.error('Mark all read failed:', data);
-            location.reload(); // Trotzdem neu laden
+            alert('Fehler beim Markieren: ' + (data.error || 'Unbekannt'));
+            location.reload();
         }
     })
     .catch(error => {
         console.error('Mark all read error:', error);
-        location.reload(); // Trotzdem neu laden
+        alert('Netzwerkfehler: ' + error.message);
+        location.reload();
     });
 }
 
