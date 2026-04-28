@@ -240,24 +240,34 @@ function markAllRead() {
         method: 'POST'
     })
     .then(response => {
-        console.log('Response received:', response); // DEBUG
-        return response.json();
+        console.log('Response status:', response.status); // DEBUG
+        console.log('Response headers:', response.headers); // DEBUG
+
+        // Rohe Response als Text holen
+        return response.text();
     })
-    .then(data => {
-        console.log('Data received:', data); // DEBUG
-        if (data.success) {
-            console.log('Success - reloading'); // DEBUG
-            location.reload();
-        } else {
-            console.error('Mark all read failed:', data);
-            alert('Fehler beim Markieren: ' + (data.error || 'Unbekannt'));
-            location.reload();
+    .then(text => {
+        console.log('Raw response text:', text); // DEBUG
+        alert('Server response: ' + text); // Zeige rohe Antwort
+
+        // Versuche JSON zu parsen
+        try {
+            const data = JSON.parse(text);
+            console.log('Parsed data:', data);
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Fehler: ' + (data.error || 'Unbekannt'));
+                location.reload();
+            }
+        } catch (e) {
+            console.error('JSON parse error:', e);
+            alert('Ungültige Response (kein JSON): ' + text.substring(0, 200));
         }
     })
     .catch(error => {
-        console.error('Mark all read error:', error);
+        console.error('Fetch error:', error);
         alert('Netzwerkfehler: ' + error.message);
-        location.reload();
     });
 }
 
