@@ -6,15 +6,37 @@
  * Zeigt Badge mit Counter + Dropdown
  */
 
+echo "<!-- DEBUG: notification_center.php START -->\n";
+flush();
+
 if (!isset($_SESSION['member_id'])) {
+    echo "<!-- DEBUG: No member_id in session -->\n";
     return; // Nicht eingeloggt
 }
 
+echo "<!-- DEBUG: Loading notifications_functions.php -->\n";
+flush();
+
 require_once 'notifications_functions.php';
 
+echo "<!-- DEBUG: Calling notification functions -->\n";
+flush();
+
 $current_member_id = $_SESSION['member_id'];
-$unread_count = count_unread_notifications($pdo, $current_member_id);
-$notifications = get_unread_notifications($pdo, $current_member_id, 10);
+
+try {
+    $unread_count = count_unread_notifications($pdo, $current_member_id);
+    echo "<!-- DEBUG: Unread count: $unread_count -->\n";
+    flush();
+
+    $notifications = get_unread_notifications($pdo, $current_member_id, 10);
+    echo "<!-- DEBUG: Got " . count($notifications) . " notifications -->\n";
+    flush();
+} catch (Exception $e) {
+    echo "<!-- DEBUG ERROR: " . htmlspecialchars($e->getMessage()) . " -->\n";
+    $unread_count = 0;
+    $notifications = [];
+}
 
 // Icons für Typen
 $type_icons = [
@@ -299,3 +321,4 @@ if ('Notification' in window && Notification.permission === 'default') {
 }
 </script>
 <?php endif; ?>
+<?php echo "<!-- DEBUG: notification_center.php END -->\n"; flush(); ?>
