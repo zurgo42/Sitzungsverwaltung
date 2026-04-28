@@ -368,6 +368,10 @@ if (!$current_user) {
     exit;
 }
 
+// DEBUG: Zeige wo wir sind
+echo "<!-- DEBUG: Before pseudo_cron.php -->\n";
+flush();
+
 // Pseudo-Cron: Meeting-Erinnerungen im Hintergrund prüfen
 // Läuft max. 1x pro Minute bei Seitenaufrufen (nur für eingeloggte User)
 // TEMPORÄR: Fehlerausgabe aktiviert für Debugging
@@ -382,6 +386,9 @@ try {
     echo "<br><strong>Trace:</strong><pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
     echo "</div>";
 }
+
+echo "<!-- DEBUG: After pseudo_cron.php -->\n";
+flush();
 
 // Aktiven Tab aus URL ermitteln (Standard: 'meetings')
 $active_tab = $_GET['tab'] ?? 'meetings';
