@@ -34,26 +34,46 @@ if (!$item_id) {
     exit;
 }
 
-// Berechtigung prüfen: User muss Teilnehmer der Sitzung sein
+// Berechtigung prüfen: User muss Teilnehmer sein, Admin sein, oder Einlader/Vorsitzender/Schriftführer
+$current_user = get_member_by_id($pdo, $current_member_id);
+$is_admin = ($current_user['is_admin'] == 1);
+
 $stmt = $pdo->prepare("
-    SELECT ai.item_id, ai.meeting_id, m.status
+    SELECT ai.item_id, ai.meeting_id, m.status, m.invited_by_member_id, m.chairman_member_id, m.secretary_member_id
     FROM svagenda_items ai
     JOIN svmeetings m ON ai.meeting_id = m.meeting_id
-    LEFT JOIN svmeeting_participants mp ON m.meeting_id = mp.meeting_id AND mp.member_id = ?
     WHERE ai.item_id = ?
-    AND (mp.member_id IS NOT NULL OR m.visibility_type IN ('authenticated', 'public'))
 ");
-$stmt->execute([$current_member_id, $item_id]);
+$stmt->execute([$item_id]);
 $item = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$item) {
-    echo json_encode(['success' => false, 'error' => 'Keine Berechtigung oder TOP nicht gefunden']);
+    echo json_encode(['success' => false, 'error' => 'TOP nicht gefunden']);
     exit;
 }
 
-// Nur während preparation erlaubt
-if ($item['status'] !== 'preparation') {
-    echo json_encode(['success' => false, 'error' => 'Uploads nur während Vorbereitung erlaubt']);
+// Berechtigung: Admin ODER Teilnehmer ODER Einlader/Vorsitzender/Schriftführer
+$stmt_participant = $pdo->prepare("
+    SELECT member_id FROM svmeeting_participants
+    WHERE meeting_id = ? AND member_id = ?
+");
+$stmt_participant->execute([$item['meeting_id'], $current_member_id]);
+$is_participant = ($stmt_participant->rowCount() > 0);
+
+$is_meeting_role = in_array($current_member_id, [
+    $item['invited_by_member_id'],
+    $item['chairman_member_id'],
+    $item['secretary_member_id']
+]);
+
+if (!$is_admin && !$is_participant && !$is_meeting_role) {
+    echo json_encode(['success' => false, 'error' => 'Keine Berechtigung']);
+    exit;
+}
+
+// Während preparation und active erlaubt
+if (!in_array($item['status'], ['preparation', 'active'])) {
+    echo json_encode(['success' => false, 'error' => 'Uploads nur während Vorbereitung und aktiver Sitzung erlaubt']);
     exit;
 }
 

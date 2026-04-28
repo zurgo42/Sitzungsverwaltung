@@ -56,9 +56,9 @@ try {
         exit;
     }
 
-    // Nur während preparation
-    if ($attachment['status'] !== 'preparation') {
-        echo json_encode(['success' => false, 'error' => 'Löschen nur während Vorbereitung erlaubt']);
+    // Nur während preparation und active
+    if (!in_array($attachment['status'], ['preparation', 'active'])) {
+        echo json_encode(['success' => false, 'error' => 'Löschen nur während Vorbereitung und aktiver Sitzung erlaubt']);
         exit;
     }
 

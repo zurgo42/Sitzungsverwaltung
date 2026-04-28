@@ -528,7 +528,90 @@ foreach ($agenda_items as $item):
                 <div style="color: #999; font-size: 12px;">Keine Kommentare aus Vorbereitung</div>
             <?php endif; ?>
         </div>
-        
+
+        <!-- Dateianhänge -->
+        <details style="margin: 15px 0; border: 1px solid #2196f3; border-radius: 5px; padding: 10px; background: #f0f8ff;">
+            <summary style="cursor: pointer; font-weight: bold; color: #1976d2;">
+                📎 Dateianhänge (Drag & Drop)
+            </summary>
+            <div style="margin-top: 10px;">
+                <?php
+                // Vorhandene Attachments laden
+                $stmt_attachments = $pdo->prepare("
+                    SELECT aa.*, m.first_name, m.last_name
+                    FROM svagenda_attachments aa
+                    LEFT JOIN svmembers m ON aa.uploaded_by_member_id = m.member_id
+                    WHERE aa.item_id = ?
+                    ORDER BY aa.uploaded_at DESC
+                ");
+                $stmt_attachments->execute([$item['item_id']]);
+                $attachments = $stmt_attachments->fetchAll(PDO::FETCH_ASSOC);
+                ?>
+
+                <!-- Vorhandene Dateien -->
+                <div id="attachments-list-<?php echo $item['item_id']; ?>">
+                    <?php if (!empty($attachments)): ?>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Angehängte Dateien:</strong>
+                            <?php foreach ($attachments as $att): ?>
+                                <div style="padding: 8px; background: white; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        📄 <strong><?php echo htmlspecialchars($att['original_filename']); ?></strong>
+                                        <small style="color: #666;">(<?php echo number_format($att['filesize'] / 1024, 1); ?> KB)</small>
+                                        <br>
+                                        <small style="color: #999;">
+                                            Hochgeladen: <?php echo date('d.m.Y H:i', strtotime($att['uploaded_at'])); ?>
+                                            <?php
+                                            $uploader_name = trim(($att['first_name'] ?? '') . ' ' . ($att['last_name'] ?? ''));
+                                            echo $uploader_name ? 'von ' . htmlspecialchars($uploader_name) : '(Uploader gelöscht)';
+                                            ?>
+                                        </small>
+                                    </div>
+                                    <div>
+                                        <a href="<?php echo htmlspecialchars($att['filepath']); ?>" download class="btn-view" style="margin-right: 5px;">⬇️ Download</a>
+                                        <?php if ($att['uploaded_by_member_id'] == $current_user['member_id'] || $is_admin): ?>
+                                            <button onclick="deleteAttachment(<?php echo $att['attachment_id']; ?>, <?php echo $item['item_id']; ?>)" class="btn-delete">🗑️</button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Drag & Drop Zone -->
+                <div class="drop-zone" id="drop-zone-<?php echo $item['item_id']; ?>"
+                     ondrop="handleDrop(event, <?php echo $item['item_id']; ?>)"
+                     ondragover="allowDrop(event)"
+                     ondragleave="dragLeave(event)"
+                     style="border: 2px dashed #2196f3; border-radius: 8px; padding: 30px; text-align: center; background: #f5f5f5; cursor: pointer; transition: all 0.3s;">
+
+                    <input type="file" id="file-input-<?php echo $item['item_id']; ?>"
+                           multiple
+                           style="display: none;"
+                           onchange="handleFileSelect(event, <?php echo $item['item_id']; ?>)">
+
+                    <div onclick="document.getElementById('file-input-<?php echo $item['item_id']; ?>').click()">
+                        <div style="font-size: 48px; margin-bottom: 10px;">📎</div>
+                        <p style="margin: 0; font-weight: bold; color: #1976d2;">
+                            Dateien hier ablegen oder klicken
+                        </p>
+                        <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">
+                            Max. 10 MB pro Datei • Mehrere Dateien möglich
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Upload Progress -->
+                <div id="upload-progress-<?php echo $item['item_id']; ?>" style="display: none; margin-top: 10px;">
+                    <div style="background: #e3f2fd; padding: 10px; border-radius: 4px;">
+                        <strong>⏳ Uploading...</strong>
+                        <div id="upload-status-<?php echo $item['item_id']; ?>"></div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
         <!-- LIVE-KOMMENTARE (dynamisch ein-/ausgeblendet je nach Aktiv-Status) -->
         <?php if ($item['top_number'] != 999): ?>
             <div id="live-comments-container-<?php echo $item['item_id']; ?>"
@@ -917,4 +1000,121 @@ function updateAllProtocols() {
         }
     });
 <?php endif; ?>
+
+// ============================================
+// Drag & Drop File Upload
+// ============================================
+
+function allowDrop(e) {
+    e.preventDefault();
+    e.currentTarget.style.background = '#e3f2fd';
+    e.currentTarget.style.borderColor = '#1976d2';
+}
+
+function dragLeave(e) {
+    e.currentTarget.style.background = '#f5f5f5';
+    e.currentTarget.style.borderColor = '#2196f3';
+}
+
+function handleDrop(e, itemId) {
+    e.preventDefault();
+    e.currentTarget.style.background = '#f5f5f5';
+    e.currentTarget.style.borderColor = '#2196f3';
+
+    const files = e.dataTransfer.files;
+    uploadFiles(files, itemId);
+}
+
+function handleFileSelect(e, itemId) {
+    const files = e.target.files;
+    uploadFiles(files, itemId);
+}
+
+function uploadFiles(files, itemId) {
+    if (files.length === 0) return;
+
+    const formData = new FormData();
+    for (let file of files) {
+        formData.append('files[]', file);
+    }
+    formData.append('item_id', itemId);
+
+    // Progress anzeigen
+    const progressDiv = document.getElementById('upload-progress-' + itemId);
+    const statusDiv = document.getElementById('upload-status-' + itemId);
+    progressDiv.style.display = 'block';
+    statusDiv.innerHTML = 'Uploading ' + files.length + ' Datei(en)...';
+
+    fetch('upload_agenda_attachment.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            statusDiv.innerHTML = '✅ ' + data.uploaded.length + ' Datei(en) erfolgreich hochgeladen!';
+
+            // Seite neu laden um Attachments anzuzeigen
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            statusDiv.innerHTML = '❌ Fehler: ' + (data.error || 'Unbekannter Fehler');
+        }
+
+        if (data.errors && data.errors.length > 0) {
+            statusDiv.innerHTML += '<br><small>' + data.errors.join('<br>') + '</small>';
+        }
+
+        // Progress nach 3 Sekunden ausblenden
+        setTimeout(() => {
+            progressDiv.style.display = 'none';
+        }, 3000);
+    })
+    .catch(error => {
+        statusDiv.innerHTML = '❌ Upload-Fehler: ' + error.message;
+        console.error('Upload error:', error);
+    });
+}
+
+function deleteAttachment(attachmentId, itemId) {
+    if (!confirm('Datei wirklich löschen?')) return;
+
+    fetch('delete_agenda_attachment.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'attachment_id=' + attachmentId
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Fehler: ' + (data.error || 'Löschen fehlgeschlagen'));
+        }
+    })
+    .catch(error => {
+        alert('Fehler beim Löschen: ' + error.message);
+        console.error('Delete error:', error);
+    });
+}
+
+// Drag & Drop Styling
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZones = document.querySelectorAll('.drop-zone');
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', function(e) {
+            this.style.transform = 'scale(1.02)';
+        });
+        zone.addEventListener('dragleave', function(e) {
+            this.style.transform = 'scale(1)';
+        });
+        zone.addEventListener('drop', function(e) {
+            this.style.transform = 'scale(1)';
+        });
+    });
+});
+
 </script>
