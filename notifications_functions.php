@@ -139,24 +139,12 @@ function send_meeting_reminder($pdo, $meeting_id) {
     $stmt->execute([$meeting_id]);
     $participants = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-    // Tatsächliche Zeit bis Meeting berechnen
+    // Meeting-Zeit formatieren
     $meeting_time = strtotime($meeting['meeting_date']);
-    $now = time();
-    $minutes_until = round(($meeting_time - $now) / 60);
+    $meeting_time_formatted = date('H:i', $meeting_time);
 
-    // Nachricht dynamisch anpassen
     $title = "Sitzung beginnt gleich";
-    if ($minutes_until <= 5) {
-        $time_text = "in wenigen Minuten";
-    } elseif ($minutes_until <= 15) {
-        $time_text = "in ca. $minutes_until Minuten";
-    } elseif ($minutes_until <= 45) {
-        $time_text = "in ca. 30 Minuten";
-    } else {
-        $time_text = "demnächst";
-    }
-
-    $message = "Die Sitzung \"" . $meeting['meeting_name'] . "\" beginnt $time_text";
+    $message = "Die Sitzung \"" . $meeting['meeting_name'] . "\" beginnt um $meeting_time_formatted Uhr";
     $link = "?tab=agenda&meeting_id=" . $meeting_id;
 
     foreach ($participants as $member_id) {
