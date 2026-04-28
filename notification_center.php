@@ -241,18 +241,41 @@ function markAllRead() {
     })
     .then(response => {
         console.log('Response status:', response.status); // DEBUG
-        console.log('Response headers:', response.headers); // DEBUG
+        console.log('Response ok:', response.ok); // DEBUG
+
+        // Status prüfen
+        if (!response.ok) {
+            alert('HTTP Error: ' + response.status + ' ' + response.statusText);
+            return response.text();
+        }
 
         // Rohe Response als Text holen
-        return response.text();
+        return response.text().then(text => {
+            return {status: response.status, text: text};
+        });
     })
-    .then(text => {
-        console.log('Raw response text:', text); // DEBUG
-        alert('Server response: ' + text); // Zeige rohe Antwort
+    .then(result => {
+        if (typeof result === 'string') {
+            // Error case
+            console.log('Error response:', result);
+            alert('Server Error Response: ' + result.substring(0, 500));
+            return;
+        }
+
+        console.log('Response status:', result.status);
+        console.log('Raw response text:', result.text);
+        console.log('Response length:', result.text.length);
+
+        if (result.text.length === 0) {
+            alert('Leere Response vom Server! Status: ' + result.status);
+            return;
+        }
+
+        alert('Server response (length=' + result.text.length + '): ' + result.text.substring(0, 500));
 
         // Versuche JSON zu parsen
         try {
-            const data = JSON.parse(text);
+            const data = JSON.parse(result.text);
             console.log('Parsed data:', data);
             if (data.success) {
                 location.reload();
@@ -262,7 +285,7 @@ function markAllRead() {
             }
         } catch (e) {
             console.error('JSON parse error:', e);
-            alert('Ungültige Response (kein JSON): ' + text.substring(0, 200));
+            alert('Ungültige Response (kein JSON):\n' + result.text.substring(0, 500));
         }
     })
     .catch(error => {
