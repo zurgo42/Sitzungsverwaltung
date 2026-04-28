@@ -1,53 +1,50 @@
 <?php
-// Error Reporting aktivieren
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-// Alle vorherigen Ausgaben löschen (wichtig für sauberes JSON)
-if (ob_get_level()) ob_end_clean();
-
-session_start();
-
-try {
-    require_once 'config.php';
-} catch (Exception $e) {
-    die(json_encode(['success' => false, 'error' => 'Config load failed: ' . $e->getMessage()]));
-}
-
-try {
-    require_once 'notifications_functions.php';
-} catch (Exception $e) {
-    die(json_encode(['success' => false, 'error' => 'Functions load failed: ' . $e->getMessage()]));
-}
-
 header('Content-Type: application/json');
 
-// Debug logging
-error_log("mark_all_notifications_read.php called");
-
-if (!isset($_SESSION['member_id'])) {
-    error_log("No member_id in session");
-    echo json_encode(['success' => false, 'error' => 'Not authenticated']);
+// Test 1: Einfaches JSON
+if (!isset($_GET['step'])) {
+    echo json_encode(['success' => true, 'message' => 'Basic JSON works', 'step' => 0]);
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    error_log("Not POST method");
-    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+// Test 2: Session
+if ($_GET['step'] == 1) {
+    session_start();
+    echo json_encode(['success' => true, 'message' => 'Session works', 'step' => 1, 'has_member_id' => isset($_SESSION['member_id'])]);
+    exit;
+}
+
+// Test 3: Config
+if ($_GET['step'] == 2) {
+    session_start();
+    require_once 'config.php';
+    echo json_encode(['success' => true, 'message' => 'Config loaded', 'step' => 2, 'has_pdo' => isset($pdo)]);
+    exit;
+}
+
+// Test 4: Functions
+if ($_GET['step'] == 3) {
+    session_start();
+    require_once 'config.php';
+    require_once 'notifications_functions.php';
+    echo json_encode(['success' => true, 'message' => 'Functions loaded', 'step' => 3, 'function_exists' => function_exists('mark_all_notifications_read')]);
+    exit;
+}
+
+// Normal execution
+session_start();
+require_once 'config.php';
+require_once 'notifications_functions.php';
+
+if (!isset($_SESSION['member_id']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(['success' => false, 'error' => 'Not authenticated or wrong method']);
     exit;
 }
 
 try {
     $member_id = $_SESSION['member_id'];
-    error_log("Marking all read for member_id: $member_id");
-
     $success = mark_all_notifications_read($pdo, $member_id);
-
-    error_log("Result: " . ($success ? 'true' : 'false'));
     echo json_encode(['success' => $success]);
 } catch (Exception $e) {
-    error_log("Error in mark_all_notifications_read.php: " . $e->getMessage());
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
-
