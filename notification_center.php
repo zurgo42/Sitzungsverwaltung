@@ -234,63 +234,21 @@ function handleNotificationClick(notificationId, link) {
 }
 
 function markAllRead() {
-    console.log('markAllRead called'); // DEBUG
-
     fetch('mark_all_notifications_read.php', {
         method: 'POST'
     })
-    .then(response => {
-        console.log('Response status:', response.status); // DEBUG
-        console.log('Response ok:', response.ok); // DEBUG
-
-        // Status prüfen
-        if (!response.ok) {
-            alert('HTTP Error: ' + response.status + ' ' + response.statusText);
-            return response.text();
-        }
-
-        // Rohe Response als Text holen
-        return response.text().then(text => {
-            return {status: response.status, text: text};
-        });
-    })
-    .then(result => {
-        if (typeof result === 'string') {
-            // Error case
-            console.log('Error response:', result);
-            alert('Server Error Response: ' + result.substring(0, 500));
-            return;
-        }
-
-        console.log('Response status:', result.status);
-        console.log('Raw response text:', result.text);
-        console.log('Response length:', result.text.length);
-
-        if (result.text.length === 0) {
-            alert('Leere Response vom Server! Status: ' + result.status);
-            return;
-        }
-
-        alert('Server response (length=' + result.text.length + '): ' + result.text.substring(0, 500));
-
-        // Versuche JSON zu parsen
-        try {
-            const data = JSON.parse(result.text);
-            console.log('Parsed data:', data);
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Fehler: ' + (data.error || 'Unbekannt'));
-                location.reload();
-            }
-        } catch (e) {
-            console.error('JSON parse error:', e);
-            alert('Ungültige Response (kein JSON):\n' + result.text.substring(0, 500));
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            console.error('Fehler beim Markieren als gelesen:', data.error);
+            location.reload();
         }
     })
     .catch(error => {
-        console.error('Fetch error:', error);
-        alert('Netzwerkfehler: ' + error.message);
+        console.error('Netzwerkfehler:', error);
+        location.reload();
     });
 }
 

@@ -529,12 +529,17 @@ foreach ($agenda_items as $item):
             <?php endif; ?>
         </div>
 
-        <!-- Dateianhänge -->
-        <details style="margin: 15px 0; border: 1px solid #2196f3; border-radius: 5px; padding: 10px; background: #f0f8ff;">
-            <summary style="cursor: pointer; font-weight: bold; color: #1976d2;">
-                📎 Dateianhänge (Drag & Drop)
+        <!-- Dateianhänge (kompakt) -->
+        <details style="margin: 10px 0;">
+            <summary style="cursor: pointer; padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                📎 Dateianhänge (<?php
+                // Anzahl vorhandener Attachments
+                $stmt_count = $pdo->prepare("SELECT COUNT(*) FROM svagenda_attachments WHERE item_id = ?");
+                $stmt_count->execute([$item['item_id']]);
+                echo $stmt_count->fetchColumn();
+                ?>)
             </summary>
-            <div style="margin-top: 10px;">
+            <div style="margin-top: 10px; padding: 10px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px;">
                 <?php
                 // Vorhandene Attachments laden
                 $stmt_attachments = $pdo->prepare("
@@ -551,26 +556,17 @@ foreach ($agenda_items as $item):
                 <!-- Vorhandene Dateien -->
                 <div id="attachments-list-<?php echo $item['item_id']; ?>">
                     <?php if (!empty($attachments)): ?>
-                        <div style="margin-bottom: 15px;">
-                            <strong>Angehängte Dateien:</strong>
+                        <div style="margin-bottom: 10px;">
                             <?php foreach ($attachments as $att): ?>
-                                <div style="padding: 8px; background: white; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="padding: 6px; background: white; border: 1px solid #ddd; border-radius: 3px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
                                     <div>
                                         📄 <strong><?php echo htmlspecialchars($att['original_filename']); ?></strong>
                                         <small style="color: #666;">(<?php echo number_format($att['filesize'] / 1024, 1); ?> KB)</small>
-                                        <br>
-                                        <small style="color: #999;">
-                                            Hochgeladen: <?php echo date('d.m.Y H:i', strtotime($att['uploaded_at'])); ?>
-                                            <?php
-                                            $uploader_name = trim(($att['first_name'] ?? '') . ' ' . ($att['last_name'] ?? ''));
-                                            echo $uploader_name ? 'von ' . htmlspecialchars($uploader_name) : '(Uploader gelöscht)';
-                                            ?>
-                                        </small>
                                     </div>
                                     <div>
-                                        <a href="<?php echo htmlspecialchars($att['filepath']); ?>" download class="btn-view" style="margin-right: 5px;">⬇️ Download</a>
+                                        <a href="<?php echo htmlspecialchars($att['filepath']); ?>" download style="margin-right: 5px; font-size: 12px;">⬇️</a>
                                         <?php if ($att['uploaded_by_member_id'] == $current_user['member_id'] || $is_admin): ?>
-                                            <button onclick="deleteAttachment(<?php echo $att['attachment_id']; ?>, <?php echo $item['item_id']; ?>)" class="btn-delete">🗑️</button>
+                                            <button onclick="deleteAttachment(<?php echo $att['attachment_id']; ?>, <?php echo $item['item_id']; ?>)" style="background: none; border: none; cursor: pointer; font-size: 12px;">🗑️</button>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -579,12 +575,12 @@ foreach ($agenda_items as $item):
                     <?php endif; ?>
                 </div>
 
-                <!-- Drag & Drop Zone -->
+                <!-- Drag & Drop Zone (kompakt) -->
                 <div class="drop-zone" id="drop-zone-<?php echo $item['item_id']; ?>"
                      ondrop="handleDrop(event, <?php echo $item['item_id']; ?>)"
                      ondragover="allowDrop(event)"
                      ondragleave="dragLeave(event)"
-                     style="border: 2px dashed #2196f3; border-radius: 8px; padding: 30px; text-align: center; background: #f5f5f5; cursor: pointer; transition: all 0.3s;">
+                     style="border: 1px dashed #999; border-radius: 4px; padding: 15px; text-align: center; background: #fefefe; cursor: pointer; font-size: 12px;">
 
                     <input type="file" id="file-input-<?php echo $item['item_id']; ?>"
                            multiple
@@ -592,19 +588,15 @@ foreach ($agenda_items as $item):
                            onchange="handleFileSelect(event, <?php echo $item['item_id']; ?>)">
 
                     <div onclick="document.getElementById('file-input-<?php echo $item['item_id']; ?>').click()">
-                        <div style="font-size: 48px; margin-bottom: 10px;">📎</div>
-                        <p style="margin: 0; font-weight: bold; color: #1976d2;">
-                            Dateien hier ablegen oder klicken
-                        </p>
-                        <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">
-                            Max. 10 MB pro Datei • Mehrere Dateien möglich
-                        </p>
+                        <span style="font-size: 20px;">📎</span>
+                        <span style="color: #666;">Dateien hier ablegen oder klicken</span>
+                        <small style="display: block; color: #999; margin-top: 3px;">Max. 10 MB pro Datei</small>
                     </div>
                 </div>
 
                 <!-- Upload Progress -->
-                <div id="upload-progress-<?php echo $item['item_id']; ?>" style="display: none; margin-top: 10px;">
-                    <div style="background: #e3f2fd; padding: 10px; border-radius: 4px;">
+                <div id="upload-progress-<?php echo $item['item_id']; ?>" style="display: none; margin-top: 8px;">
+                    <div style="background: #e3f2fd; padding: 8px; border-radius: 3px; font-size: 12px;">
                         <strong>⏳ Uploading...</strong>
                         <div id="upload-status-<?php echo $item['item_id']; ?>"></div>
                     </div>
