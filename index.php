@@ -413,24 +413,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($active_tab === 'meetings' || $act
 // Wird geladen wenn eine Meeting-ID vorhanden ist und der Agenda-Tab aktiv ist
 // WICHTIG: Wird auch bei GET-Requests geladen, da es Status-Updates verarbeitet
 if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
-    
+
     // Zuerst Meeting-Details laden
     $meeting = get_meeting_details($pdo, $current_meeting_id);
-    
-    // Debug-Logging (kann später entfernt werden)
-    error_log("=== LOADING process_agenda.php ===");
-    error_log("Meeting loaded: " . ($meeting ? 'YES' : 'NO'));
-    error_log("Meeting Status: " . ($meeting['status'] ?? 'NULL'));
-    error_log("POST data: " . print_r($_POST, true));
-    
+
     // process_agenda.php einbinden (verarbeitet Formular-Aktionen)
-    require_once 'module_helpers.php'; 
+    require_once 'module_helpers.php';
 	require_once 'process_agenda.php';
-    
+
     // WICHTIG: Meeting nach process_agenda NEU laden
     // Der Status könnte durch process_agenda.php geändert worden sein
     $meeting = get_meeting_details($pdo, $current_meeting_id);
-    error_log("Meeting Status nach process: " . ($meeting['status'] ?? 'NULL'));
 }
 
 // PROCESS TODOS

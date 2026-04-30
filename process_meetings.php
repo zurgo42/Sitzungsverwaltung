@@ -281,15 +281,11 @@ if (isset($_POST['create_meeting'])) {
  * Redirect: index.php?tab=meetings&success=updated&meeting_id=X
  */
 if (isset($_POST['edit_meeting'])) {
-    error_log("DEBUG process_meetings: edit_meeting POST received"); // DEBUG
-    error_log("DEBUG process_meetings: POST data: " . print_r($_POST, true)); // DEBUG
 
     $meeting_id = intval($_POST['meeting_id'] ?? 0);
 
-    error_log("DEBUG process_meetings: meeting_id=$meeting_id"); // DEBUG
 
     if (!$meeting_id) {
-        error_log("DEBUG process_meetings: No meeting_id - redirecting to error"); // DEBUG
         header("Location: index.php?tab=meetings&error=invalid_id");
         exit;
     }
@@ -299,10 +295,8 @@ if (isset($_POST['edit_meeting'])) {
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    error_log("DEBUG process_meetings: Meeting loaded: " . ($meeting ? 'YES' : 'NO')); // DEBUG
 
     if (!is_authorized_for_meeting($meeting, $current_user, ['preparation'])) {
-        error_log("DEBUG process_meetings: Authorization failed - redirecting"); // DEBUG
         header("Location: index.php?tab=meetings&error=permission");
         exit;
     }
@@ -330,10 +324,8 @@ if (isset($_POST['edit_meeting'])) {
         $submission_deadline = str_replace('T', ' ', $submission_deadline) . ':00';
     }
 
-    error_log("DEBUG process_meetings: meeting_name=$meeting_name, meeting_date=$meeting_date"); // DEBUG
 
     if (empty($meeting_name) || empty($meeting_date)) {
-        error_log("DEBUG process_meetings: Validation failed - missing data"); // DEBUG
         header("Location: index.php?tab=meetings&error=missing_data&meeting_id=$meeting_id");
         exit;
     }
@@ -348,7 +340,6 @@ if (isset($_POST['edit_meeting'])) {
         $visibility_type = 'invited_only';
     }
 
-    error_log("DEBUG process_meetings: Starting transaction"); // DEBUG
 
     // DEBUG: Zeige den exakten SQL-Befehl mit Werten
     $debug_sql = "UPDATE svmeetings SET " .
@@ -362,7 +353,6 @@ if (isset($_POST['edit_meeting'])) {
                  "secretary_member_id=" . ($secretary_member_id ?: 'NULL') . ", " .
                  "visibility_type='$visibility_type' " .
                  "WHERE meeting_id=$meeting_id";
-    error_log("DEBUG process_meetings: SQL QUERY: $debug_sql"); // DEBUG
 
     try {
         $pdo->beginTransaction();
@@ -388,14 +378,11 @@ if (isset($_POST['edit_meeting'])) {
         ]);
 
         $rows_affected = $stmt->rowCount();
-        error_log("DEBUG process_meetings: Meeting UPDATE executed - ROWS AFFECTED: $rows_affected"); // DEBUG
-        error_log("DEBUG process_meetings: Update values - name='$meeting_name', date='$meeting_date', end='$expected_end_date', deadline='$submission_deadline'"); // DEBUG
 
         // VERIFY: Lese die gespeicherten Werte direkt aus DB zurück
         $verify_stmt = $pdo->prepare("SELECT meeting_name, meeting_date, expected_end_date, submission_deadline FROM svmeetings WHERE meeting_id = ?");
         $verify_stmt->execute([$meeting_id]);
         $saved_data = $verify_stmt->fetch(PDO::FETCH_ASSOC);
-        error_log("DEBUG process_meetings: VERIFY - DB contains after UPDATE: " . print_r($saved_data, true)); // DEBUG
 
         // 2. Teilnehmer neu setzen
         $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
@@ -403,18 +390,15 @@ if (isset($_POST['edit_meeting'])) {
 
         add_participants($pdo, $meeting_id, $participant_ids);
 
-        error_log("DEBUG process_meetings: Participants updated, committing transaction"); // DEBUG
 
         $pdo->commit();
 
-        error_log("DEBUG process_meetings: Transaction committed, redirecting to success"); // DEBUG
 
         header("Location: index.php?tab=meetings&success=updated&meeting_id=$meeting_id");
         exit;
 
     } catch (PDOException $e) {
         $pdo->rollBack();
-        error_log("DEBUG process_meetings: EXCEPTION during update: " . $e->getMessage()); // DEBUG
         error_log("Fehler beim Meeting-Aktualisieren: " . $e->getMessage());
         header("Location: index.php?tab=meetings&error=update_failed&meeting_id=$meeting_id");
         exit;
