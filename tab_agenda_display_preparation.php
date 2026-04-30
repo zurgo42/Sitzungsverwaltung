@@ -179,7 +179,7 @@ if ($can_move_tops) {
 
             <!-- Nicht eingeladene Teilnehmer hinzufügen -->
             <h4 style="margin: 0 0 10px 0; color: #1976d2;">➕ Nicht eingeladene Teilnehmer hinzufügen</h4>
-            <form method="POST" action="">
+            <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
                 <input type="hidden" name="add_uninvited_participant" value="1">
 
                 <?php
@@ -321,7 +321,7 @@ if ($can_move_tops) {
                 }
             }
         </style>
-        <form method="POST" action="">
+        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
             <input type="hidden" name="add_agenda_item" value="1">
 
             <div class="form-group top-form-group">
@@ -532,7 +532,7 @@ foreach ($agenda_items as $item):
             <summary style="cursor: pointer; font-weight: bold; color: #555;">
                 ✏️ TOP bearbeiten
             </summary>
-            <form method="POST" action="" style="margin-top: 10px;">
+            <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="margin-top: 10px;">
                 <input type="hidden" name="edit_agenda_item" value="1">
                 <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                 
@@ -585,7 +585,7 @@ foreach ($agenda_items as $item):
             <summary style="cursor: pointer; font-weight: bold; color: #e65100;">
                 📤 TOP zu künftiger Sitzung verschieben
             </summary>
-            <form method="POST" action="" style="margin-top: 10px;" onsubmit="return confirm('TOP wirklich zur ausgewählten Sitzung verschieben?');">
+            <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="margin-top: 10px;" onsubmit="return confirm('TOP wirklich zur ausgewählten Sitzung verschieben?');">
                 <input type="hidden" name="move_agenda_item" value="1">
                 <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
 
@@ -626,7 +626,7 @@ foreach ($agenda_items as $item):
             <?php endif; ?>
 
             <!-- Kommentar hinzufügen (immer anzeigen) -->
-            <form method="POST" action="">
+            <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
                 <input type="hidden" name="add_comment_preparation" value="1">
                 <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
 
@@ -720,7 +720,7 @@ foreach ($agenda_items as $item):
 <!-- Sitzung starten Button -->
 <?php if ($can_edit_meeting): ?>
     <div style="margin: 30px 0; padding: 20px; background: #4CAF50; border-radius: 8px; text-align: center;">
-        <form method="POST" action="" onsubmit="return confirm('Sitzung jetzt starten? Danach kann nur der Protokollführer neue TOPs hinzufügen.');">
+        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" onsubmit="return confirm('Sitzung jetzt starten? Danach kann nur der Protokollführer neue TOPs hinzufügen.');">
             <input type="hidden" name="start_meeting" value="1">
             <button type="submit" style="background: white; color: #4CAF50; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 1.2em; font-weight: bold;">
                 ▶️ Sitzung starten

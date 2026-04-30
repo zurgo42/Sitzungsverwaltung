@@ -19,7 +19,7 @@ if (empty($agenda_items)) {
             👥 Teilnehmerverwaltung (klicken zum Auf-/Zuklappen)
         </summary>
 
-        <form method="POST" action="">
+        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
             <input type="hidden" name="update_attendance" value="1">
 
             <div style="margin-bottom: 15px;">
@@ -102,7 +102,7 @@ if (empty($agenda_items)) {
 
 <!-- TOPS ANZEIGEN -->
 <?php if ($is_secretary): ?>
-<form method="POST" action="">
+<form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
     <input type="hidden" name="save_protocol_ready_changes" value="1">
 <?php endif; ?>
 
@@ -330,7 +330,7 @@ foreach ($agenda_items as $item):
                 $my_chairman_comment = $stmt->fetch(PDO::FETCH_ASSOC);
                 ?>
 
-                <form method="POST" action="" style="margin-top: 8px;">
+                <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="margin-top: 8px;">
                     <input type="hidden" name="save_chairman_comment" value="1">
                     <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                     <textarea name="comment_text" rows="3"
@@ -406,7 +406,7 @@ foreach ($agenda_items as $item):
         <p style="color: #666; margin-bottom: 10px;">
             Falls du Änderungen am Protokoll wünschst, kannst du dem Protokollanten eine Überarbeitungsanfrage senden.
         </p>
-        <form method="POST" action="" onsubmit="return confirm('Überarbeitungsanfrage wirklich senden? Der Protokollant erhält ein entsprechendes ToDo.');">
+        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" onsubmit="return confirm('Überarbeitungsanfrage wirklich senden? Der Protokollant erhält ein entsprechendes ToDo.');">
             <input type="hidden" name="request_protocol_revision" value="1">
             <button type="submit" style="background: #ff9800; color: white; padding: 10px 20px; font-size: 16px; font-weight: 600; border: none; border-radius: 4px; cursor: pointer;">
                 📝 Protokolländerung anfordern
@@ -420,7 +420,7 @@ foreach ($agenda_items as $item):
         <p style="color: #666; margin-bottom: 10px;">
             Als Sitzungsleiter kannst du das Protokoll jetzt genehmigen und archivieren.
         </p>
-        <form method="POST" action="" onsubmit="return confirm('Protokoll wirklich genehmigen? Das Meeting wird dann archiviert.');">
+        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" onsubmit="return confirm('Protokoll wirklich genehmigen? Das Meeting wird dann archiviert.');">
             <input type="hidden" name="approve_protocol" value="1">
             <button type="submit" style="background: #4caf50; color: white; padding: 10px 20px; font-size: 16px; font-weight: 600; border: none; border-radius: 4px; cursor: pointer;">
                 ✅ Protokoll jetzt genehmigen

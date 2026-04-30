@@ -90,7 +90,7 @@ $active_item_id = $stmt->fetchColumn();
             👥 Teilnehmerverwaltung (klicken zum Auf-/Zuklappen)
         </summary>
 
-        <form method="POST" action="">
+        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
             <input type="hidden" name="update_attendance" value="1">
 
             <div style="margin-bottom: 15px;">
@@ -148,7 +148,7 @@ $active_item_id = $stmt->fetchColumn();
         <!-- Nicht eingeladene Teilnehmer hinzufügen -->
         <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #2196f3;">
             <h4 style="margin: 0 0 10px 0; color: #1976d2;">➕ Nicht eingeladene Teilnehmer hinzufügen</h4>
-            <form method="POST" action="">
+            <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
                 <input type="hidden" name="add_uninvited_participant" value="1">
 
                 <?php
@@ -279,7 +279,7 @@ $active_item_id = $stmt->fetchColumn();
 <div class="form-section" style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0; border: 2px solid #4caf50;">
     <h3 style="color: #2e7d32; margin-bottom: 15px;">➕ Neuen TOP hinzufügen (während Sitzung)</h3>
 
-    <form method="POST" action="">
+    <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
         <input type="hidden" name="add_agenda_item_active" value="1">
 
         <div class="form-group">
@@ -452,7 +452,7 @@ foreach ($agenda_items as $item):
                     <?php endif; ?>
                     
                     <!-- Verschieben öffentlich/vertraulich -->
-                    <form method="POST" action="" style="display: inline;" onsubmit="return confirm('TOP wirklich verschieben?');">
+                    <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="display: inline;" onsubmit="return confirm('TOP wirklich verschieben?');">
                         <input type="hidden" name="toggle_confidential" value="1">
                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                         <button type="submit" style="background: #2196f3; color: white; padding: 4px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">
@@ -479,7 +479,7 @@ foreach ($agenda_items as $item):
 
                 <!-- Priorität (editierbar für Sekretär bei aktivem TOP) -->
                 <?php if ($is_active && $is_secretary): ?>
-                    <form method="POST" action="" style="display: inline;">
+                    <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="display: inline;">
                         <input type="hidden" name="update_active_priority" value="1">
                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                         <label>Priorität:</label>
@@ -638,7 +638,7 @@ foreach ($agenda_items as $item):
                 </div>
 
                 <!-- Formular für neuen Live-Kommentar -->
-                <form method="POST" action="" class="live-comment-form">
+                <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" class="live-comment-form">
                     <input type="hidden" name="add_live_comment" value="1">
                     <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
 
@@ -667,7 +667,7 @@ foreach ($agenda_items as $item):
                 <div style="margin-top: 15px; padding: 12px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 6px;">
                     <h4 style="color: #1976d2; margin-bottom: 10px;">📝 Protokoll</h4>
 
-                    <form method="POST" action="">
+                    <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
                         <input type="hidden" name="save_protocol" value="1">
                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
 
@@ -711,7 +711,7 @@ foreach ($agenda_items as $item):
                     
                     if (!empty($future_meetings)):
                 ?>
-                    <form method="POST" action="" style="margin-top: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 5px;">
+                    <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="margin-top: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 5px;">
                         <input type="hidden" name="save_resubmit" value="1">
                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                         
@@ -784,7 +784,7 @@ foreach ($agenda_items as $item):
         <p style="color: #666; margin-bottom: 10px;">
             Wenn alle TOPs behandelt wurden, kannst du die Sitzung beenden und das Protokoll erstellen.
         </p>
-        <form method="POST" action="" onsubmit="return confirm('Sitzung jetzt beenden?');">
+        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" onsubmit="return confirm('Sitzung jetzt beenden?');">
             <input type="hidden" name="end_meeting" value="1">
             <button type="submit" style="background: #ff9800; color: white; padding: 10px 20px; font-size: 16px; font-weight: 600; border: none; border-radius: 4px; cursor: pointer;">
                 ⏸️ Sitzung jetzt beenden

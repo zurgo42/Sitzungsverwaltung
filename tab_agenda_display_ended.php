@@ -19,7 +19,7 @@ if (empty($agenda_items)) {
             👥 Teilnehmerverwaltung (klicken zum Auf-/Zuklappen)
         </summary>
 
-        <form method="POST" action="">
+        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
             <input type="hidden" name="update_attendance" value="1">
 
             <div style="margin-bottom: 15px;">
@@ -99,7 +99,7 @@ if (empty($agenda_items)) {
 </div>
 
 <!-- TOPS ANZEIGEN -->
-<form method="POST" action="">
+<form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
     <input type="hidden" name="save_ended_changes" value="1">
 
 <?php 
@@ -369,7 +369,7 @@ foreach ($agenda_items as $item):
         <p style="color: #666; margin-bottom: 10px;">
             Wenn das Protokoll fertig ist, kannst du es zur Genehmigung durch den Sitzungsleiter freigeben.
         </p>
-        <form method="POST" action="" onsubmit="return confirm('Protokoll wirklich freigeben? Du kannst danach noch Änderungen vornehmen.');">
+        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" onsubmit="return confirm('Protokoll wirklich freigeben? Du kannst danach noch Änderungen vornehmen.');">
             <input type="hidden" name="release_protocol" value="1">
             <button type="submit" style="background: #4caf50; color: white; padding: 10px 20px; font-size: 16px; font-weight: 600; border: none; border-radius: 4px; cursor: pointer;">
                 ✅ Protokoll jetzt freigeben
