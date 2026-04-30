@@ -48,7 +48,8 @@ function update_demo_meeting_dates($pdo) {
                 expected_end_date = ?,
                 submission_deadline = NULL
             WHERE meeting_id = 50
-            AND (status IN ('ended', 'archived') OR (status = 'preparation' AND meeting_date < NOW()))
+            AND status = 'preparation'
+            AND meeting_date < NOW()
         ");
         $stmt->execute([
             $meeting50_start->format('Y-m-d H:i:s'),
@@ -69,7 +70,8 @@ function update_demo_meeting_dates($pdo) {
                 expected_end_date = ?,
                 submission_deadline = ?
             WHERE meeting_id = 51
-            AND (status IN ('ended', 'archived') OR (status = 'preparation' AND meeting_date < NOW()))
+            AND status = 'preparation'
+            AND meeting_date < NOW()
         ");
         $stmt->execute([
             $meeting51_start->format('Y-m-d H:i:s'),
@@ -89,7 +91,8 @@ function update_demo_meeting_dates($pdo) {
                 expected_end_date = ?,
                 submission_deadline = NULL
             WHERE meeting_id = 63
-            AND (status IN ('ended', 'archived') OR (status = 'preparation' AND meeting_date < NOW()))
+            AND status = 'preparation'
+            AND meeting_date < NOW()
         ");
         $stmt->execute([
             $meeting63_start->format('Y-m-d H:i:s'),
@@ -110,7 +113,8 @@ function update_demo_meeting_dates($pdo) {
                 expected_end_date = ?,
                 submission_deadline = ?
             WHERE meeting_id = 64
-            AND (status IN ('ended', 'archived') OR (status = 'preparation' AND meeting_date < NOW()))
+            AND status = 'preparation'
+            AND meeting_date < NOW()
         ");
         $stmt->execute([
             $meeting64_start->format('Y-m-d H:i:s'),
@@ -133,7 +137,8 @@ function update_demo_meeting_dates($pdo) {
                 expected_end_date = ?,
                 submission_deadline = ?
             WHERE meeting_id = 65
-            AND (status IN ('ended', 'archived') OR (status = 'preparation' AND meeting_date < NOW()))
+            AND status = 'preparation'
+            AND meeting_date < NOW()
         ");
         $stmt->execute([
             $meeting65_start->format('Y-m-d H:i:s'),
