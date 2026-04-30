@@ -1718,6 +1718,11 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
  * Änderungen im Status "ended" speichern
  */
 if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
+    error_log("DEBUG save_ended_changes: Handler wird ausgeführt");
+    error_log("DEBUG save_ended_changes: is_secretary = " . ($is_secretary ? 'YES' : 'NO'));
+    error_log("DEBUG save_ended_changes: Protocol texts count = " . count($_POST['protocol_text'] ?? []));
+    error_log("DEBUG save_ended_changes: Post comments count = " . count($_POST['post_comment'] ?? []));
+
     try {
         // Protokoll speichern (nur Sekretär)
         if ($is_secretary) {
@@ -1726,17 +1731,22 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
             $vote_no = $_POST['vote_no'] ?? [];
             $vote_abstain = $_POST['vote_abstain'] ?? [];
             $vote_result = $_POST['vote_result'] ?? [];
-            
+
             foreach ($protocol_texts as $item_id => $text) {
                 $item_id = intval($item_id);
                 $text = trim($text);
-                
+
+                error_log("DEBUG save_ended_changes: Saving protocol for item_id=$item_id, text_length=" . strlen($text));
+
                 $stmt = $pdo->prepare("UPDATE svagenda_items SET protocol_notes = ? WHERE item_id = ?");
                 $stmt->execute([$text, $item_id]);
-                
+                $rows = $stmt->rowCount();
+
+                error_log("DEBUG save_ended_changes: Protocol UPDATE rows affected: $rows");
+
                 if (isset($vote_result[$item_id]) && !empty($vote_result[$item_id])) {
                     $stmt = $pdo->prepare("
-                        UPDATE svagenda_items 
+                        UPDATE svagenda_items
                         SET vote_yes = ?, vote_no = ?, vote_abstain = ?, vote_result = ?
                         WHERE item_id = ?
                     ");
@@ -1747,33 +1757,38 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
                         $vote_result[$item_id],
                         $item_id
                     ]);
+
+                    error_log("DEBUG save_ended_changes: Voting results saved for item_id=$item_id");
                 }
             }
         }
-        
+
         // Nachträgliche Kommentare speichern (alle Teilnehmer)
         $post_comments = $_POST['post_comment'] ?? [];
         foreach ($post_comments as $item_id => $comment_text) {
             $item_id = intval($item_id);
             $comment_text = trim($comment_text);
-            
+
+            error_log("DEBUG save_ended_changes: Processing post_comment for item_id=$item_id, text_length=" . strlen($comment_text));
+
             if (!empty($comment_text)) {
                 // Prüfen ob schon Kommentar existiert
                 $stmt = $pdo->prepare("
-                    SELECT comment_id FROM svagenda_post_comments 
+                    SELECT comment_id FROM svagenda_post_comments
                     WHERE item_id = ? AND member_id = ?
                 ");
                 $stmt->execute([$item_id, $current_user['member_id']]);
                 $existing = $stmt->fetch();
-                
+
                 if ($existing) {
                     // Update
                     $stmt = $pdo->prepare("
-                        UPDATE svagenda_post_comments 
+                        UPDATE svagenda_post_comments
                         SET comment_text = ?, updated_at = NOW()
                         WHERE comment_id = ?
                     ");
                     $stmt->execute([$comment_text, $existing['comment_id']]);
+                    error_log("DEBUG save_ended_changes: Post comment UPDATED (comment_id={$existing['comment_id']})");
                 } else {
                     // Insert
                     $stmt = $pdo->prepare("
@@ -1781,22 +1796,32 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
                         VALUES (?, ?, ?, NOW())
                     ");
                     $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+                    error_log("DEBUG save_ended_changes: Post comment INSERTED (new comment_id=" . $pdo->lastInsertId() . ")");
                 }
             } else {
                 // Leerer Text = Kommentar löschen
                 $stmt = $pdo->prepare("
-                    DELETE FROM svagenda_post_comments 
+                    DELETE FROM svagenda_post_comments
                     WHERE item_id = ? AND member_id = ?
                 ");
                 $stmt->execute([$item_id, $current_user['member_id']]);
+                error_log("DEBUG save_ended_changes: Post comment DELETED (if existed)");
             }
         }
-        
+
+        error_log("DEBUG save_ended_changes: SUCCESS - Redirecting to agenda");
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
     } catch (PDOException $e) {
-        error_log("Fehler beim Speichern: " . $e->getMessage());
+        error_log("DEBUG save_ended_changes: ERROR - " . $e->getMessage());
+        error_log("DEBUG save_ended_changes: ERROR - Stack trace: " . $e->getTraceAsString());
     }
+} elseif (isset($_POST['save_ended_changes'])) {
+    // save_ended_changes wurde gesendet, aber Bedingung nicht erfüllt
+    error_log("DEBUG save_ended_changes: BLOCKED - Condition not met");
+    error_log("DEBUG save_ended_changes: isset(POST['save_ended_changes']) = YES");
+    error_log("DEBUG save_ended_changes: meeting status = " . ($meeting['status'] ?? 'NULL'));
+    error_log("DEBUG save_ended_changes: meeting status === 'ended' = " . (($meeting['status'] ?? null) === 'ended' ? 'YES' : 'NO'));
 }
 
 /**
