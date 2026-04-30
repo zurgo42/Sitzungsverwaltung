@@ -48,6 +48,7 @@ function update_demo_meeting_dates($pdo) {
                 expected_end_date = ?,
                 submission_deadline = NULL
             WHERE meeting_id = 50
+            AND status IN ('ended', 'archived')
         ");
         $stmt->execute([
             $meeting50_start->format('Y-m-d H:i:s'),
@@ -68,6 +69,7 @@ function update_demo_meeting_dates($pdo) {
                 expected_end_date = ?,
                 submission_deadline = ?
             WHERE meeting_id = 51
+            AND status IN ('ended', 'archived')
         ");
         $stmt->execute([
             $meeting51_start->format('Y-m-d H:i:s'),
@@ -87,6 +89,7 @@ function update_demo_meeting_dates($pdo) {
                 expected_end_date = ?,
                 submission_deadline = NULL
             WHERE meeting_id = 63
+            AND status IN ('ended', 'archived')
         ");
         $stmt->execute([
             $meeting63_start->format('Y-m-d H:i:s'),
@@ -107,6 +110,7 @@ function update_demo_meeting_dates($pdo) {
                 expected_end_date = ?,
                 submission_deadline = ?
             WHERE meeting_id = 64
+            AND status IN ('ended', 'archived')
         ");
         $stmt->execute([
             $meeting64_start->format('Y-m-d H:i:s'),
@@ -115,6 +119,7 @@ function update_demo_meeting_dates($pdo) {
         ]);
 
         // Meeting 65: Heute+1 Tag 19:00-20:30, Deadline heute 00:01
+        // NUR aktualisieren wenn Meeting beendet/archiviert ist (nicht bei aktiver Bearbeitung)
         $meeting65_start = clone $now;
         $meeting65_start->modify('+1 day')->setTime(19, 0, 0);
         $meeting65_end = clone $meeting65_start;
@@ -128,6 +133,7 @@ function update_demo_meeting_dates($pdo) {
                 expected_end_date = ?,
                 submission_deadline = ?
             WHERE meeting_id = 65
+            AND status IN ('ended', 'archived')
         ");
         $stmt->execute([
             $meeting65_start->format('Y-m-d H:i:s'),
