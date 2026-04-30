@@ -349,6 +349,21 @@ if (isset($_POST['edit_meeting'])) {
     }
 
     error_log("DEBUG process_meetings: Starting transaction"); // DEBUG
+
+    // DEBUG: Zeige den exakten SQL-Befehl mit Werten
+    $debug_sql = "UPDATE svmeetings SET " .
+                 "meeting_name='$meeting_name', " .
+                 "meeting_date='$meeting_date', " .
+                 "expected_end_date='$expected_end_date', " .
+                 "submission_deadline='$submission_deadline', " .
+                 "location='$location', " .
+                 "video_link='$video_link', " .
+                 "chairman_member_id=" . ($chairman_member_id ?: 'NULL') . ", " .
+                 "secretary_member_id=" . ($secretary_member_id ?: 'NULL') . ", " .
+                 "visibility_type='$visibility_type' " .
+                 "WHERE meeting_id=$meeting_id";
+    error_log("DEBUG process_meetings: SQL QUERY: $debug_sql"); // DEBUG
+
     try {
         $pdo->beginTransaction();
 
