@@ -376,6 +376,12 @@ if (isset($_POST['edit_meeting'])) {
         error_log("DEBUG process_meetings: Meeting UPDATE executed - ROWS AFFECTED: $rows_affected"); // DEBUG
         error_log("DEBUG process_meetings: Update values - name='$meeting_name', date='$meeting_date', end='$expected_end_date', deadline='$submission_deadline'"); // DEBUG
 
+        // VERIFY: Lese die gespeicherten Werte direkt aus DB zurück
+        $verify_stmt = $pdo->prepare("SELECT meeting_name, meeting_date, expected_end_date, submission_deadline FROM svmeetings WHERE meeting_id = ?");
+        $verify_stmt->execute([$meeting_id]);
+        $saved_data = $verify_stmt->fetch(PDO::FETCH_ASSOC);
+        error_log("DEBUG process_meetings: VERIFY - DB contains after UPDATE: " . print_r($saved_data, true)); // DEBUG
+
         // 2. Teilnehmer neu setzen
         $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
         $stmt->execute([$meeting_id]);
