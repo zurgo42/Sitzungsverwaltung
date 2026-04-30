@@ -106,6 +106,17 @@ if (isset($_POST['edit_meeting'])) {
     $secretary_id = !empty($_POST['secretary_id']) ? intval($_POST['secretary_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
 
+    // Datetime-Format konvertieren: 2026-05-01T17:00 -> 2026-05-01 17:00:00
+    if (!empty($meeting_date)) {
+        $meeting_date = str_replace('T', ' ', $meeting_date) . ':00';
+    }
+    if (!empty($expected_end_date)) {
+        $expected_end_date = str_replace('T', ' ', $expected_end_date) . ':00';
+    }
+    if (!empty($submission_deadline)) {
+        $submission_deadline = str_replace('T', ' ', $submission_deadline) . ':00';
+    }
+
     error_log("DEBUG: meeting_id=$meeting_id, invited_by=$invited_by_member_id"); // DEBUG
 
     // Validierung

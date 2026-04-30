@@ -319,6 +319,17 @@ if (isset($_POST['edit_meeting'])) {
     $participant_ids = $_POST['participant_ids'] ?? [];
     $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
 
+    // Datetime-Format konvertieren: 2026-05-01T17:00 -> 2026-05-01 17:00:00
+    if (!empty($meeting_date)) {
+        $meeting_date = str_replace('T', ' ', $meeting_date) . ':00';
+    }
+    if (!empty($expected_end_date)) {
+        $expected_end_date = str_replace('T', ' ', $expected_end_date) . ':00';
+    }
+    if (!empty($submission_deadline)) {
+        $submission_deadline = str_replace('T', ' ', $submission_deadline) . ':00';
+    }
+
     error_log("DEBUG process_meetings: meeting_name=$meeting_name, meeting_date=$meeting_date"); // DEBUG
 
     if (empty($meeting_name) || empty($meeting_date)) {
