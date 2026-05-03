@@ -137,6 +137,10 @@ if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
     ini_set('session.cookie_secure', 1);          // Cookie nur über HTTPS
 }
 
+// Session-Laufzeit: 7 Tage (bessere UX für interne Nutzer)
+ini_set('session.gc_maxlifetime', 7 * 24 * 60 * 60);    // 7 Tage Server-seitig
+ini_set('session.cookie_lifetime', 7 * 24 * 60 * 60);   // 7 Tage Client-seitig
+
 // ============= FOOTER-KONFIGURATION =============
 define('FOOTER_COPYRIGHT', '&copy; Dr. Hermann Meier, Horstmannsmühle 1a, 42781 Haan Tel. 02129 379 2870 eMail meier@zurgo.de');
 define('FOOTER_IMPRESSUM_URL', 'https://geschäftsordnung.com/?page_id=53');
