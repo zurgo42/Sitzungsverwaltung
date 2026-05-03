@@ -44,8 +44,8 @@ function save_external_participant_cookie($first_name, $last_name, $email) {
         'email' => $email
     ]);
 
-    // Cookie für 7 Tage speichern
-    $expires = time() + (7 * 24 * 60 * 60);
+    // Cookie für 30 Tage speichern (externe Umfragen laufen nicht so häufig)
+    $expires = time() + (30 * 24 * 60 * 60);
     return setcookie('sv_external_participant', $cookie_data, $expires, '/', '', false, true);
 }
 
