@@ -411,11 +411,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
             <p>Um an dieser Umfrage teilzunehmen, benötigen wir einige Angaben von dir. Deine Daten werden vertraulich behandelt und ausschließlich für diese Umfrage verwendet.</p>
         </div>
 
-        <!-- Hinweis für Führungsteam-Mitglieder -->
+        <!-- Hinweis für registrierte Nutzer -->
         <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
-            <strong style="color: #2e7d32;">💡 Mitglied im Führungsteam?</strong>
+            <strong style="color: #2e7d32;">💡 Schon im Sitzungstool registriert?</strong>
             <p style="margin: 8px 0 0 0; color: #1b5e20; line-height: 1.5;">
-                Wenn du bereits im Sitzungstool registriert bist, gib einfach nur deine <strong>Mitgliedsnummer</strong> an!
+                Dann gib einfach nur deine <strong>Mitgliedsnummer</strong> an!
                 Deine Stimme wird dann automatisch mit deinem Profil im Sitzungstool verknüpft.
                 Name und E-Mail werden automatisch aus deinem Profil übernommen.
             </p>
@@ -426,7 +426,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
 
             <div class="form-group">
                 <label>
-                    Mitgliedsnummer (für Führungsteam-Mitglieder)
+                    Mitgliedsnummer (falls registriert)
                 </label>
                 <input type="text"
                        name="mnr"
