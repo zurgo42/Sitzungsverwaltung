@@ -280,20 +280,36 @@ function get_all_responses($pdo, $poll_id, $show_names = false) {
 
     // Member-Daten über Adapter nachladen
     foreach ($responses as &$response) {
+        // Namen immer laden, wenn member_id vorhanden
         if ($response['member_id']) {
             $member = get_member_by_id($pdo, $response['member_id']);
             if ($member) {
                 $response['first_name'] = $member['first_name'];
                 $response['last_name'] = $member['last_name'];
+            } else {
+                // Member nicht gefunden - auf Anonym setzen
+                $response['first_name'] = 'Anonym';
+                $response['last_name'] = '';
             }
         }
 
-        // Namen anonymisieren falls nötig
+        // Namen anonymisieren falls nötig:
+        // - Wenn Umfrage anonym ist UND User nicht Ersteller/Admin ($show_names=false)
+        // - Oder wenn User explizit anonym bleiben will (force_anonymous)
+        // - Oder wenn kein member_id (externe/session-basierte Teilnehmer)
         if (!$show_names) {
             if ($response['force_anonymous'] || !$response['member_id']) {
                 $response['first_name'] = 'Anonym';
                 $response['last_name'] = '';
             }
+        } elseif ($response['force_anonymous']) {
+            // Auch bei nicht-anonymen Umfragen: User will anonym bleiben
+            $response['first_name'] = 'Anonym';
+            $response['last_name'] = '';
+        } elseif (!$response['member_id'] && empty($response['first_name'])) {
+            // Kein Member und keine Namen geladen
+            $response['first_name'] = 'Anonym';
+            $response['last_name'] = '';
         }
     }
 
@@ -368,4 +384,58 @@ function get_poll_by_token($pdo, $token) {
     ");
     $stmt->execute([$token]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Lädt Voter-Namen für jede Option (für Tooltips)
+ *
+ * @param PDO $pdo
+ * @param int $poll_id
+ * @param bool $show_names Ob Namen angezeigt werden dürfen
+ * @return array ['option_id' => ['names' => array, 'count' => int]]
+ */
+function get_voters_per_option($pdo, $poll_id, $show_names = false) {
+    $stmt = $pdo->prepare("
+        SELECT
+            oro.option_id,
+            r.member_id,
+            r.force_anonymous
+        FROM svopinion_response_options oro
+        JOIN svopinion_responses r ON oro.response_id = r.response_id
+        WHERE r.poll_id = ?
+        ORDER BY oro.option_id, r.responded_at ASC
+    ");
+    $stmt->execute([$poll_id]);
+    $votes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $result = [];
+
+    foreach ($votes as $vote) {
+        $option_id = $vote['option_id'];
+
+        if (!isset($result[$option_id])) {
+            $result[$option_id] = [
+                'names' => [],
+                'count' => 0
+            ];
+        }
+
+        $result[$option_id]['count']++;
+
+        // Namen laden wenn erlaubt
+        if ($show_names) {
+            if ($vote['member_id'] && !$vote['force_anonymous']) {
+                $member = get_member_by_id($pdo, $vote['member_id']);
+                if ($member) {
+                    $result[$option_id]['names'][] = $member['first_name'] . ' ' . $member['last_name'];
+                } else {
+                    $result[$option_id]['names'][] = 'Anonym';
+                }
+            } else {
+                $result[$option_id]['names'][] = 'Anonym';
+            }
+        }
+    }
+
+    return $result;
 }
