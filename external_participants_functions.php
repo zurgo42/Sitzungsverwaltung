@@ -133,6 +133,29 @@ function create_external_participant($pdo, $poll_type, $poll_id, $first_name, $l
  * @param string $session_token
  * @return array|null Teilnehmer-Daten oder NULL
  */
+/**
+ * Lädt externen Teilnehmer per ID
+ *
+ * @param PDO $pdo
+ * @param int $external_id
+ * @return array|null Teilnehmer-Daten oder null
+ */
+function get_external_participant_by_id($pdo, $external_id) {
+    $stmt = $pdo->prepare("
+        SELECT * FROM svexternal_participants
+        WHERE external_id = ?
+    ");
+    $stmt->execute([$external_id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Lädt externen Teilnehmer per Session-Token
+ *
+ * @param PDO $pdo
+ * @param string $session_token
+ * @return array|null Teilnehmer-Daten oder null
+ */
 function get_external_participant_by_token($pdo, $session_token) {
     $stmt = $pdo->prepare("
         SELECT * FROM svexternal_participants

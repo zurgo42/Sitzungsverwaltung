@@ -278,7 +278,9 @@ function get_all_responses($pdo, $poll_id, $show_names = false) {
     $stmt->execute([$poll_id]);
     $responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Member-Daten über Adapter nachladen
+    // Member-Daten und externe Teilnehmer-Daten nachladen
+    require_once __DIR__ . '/external_participants_functions.php';
+
     foreach ($responses as &$response) {
         // Namen immer laden, wenn member_id vorhanden
         if ($response['member_id']) {
@@ -292,13 +294,25 @@ function get_all_responses($pdo, $poll_id, $show_names = false) {
                 $response['last_name'] = '';
             }
         }
+        // Wenn kein member_id, aber external_participant_id: Externe Teilnehmer laden
+        elseif ($response['external_participant_id']) {
+            $external = get_external_participant_by_id($pdo, $response['external_participant_id']);
+            if ($external) {
+                $response['first_name'] = $external['first_name'];
+                $response['last_name'] = $external['last_name'];
+            } else {
+                // Externer Teilnehmer nicht gefunden
+                $response['first_name'] = 'Anonym';
+                $response['last_name'] = '';
+            }
+        }
 
         // Namen anonymisieren falls nötig:
         // - Wenn Umfrage anonym ist UND User nicht Ersteller/Admin ($show_names=false)
         // - Oder wenn User explizit anonym bleiben will (force_anonymous)
-        // - Oder wenn kein member_id (externe/session-basierte Teilnehmer)
+        // - Oder wenn weder member_id noch external_participant_id (session-basierte Teilnehmer)
         if (!$show_names) {
-            if ($response['force_anonymous'] || !$response['member_id']) {
+            if ($response['force_anonymous'] || (!$response['member_id'] && !$response['external_participant_id'])) {
                 $response['first_name'] = 'Anonym';
                 $response['last_name'] = '';
             }
@@ -306,8 +320,8 @@ function get_all_responses($pdo, $poll_id, $show_names = false) {
             // Auch bei nicht-anonymen Umfragen: User will anonym bleiben
             $response['first_name'] = 'Anonym';
             $response['last_name'] = '';
-        } elseif (!$response['member_id'] && empty($response['first_name'])) {
-            // Kein Member und keine Namen geladen
+        } elseif (!$response['member_id'] && !$response['external_participant_id'] && empty($response['first_name'])) {
+            // Weder Member noch externer Teilnehmer und keine Namen geladen
             $response['first_name'] = 'Anonym';
             $response['last_name'] = '';
         }
@@ -395,10 +409,13 @@ function get_poll_by_token($pdo, $token) {
  * @return array ['option_id' => ['names' => array, 'count' => int]]
  */
 function get_voters_per_option($pdo, $poll_id, $show_names = false) {
+    require_once __DIR__ . '/external_participants_functions.php';
+
     $stmt = $pdo->prepare("
         SELECT
             oro.option_id,
             r.member_id,
+            r.external_participant_id,
             r.force_anonymous
         FROM svopinion_response_options oro
         JOIN svopinion_responses r ON oro.response_id = r.response_id
@@ -424,14 +441,27 @@ function get_voters_per_option($pdo, $poll_id, $show_names = false) {
 
         // Namen laden wenn erlaubt
         if ($show_names) {
-            if ($vote['member_id'] && !$vote['force_anonymous']) {
+            if ($vote['force_anonymous']) {
+                // User will explizit anonym bleiben
+                $result[$option_id]['names'][] = 'Anonym';
+            } elseif ($vote['member_id']) {
+                // Interner Member
                 $member = get_member_by_id($pdo, $vote['member_id']);
                 if ($member) {
                     $result[$option_id]['names'][] = $member['first_name'] . ' ' . $member['last_name'];
                 } else {
                     $result[$option_id]['names'][] = 'Anonym';
                 }
+            } elseif ($vote['external_participant_id']) {
+                // Externer Teilnehmer
+                $external = get_external_participant_by_id($pdo, $vote['external_participant_id']);
+                if ($external) {
+                    $result[$option_id]['names'][] = $external['first_name'] . ' ' . $external['last_name'];
+                } else {
+                    $result[$option_id]['names'][] = 'Anonym';
+                }
             } else {
+                // Session-basiert (alt) - anonym
                 $result[$option_id]['names'][] = 'Anonym';
             }
         }
