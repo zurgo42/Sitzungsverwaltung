@@ -148,8 +148,8 @@ require_once __DIR__ . '/../config.php';
                     <?php echo (stripos(__FILE__, 'xampp') !== false) ? '✓' : '✗'; ?>
                 </td>
             </tr>
-            <tr>
-                <td>Dateipfad enthält 'htdocs'</td>
+            <tr style="opacity: 0.5;">
+                <td>Dateipfad enthält 'htdocs' <span style="color: red;">(DEPRECATED - nicht mehr verwendet)</span></td>
                 <td><?php echo __FILE__; ?></td>
                 <td class="<?php echo (stripos(__FILE__, 'htdocs') !== false) ? 'true' : 'false'; ?>">
                     <?php echo (stripos(__FILE__, 'htdocs') !== false) ? '✓' : '✗'; ?>
