@@ -29,7 +29,7 @@ function get_or_create_session_token() {
 }
 
 /**
- * Speichert externen Teilnehmer in Cookie für 30 Tage
+ * Speichert externen Teilnehmer in Cookie für 7 Tage
  * Ermöglicht automatisches Wiedererkennen bei zukünftigen Umfragen
  *
  * @param string $first_name
@@ -44,8 +44,8 @@ function save_external_participant_cookie($first_name, $last_name, $email) {
         'email' => $email
     ]);
 
-    // Cookie für 30 Tage speichern
-    $expires = time() + (30 * 24 * 60 * 60);
+    // Cookie für 7 Tage speichern
+    $expires = time() + (7 * 24 * 60 * 60);
     return setcookie('sv_external_participant', $cookie_data, $expires, '/', '', false, true);
 }
 

@@ -59,34 +59,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
 
     if (empty($errors)) {
         try {
-            // IP-Adresse für Tracking
-            $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
+            // Prüfen ob Mitgliedsnummer angegeben wurde
+            $member = null;
+            if (!empty($mnr)) {
+                // Member aus Datenbank laden (über Adapter)
+                // Lade Member nach Mitgliedsnummer
+                $stmt = $pdo->prepare("
+                    SELECT * FROM svmembers
+                    WHERE membership_number = ?
+                    LIMIT 1
+                ");
+                $stmt->execute([$mnr]);
+                $member = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Externen Teilnehmer erstellen
-            $result = create_external_participant(
-                $pdo,
-                $poll_type,
-                $poll_id,
-                $first_name,
-                $last_name,
-                $email,
-                !empty($mnr) ? $mnr : null,
-                $ip_address
-            );
+                // Falls nicht in svmembers, versuche berechtigte-Tabelle
+                if (!$member && defined('MEMBER_SOURCE') && MEMBER_SOURCE === 'berechtigte') {
+                    $stmt = $pdo->prepare("
+                        SELECT ID as member_id, MNr as membership_number,
+                               Vorname as first_name, Name as last_name,
+                               eMail as email
+                        FROM berechtigte
+                        WHERE MNr = ?
+                        LIMIT 1
+                    ");
+                    $stmt->execute([$mnr]);
+                    $ber = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($ber) {
+                        $member = [
+                            'member_id' => $ber['member_id'],
+                            'membership_number' => $ber['membership_number'],
+                            'first_name' => $ber['first_name'],
+                            'last_name' => $ber['last_name'],
+                            'email' => $ber['email']
+                        ];
+                    }
+                }
+            }
 
-            // Session setzen
-            set_external_participant_session(
-                $result['session_token'],
-                $poll_type,
-                $poll_id,
-                $result['external_id']
-            );
+            // Wenn Mitglied gefunden: Als interner User behandeln
+            if ($member) {
+                // Session setzen wie bei normalem Login
+                $_SESSION['member_id'] = $member['member_id'];
+                $_SESSION['success'] = 'Willkommen ' . htmlspecialchars($member['first_name']) . '! Du bist jetzt als Mitglied angemeldet.';
 
-            // Cookie für 30 Tage speichern (zur Wiedererkennung)
-            save_external_participant_cookie($first_name, $last_name, $email);
+                error_log("OPINION REGISTER: Member login via MNr - member_id={$member['member_id']}, mnr=$mnr");
+            }
+            // Sonst: Als externer Teilnehmer behandeln
+            else {
+                // IP-Adresse für Tracking
+                $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
 
-            // Erfolgsmeldung und Weiterleitung
-            $_SESSION['success'] = 'Willkommen! Sie können jetzt an der Umfrage teilnehmen.';
+                // Externen Teilnehmer erstellen
+                $result = create_external_participant(
+                    $pdo,
+                    $poll_type,
+                    $poll_id,
+                    $first_name,
+                    $last_name,
+                    $email,
+                    !empty($mnr) ? $mnr : null,
+                    $ip_address
+                );
+
+                // Session setzen
+                set_external_participant_session(
+                    $result['session_token'],
+                    $poll_type,
+                    $poll_id,
+                    $result['external_id']
+                );
+
+                // Cookie für 7 Tage speichern (zur Wiedererkennung)
+                save_external_participant_cookie($first_name, $last_name, $email);
+
+                $_SESSION['success'] = 'Willkommen! Sie können jetzt an der Umfrage teilnehmen.';
+
+                error_log("OPINION REGISTER: External participant created - external_id={$result['external_id']}");
+            }
 
             // Zur Umfrage weiterleiten
             // Verwende $redirect_script falls vom standalone-Skript gesetzt, sonst PHP_SELF
@@ -359,9 +408,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                 <input type="text"
                        name="mnr"
                        value="<?php echo htmlspecialchars($_POST['mnr'] ?? ''); ?>"
-                       placeholder="Falls vorhanden">
+                       placeholder="z.B. 0123456">
                 <p class="info-text">
-                    Wenn du Mitglied bist, kannst du hier optional deine Mitgliedsnummer angeben.
+                    <strong>💡 Bist du bereits Mitglied?</strong> Dann gib einfach deine Mitgliedsnummer an!
+                    Deine Stimme wird dann als <strong>interne Meinungsäußerung</strong> behandelt und mit deinem Mitgliedsprofil verknüpft.
+                    <br>Falls du deine Mitgliedsnummer nicht kennst, kannst du das Feld leer lassen.
                 </p>
             </div>
 
@@ -371,7 +422,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                     <span>
                         Ich stimme zu, dass meine Daten für diese Umfrage gespeichert werden.
                         Die Daten werden 6 Monate nach Abschluss der Umfrage automatisch gelöscht.
-                        Zur vereinfachten Wiedererkennung wird ein Cookie für 30 Tage gespeichert. <span class="required">*</span>
+                        Zur vereinfachten Wiedererkennung wird ein Cookie für 7 Tage gespeichert. <span class="required">*</span>
                     </span>
                 </label>
             </div>
