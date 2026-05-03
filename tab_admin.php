@@ -999,6 +999,123 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
     </div> <!-- End admin-section-content -->
 </div>
 
+<!-- Externe Zugriffs-Logs -->
+<div id="external-access-log" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">🔐 Externe Zugriffs-Logs (Terminumfragen & Meinungsbilder)</h3>
+
+    <div class="admin-section-content">
+
+    <?php if (!empty($external_access_stats)): ?>
+        <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px;">
+            <?php
+            $access_type_labels = [
+                'member_login' => ['icon' => '✅', 'label' => 'Member-Logins', 'color' => '#4caf50'],
+                'invalid_mnr' => ['icon' => '⚠️', 'label' => 'Ungültige MNr', 'color' => '#ff9800'],
+                'external_registration' => ['icon' => '👤', 'label' => 'Externe Registrierungen', 'color' => '#2196f3'],
+                'registration_error' => ['icon' => '❌', 'label' => 'Fehler', 'color' => '#f44336']
+            ];
+
+            foreach ($external_access_stats as $stat):
+                $info = $access_type_labels[$stat['access_type']] ?? ['icon' => '📊', 'label' => $stat['access_type'], 'color' => '#999'];
+            ?>
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid <?php echo $info['color']; ?>; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div style="font-size: 24px; margin-bottom: 5px;"><?php echo $info['icon']; ?></div>
+                    <div style="font-size: 28px; font-weight: bold; color: <?php echo $info['color']; ?>; margin-bottom: 5px;">
+                        <?php echo $stat['count']; ?>
+                    </div>
+                    <div style="font-size: 14px; color: #666;">
+                        <?php echo $info['label']; ?>
+                        <span style="font-size: 12px; color: #999;">(30 Tage)</span>
+                    </div>
+                    <?php if ($stat['failure_count'] > 0): ?>
+                        <div style="font-size: 12px; color: #f44336; margin-top: 5px;">
+                            ⚠️ <?php echo $stat['failure_count']; ?> fehlgeschlagen
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (empty($external_access_logs)): ?>
+        <div class="info-box">Keine externen Zugriffe protokolliert.</div>
+    <?php else: ?>
+        <table class="admin-table compact-log-table">
+            <thead>
+                <tr>
+                    <th>Zeitpunkt</th>
+                    <th>Typ</th>
+                    <th>Umfrage</th>
+                    <th>Person</th>
+                    <th>IP-Adresse</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($external_access_logs as $log):
+                    $access_badges = [
+                        'member_login' => ['label' => '✅ Member-Login', 'class' => 'success'],
+                        'invalid_mnr' => ['label' => '⚠️ Ungültige MNr', 'class' => 'warning'],
+                        'external_registration' => ['label' => '👤 Externe Reg.', 'class' => 'info'],
+                        'registration_error' => ['label' => '❌ Fehler', 'class' => 'error']
+                    ];
+                    $badge = $access_badges[$log['access_type']] ?? ['label' => $log['access_type'], 'class' => 'default'];
+
+                    // Person identifizieren
+                    $person = '';
+                    if ($log['member_first_name']) {
+                        $person = htmlspecialchars($log['member_first_name'] . ' ' . $log['member_last_name']);
+                        if ($log['membership_number']) {
+                            $person .= ' <span style="color: #666; font-size: 0.9em;">(MNr: ' . htmlspecialchars($log['membership_number']) . ')</span>';
+                        }
+                    } elseif ($log['first_name'] && $log['last_name']) {
+                        $person = htmlspecialchars($log['first_name'] . ' ' . $log['last_name']);
+                    } elseif ($log['email']) {
+                        $person = htmlspecialchars($log['email']);
+                    } elseif ($log['mnr']) {
+                        $person = '<span style="color: #999;">MNr: ' . htmlspecialchars($log['mnr']) . '</span>';
+                    } else {
+                        $person = '<span style="color: #999;">-</span>';
+                    }
+                ?>
+                    <tr style="<?php echo !$log['success'] ? 'background: #fff3cd;' : ''; ?>">
+                        <td style="white-space: nowrap;"><?php echo date('d.m.Y H:i:s', strtotime($log['created_at'])); ?></td>
+                        <td>
+                            <span class="action-badge action-<?php echo $badge['class']; ?>">
+                                <?php echo $badge['label']; ?>
+                            </span>
+                        </td>
+                        <td>
+                            <strong><?php echo $log['poll_type'] === 'termine' ? '📅 Termin' : '📊 Meinungsbild'; ?></strong>
+                            <span style="color: #666; font-size: 0.9em;">#<?php echo $log['poll_id']; ?></span>
+                        </td>
+                        <td><?php echo $person; ?></td>
+                        <td style="font-family: monospace; font-size: 0.9em;"><?php echo htmlspecialchars($log['ip_address']); ?></td>
+                        <td>
+                            <?php if ($log['success']): ?>
+                                <span style="color: #4caf50;">✓ Erfolg</span>
+                            <?php else: ?>
+                                <span style="color: #f44336;">✗ Fehler</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($log['error_message'] || $log['user_agent']): ?>
+                                <button class="btn-view" onclick="showExternalLogDetails(<?php echo $log['log_id']; ?>)">
+                                    🔍 Details
+                                </button>
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+    </div> <!-- End admin-section-content -->
+</div>
+
 <!-- System & Demo-Funktionen -->
 <?php if (DEMO_MODE_ENABLED): ?>
 
@@ -1362,6 +1479,77 @@ function showLogDetails(logId) {
 
 function closeLogDetailsModal() {
     document.getElementById('log-details-modal').classList.remove('show');
+}
+
+// Externe Zugriffs-Log Details
+function showExternalLogDetails(logId) {
+    const logs = <?php echo json_encode($external_access_logs); ?>;
+    const log = logs.find(l => l.log_id == logId);
+
+    if (log) {
+        let html = '<div class="log-details">';
+
+        html += '<h4>Zugriffs-Details:</h4>';
+        html += '<table style="width: 100%; border-collapse: collapse;">';
+
+        if (log.access_type) {
+            const types = {
+                'member_login': '✅ Member-Login via Mitgliedsnummer',
+                'invalid_mnr': '⚠️ Ungültiger Mitgliedsnummer-Versuch',
+                'external_registration': '👤 Externe Registrierung',
+                'registration_error': '❌ Registrierungsfehler'
+            };
+            html += '<tr><td style="padding: 5px; font-weight: bold;">Typ:</td><td style="padding: 5px;">' + (types[log.access_type] || log.access_type) + '</td></tr>';
+        }
+
+        if (log.poll_type) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">Umfrage:</td><td style="padding: 5px;">' +
+                    (log.poll_type === 'termine' ? '📅 Terminumfrage' : '📊 Meinungsbild') + ' #' + log.poll_id + '</td></tr>';
+        }
+
+        if (log.member_first_name) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">Mitglied:</td><td style="padding: 5px;">' +
+                    log.member_first_name + ' ' + log.member_last_name +
+                    (log.membership_number ? ' (MNr: ' + log.membership_number + ')' : '') + '</td></tr>';
+        }
+
+        if (log.mnr) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">Eingeg. MNr:</td><td style="padding: 5px;">' + log.mnr + '</td></tr>';
+        }
+
+        if (log.first_name || log.last_name) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">Name:</td><td style="padding: 5px;">' +
+                    (log.first_name || '') + ' ' + (log.last_name || '') + '</td></tr>';
+        }
+
+        if (log.email) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">E-Mail:</td><td style="padding: 5px;">' + log.email + '</td></tr>';
+        }
+
+        if (log.ip_address) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">IP-Adresse:</td><td style="padding: 5px; font-family: monospace;">' + log.ip_address + '</td></tr>';
+        }
+
+        if (log.user_agent) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">Browser:</td><td style="padding: 5px; font-size: 0.9em; word-break: break-all;">' + log.user_agent + '</td></tr>';
+        }
+
+        html += '<tr><td style="padding: 5px; font-weight: bold;">Status:</td><td style="padding: 5px;">' +
+                (log.success ? '<span style="color: #4caf50;">✓ Erfolgreich</span>' : '<span style="color: #f44336;">✗ Fehlgeschlagen</span>') + '</td></tr>';
+
+        if (log.error_message) {
+            html += '<tr><td style="padding: 5px; font-weight: bold; vertical-align: top;">Fehlermeldung:</td><td style="padding: 5px; color: #f44336;">' + log.error_message + '</td></tr>';
+        }
+
+        html += '<tr><td style="padding: 5px; font-weight: bold;">Zeitpunkt:</td><td style="padding: 5px;">' +
+                new Date(log.created_at).toLocaleString('de-DE') + '</td></tr>';
+
+        html += '</table>';
+        html += '</div>';
+
+        document.getElementById('log-details-content').innerHTML = html;
+        document.getElementById('log-details-modal').classList.add('show');
+    }
 }
 
 // Akkordion-Funktionalität

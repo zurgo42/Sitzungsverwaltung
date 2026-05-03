@@ -111,16 +111,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                 $_SESSION['member_id'] = $member['member_id'];
                 $_SESSION['success'] = 'Willkommen ' . htmlspecialchars($member['first_name']) . '! Du bist jetzt als Mitglied angemeldet.';
 
-                // SECURITY LOG: Member-Login via MNr
-                $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-                $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
-                error_log("SECURITY: Member login via MNr - member_id={$member['member_id']}, mnr=$mnr, ip=$ip, poll_type=$poll_type, poll_id=$poll_id, user_agent=$user_agent");
+                // Log: Member-Login via MNr
+                log_external_access($pdo, 'member_login', $poll_type, $poll_id, [
+                    'member_id' => $member['member_id'],
+                    'mnr' => $mnr,
+                    'success' => true
+                ]);
             }
             // Sonst: MNr angegeben aber nicht gefunden
             elseif (!empty($mnr)) {
-                // SECURITY LOG: Ungültige MNr-Eingabe
-                $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-                error_log("SECURITY: Invalid MNr attempt - mnr=$mnr, ip=$ip, poll_type=$poll_type, poll_id=$poll_id");
+                // Log: Ungültige MNr-Eingabe
+                log_external_access($pdo, 'invalid_mnr', $poll_type, $poll_id, [
+                    'mnr' => $mnr,
+                    'success' => false,
+                    'error_message' => 'Mitgliedsnummer nicht gefunden'
+                ]);
 
                 $errors[] = 'Die angegebene Mitgliedsnummer wurde nicht gefunden. Bitte überprüfen Sie die Nummer oder registrieren Sie sich als externer Teilnehmer.';
             }
@@ -154,10 +159,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
 
                 $_SESSION['success'] = 'Willkommen! Sie können jetzt an der Umfrage teilnehmen.';
 
-                // SECURITY LOG: Externe Registrierung
-                $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-                $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
-                error_log("SECURITY: External participant created - external_id={$result['external_id']}, email=$email, ip=$ip, poll_type=$poll_type, poll_id=$poll_id, user_agent=$user_agent");
+                // Log: Externe Registrierung
+                log_external_access($pdo, 'external_registration', $poll_type, $poll_id, [
+                    'external_participant_id' => $result['external_id'],
+                    'email' => $email,
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
+                    'success' => true
+                ]);
             }
 
             // Nur weiterleiten wenn keine Fehler aufgetreten sind
@@ -176,6 +185,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
         } catch (Exception $e) {
             $errors[] = 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.';
             error_log("Externe Registrierung fehlgeschlagen: " . $e->getMessage());
+
+            // Log: Registrierungsfehler
+            try {
+                log_external_access($pdo, 'registration_error', $poll_type, $poll_id, [
+                    'mnr' => $mnr ?? null,
+                    'email' => $email ?? null,
+                    'first_name' => $first_name ?? null,
+                    'last_name' => $last_name ?? null,
+                    'success' => false,
+                    'error_message' => $e->getMessage()
+                ]);
+            } catch (Exception $logError) {
+                // Logging fehlgeschlagen - nur in error_log
+            }
         }
     }
 }

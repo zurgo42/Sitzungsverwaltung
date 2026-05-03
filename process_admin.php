@@ -994,13 +994,20 @@ $open_todos = $pdo->query("
 
 // Admin-Log laden (letzte 50 Einträge)
 $admin_logs = $pdo->query("
-    SELECT al.*, 
+    SELECT al.*,
         m.first_name, m.last_name
     FROM svadmin_log al
     LEFT JOIN svmembers m ON al.admin_member_id = m.member_id
     ORDER BY al.created_at DESC
     LIMIT 50
 ")->fetchAll(PDO::FETCH_ASSOC);
+
+// Externe Zugriffs-Logs laden (letzte 100 Einträge)
+require_once __DIR__ . '/external_participants_functions.php';
+$external_access_logs = get_external_access_logs($pdo, ['limit' => 100]);
+
+// Statistiken für externe Zugriffe (letzte 30 Tage)
+$external_access_stats = count_external_access_by_type($pdo, 30);
 
 // Statistiken berechnen
 $stats = [

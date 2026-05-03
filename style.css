@@ -1975,6 +1975,32 @@ body.dark-mode .other-todos-accordion-header:hover {
     color: #6a1b9a;
 }
 
+/* Externe Zugriffs-Log Badges */
+.action-badge.action-success {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.action-badge.action-warning {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.action-badge.action-info {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.action-badge.action-error {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.action-badge.action-default {
+    background: #f5f5f5;
+    color: #666;
+}
+
 /* Helper Classes */
 .desktop-only {
     display: block;
