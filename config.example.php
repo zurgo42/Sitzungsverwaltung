@@ -23,10 +23,7 @@ function is_local_environment() {
         isset($_SERVER['SERVER_ADDR']) && in_array($_SERVER['SERVER_ADDR'], ['127.0.0.1', '::1']),
 
         // Prüfe ob im XAMPP-Pfad
-        stripos(__FILE__, 'xampp') !== false,
-
-        // Prüfe ob im htdocs-Pfad (typisch für XAMPP)
-        stripos(__FILE__, 'htdocs') !== false
+        stripos(__FILE__, 'xampp') !== false
     ];
 
     return in_array(true, $local_indicators, true);

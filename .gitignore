@@ -2,3 +2,9 @@ uploads/
 main-backup-*.zip
 tools/demo_data.json
 tools/backups/
+
+# Config-Dateien (enthalten produktivspezifische Einstellungen)
+# WICHTIG: Bei Pull/Merge manuell prüfen und anpassen!
+# Die .example-Dateien dienen als Vorlage
+config.php
+config_adapter.php
