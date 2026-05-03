@@ -6,6 +6,24 @@
  */
 
 // ============================================
+// BACKWARD COMPATIBILITY
+// ============================================
+// Falls alte VTool config.php mit MYSQL_* Konstanten geladen wurde,
+// diese auf neue DB_* Konstanten mappen (falls noch nicht geschehen)
+if (defined('MYSQL_HOST') && !defined('DB_HOST')) {
+    define('DB_HOST', MYSQL_HOST);
+}
+if (defined('MYSQL_USER') && !defined('DB_USER')) {
+    define('DB_USER', MYSQL_USER);
+}
+if (defined('MYSQL_PASS') && !defined('DB_PASS')) {
+    define('DB_PASS', MYSQL_PASS);
+}
+if (defined('MYSQL_DATABASE') && !defined('DB_NAME')) {
+    define('DB_NAME', MYSQL_DATABASE);
+}
+
+// ============================================
 // LOGIN-MODUS KONFIGURATION
 // ============================================
 
