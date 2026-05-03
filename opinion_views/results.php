@@ -122,7 +122,8 @@ $voters_per_option = get_voters_per_option($pdo, $poll_id, $show_voter_names);
                     <div class="response-meta">
                         <?php
                         $name = 'Anonym';
-                        if ($response['member_id'] && (!$response['force_anonymous'] || $is_creator || $is_admin)) {
+                        // Namen anzeigen wenn member_id ODER external_participant_id vorhanden
+                        if (($response['member_id'] || $response['external_participant_id']) && (!$response['force_anonymous'] || $is_creator || $is_admin)) {
                             $name = htmlspecialchars($response['first_name'] . ' ' . $response['last_name']);
                             if ($response['force_anonymous']) {
                                 $name .= ' <em>(will anonym bleiben)</em>';
