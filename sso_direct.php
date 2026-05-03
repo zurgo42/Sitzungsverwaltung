@@ -14,6 +14,17 @@
  * - index.php übernimmt: Configs, Auth, Members-Array, UI
  */
 
+// Session-Konfiguration VOR session_start() (identisch zu VTool!)
+ini_set('session.cookie_path', '/');
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.use_only_cookies', 1);
+if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+    ini_set('session.cookie_secure', 1);
+}
+ini_set('session.gc_maxlifetime', 7 * 24 * 60 * 60);
+ini_set('session.cookie_lifetime', 7 * 24 * 60 * 60);
+
 // Session starten
 session_start();
 

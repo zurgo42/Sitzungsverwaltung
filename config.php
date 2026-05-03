@@ -36,18 +36,29 @@ function is_local_environment() {
 define('IS_LOCAL', is_local_environment());
 
 // ============= DATENBANK-ZUGANGSDATEN =============
-if (IS_LOCAL) {
-    // XAMPP / Lokale Entwicklungsumgebung
-    define('DB_HOST', 'localhost');
-    define('DB_USER', 'root');
-    define('DB_PASS', '');  // XAMPP Standard: kein Passwort
-    define('DB_NAME', 'k126904_div');  // Lokale Datenbank
-} else {
-    // Produktivserver
-    define('DB_HOST', '...');
-    define('DB_USER', '...');
-    define('DB_PASS', '...');
-    define('DB_NAME', '...');
+// BACKWARD COMPATIBILITY: Falls alte VTool config.php mit MYSQL_* Konstanten existiert
+// (z.B. auf Produktivserver), diese bevorzugen
+if (defined('MYSQL_HOST')) {
+    // Alte VTool-Konfiguration gefunden - verwende diese
+    if (!defined('DB_HOST')) define('DB_HOST', MYSQL_HOST);
+    if (!defined('DB_USER')) define('DB_USER', MYSQL_USER);
+    if (!defined('DB_PASS')) define('DB_PASS', MYSQL_PASS);
+    if (!defined('DB_NAME')) define('DB_NAME', MYSQL_DATABASE);
+} elseif (!defined('DB_HOST')) {
+    // Neue Konfiguration - definiere DB_* Konstanten
+    if (IS_LOCAL) {
+        // XAMPP / Lokale Entwicklungsumgebung
+        define('DB_HOST', 'localhost');
+        define('DB_USER', 'root');
+        define('DB_PASS', '');  // XAMPP Standard: kein Passwort
+        define('DB_NAME', 'k126904_div');  // Lokale Datenbank
+    } else {
+        // Produktivserver
+        define('DB_HOST', '...');
+        define('DB_USER', '...');
+        define('DB_PASS', '...');
+        define('DB_NAME', '...');
+    }
 }
 
 // ============= SYSTEM-EINSTELLUNGEN =============
@@ -127,19 +138,23 @@ ini_set('display_startup_errors', 1);
 
 // ============= SESSION-KONFIGURATION =============
 // Session-Konfiguration (MUSS identisch zu VTool sein für Cookie-Sharing!)
-ini_set('session.cookie_path', '/');              // Cookie für gesamte Domain
-ini_set('session.cookie_httponly', 1);            // Schutz vor XSS
-ini_set('session.cookie_samesite', 'Lax');        // CSRF-Schutz
-ini_set('session.use_only_cookies', 1);           // Nur Cookies, keine URL-Parameter
+// WICHTIG: Nur setzen wenn Session noch nicht aktiv (z.B. bei direktem index.php Aufruf)
+// Bei SSO-Modus wird die Config bereits in sso_direct.php gesetzt
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_path', '/');              // Cookie für gesamte Domain
+    ini_set('session.cookie_httponly', 1);            // Schutz vor XSS
+    ini_set('session.cookie_samesite', 'Lax');        // CSRF-Schutz
+    ini_set('session.use_only_cookies', 1);           // Nur Cookies, keine URL-Parameter
 
-// HTTPS-Sicherheit (nur wenn HTTPS aktiv)
-if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
-    ini_set('session.cookie_secure', 1);          // Cookie nur über HTTPS
+    // HTTPS-Sicherheit (nur wenn HTTPS aktiv)
+    if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+        ini_set('session.cookie_secure', 1);          // Cookie nur über HTTPS
+    }
+
+    // Session-Laufzeit: 7 Tage (bessere UX für interne Nutzer)
+    ini_set('session.gc_maxlifetime', 7 * 24 * 60 * 60);    // 7 Tage Server-seitig
+    ini_set('session.cookie_lifetime', 7 * 24 * 60 * 60);   // 7 Tage Client-seitig
 }
-
-// Session-Laufzeit: 7 Tage (bessere UX für interne Nutzer)
-ini_set('session.gc_maxlifetime', 7 * 24 * 60 * 60);    // 7 Tage Server-seitig
-ini_set('session.cookie_lifetime', 7 * 24 * 60 * 60);   // 7 Tage Client-seitig
 
 // ============= FOOTER-KONFIGURATION =============
 define('FOOTER_COPYRIGHT', '&copy; Dr. Hermann Meier, Horstmannsmühle 1a, 42781 Haan Tel. 02129 379 2870 eMail meier@zurgo.de');
