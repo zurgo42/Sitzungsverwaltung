@@ -125,10 +125,17 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 
-// ============= SESSION-SICHERHEIT =============
-//ini_set('session.cookie_httponly', 1);
-//ini_set('session.use_only_cookies', 1);
-// ini_set('session.cookie_secure', 1); // Nur bei HTTPS aktivieren!
+// ============= SESSION-KONFIGURATION =============
+// Session-Konfiguration (MUSS identisch zu VTool sein für Cookie-Sharing!)
+ini_set('session.cookie_path', '/');              // Cookie für gesamte Domain
+ini_set('session.cookie_httponly', 1);            // Schutz vor XSS
+ini_set('session.cookie_samesite', 'Lax');        // CSRF-Schutz
+ini_set('session.use_only_cookies', 1);           // Nur Cookies, keine URL-Parameter
+
+// HTTPS-Sicherheit (nur wenn HTTPS aktiv)
+if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+    ini_set('session.cookie_secure', 1);          // Cookie nur über HTTPS
+}
 
 // ============= FOOTER-KONFIGURATION =============
 define('FOOTER_COPYRIGHT', '&copy; Dr. Hermann Meier, Horstmannsmühle 1a, 42781 Haan Tel. 02129 379 2870 eMail meier@zurgo.de');
