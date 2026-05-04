@@ -52,8 +52,24 @@ function get_member_from_cache($member_id) {
 // ============================================
 // Wenn der Logout-Link geklickt wurde (?logout=1), Session beenden
 if (isset($_GET['logout'])) {
-    session_destroy();
-    header('Location: index.php');
+    // Im SSO-Modus direkt zum VTool weiterleiten (vermeidet "Keine Mitgliedsnummer" Fehler)
+    if (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt') {
+        // Session erst nach Weiterleitung zerstören wäre sicherer,
+        // aber für SSO-Logout reicht es, Session zu löschen und dann weiterzuleiten
+        session_destroy();
+
+        // Config laden um back_button_url zu bekommen
+        require_once 'config_adapter.php';
+        $back_url = isset($SSO_DIRECT_CONFIG['back_button_url'])
+            ? $SSO_DIRECT_CONFIG['back_button_url']
+            : 'https://aktive.mensa.de/vorstand/vtool.php';
+
+        header('Location: ' . $back_url);
+    } else {
+        // Normaler Logout: Session zerstören und zu Login-Seite
+        session_destroy();
+        header('Location: index.php');
+    }
     exit;
 }
 
