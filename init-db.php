@@ -179,6 +179,24 @@ try {
         INDEX idx_member (member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
+    // Dateianhänge für Tagesordnungspunkte (2026-04-27)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svagenda_attachments (
+        attachment_id INT AUTO_INCREMENT PRIMARY KEY,
+        item_id INT NOT NULL COMMENT 'FK zu svagenda_items',
+        filename VARCHAR(255) NOT NULL COMMENT 'Gespeicherter Dateiname (unique)',
+        original_filename VARCHAR(255) NOT NULL COMMENT 'Original-Dateiname vom User',
+        filepath VARCHAR(500) NOT NULL COMMENT 'Pfad zur Datei relativ zu uploads/',
+        filesize INT NOT NULL COMMENT 'Dateigröße in Bytes',
+        filetype VARCHAR(100) NOT NULL COMMENT 'MIME-Type',
+        uploaded_by_member_id INT DEFAULT NULL COMMENT 'Wer hat hochgeladen (NULL wenn Member gelöscht)',
+        uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_item_id (item_id),
+        INDEX idx_uploaded_by (uploaded_by_member_id),
+        INDEX idx_uploaded_at (uploaded_at),
+        FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE,
+        FOREIGN KEY (uploaded_by_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
     // =========================================================
     // PROTOKOLL-TABELLEN
     // =========================================================
@@ -560,6 +578,99 @@ try {
         INDEX idx_member (member_id),
         INDEX idx_dates (start_date, end_date),
         INDEX idx_substitute (substitute_member_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // =========================================================
+    // EXTERNE TEILNEHMER & ZUGRIFFSPROTOKOLLE
+    // =========================================================
+
+    // Externe Teilnehmer für Umfragen (2025-12-18)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svexternal_participants (
+        external_id INT PRIMARY KEY AUTO_INCREMENT,
+        poll_type ENUM('termine', 'meinungsbild') NOT NULL COMMENT 'Typ der Umfrage',
+        poll_id INT NOT NULL COMMENT 'ID der Umfrage (svpolls oder svopinion_polls)',
+        first_name VARCHAR(100) NOT NULL,
+        last_name VARCHAR(100) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        mnr VARCHAR(50) DEFAULT NULL COMMENT 'Optional: Mitgliedsnummer falls bekannt',
+        session_token VARCHAR(64) NOT NULL UNIQUE COMMENT 'Eindeutiger Token für anonyme Teilnahme',
+        ip_address VARCHAR(45) DEFAULT NULL COMMENT 'IP-Adresse bei Registrierung',
+        consent_given BOOLEAN DEFAULT TRUE COMMENT 'Einwilligung zur Datenspeicherung',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Für 6-Monats-Löschung',
+        INDEX idx_poll_type_id (poll_type, poll_id),
+        INDEX idx_session_token (session_token),
+        INDEX idx_email (email),
+        INDEX idx_last_activity (last_activity)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='Externe Teilnehmer ohne Account - werden nach 6 Monaten gelöscht'";
+
+    // Externes Zugriffs-Log (2026-05-03)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svexternal_access_log (
+        log_id INT PRIMARY KEY AUTO_INCREMENT,
+        access_type ENUM('member_login', 'invalid_mnr', 'external_registration', 'registration_error') NOT NULL COMMENT 'Art des Zugriffs',
+        poll_type ENUM('termine', 'meinungsbild') NOT NULL COMMENT 'Art der Umfrage',
+        poll_id INT NOT NULL COMMENT 'ID der Umfrage',
+        member_id INT DEFAULT NULL COMMENT 'Member-ID bei erfolgreichem MNr-Login',
+        external_participant_id INT DEFAULT NULL COMMENT 'Externe Teilnehmer-ID bei Registrierung',
+        mnr VARCHAR(50) DEFAULT NULL COMMENT 'Eingegebene Mitgliedsnummer',
+        email VARCHAR(255) DEFAULT NULL COMMENT 'Eingegebene E-Mail',
+        first_name VARCHAR(100) DEFAULT NULL COMMENT 'Eingegebener Vorname',
+        last_name VARCHAR(100) DEFAULT NULL COMMENT 'Eingegebener Nachname',
+        ip_address VARCHAR(45) NOT NULL COMMENT 'IP-Adresse des Zugriffs',
+        user_agent TEXT COMMENT 'Browser User-Agent',
+        success BOOLEAN DEFAULT TRUE COMMENT 'Ob der Zugriff erfolgreich war',
+        error_message TEXT DEFAULT NULL COMMENT 'Fehlermeldung bei Misserfolg',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL,
+        FOREIGN KEY (external_participant_id) REFERENCES svexternal_participants(external_id) ON DELETE SET NULL,
+        INDEX idx_access_type (access_type),
+        INDEX idx_poll (poll_type, poll_id),
+        INDEX idx_member (member_id),
+        INDEX idx_external (external_participant_id),
+        INDEX idx_ip (ip_address),
+        INDEX idx_created (created_at),
+        INDEX idx_success (success)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // =========================================================
+    // BENACHRICHTIGUNGS-CENTER
+    // =========================================================
+
+    // Benachrichtigungen (2026-04-27)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svnotifications (
+        notification_id INT AUTO_INCREMENT PRIMARY KEY,
+        member_id INT NOT NULL COMMENT 'Empfänger',
+        type ENUM('meeting', 'todo', 'comment', 'assignment', 'reminder', 'system') NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        link VARCHAR(500) DEFAULT NULL COMMENT 'URL zum relevanten Element',
+        is_read TINYINT(1) DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        related_meeting_id INT DEFAULT NULL,
+        related_todo_id INT DEFAULT NULL,
+        related_item_id INT DEFAULT NULL COMMENT 'agenda item_id',
+        INDEX idx_member_read (member_id, is_read),
+        INDEX idx_created_at (created_at),
+        INDEX idx_type (type),
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (related_meeting_id) REFERENCES svmeetings(meeting_id) ON DELETE CASCADE,
+        FOREIGN KEY (related_todo_id) REFERENCES svtodos(todo_id) ON DELETE CASCADE,
+        FOREIGN KEY (related_item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Push-Subscriptions für Browser-Push (2026-04-27)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svpush_subscriptions (
+        subscription_id INT AUTO_INCREMENT PRIMARY KEY,
+        member_id INT NOT NULL,
+        endpoint TEXT NOT NULL,
+        p256dh_key TEXT NOT NULL,
+        auth_key TEXT NOT NULL,
+        user_agent TEXT DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_used_at DATETIME DEFAULT NULL,
+        INDEX idx_member_id (member_id),
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // =========================================================
