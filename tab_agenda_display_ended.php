@@ -204,11 +204,13 @@ foreach ($agenda_items as $item):
             ");
             $stmt->execute([$item['item_id']]);
             $post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            if (!empty($post_comments)):
             ?>
-                <div style="margin-top: 15px; padding: 12px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 6px;">
-                    <h4 style="color: #e65100; margin-bottom: 8px;">💭 Nachträgliche Anmerkungen der Teilnehmer</h4>
+
+            <!-- Anmerkungen IMMER anzeigen, auch wenn noch keine vorhanden -->
+            <div style="margin-top: 15px; padding: 12px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 6px;">
+                <h4 style="color: #e65100; margin-bottom: 8px;">💭 Nachträgliche Anmerkungen der Teilnehmer</h4>
+
+                <?php if (!empty($post_comments)): ?>
                     <div style="background: white; padding: 10px; border-radius: 4px;">
                         <?php foreach ($post_comments as $pc): ?>
                             <div style="padding: 6px 0; border-bottom: 1px solid #eee; font-size: 13px;">
@@ -218,8 +220,12 @@ foreach ($agenda_items as $item):
                             </div>
                         <?php endforeach; ?>
                     </div>
-                </div>
-            <?php endif; ?>
+                <?php else: ?>
+                    <div style="background: white; padding: 10px; border-radius: 4px; color: #999; font-style: italic; text-align: center;">
+                        Noch keine Anmerkungen von Teilnehmern vorhanden.
+                    </div>
+                <?php endif; ?>
+            </div>
 
             <!-- Protokollant kann editieren -->
             <div style="margin-top: 15px; padding: 12px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 6px;">
