@@ -145,20 +145,33 @@ if (isset($_POST['delete_agenda_item']) && isset($_POST['item_id'])) {
                 exit;
             }
 
-            // Nur löschbar wenn Ersteller UND Meeting in Vorbereitung
+            // Löschbar wenn:
+            // 1. Ersteller UND Meeting in Vorbereitung
+            // 2. Protokollant UND Meeting in ended-Phase
+            $can_delete = false;
+
             if ($item['created_by_member_id'] == $current_user['member_id'] &&
                 $item['status'] === 'preparation') {
+                $can_delete = true;
+            }
 
+            if ($is_secretary && $item['status'] === 'ended') {
+                $can_delete = true;
+            }
+
+            if ($can_delete) {
                 // TOP löschen
                 $stmt = $pdo->prepare("DELETE FROM svagenda_items WHERE item_id = ?");
                 $stmt->execute([$item_id]);
 
-                error_log("DELETE TOP Success: Item $item_id ({$item['title']}) deleted");
+                error_log("DELETE TOP Success: Item $item_id ({$item['title']}) deleted by " .
+                         ($is_secretary ? "secretary" : "creator"));
 
                 header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&success=top_deleted");
                 exit;
             } else {
-                error_log("DELETE TOP FAILED: No permission or wrong status");
+                error_log("DELETE TOP FAILED: No permission or wrong status (status={$item['status']}, is_secretary=" .
+                         ($is_secretary ? "true" : "false") . ")");
                 header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&error=no_permission");
                 exit;
             }
