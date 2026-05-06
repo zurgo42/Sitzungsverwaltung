@@ -195,6 +195,7 @@ class BerechtigteAdapter implements MemberAdapterInterface {
      * - aktiv=19 → vorstand
      * - Funktion=GF → gf
      * - Funktion=SV → assistenz
+     * - Funktion=VA → assistenz (Vorstandsassistenz, gleiche Rechte wie SV)
      * - Funktion=RL → fuehrungsteam (OHNE Umlaut!)
      * - Funktion=AD → mitglied
      * - Funktion=FP → mitglied
@@ -209,6 +210,7 @@ class BerechtigteAdapter implements MemberAdapterInterface {
         $roleMapping = [
             'GF' => 'gf',
             'SV' => 'assistenz',
+            'VA' => 'assistenz',  // Vorstandsassistenz (gleiche Rechte wie SV)
             'RL' => 'fuehrungsteam',  // OHNE Umlaut!
             'AD' => 'mitglied',
             'FP' => 'mitglied'
@@ -245,6 +247,7 @@ class BerechtigteAdapter implements MemberAdapterInterface {
         $priorityMapping = [
             'GF' => 2, // Geschäftsführung
             'SV' => 3, // Assistenz
+            'VA' => 3, // Vorstandsassistenz (gleiche Priorität wie SV)
             'RL' => 4, // Führungsteam
             'AD' => 5, // Mitglied
             'FP' => 5  // Mitglied
@@ -255,23 +258,23 @@ class BerechtigteAdapter implements MemberAdapterInterface {
 
     /**
      * Prüft Admin-Rechte
-     * Admin wenn: Funktion=GF ODER Funktion=SV ODER MNr='0495018'
+     * Admin wenn: Funktion=GF ODER Funktion=SV ODER Funktion=VA ODER MNr='0495018'
      */
     private function isAdmin($funktion, $mnr) {
-        return (in_array($funktion, ['GF', 'SV']) || $mnr == '0495018') ? 1 : 0;
+        return (in_array($funktion, ['GF', 'SV', 'VA']) || $mnr == '0495018') ? 1 : 0;
     }
 
     /**
      * Prüft vertraulichen Zugriff
-     * Vertraulich wenn: aktiv=19 ODER Funktion=GF ODER Funktion=SV
+     * Vertraulich wenn: aktiv=19 ODER Funktion=GF ODER Funktion=SV ODER Funktion=VA
      */
     private function isConfidential($funktion, $aktiv) {
-        return ($aktiv == 19 || in_array($funktion, ['GF', 'SV'])) ? 1 : 0;
+        return ($aktiv == 19 || in_array($funktion, ['GF', 'SV', 'VA'])) ? 1 : 0;
     }
 
     /**
      * Prüft ob ein Datensatz inkludiert werden soll
-     * Filter: aktiv > 17 ODER Funktion IN ('RL', 'SV', 'AD', 'FP', 'GF') ODER spezielle Admin-MNr
+     * Filter: aktiv > 17 ODER Funktion IN ('RL', 'SV', 'VA', 'AD', 'FP', 'GF') ODER spezielle Admin-MNr
      */
     private function shouldInclude($row) {
         $aktiv = $row['aktiv'] ?? 0;
@@ -288,7 +291,7 @@ class BerechtigteAdapter implements MemberAdapterInterface {
             return true;
         }
 
-        return ($aktiv > 17) || in_array($funktion, ['RL', 'SV', 'AD', 'FP', 'GF']);
+        return ($aktiv > 17) || in_array($funktion, ['RL', 'SV', 'VA', 'AD', 'FP', 'GF']);
     }
 
     public function getMemberById($id) {
@@ -402,7 +405,8 @@ class BerechtigteAdapter implements MemberAdapterInterface {
         $mapping = [
             'vorstand' => 'Vorstand',  // Wird via aktiv=19 gesetzt
             'gf' => 'GF',
-            'assistenz' => 'SV',
+            'assistenz' => 'SV',  // Standard-Assistenz
+            'vorstandsassistenz' => 'VA',  // Vorstandsassistenz
             'fuehrungsteam' => 'RL',
             'mitglied' => 'AD'
         ];

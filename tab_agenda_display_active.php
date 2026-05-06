@@ -45,6 +45,107 @@ $active_item_id = $stmt->fetchColumn();
 
 <h3 style="margin: 20px 0 15px 0;">🟢 Laufende Sitzung - Tagesordnungspunkte</h3>
 
+<!-- Direktlink zur Sitzung (nur im SSO-Modus) -->
+<?php if (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt'): ?>
+    <?php
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'];
+    $path = dirname($_SERVER['PHP_SELF']);
+    $direct_link = $protocol . '://' . $host . $path . '/sso_direct.php?meeting_id=' . $current_meeting_id;
+    ?>
+    <div style="margin: 15px 0; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+        <strong style="color: #1976d2;">🔗 Direktlink zur Sitzung:</strong>
+        <div style="margin-top: 8px; display: flex; gap: 10px; align-items: center;">
+            <input type="text" id="directLinkInput" readonly value="<?php echo htmlspecialchars($direct_link); ?>"
+                   style="flex: 1; padding: 6px 10px; border: 1px solid #2196f3; border-radius: 4px; font-family: monospace; font-size: 13px;">
+            <button onclick="copyDirectLink()"
+                    style="padding: 6px 16px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+                📋 Kopieren
+            </button>
+        </div>
+        <div style="margin-top: 6px; font-size: 12px; color: #666;">
+            Teile diesen Link mit Teilnehmern für direkten Zugriff auf diese Sitzung.
+        </div>
+    </div>
+    <script>
+    function copyDirectLink() {
+        const input = document.getElementById('directLinkInput');
+        input.select();
+        input.setSelectionRange(0, 99999); // Für Mobile
+
+        try {
+            document.execCommand('copy');
+            alert('✅ Link wurde in die Zwischenablage kopiert!');
+        } catch (err) {
+            // Fallback für moderne Browser
+            navigator.clipboard.writeText(input.value).then(() => {
+                alert('✅ Link wurde in die Zwischenablage kopiert!');
+            }).catch(() => {
+                alert('❌ Kopieren fehlgeschlagen. Bitte manuell kopieren.');
+            });
+        }
+    }
+    </script>
+<?php endif; ?>
+
+<!-- Eigene TODOs während Sitzung erstellen -->
+<details style="margin: 15px 0; background: #fff8e1; border: 2px solid #ffc107; border-radius: 6px; overflow: hidden;">
+    <summary style="padding: 10px 15px; cursor: pointer; font-weight: 600; color: #f57c00; font-size: 14px; user-select: none;">
+        <span style="display: inline-block; transform: rotate(0deg); transition: transform 0.2s;">▶</span>
+        📝 Eigenes TODO aufschreiben
+    </summary>
+
+    <div style="padding: 15px; background: #fffef5;">
+        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>"
+              onsubmit="return confirm('TODO wirklich anlegen?');">
+            <input type="hidden" name="quick_todo_create" value="1">
+
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
+                    Titel:
+                </label>
+                <input type="text" name="todo_title" required
+                       placeholder="z.B. Recherche für nächste Sitzung"
+                       style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
+            </div>
+
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
+                    Beschreibung (optional):
+                </label>
+                <textarea name="todo_description" rows="3"
+                          placeholder="Details zum TODO..."
+                          style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+            </div>
+
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
+                    Fällig bis (optional):
+                </label>
+                <input type="date" name="todo_due_date"
+                       style="padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button type="submit"
+                        style="padding: 8px 16px; background: #ffc107; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                    ✅ TODO anlegen
+                </button>
+                <span style="font-size: 12px; color: #666;">
+                    (Privat - nur für dich sichtbar)
+                </span>
+            </div>
+        </form>
+    </div>
+</details>
+
+<style>
+/* Rotate arrow when details open */
+details[open] > summary span {
+    transform: rotate(90deg) !important;
+}
+</style>
+
 <!-- TEILNEHMERLISTE -->
 <?php if ($is_secretary): ?>
     <style>
@@ -436,7 +537,7 @@ foreach ($agenda_items as $item):
                 <?php endif; ?>
             </div>
 
-            <?php if ($is_secretary && $item['top_number'] != 0 && $item['top_number'] != 99 && $item['top_number'] != 999): ?>
+            <?php if ($is_secretary && $item['top_number'] != 0 && $item['top_number'] != 99): ?>
                 <div class="top-header-right">
                     <!-- Aktiv schalten via AJAX -->
                     <?php if (!$is_active): ?>
