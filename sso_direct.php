@@ -22,8 +22,8 @@ ini_set('session.use_only_cookies', 1);
 if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
     ini_set('session.cookie_secure', 1);
 }
-ini_set('session.gc_maxlifetime', 7 * 24 * 60 * 60);
-ini_set('session.cookie_lifetime', 7 * 24 * 60 * 60);
+ini_set('session.gc_maxlifetime', 15 * 24 * 60 * 60);  // 15 Tage
+ini_set('session.cookie_lifetime', 15 * 24 * 60 * 60); // 15 Tage
 
 // Session starten
 session_start();

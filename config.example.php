@@ -148,9 +148,9 @@ if (session_status() === PHP_SESSION_NONE) {
         ini_set('session.cookie_secure', 1);          // Cookie nur über HTTPS
     }
 
-    // Session-Laufzeit: 7 Tage (bessere UX für interne Nutzer)
-    ini_set('session.gc_maxlifetime', 7 * 24 * 60 * 60);    // 7 Tage Server-seitig
-    ini_set('session.cookie_lifetime', 7 * 24 * 60 * 60);   // 7 Tage Client-seitig
+    // Session-Laufzeit: 15 Tage (für Jour Fixe mit möglichem übersprungenen Termin)
+    ini_set('session.gc_maxlifetime', 15 * 24 * 60 * 60);    // 15 Tage Server-seitig
+    ini_set('session.cookie_lifetime', 15 * 24 * 60 * 60);   // 15 Tage Client-seitig
 }
 
 // ============= FOOTER-KONFIGURATION =============
