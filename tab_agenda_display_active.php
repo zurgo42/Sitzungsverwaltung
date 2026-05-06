@@ -45,48 +45,54 @@ $active_item_id = $stmt->fetchColumn();
 
 <h3 style="margin: 20px 0 15px 0;">🟢 Laufende Sitzung - Tagesordnungspunkte</h3>
 
-<!-- Direktlink zur Sitzung (nur im SSO-Modus) -->
-<?php if (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt'): ?>
-    <?php
-    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'];
-    $path = dirname($_SERVER['PHP_SELF']);
-    $direct_link = $protocol . '://' . $host . $path . '/sso_direct.php?meeting_id=' . $current_meeting_id;
-    ?>
-    <div style="margin: 15px 0; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
-        <strong style="color: #1976d2;">🔗 Direktlink zur Sitzung:</strong>
-        <div style="margin-top: 8px; display: flex; gap: 10px; align-items: center;">
-            <input type="text" id="directLinkInput" readonly value="<?php echo htmlspecialchars($direct_link); ?>"
-                   style="flex: 1; padding: 6px 10px; border: 1px solid #2196f3; border-radius: 4px; font-family: monospace; font-size: 13px;">
-            <button onclick="copyDirectLink()"
-                    style="padding: 6px 16px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
-                📋 Kopieren
-            </button>
-        </div>
-        <div style="margin-top: 6px; font-size: 12px; color: #666;">
-            Teile diesen Link mit Teilnehmern für direkten Zugriff auf diese Sitzung.
-        </div>
-    </div>
-    <script>
-    function copyDirectLink() {
-        const input = document.getElementById('directLinkInput');
-        input.select();
-        input.setSelectionRange(0, 99999); // Für Mobile
+<!-- Direktlink zur Sitzung -->
+<?php
+$protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'];
+$path = dirname($_SERVER['PHP_SELF']);
 
-        try {
-            document.execCommand('copy');
+// Im SSO-Modus: sso_direct.php Link, sonst: normaler index.php Link
+if (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt') {
+    $direct_link = $protocol . '://' . $host . $path . '/sso_direct.php?meeting_id=' . $current_meeting_id;
+    $link_description = 'Direktlink zur Sitzung (SSO):';
+} else {
+    $direct_link = $protocol . '://' . $host . $path . '/index.php?tab=agenda&meeting_id=' . $current_meeting_id;
+    $link_description = 'Link zur Sitzung:';
+}
+?>
+<div style="margin: 15px 0; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+    <strong style="color: #1976d2;">🔗 <?php echo $link_description; ?></strong>
+    <div style="margin-top: 8px; display: flex; gap: 10px; align-items: center;">
+        <input type="text" id="directLinkInput" readonly value="<?php echo htmlspecialchars($direct_link); ?>"
+               style="flex: 1; padding: 6px 10px; border: 1px solid #2196f3; border-radius: 4px; font-family: monospace; font-size: 13px;">
+        <button onclick="copyDirectLink()"
+                style="padding: 6px 16px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+            📋 Kopieren
+        </button>
+    </div>
+    <div style="margin-top: 6px; font-size: 12px; color: #666;">
+        Teile diesen Link mit Teilnehmern für direkten Zugriff auf diese Sitzung.
+    </div>
+</div>
+<script>
+function copyDirectLink() {
+    const input = document.getElementById('directLinkInput');
+    input.select();
+    input.setSelectionRange(0, 99999); // Für Mobile
+
+    try {
+        document.execCommand('copy');
+        alert('✅ Link wurde in die Zwischenablage kopiert!');
+    } catch (err) {
+        // Fallback für moderne Browser
+        navigator.clipboard.writeText(input.value).then(() => {
             alert('✅ Link wurde in die Zwischenablage kopiert!');
-        } catch (err) {
-            // Fallback für moderne Browser
-            navigator.clipboard.writeText(input.value).then(() => {
-                alert('✅ Link wurde in die Zwischenablage kopiert!');
-            }).catch(() => {
-                alert('❌ Kopieren fehlgeschlagen. Bitte manuell kopieren.');
-            });
-        }
+        }).catch(() => {
+            alert('❌ Kopieren fehlgeschlagen. Bitte manuell kopieren.');
+        });
     }
-    </script>
-<?php endif; ?>
+}
+</script>
 
 <!-- Eigene TODOs während Sitzung erstellen -->
 <details style="margin: 15px 0; background: #fff8e1; border: 2px solid #ffc107; border-radius: 6px; overflow: hidden;">
