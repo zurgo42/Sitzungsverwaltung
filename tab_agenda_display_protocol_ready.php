@@ -438,14 +438,63 @@ foreach ($agenda_items as $item):
     const MEETING_ID = <?php echo $current_meeting_id; ?>;
     const STORAGE_KEY = `meeting_${MEETING_ID}_post_comments`;
     const AUTO_SAVE_DELAY = 2000; // 2 Sekunden nach letzter Eingabe
+    const DEBUG = true; // Debug-Modus
 
     let saveTimeout = null;
-    let hasRestoredData = false;
 
-    // Alle Anmerkungen-Textareas finden
-    const textareas = document.querySelectorAll('textarea[name^="post_comment["]');
+    function log(...args) {
+        if (DEBUG) console.log('[Auto-Save]', ...args);
+    }
 
-    if (textareas.length === 0) return; // Keine Textareas gefunden
+    /**
+     * Initialisierung
+     */
+    function init() {
+        // Alle Anmerkungen-Textareas finden
+        const textareas = document.querySelectorAll('textarea[name^="post_comment["]');
+
+        log('Gefundene Textareas:', textareas.length);
+
+        if (textareas.length === 0) {
+            log('Keine Textareas gefunden - Auto-Save wird nicht aktiviert');
+            return;
+        }
+
+        // Event-Listener für Auto-Save
+        textareas.forEach((textarea, index) => {
+            log(`Textarea ${index}:`, textarea.name);
+
+            textarea.addEventListener('input', function() {
+                log('Input-Event in', this.name, '- Plane Speicherung');
+
+                // Gelben Hintergrund entfernen
+                if (this.style.backgroundColor === 'rgb(255, 248, 225)') {
+                    this.style.backgroundColor = '';
+                }
+
+                // Verzögertes Speichern
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    saveToStorage(textareas);
+                }, AUTO_SAVE_DELAY);
+            });
+        });
+
+        // Submit-Event: localStorage löschen
+        const form = textareas[0].closest('form');
+        if (form) {
+            log('Form gefunden, Submit-Event registriert');
+            form.addEventListener('submit', function() {
+                log('Form wird abgeschickt - Lösche Auto-Save-Daten');
+                localStorage.removeItem(STORAGE_KEY);
+            });
+        } else {
+            log('WARNUNG: Kein Form gefunden!');
+        }
+
+        // Daten wiederherstellen
+        restoreData(textareas);
+    }
 
     /**
      * Daten aus localStorage laden
@@ -453,13 +502,21 @@ foreach ($agenda_items as $item):
     function loadFromStorage() {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
-            if (!saved) return null;
+            if (!saved) {
+                log('Keine gespeicherten Daten gefunden');
+                return null;
+            }
 
             const data = JSON.parse(saved);
+            log('Daten geladen:', data);
 
             // Prüfen ob Daten älter als 7 Tage
             const age = Date.now() - data.timestamp;
+            const ageHours = Math.floor(age / (60 * 60 * 1000));
+            log(`Alter der Daten: ${ageHours} Stunden`);
+
             if (age > 7 * 24 * 60 * 60 * 1000) {
+                log('Daten zu alt, werden gelöscht');
                 localStorage.removeItem(STORAGE_KEY);
                 return null;
             }
@@ -474,7 +531,7 @@ foreach ($agenda_items as $item):
     /**
      * Daten in localStorage speichern
      */
-    function saveToStorage() {
+    function saveToStorage(textareas) {
         try {
             const comments = {};
             let hasContent = false;
@@ -488,12 +545,15 @@ foreach ($agenda_items as $item):
             });
 
             if (hasContent) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                const data = {
                     comments: comments,
                     timestamp: Date.now()
-                }));
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                log('Daten gespeichert:', data);
             } else {
                 localStorage.removeItem(STORAGE_KEY);
+                log('Alle Felder leer - Auto-Save-Daten gelöscht');
             }
         } catch (e) {
             console.error('Fehler beim Speichern der Anmerkungen:', e);
@@ -503,23 +563,36 @@ foreach ($agenda_items as $item):
     /**
      * Gespeicherte Daten wiederherstellen
      */
-    function restoreData() {
+    function restoreData(textareas) {
         const savedComments = loadFromStorage();
-        if (!savedComments) return false;
+        if (!savedComments) {
+            log('Keine Daten zum Wiederherstellen');
+            return false;
+        }
 
         let restoredCount = 0;
 
         textareas.forEach(textarea => {
             const match = textarea.name.match(/post_comment\[(\d+)\]/);
             if (match && savedComments[match[1]]) {
+                const currentValue = textarea.value.trim();
+                const savedValue = savedComments[match[1]];
+
+                log(`Feld ${match[1]}: Aktuell="${currentValue}", Gespeichert="${savedValue}"`);
+
                 // Nur wiederherstellen wenn Feld leer ist
-                if (!textarea.value.trim()) {
-                    textarea.value = savedComments[match[1]];
+                if (!currentValue) {
+                    textarea.value = savedValue;
                     textarea.style.backgroundColor = '#fff8e1'; // Gelber Hintergrund
                     restoredCount++;
+                    log(`Feld ${match[1]} wiederhergestellt`);
+                } else {
+                    log(`Feld ${match[1]} nicht wiederhergestellt (bereits gefüllt)`);
                 }
             }
         });
+
+        log(`Insgesamt ${restoredCount} Felder wiederhergestellt`);
 
         if (restoredCount > 0) {
             const banner = document.createElement('div');
@@ -539,44 +612,11 @@ foreach ($agenda_items as $item):
         return false;
     }
 
-    /**
-     * Auto-Save bei Eingabe
-     */
-    textareas.forEach(textarea => {
-        textarea.addEventListener('input', function() {
-            // Gelben Hintergrund nach Restore entfernen
-            if (this.style.backgroundColor === 'rgb(255, 248, 225)') {
-                this.style.backgroundColor = '';
-            }
-
-            // Verzögertes Speichern
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(saveToStorage, AUTO_SAVE_DELAY);
-        });
-    });
-
-    /**
-     * Nach erfolgreichem Submit: localStorage löschen
-     */
-    const form = textareas[0].closest('form');
-    if (form) {
-        form.addEventListener('submit', function() {
-            localStorage.removeItem(STORAGE_KEY);
-        });
-    }
-
-    /**
-     * Beim Laden: Daten wiederherstellen
-     */
-    window.addEventListener('DOMContentLoaded', function() {
-        hasRestoredData = restoreData();
-    });
-
-    // Auch sofort ausführen falls DOM schon geladen
+    // Beim Laden initialisieren
     if (document.readyState === 'loading') {
-        // Warten auf DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', init);
     } else {
-        hasRestoredData = restoreData();
+        init();
     }
 })();
 </script>
