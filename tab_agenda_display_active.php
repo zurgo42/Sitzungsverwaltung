@@ -519,8 +519,7 @@ foreach ($agenda_items as $item):
 
     // Laufende Nummer nur für sichtbare TOPs hochzählen
     $laufende_nummer++;
-    }
-    
+
     $is_active = ($item['item_id'] == $active_item_id);
     $border_color = $is_active ? '#f44336' : '#667eea';
     $border_width = $is_active ? '4px' : '3px';
