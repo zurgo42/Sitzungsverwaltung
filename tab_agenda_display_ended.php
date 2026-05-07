@@ -12,6 +12,14 @@ if (empty($agenda_items)) {
 
 <h3 style="margin: 20px 0 15px 0;">📋 Sitzungsverlauf - Protokoll in Bearbeitung</h3>
 
+<script>
+// SOFORTIGER TEST - Wird beim Laden ausgeführt
+console.log('========================================');
+console.log('SCRIPT GELADEN: tab_agenda_display_ended.php');
+console.log('Meeting ID:', <?php echo $current_meeting_id; ?>);
+console.log('========================================');
+</script>
+
 <!-- TEILNEHMERLISTE -->
 <?php if ($is_secretary): ?>
     <details open style="margin: 20px 0; padding: 15px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 8px;">
