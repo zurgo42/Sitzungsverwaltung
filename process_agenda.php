@@ -2107,24 +2107,27 @@ if (isset($_POST['save_chairman_comment']) && $is_chairman && $meeting['status']
  * - todo_title: String (required)
  * - todo_description: String (optional)
  * - todo_due_date: Date (optional)
+ * - item_id: Int (optional) - verknüpft TODO mit spezifischem TOP
  *
- * Verwendet von: tab_agenda_display_active.php - "Eigenes TODO aufschreiben" Akkordeon
- * Redirect: ?tab=agenda&meeting_id=X
+ * Verwendet von: tab_agenda_display_active.php - "Eigenes TODO aufschreiben" Akkordeon in jedem TOP
+ * Redirect: ?tab=agenda&meeting_id=X#top-ITEM_ID (falls item_id angegeben)
  */
 if (isset($_POST['quick_todo_create'])) {
     $todo_title = trim($_POST['todo_title'] ?? '');
     $todo_description = trim($_POST['todo_description'] ?? '');
     $todo_due_date = !empty($_POST['todo_due_date']) ? $_POST['todo_due_date'] : null;
+    $item_id = !empty($_POST['item_id']) ? intval($_POST['item_id']) : null;
 
     if (!empty($todo_title)) {
         try {
             $stmt = $pdo->prepare("
                 INSERT INTO svtodos
-                (meeting_id, assigned_to_member_id, created_by_member_id, title, description, due_date, status, is_private, entry_date)
-                VALUES (?, ?, ?, ?, ?, ?, 'open', 1, CURDATE())
+                (meeting_id, agenda_item_id, assigned_to_member_id, created_by_member_id, title, description, due_date, status, is_private, entry_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'open', 1, CURDATE())
             ");
             $stmt->execute([
                 $current_meeting_id,
+                $item_id,  // Verknüpfung mit TOP (optional)
                 $current_user['member_id'],  // Zugewiesen an sich selbst
                 $current_user['member_id'],  // Erstellt von sich selbst
                 $todo_title,
@@ -2132,15 +2135,19 @@ if (isset($_POST['quick_todo_create'])) {
                 $todo_due_date
             ]);
 
-            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=todo_created");
+            // Redirect zum TOP wenn item_id angegeben, sonst zur Agenda
+            $redirect_anchor = $item_id ? "#top-$item_id" : '';
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=todo_created$redirect_anchor");
             exit;
         } catch (PDOException $e) {
             error_log("Fehler beim Erstellen des Quick-TODOs: " . $e->getMessage());
-            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=todo_failed");
+            $redirect_anchor = $item_id ? "#top-$item_id" : '';
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=todo_failed$redirect_anchor");
             exit;
         }
     } else {
-        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=todo_title_required");
+        $redirect_anchor = $item_id ? "#top-$item_id" : '';
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=todo_title_required$redirect_anchor");
         exit;
     }
 }

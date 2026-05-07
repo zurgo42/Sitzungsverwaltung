@@ -94,64 +94,6 @@ function copyDirectLink() {
 }
 </script>
 
-<!-- Eigene TODOs während Sitzung erstellen -->
-<details style="margin: 15px 0; background: #fff8e1; border: 2px solid #ffc107; border-radius: 6px; overflow: hidden;">
-    <summary style="padding: 10px 15px; cursor: pointer; font-weight: 600; color: #f57c00; font-size: 14px; user-select: none;">
-        <span style="display: inline-block; transform: rotate(0deg); transition: transform 0.2s;">▶</span>
-        📝 Eigenes TODO aufschreiben
-    </summary>
-
-    <div style="padding: 15px; background: #fffef5;">
-        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>"
-              onsubmit="return confirm('TODO wirklich anlegen?');">
-            <input type="hidden" name="quick_todo_create" value="1">
-
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
-                    Titel:
-                </label>
-                <input type="text" name="todo_title" required
-                       placeholder="z.B. Recherche für nächste Sitzung"
-                       style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
-            </div>
-
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
-                    Beschreibung (optional):
-                </label>
-                <textarea name="todo_description" rows="3"
-                          placeholder="Details zum TODO..."
-                          style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
-            </div>
-
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
-                    Fällig bis (optional):
-                </label>
-                <input type="date" name="todo_due_date"
-                       style="padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
-            </div>
-
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <button type="submit"
-                        style="padding: 8px 16px; background: #ffc107; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px;">
-                    ✅ TODO anlegen
-                </button>
-                <span style="font-size: 12px; color: #666;">
-                    (Privat - nur für dich sichtbar)
-                </span>
-            </div>
-        </form>
-    </div>
-</details>
-
-<style>
-/* Rotate arrow when details open */
-details[open] > summary span {
-    transform: rotate(90deg) !important;
-}
-</style>
-
 <!-- TEILNEHMERLISTE -->
 <?php if ($is_secretary): ?>
     <style>
@@ -771,8 +713,67 @@ foreach ($agenda_items as $item):
                     ℹ️ Kommentare in diesem Feld bleiben bis zur Protokollgenehmigung sichtbar und werden dann verworfen
                 </div>
             </div>
+
+            <!-- Eigenes TODO für diesen TOP erstellen -->
+            <details style="margin-top: 15px; background: #fff8e1; border: 2px solid #ffc107; border-radius: 6px; overflow: hidden;">
+                <summary style="padding: 10px 15px; cursor: pointer; font-weight: 600; color: #f57c00; font-size: 14px; user-select: none;">
+                    <span style="display: inline-block; transform: rotate(0deg); transition: transform 0.2s;">▶</span>
+                    📝 Eigenes TODO zu diesem TOP aufschreiben
+                </summary>
+
+                <div style="padding: 15px; background: #fffef5;">
+                    <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>"
+                          onsubmit="return confirm('TODO wirklich anlegen?');">
+                        <input type="hidden" name="quick_todo_create" value="1">
+                        <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
+                                Titel:
+                            </label>
+                            <input type="text" name="todo_title" required
+                                   placeholder="z.B. Recherche für nächste Sitzung"
+                                   style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
+                        </div>
+
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
+                                Beschreibung (optional):
+                            </label>
+                            <textarea name="todo_description" rows="3"
+                                      placeholder="Details zum TODO..."
+                                      style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                        </div>
+
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
+                                Fällig bis (optional):
+                            </label>
+                            <input type="date" name="todo_due_date"
+                                   style="padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
+                        </div>
+
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button type="submit"
+                                    style="padding: 8px 16px; background: #ffc107; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                                ✅ TODO anlegen
+                            </button>
+                            <span style="font-size: 12px; color: #666;">
+                                (Privat - nur für dich sichtbar)
+                            </span>
+                        </div>
+                    </form>
+                </div>
+
+                <style>
+                /* Rotate arrow when details open */
+                details[open] > summary span {
+                    transform: rotate(90deg) !important;
+                }
+                </style>
+            </details>
         <?php endif; ?>
-        
+
         <?php if ($item['top_number'] != 999): ?>
             <?php if ($is_secretary): ?>
                 <!-- PROTOKOLL-FORMULAR (nur für Sekretär) -->
