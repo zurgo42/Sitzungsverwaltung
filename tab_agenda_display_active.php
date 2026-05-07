@@ -512,12 +512,13 @@ foreach ($agenda_items as $item):
         continue;
     }
 
-    // Vertrauliche TOPs nur für berechtigte User
+    // Laufende Nummer für ALLE TOPs (auch vertrauliche) vergeben
+    $laufende_nummer++;
+
+    // Vertrauliche TOPs nur für berechtigte User anzeigen
     if ($item['is_confidential'] && !$can_see_confidential) {
         continue;
     }
-
-    $laufende_nummer++;  // Laufende Nummer hochzählen (nur für angezeigte TOPs)
     }
     
     $is_active = ($item['item_id'] == $active_item_id);
