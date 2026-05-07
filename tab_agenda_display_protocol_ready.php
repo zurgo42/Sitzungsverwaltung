@@ -584,18 +584,18 @@ foreach ($agenda_items as $item):
             const match = textarea.name.match(/post_comment\[(\d+)\]/);
             if (match && savedComments[match[1]]) {
                 const currentValue = textarea.value.trim();
-                const savedValue = savedComments[match[1]];
+                const savedValue = savedComments[match[1]].trim();
 
                 log(`Feld ${match[1]}: Aktuell="${currentValue}", Gespeichert="${savedValue}"`);
 
-                // Nur wiederherstellen wenn Feld leer ist
-                if (!currentValue) {
+                // Wiederherstellen wenn Wert unterschiedlich ist
+                if (currentValue !== savedValue) {
                     textarea.value = savedValue;
                     textarea.style.backgroundColor = '#fff8e1'; // Gelber Hintergrund
                     restoredCount++;
-                    log(`Feld ${match[1]} wiederhergestellt`);
+                    log(`Feld ${match[1]} wiederhergestellt (unterschiedlicher Wert)`);
                 } else {
-                    log(`Feld ${match[1]} nicht wiederhergestellt (bereits gefüllt)`);
+                    log(`Feld ${match[1]} nicht wiederhergestellt (identisch)`);
                 }
             }
         });
