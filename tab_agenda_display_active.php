@@ -505,7 +505,8 @@ $can_see_confidential = (
     $is_chairman
 );
 
-$laufende_nummer = 0;  // Laufende Nummer für priorisierte Reihenfolge
+$laufende_nummer = 0;  // Laufende Nummer für priorisierte Reihenfolge (Anzeige)
+$item_index = 0;       // Array-Index (für Berechnungen)
 foreach ($agenda_items as $item):
     // TOP 999 ausblenden
     if ($item['top_number'] == 999) {
@@ -514,11 +515,13 @@ foreach ($agenda_items as $item):
 
     // Vertrauliche TOPs nur für berechtigte User anzeigen
     if ($item['is_confidential'] && !$can_see_confidential) {
+        $item_index++;  // Index weiterzählen für korrekte Berechnungen
         continue;
     }
 
     // Laufende Nummer nur für sichtbare TOPs hochzählen
     $laufende_nummer++;
+    $item_index++;
 
     $is_active = ($item['item_id'] == $active_item_id);
     $border_color = $is_active ? '#f44336' : '#667eea';
