@@ -428,3 +428,155 @@ foreach ($agenda_items as $item):
         </form>
     </div>
 <?php endif; ?>
+
+<script>
+/**
+ * Auto-Save für nachträgliche Anmerkungen
+ * Speichert Eingaben automatisch im localStorage als Backup
+ */
+(function() {
+    const MEETING_ID = <?php echo $current_meeting_id; ?>;
+    const STORAGE_KEY = `meeting_${MEETING_ID}_post_comments`;
+    const AUTO_SAVE_DELAY = 2000; // 2 Sekunden nach letzter Eingabe
+
+    let saveTimeout = null;
+    let hasRestoredData = false;
+
+    // Alle Anmerkungen-Textareas finden
+    const textareas = document.querySelectorAll('textarea[name^="post_comment["]');
+
+    if (textareas.length === 0) return; // Keine Textareas gefunden
+
+    /**
+     * Daten aus localStorage laden
+     */
+    function loadFromStorage() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) return null;
+
+            const data = JSON.parse(saved);
+
+            // Prüfen ob Daten älter als 7 Tage
+            const age = Date.now() - data.timestamp;
+            if (age > 7 * 24 * 60 * 60 * 1000) {
+                localStorage.removeItem(STORAGE_KEY);
+                return null;
+            }
+
+            return data.comments;
+        } catch (e) {
+            console.error('Fehler beim Laden der gespeicherten Anmerkungen:', e);
+            return null;
+        }
+    }
+
+    /**
+     * Daten in localStorage speichern
+     */
+    function saveToStorage() {
+        try {
+            const comments = {};
+            let hasContent = false;
+
+            textareas.forEach(textarea => {
+                const match = textarea.name.match(/post_comment\[(\d+)\]/);
+                if (match && textarea.value.trim()) {
+                    comments[match[1]] = textarea.value;
+                    hasContent = true;
+                }
+            });
+
+            if (hasContent) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    comments: comments,
+                    timestamp: Date.now()
+                }));
+            } else {
+                localStorage.removeItem(STORAGE_KEY);
+            }
+        } catch (e) {
+            console.error('Fehler beim Speichern der Anmerkungen:', e);
+        }
+    }
+
+    /**
+     * Gespeicherte Daten wiederherstellen
+     */
+    function restoreData() {
+        const savedComments = loadFromStorage();
+        if (!savedComments) return false;
+
+        let restoredCount = 0;
+
+        textareas.forEach(textarea => {
+            const match = textarea.name.match(/post_comment\[(\d+)\]/);
+            if (match && savedComments[match[1]]) {
+                // Nur wiederherstellen wenn Feld leer ist
+                if (!textarea.value.trim()) {
+                    textarea.value = savedComments[match[1]];
+                    textarea.style.backgroundColor = '#fff8e1'; // Gelber Hintergrund
+                    restoredCount++;
+                }
+            }
+        });
+
+        if (restoredCount > 0) {
+            const banner = document.createElement('div');
+            banner.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #ff9800; color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10000; font-weight: 600;';
+            banner.innerHTML = `
+                ✅ ${restoredCount} nicht gespeicherte Anmerkung(en) wiederhergestellt
+                <button onclick="this.parentElement.remove()" style="margin-left: 15px; background: white; color: #ff9800; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: 600;">OK</button>
+            `;
+            document.body.appendChild(banner);
+
+            // Banner nach 10 Sekunden ausblenden
+            setTimeout(() => banner.remove(), 10000);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Auto-Save bei Eingabe
+     */
+    textareas.forEach(textarea => {
+        textarea.addEventListener('input', function() {
+            // Gelben Hintergrund nach Restore entfernen
+            if (this.style.backgroundColor === 'rgb(255, 248, 225)') {
+                this.style.backgroundColor = '';
+            }
+
+            // Verzögertes Speichern
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveToStorage, AUTO_SAVE_DELAY);
+        });
+    });
+
+    /**
+     * Nach erfolgreichem Submit: localStorage löschen
+     */
+    const form = textareas[0].closest('form');
+    if (form) {
+        form.addEventListener('submit', function() {
+            localStorage.removeItem(STORAGE_KEY);
+        });
+    }
+
+    /**
+     * Beim Laden: Daten wiederherstellen
+     */
+    window.addEventListener('DOMContentLoaded', function() {
+        hasRestoredData = restoreData();
+    });
+
+    // Auch sofort ausführen falls DOM schon geladen
+    if (document.readyState === 'loading') {
+        // Warten auf DOMContentLoaded
+    } else {
+        hasRestoredData = restoreData();
+    }
+})();
+</script>
