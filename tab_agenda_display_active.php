@@ -450,16 +450,20 @@ $can_see_confidential = (
 $laufende_nummer = 0;  // Laufende Nummer für priorisierte Reihenfolge (Anzeige)
 $item_index = 0;       // Array-Index (für Berechnungen)
 foreach ($agenda_items as $item):
+    // TOP 999 (Marker) nicht anzeigen
+    if ($item['top_number'] == 999) {
+        $item_index++;
+        continue;
+    }
+
     // Vertrauliche TOPs nur für berechtigte User anzeigen
     if ($item['is_confidential'] && !$can_see_confidential) {
         $item_index++;  // Index weiterzählen für korrekte Berechnungen
         continue;
     }
 
-    // Laufende Nummer nur für normale TOPs (nicht für TOP 999)
-    if ($item['top_number'] != 999) {
-        $laufende_nummer++;
-    }
+    // Laufende Nummer hochzählen
+    $laufende_nummer++;
     $item_index++;
 
     $is_active = ($item['item_id'] == $active_item_id);
@@ -478,11 +482,7 @@ foreach ($agenda_items as $item):
                     </span>
                 <?php endif; ?>
                 <strong style="font-size: 16px; color: #333;">
-                    <?php if ($item['top_number'] == 999): ?>
-                        TOP <?php echo $item['top_number']; ?>: <?php echo htmlspecialchars($item['title']); ?>
-                    <?php else: ?>
-                        <?php echo $laufende_nummer; ?> - war TOP <?php echo $item['top_number']; ?>: <?php echo htmlspecialchars($item['title']); ?>
-                    <?php endif; ?>
+                    <?php echo $laufende_nummer; ?> - war TOP <?php echo $item['top_number']; ?>: <?php echo htmlspecialchars($item['title']); ?>
                 </strong>
                 <?php render_category_badge($item['category']); ?>
                 <?php if ($item['is_confidential']): ?>
@@ -490,7 +490,7 @@ foreach ($agenda_items as $item):
                 <?php endif; ?>
             </div>
 
-            <?php if ($is_secretary && $item['top_number'] != 0): ?>
+            <?php if ($is_secretary && $item['top_number'] != 999): ?>
                 <div class="top-header-right">
                     <!-- Aktiv schalten via AJAX -->
                     <?php if (!$is_active): ?>
