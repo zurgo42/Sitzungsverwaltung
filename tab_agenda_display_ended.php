@@ -12,14 +12,6 @@ if (empty($agenda_items)) {
 
 <h3 style="margin: 20px 0 15px 0;">📋 Sitzungsverlauf - Protokoll in Bearbeitung</h3>
 
-<script>
-// SOFORTIGER TEST - Wird beim Laden ausgeführt
-console.log('========================================');
-console.log('SCRIPT GELADEN: tab_agenda_display_ended.php');
-console.log('Meeting ID:', <?php echo $current_meeting_id; ?>);
-console.log('========================================');
-</script>
-
 <!-- TEILNEHMERLISTE -->
 <?php if ($is_secretary): ?>
     <details open style="margin: 20px 0; padding: 15px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 8px;">
@@ -411,7 +403,7 @@ foreach ($agenda_items as $item):
     const MEETING_ID = <?php echo $current_meeting_id; ?>;
     const STORAGE_KEY = `meeting_${MEETING_ID}_post_comments`;
     const AUTO_SAVE_DELAY = 2000; // 2 Sekunden nach letzter Eingabe
-    const DEBUG = true; // Debug-Modus
+    const DEBUG = false; // Debug-Modus (auf true setzen bei Problemen)
 
     let saveTimeout = null;
 
