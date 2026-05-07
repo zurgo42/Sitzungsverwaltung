@@ -508,19 +508,16 @@ $can_see_confidential = (
 $laufende_nummer = 0;  // Laufende Nummer für priorisierte Reihenfolge (Anzeige)
 $item_index = 0;       // Array-Index (für Berechnungen)
 foreach ($agenda_items as $item):
-    // TOP 999 ausblenden
-    if ($item['top_number'] == 999) {
-        continue;
-    }
-
     // Vertrauliche TOPs nur für berechtigte User anzeigen
     if ($item['is_confidential'] && !$can_see_confidential) {
         $item_index++;  // Index weiterzählen für korrekte Berechnungen
         continue;
     }
 
-    // Laufende Nummer nur für sichtbare TOPs hochzählen
-    $laufende_nummer++;
+    // Laufende Nummer nur für normale TOPs (nicht für TOP 999)
+    if ($item['top_number'] != 999) {
+        $laufende_nummer++;
+    }
     $item_index++;
 
     $is_active = ($item['item_id'] == $active_item_id);
@@ -539,7 +536,11 @@ foreach ($agenda_items as $item):
                     </span>
                 <?php endif; ?>
                 <strong style="font-size: 16px; color: #333;">
-                    <?php echo $laufende_nummer; ?> - war TOP <?php echo $item['top_number']; ?>: <?php echo htmlspecialchars($item['title']); ?>
+                    <?php if ($item['top_number'] == 999): ?>
+                        TOP <?php echo $item['top_number']; ?>: <?php echo htmlspecialchars($item['title']); ?>
+                    <?php else: ?>
+                        <?php echo $laufende_nummer; ?> - war TOP <?php echo $item['top_number']; ?>: <?php echo htmlspecialchars($item['title']); ?>
+                    <?php endif; ?>
                 </strong>
                 <?php render_category_badge($item['category']); ?>
                 <?php if ($item['is_confidential']): ?>
