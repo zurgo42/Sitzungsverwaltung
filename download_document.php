@@ -4,6 +4,7 @@
  * Stellt Dokumente zum Download bereit und trackt Downloads
  */
 
+require_once 'session_config.php';
 session_start();
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/documents_functions.php';

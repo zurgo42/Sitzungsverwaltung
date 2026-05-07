@@ -19,8 +19,10 @@ ini_set('display_errors', 0); // Nicht direkt ausgeben, sondern als JSON
 ob_start();
 
 try {
+    // Session-Konfiguration laden (VOR session_start!)
+    require_once 'session_config.php';
     session_start();
-    
+
     // DB-Verbindung aufbauen
     require_once 'config.php';
     require_once 'functions.php';

@@ -3,6 +3,7 @@
  * delete_agenda_attachment.php - Löschen von TOP-Attachments
  */
 
+require_once 'session_config.php';
 session_start();
 require_once 'config.php';
 require_once 'functions.php';

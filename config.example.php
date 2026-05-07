@@ -134,24 +134,9 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 
 // ============= SESSION-KONFIGURATION =============
-// Session-Konfiguration (MUSS identisch zu VTool sein für Cookie-Sharing!)
-// WICHTIG: Nur setzen wenn Session noch nicht aktiv (z.B. bei direktem index.php Aufruf)
-// Bei SSO-Modus wird die Config bereits in sso_direct.php gesetzt
-if (session_status() === PHP_SESSION_NONE) {
-    ini_set('session.cookie_path', '/');              // Cookie für gesamte Domain
-    ini_set('session.cookie_httponly', 1);            // Schutz vor XSS
-    ini_set('session.cookie_samesite', 'Lax');        // CSRF-Schutz
-    ini_set('session.use_only_cookies', 1);           // Nur Cookies, keine URL-Parameter
-
-    // HTTPS-Sicherheit (nur wenn HTTPS aktiv)
-    if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
-        ini_set('session.cookie_secure', 1);          // Cookie nur über HTTPS
-    }
-
-    // Session-Laufzeit: 15 Tage (für Jour Fixe mit möglichem übersprungenen Termin)
-    ini_set('session.gc_maxlifetime', 15 * 24 * 60 * 60);    // 15 Tage Server-seitig
-    ini_set('session.cookie_lifetime', 15 * 24 * 60 * 60);   // 15 Tage Client-seitig
-}
+// Session-Konfiguration wird zentral aus session_config.php geladen
+// (Diese Datei wird VOR session_start() in index.php und allen anderen Dateien included)
+// Die Konfiguration ist in session_config.php definiert (15 Tage Laufzeit)
 
 // ============= FOOTER-KONFIGURATION =============
 define('FOOTER_COPYRIGHT', '&copy; Dr. Hermann Meier, Horstmannsmühle 1a, 42781 Haan Tel. 02129 379 2870 eMail meier@zurgo.de');
