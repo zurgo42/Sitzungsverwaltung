@@ -11,17 +11,17 @@
  * Letzte Aktualisierung: 28.10.2025 MEZ
  */
 
-// Session starten (muss ganz am Anfang stehen, vor jeder Ausgabe)
-// Prüfen ob Session bereits gestartet wurde (z.B. durch sso_direct.php)
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Konfiguration und Hilfsfunktionen laden
+// Konfiguration laden (VOR session_start, damit Session-Einstellungen greifen!)
 require_once 'config.php';           // Datenbankverbindung und Konstanten
 require_once 'config_adapter.php';   // Konfiguration für Mitgliederquelle
 require_once 'member_functions.php'; // Prozedurale Wrapper-Funktionen für Mitglieder
 require_once 'functions.php';        // Wiederverwendbare Funktionen
+
+// Session starten (nach config.php, damit Session-Konfiguration mit 15 Tagen greift)
+// Prüfen ob Session bereits gestartet wurde (z.B. durch sso_direct.php)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // ============================================
 // GLOBALES MEMBERS-ARRAY (für SSO und Standard-Modus)
