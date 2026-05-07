@@ -51,10 +51,15 @@ function get_member_name($pdo, $member_id) {
 function calculate_remaining_time($pdo, $agenda_items, $current_index) {
     $regular_time = 0;
     $confidential_time = 0;
-    
+
     for ($i = $current_index; $i < count($agenda_items); $i++) {
+        // Prüfen ob Element existiert (wichtig bei gefilterten Arrays)
+        if (!isset($agenda_items[$i])) {
+            continue;
+        }
+
         $item = $agenda_items[$i];
-        
+
         // TOP 999 (Sitzungsende) und TOP 0 überspringen
         if (in_array($item['top_number'], [0, 999])) {
             continue;
