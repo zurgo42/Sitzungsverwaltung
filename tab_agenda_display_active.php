@@ -490,16 +490,16 @@ foreach ($agenda_items as $item):
                 <?php endif; ?>
             </div>
 
-            <?php if ($is_secretary && $item['top_number'] != 0 && $item['top_number'] != 99): ?>
+            <?php if ($is_secretary && $item['top_number'] != 0): ?>
                 <div class="top-header-right">
                     <!-- Aktiv schalten via AJAX -->
                     <?php if (!$is_active): ?>
-                        <button onclick="setActiveTop(<?php echo $item['item_id']; ?>, <?php echo $current_meeting_id; ?>)" 
+                        <button onclick="setActiveTop(<?php echo $item['item_id']; ?>, <?php echo $current_meeting_id; ?>)"
                                 style="background: #f44336; color: white; padding: 4px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">
                             🔴 Aktivieren
                         </button>
                     <?php else: ?>
-                        <button onclick="unsetActiveTop(<?php echo $current_meeting_id; ?>)" 
+                        <button onclick="unsetActiveTop(<?php echo $current_meeting_id; ?>)"
                                 style="background: #999; color: white; padding: 4px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">
                             ⚫ Deaktivieren
                         </button>
