@@ -254,14 +254,26 @@ foreach ($agenda_items as $item):
         <?php
         // Alle nachträglichen Kommentare laden (inkl. eigener)
         $stmt = $pdo->prepare("
-            SELECT apc.*, m.first_name, m.last_name
-            FROM svagenda_post_comments apc
-            JOIN svmembers m ON apc.member_id = m.member_id
-            WHERE apc.item_id = ?
-            ORDER BY apc.created_at ASC
+            SELECT *
+            FROM svagenda_post_comments
+            WHERE item_id = ?
+            ORDER BY created_at ASC
         ");
         $stmt->execute([$item['item_id']]);
         $all_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Mitgliederdaten über Adapter laden
+        foreach ($all_comments as &$comment) {
+            $member = get_member_by_id($pdo, $comment['member_id']);
+            if ($member) {
+                $comment['first_name'] = $member['first_name'];
+                $comment['last_name'] = $member['last_name'];
+            } else {
+                $comment['first_name'] = 'Unbekannt';
+                $comment['last_name'] = '';
+            }
+        }
+        unset($comment); // Referenz aufheben
         ?>
 
         <div style="margin-top: 15px; padding: 12px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 6px;">
