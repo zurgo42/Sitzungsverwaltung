@@ -60,10 +60,6 @@ function status_anzeige($status) {
 $sql = "
 SELECT
     t.*,
-    m1.first_name AS assigned_to_first_name,
-    m1.last_name AS assigned_to_last_name,
-    m2.first_name AS created_by_first_name,
-    m2.last_name AS created_by_last_name,
     mtg.meeting_name,
     CASE
         WHEN t.assigned_to_member_id = :member_id THEN 'own'
@@ -71,8 +67,6 @@ SELECT
         ELSE 'done'
     END AS todo_typ
 FROM svtodos t
-LEFT JOIN svmembers m1 ON t.assigned_to_member_id = m1.member_id
-LEFT JOIN svmembers m2 ON t.created_by_member_id = m2.member_id
 LEFT JOIN svmeetings mtg ON t.meeting_id = mtg.meeting_id
 WHERE
     (
@@ -83,25 +77,54 @@ WHERE
 ORDER BY
     (t.assigned_to_member_id = :member_id) DESC,
     (t.status <> 'done') DESC,
-    CASE
-        WHEN t.assigned_to_member_id = :member_id THEN IFNULL(t.due_date, '9999-12-31')
-        WHEN t.status <> 'done' THEN IFNULL(t.due_date, '9999-12-31')
-        ELSE m1.last_name
-    END ASC,
+    IFNULL(t.due_date, '9999-12-31') ASC,
     IFNULL(t.completed_at, '9999-12-31') ASC
 ";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute(['member_id' => $currentMemberID]);
+$todos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Mitgliederdaten über Adapter laden
+foreach ($todos as &$todo) {
+    // Assigned to member
+    if ($todo['assigned_to_member_id']) {
+        $assigned_member = get_member_by_id($pdo, $todo['assigned_to_member_id']);
+        if ($assigned_member) {
+            $todo['assigned_to_first_name'] = $assigned_member['first_name'];
+            $todo['assigned_to_last_name'] = $assigned_member['last_name'];
+        } else {
+            $todo['assigned_to_first_name'] = 'Unbekannt';
+            $todo['assigned_to_last_name'] = '';
+        }
+    } else {
+        $todo['assigned_to_first_name'] = '';
+        $todo['assigned_to_last_name'] = '';
+    }
+
+    // Created by member
+    if ($todo['created_by_member_id']) {
+        $created_member = get_member_by_id($pdo, $todo['created_by_member_id']);
+        if ($created_member) {
+            $todo['created_by_first_name'] = $created_member['first_name'];
+            $todo['created_by_last_name'] = $created_member['last_name'];
+        } else {
+            $todo['created_by_first_name'] = 'Unbekannt';
+            $todo['created_by_last_name'] = '';
+        }
+    } else {
+        $todo['created_by_first_name'] = '';
+        $todo['created_by_last_name'] = '';
+    }
+}
+unset($todo); // Referenz aufheben
 
 // Aufteilen in eigene und fremde ToDos
-
-// Aufteilen in eigene (offen/erledigt) und fremde ToDos
 $own_todos_open = [];
 $own_todos_done = [];
 $other_todos = [];
 
-while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+foreach ($todos as $row) {
     if ($row['assigned_to_member_id'] == $currentMemberID) {
         if ($row['status'] === 'done') {
             $own_todos_done[] = $row;
