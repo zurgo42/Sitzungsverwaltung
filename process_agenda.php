@@ -2099,6 +2099,53 @@ if (isset($_POST['save_chairman_comment']) && $is_chairman && $meeting['status']
     }
 }
 
+// Kommentar eines Teilnehmers speichern (protocol_ready Status)
+if (isset($_POST['save_participant_comment']) && $meeting['status'] === 'protocol_ready') {
+    $item_id = intval($_POST['item_id'] ?? 0);
+    $comment_text = trim($_POST['comment_text'] ?? '');
+
+    if ($item_id) {
+        try {
+            // Prüfen ob bereits ein Kommentar existiert
+            $stmt = $pdo->prepare("
+                SELECT comment_id
+                FROM svagenda_post_comments
+                WHERE item_id = ? AND member_id = ?
+            ");
+            $stmt->execute([$item_id, $current_user['member_id']]);
+            $existing = $stmt->fetch();
+
+            if ($existing) {
+                // Update
+                if (!empty($comment_text)) {
+                    $stmt = $pdo->prepare("
+                        UPDATE svagenda_post_comments
+                        SET comment_text = ?, created_at = NOW()
+                        WHERE comment_id = ?
+                    ");
+                    $stmt->execute([$comment_text, $existing['comment_id']]);
+                } else {
+                    // Löschen wenn leer
+                    $stmt = $pdo->prepare("DELETE FROM svagenda_post_comments WHERE comment_id = ?");
+                    $stmt->execute([$existing['comment_id']]);
+                }
+            } elseif (!empty($comment_text)) {
+                // Insert
+                $stmt = $pdo->prepare("
+                    INSERT INTO svagenda_post_comments (item_id, member_id, comment_text, created_at)
+                    VALUES (?, ?, ?, NOW())
+                ");
+                $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+            }
+
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
+            exit;
+        } catch (PDOException $e) {
+            error_log("Fehler beim Speichern des Teilnehmer-Kommentars: " . $e->getMessage());
+        }
+    }
+}
+
 /**
  * Schnelles TODO während Sitzung erstellen
  *

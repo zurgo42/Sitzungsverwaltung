@@ -248,28 +248,88 @@ foreach ($agenda_items as $item):
                 </div>
                 <?php render_voting_result($item); ?>
             </div>
+
+            <!-- NACHTRÄGLICHE KOMMENTARE FÜR ALLE TEILNEHMER -->
+            <?php
+            // Nachträgliche Kommentare ANDERER Teilnehmer laden (ohne eigene)
+            $stmt = $pdo->prepare("
+                SELECT apc.*, m.first_name, m.last_name
+                FROM svagenda_post_comments apc
+                JOIN svmembers m ON apc.member_id = m.member_id
+                WHERE apc.item_id = ? AND apc.member_id != ?
+                ORDER BY apc.created_at ASC
+            ");
+            $stmt->execute([$item['item_id'], $current_user['member_id']]);
+            $others_post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($others_post_comments)):
+            ?>
+                <div style="margin-top: 15px; padding: 12px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 6px;">
+                    <h4 style="color: #e65100; margin-bottom: 8px;">💭 Nachträgliche Anmerkungen der Teilnehmer</h4>
+                    <div style="background: white; padding: 10px; border-radius: 4px;">
+                        <?php foreach ($others_post_comments as $pc): ?>
+                            <div style="padding: 6px 0; border-bottom: 1px solid #eee; font-size: 13px;">
+                                <strong style="color: #333;"><?php echo htmlspecialchars($pc['first_name'] . ' ' . $pc['last_name']); ?></strong>
+                                <span style="color: #999; font-size: 11px;"><?php echo date('d.m.Y H:i', strtotime($pc['created_at'])); ?>:</span>
+                                <span style="color: #555;"><?php echo htmlspecialchars($pc['comment_text']); ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Eigene nachträgliche Anmerkung -->
+            <div style="margin-top: 15px; padding: 12px; background: #e8f5e9; border: 2px solid #4caf50; border-radius: 6px;">
+                <h4 style="color: #2e7d32; margin-bottom: 8px;">💭 Deine nachträgliche Anmerkung zum Protokoll</h4>
+
+                <?php
+                // Eigene nachträgliche Anmerkung laden
+                $stmt = $pdo->prepare("
+                    SELECT comment_text, comment_id
+                    FROM svagenda_post_comments
+                    WHERE item_id = ? AND member_id = ?
+                ");
+                $stmt->execute([$item['item_id'], $current_user['member_id']]);
+                $my_post_comment = $stmt->fetch(PDO::FETCH_ASSOC);
+                ?>
+
+                <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="margin-top: 8px;">
+                    <input type="hidden" name="save_participant_comment" value="1">
+                    <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                    <textarea name="comment_text" rows="3"
+                              placeholder="Ihre nachträgliche Anmerkung..."
+                              style="width: 100%; padding: 6px; border: 1px solid #4caf50; border-radius: 4px; font-size: 13px;"><?php echo htmlspecialchars($my_post_comment['comment_text'] ?? ''); ?></textarea>
+                    <button type="submit" style="background: #4caf50; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 4px;">
+                        💾 Speichern
+                    </button>
+                </form>
+
+                <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; font-size: 12px; color: #666; font-style: italic;">
+                    ℹ️ Kommentare in diesem Feld bleiben bis zur Protokollgenehmigung sichtbar und werden dann verworfen
+                </div>
+            </div>
         <?php endif; ?>
 
         <!-- NACHTRÄGLICHE KOMMENTARE FÜR PROTOKOLLFÜHRER -->
         <?php if ($is_secretary): ?>
             <?php
-            // Nachträgliche Kommentare laden
+            // Nachträgliche Kommentare ANDERER Teilnehmer laden (ohne eigene)
             $stmt = $pdo->prepare("
                 SELECT apc.*, m.first_name, m.last_name
                 FROM svagenda_post_comments apc
                 JOIN svmembers m ON apc.member_id = m.member_id
-                WHERE apc.item_id = ?
+                WHERE apc.item_id = ? AND apc.member_id != ?
                 ORDER BY apc.created_at ASC
             ");
-            $stmt->execute([$item['item_id']]);
-            $all_post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->execute([$item['item_id'], $current_user['member_id']]);
+            $others_post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            if (!empty($all_post_comments)):
+            if (!empty($others_post_comments)):
             ?>
                 <div style="margin-top: 15px; padding: 12px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 6px;">
                     <h4 style="color: #e65100; margin-bottom: 8px;">💭 Nachträgliche Anmerkungen der Teilnehmer</h4>
                     <div style="background: white; padding: 10px; border-radius: 4px;">
-                        <?php foreach ($all_post_comments as $pc): ?>
+                        <?php foreach ($others_post_comments as $pc): ?>
                             <div style="padding: 6px 0; border-bottom: 1px solid #eee; font-size: 13px;">
                                 <strong style="color: #333;"><?php echo htmlspecialchars($pc['first_name'] . ' ' . $pc['last_name']); ?></strong>
                                 <span style="color: #999; font-size: 11px;"><?php echo date('d.m.Y H:i', strtotime($pc['created_at'])); ?>:</span>
