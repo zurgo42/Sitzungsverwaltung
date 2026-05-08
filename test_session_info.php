@@ -37,6 +37,15 @@ header('Content-Type: text/html; charset=utf-8');
     </div>
 
     <div class="box">
+        <div class="label">Session Save Path:</div>
+        <div class="value"><?php echo session_save_path() ?: '(PHP Default)'; ?></div>
+        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+            ⚠️ WICHTIG: VTool muss den gleichen Save Path verwenden!<br>
+            Wenn unterschiedlich: Sessions werden in verschiedenen Verzeichnissen gespeichert!
+        </div>
+    </div>
+
+    <div class="box">
         <div class="label">$_SESSION['MNr']:</div>
         <div class="value"><?php echo isset($_SESSION['MNr']) ? $_SESSION['MNr'] : '❌ NICHT GESETZT'; ?></div>
         <div style="font-size: 12px; color: #666; margin-top: 5px;">
