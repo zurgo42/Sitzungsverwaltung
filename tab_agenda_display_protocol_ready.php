@@ -262,11 +262,12 @@ foreach ($agenda_items as $item):
         ");
         $stmt->execute([$item['item_id']]);
         $all_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        if (!empty($all_comments)):
         ?>
-            <div style="margin-top: 15px; padding: 12px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 6px;">
-                <h4 style="color: #e65100; margin-bottom: 8px;">👥 Nachträgliche Anmerkungen zum Protokollentwurf</h4>
+
+        <div style="margin-top: 15px; padding: 12px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 6px;">
+            <h4 style="color: #e65100; margin-bottom: 8px;">👥 Nachträgliche Anmerkungen zum Protokollentwurf</h4>
+
+            <?php if (!empty($all_comments)): ?>
                 <div style="background: white; border: 1px solid #ff9800; border-radius: 4px; padding: 10px; max-height: 300px; overflow-y: auto;">
                     <?php foreach ($all_comments as $pc): ?>
                         <div style="padding: 8px 0; border-bottom: 1px solid #ffe0b2; font-size: 13px;">
@@ -285,11 +286,16 @@ foreach ($agenda_items as $item):
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <div style="margin-top: 8px; padding: 6px; background: rgba(255,255,255,0.5); border-radius: 4px; font-size: 11px; color: #666; font-style: italic;">
-                    ℹ️ Diese Anmerkungen sind readonly - nutze das Feld unten zum Bearbeiten
+            <?php else: ?>
+                <div style="background: white; border: 1px solid #ff9800; border-radius: 4px; padding: 10px; color: #999; font-style: italic; text-align: center;">
+                    Noch keine nachträglichen Anmerkungen vorhanden.
                 </div>
+            <?php endif; ?>
+
+            <div style="margin-top: 8px; padding: 6px; background: rgba(255,255,255,0.5); border-radius: 4px; font-size: 11px; color: #666; font-style: italic;">
+                ℹ️ Diese Anmerkungen sind readonly - nutze das Feld unten zum Bearbeiten
             </div>
-        <?php endif; ?>
+        </div>
 
         <!-- Eigene nachträgliche Anmerkung (editierbar) -->
         <div style="margin-top: 15px; padding: 12px; background: #e8f5e9; border: 2px solid #4caf50; border-radius: 6px;">
