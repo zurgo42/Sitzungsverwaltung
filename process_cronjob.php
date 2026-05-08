@@ -23,19 +23,22 @@ function sendReminderMail($to, $recipientName, $todoTitle, $dueDate) {
 
 // 1. Erinnerung verschicken (nur für morgige ToDos, Status open)
 $tomorrow = (new DateTime('+1 day'))->format('Y-m-d');
-$sql = "SELECT t.todo_id, t.title, t.due_date, t.status,
-               m.email, m.first_name, m.last_name
+$sql = "SELECT t.todo_id, t.title, t.due_date, t.status, t.assigned_to_member_id
         FROM svtodos t
-        JOIN svmembers m ON t.assigned_to_member_id = m.member_id
         WHERE t.status = 'open' AND t.due_date = ?";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$tomorrow]);
+
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    $email = $row['email'];
-    $name = $row['first_name'] . ' ' . $row['last_name'];
-    $todoTitle = $row['title'];
-    $dueDate = date('d.m.Y', strtotime($row['due_date']));
-    sendReminderMail($email, $name, $todoTitle, $dueDate);
+    // Mitgliederdaten über Adapter laden
+    $member = get_member_by_id($pdo, $row['assigned_to_member_id']);
+    if ($member) {
+        $email = $member['email'];
+        $name = $member['first_name'] . ' ' . $member['last_name'];
+        $todoTitle = $row['title'];
+        $dueDate = date('d.m.Y', strtotime($row['due_date']));
+        sendReminderMail($email, $name, $todoTitle, $dueDate);
+    }
 }
 
 // 2. Erledigte ToDos nach 14 Tagen löschen

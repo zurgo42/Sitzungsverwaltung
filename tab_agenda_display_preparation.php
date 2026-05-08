@@ -702,14 +702,31 @@ foreach ($agenda_items as $item):
                 <?php
                 // Vorhandene Attachments laden
                 $stmt_attachments = $pdo->prepare("
-                    SELECT aa.*, m.first_name, m.last_name
+                    SELECT aa.*
                     FROM svagenda_attachments aa
-                    LEFT JOIN svmembers m ON aa.uploaded_by_member_id = m.member_id
                     WHERE aa.item_id = ?
                     ORDER BY aa.uploaded_at DESC
                 ");
                 $stmt_attachments->execute([$item['item_id']]);
                 $attachments = $stmt_attachments->fetchAll(PDO::FETCH_ASSOC);
+
+                // Mitgliederdaten über Adapter laden
+                foreach ($attachments as &$att) {
+                    if ($att['uploaded_by_member_id']) {
+                        $member = get_member_by_id($pdo, $att['uploaded_by_member_id']);
+                        if ($member) {
+                            $att['first_name'] = $member['first_name'];
+                            $att['last_name'] = $member['last_name'];
+                        } else {
+                            $att['first_name'] = 'Unbekannt';
+                            $att['last_name'] = '';
+                        }
+                    } else {
+                        $att['first_name'] = '';
+                        $att['last_name'] = '';
+                    }
+                }
+                unset($att);
                 ?>
 
                 <!-- Vorhandene Dateien -->

@@ -111,20 +111,38 @@ function get_documents($pdo, $filters = [], $member_access_level = 0) {
     }
 
     $sql = "
-        SELECT
-            d.*,
-            m.first_name,
-            m.last_name,
-            m.email as uploader_email
+        SELECT d.*
         FROM svdocuments d
-        LEFT JOIN svmembers m ON d.uploaded_by_member_id = m.member_id
         WHERE " . implode(' AND ', $where) . "
         ORDER BY $order
     ";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Mitgliederdaten über Adapter laden
+    foreach ($documents as &$doc) {
+        if ($doc['uploaded_by_member_id']) {
+            $member = get_member_by_id($pdo, $doc['uploaded_by_member_id']);
+            if ($member) {
+                $doc['first_name'] = $member['first_name'];
+                $doc['last_name'] = $member['last_name'];
+                $doc['uploader_email'] = $member['email'];
+            } else {
+                $doc['first_name'] = 'Unbekannt';
+                $doc['last_name'] = '';
+                $doc['uploader_email'] = '';
+            }
+        } else {
+            $doc['first_name'] = '';
+            $doc['last_name'] = '';
+            $doc['uploader_email'] = '';
+        }
+    }
+    unset($doc);
+
+    return $documents;
 }
 
 /**
@@ -132,17 +150,32 @@ function get_documents($pdo, $filters = [], $member_access_level = 0) {
  */
 function get_document_by_id($pdo, $document_id) {
     $stmt = $pdo->prepare("
-        SELECT
-            d.*,
-            m.first_name,
-            m.last_name,
-            m.email as uploader_email
+        SELECT d.*
         FROM svdocuments d
-        LEFT JOIN svmembers m ON d.uploaded_by_member_id = m.member_id
         WHERE d.document_id = ?
     ");
     $stmt->execute([$document_id]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+    $doc = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($doc && $doc['uploaded_by_member_id']) {
+        // Mitgliederdaten über Adapter laden
+        $member = get_member_by_id($pdo, $doc['uploaded_by_member_id']);
+        if ($member) {
+            $doc['first_name'] = $member['first_name'];
+            $doc['last_name'] = $member['last_name'];
+            $doc['uploader_email'] = $member['email'];
+        } else {
+            $doc['first_name'] = 'Unbekannt';
+            $doc['last_name'] = '';
+            $doc['uploader_email'] = '';
+        }
+    } elseif ($doc) {
+        $doc['first_name'] = '';
+        $doc['last_name'] = '';
+        $doc['uploader_email'] = '';
+    }
+
+    return $doc;
 }
 
 /**

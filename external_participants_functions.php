@@ -457,12 +457,8 @@ function get_external_access_logs($pdo, $filters = []) {
     $limit = isset($filters['limit']) ? "LIMIT " . (int)$filters['limit'] : "LIMIT 500";
 
     $sql = "
-        SELECT l.*,
-               m.first_name as member_first_name,
-               m.last_name as member_last_name,
-               m.membership_number
+        SELECT l.*
         FROM svexternal_access_log l
-        LEFT JOIN svmembers m ON l.member_id = m.member_id
         $where_clause
         ORDER BY l.created_at DESC
         $limit
@@ -470,7 +466,30 @@ function get_external_access_logs($pdo, $filters = []) {
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Mitgliederdaten über Adapter laden
+    foreach ($logs as &$log) {
+        if ($log['member_id']) {
+            $member = get_member_by_id($pdo, $log['member_id']);
+            if ($member) {
+                $log['member_first_name'] = $member['first_name'];
+                $log['member_last_name'] = $member['last_name'];
+                $log['membership_number'] = $member['membership_number'] ?? '';
+            } else {
+                $log['member_first_name'] = 'Unbekannt';
+                $log['member_last_name'] = '';
+                $log['membership_number'] = '';
+            }
+        } else {
+            $log['member_first_name'] = '';
+            $log['member_last_name'] = '';
+            $log['membership_number'] = '';
+        }
+    }
+    unset($log);
+
+    return $logs;
 }
 
 /**
