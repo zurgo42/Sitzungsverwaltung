@@ -2172,7 +2172,7 @@ if (isset($_POST['quick_todo_create'])) {
         try {
             $stmt = $pdo->prepare("
                 INSERT INTO svtodos
-                (meeting_id, agenda_item_id, assigned_to_member_id, created_by_member_id, title, description, due_date, status, is_private, entry_date)
+                (meeting_id, item_id, assigned_to_member_id, created_by_member_id, title, description, due_date, status, is_private, entry_date)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'open', 1, CURDATE())
             ");
             $stmt->execute([
