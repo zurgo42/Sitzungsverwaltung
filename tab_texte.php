@@ -30,16 +30,25 @@ if ($is_meeting_mode) {
     // MEETING-MODUS: Prüfen ob User Teilnehmer ist
     $stmt = $pdo->prepare("
         SELECT m.*,
-               sec.first_name as secretary_first_name,
-               sec.last_name as secretary_last_name,
                mp.member_id as is_participant
         FROM svmeetings m
-        LEFT JOIN svmembers sec ON m.secretary_member_id = sec.member_id
         LEFT JOIN svmeeting_participants mp ON m.meeting_id = mp.meeting_id AND mp.member_id = ?
         WHERE m.meeting_id = ?
     ");
     $stmt->execute([$current_user['member_id'], $meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Secretary-Namen über Adapter laden
+    if ($meeting && $meeting['secretary_member_id']) {
+        $secretary = get_member_by_id($pdo, $meeting['secretary_member_id']);
+        if ($secretary) {
+            $meeting['secretary_first_name'] = $secretary['first_name'];
+            $meeting['secretary_last_name'] = $secretary['last_name'];
+        } else {
+            $meeting['secretary_first_name'] = 'Unbekannt';
+            $meeting['secretary_last_name'] = '';
+        }
+    }
 
     if ($meeting && $meeting['is_participant']) {
         $has_access = true;
@@ -1178,11 +1187,8 @@ if ($view === 'final') {
     // Text laden
     $stmt = $pdo->prepare("
         SELECT t.*,
-               m.first_name as initiator_first_name,
-               m.last_name as initiator_last_name,
                mt.meeting_name
         FROM svcollab_texts t
-        JOIN svmembers m ON t.initiator_member_id = m.member_id
         LEFT JOIN svmeetings mt ON t.meeting_id = mt.meeting_id
         WHERE t.text_id = ?
     ");
@@ -1192,6 +1198,21 @@ if ($view === 'final') {
     if (!$text) {
         echo '<div class="alert alert-danger">Text nicht gefunden.</div>';
         return;
+    }
+
+    // Initiator-Namen über Adapter laden
+    if ($text['initiator_member_id']) {
+        $initiator = get_member_by_id($pdo, $text['initiator_member_id']);
+        if ($initiator) {
+            $text['initiator_first_name'] = $initiator['first_name'];
+            $text['initiator_last_name'] = $initiator['last_name'];
+        } else {
+            $text['initiator_first_name'] = 'Unbekannt';
+            $text['initiator_last_name'] = '';
+        }
+    } else {
+        $text['initiator_first_name'] = '';
+        $text['initiator_last_name'] = '';
     }
 
     // Zugriffsprüfung
