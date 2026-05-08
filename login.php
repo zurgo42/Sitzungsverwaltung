@@ -3,6 +3,7 @@
  * login.php - Anmeldeseite für Meeting-System
  */
 
+require_once 'session_config.php';  // Session-Konfiguration laden (VOR session_start!)
 session_start();
 require_once 'config.php';
 require_once 'config_adapter.php';  // Konfiguration für Mitgliederquelle
@@ -30,12 +31,14 @@ $error = '';
 // Logout
 if (isset($_GET['logout'])) {
     session_destroy();
+    session_write_close();  // Session schreiben vor Redirect
     header('Location: login.php');
     exit;
 }
 
 // Wenn schon eingeloggt, zur Hauptseite
 if (isset($_SESSION['member_id'])) {
+    session_write_close();  // Session schreiben vor Redirect
     header('Location: index.php');
     exit;
 }
@@ -59,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role'] = $user['role'];
             $_SESSION['login_time'] = time();
 
+            session_write_close();  // Session schreiben vor Redirect
             header('Location: index.php');
             exit;
         } else {
