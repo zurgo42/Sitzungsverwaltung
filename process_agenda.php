@@ -2165,6 +2165,9 @@ if (isset($_POST['quick_todo_create'])) {
     $todo_due_date = !empty($_POST['todo_due_date']) ? $_POST['todo_due_date'] : null;
     $item_id = !empty($_POST['item_id']) ? intval($_POST['item_id']) : null;
 
+    // Zuweisung: Wenn assigned_to_member_id gesetzt (Protokollführer), verwende diesen, sonst sich selbst
+    $assigned_to = !empty($_POST['assigned_to_member_id']) ? intval($_POST['assigned_to_member_id']) : $current_user['member_id'];
+
     if (!empty($todo_title)) {
         try {
             $stmt = $pdo->prepare("
@@ -2175,7 +2178,7 @@ if (isset($_POST['quick_todo_create'])) {
             $stmt->execute([
                 $current_meeting_id,
                 $item_id,  // Verknüpfung mit TOP (optional)
-                $current_user['member_id'],  // Zugewiesen an sich selbst
+                $assigned_to,  // Zugewiesen an (sich selbst oder andere)
                 $current_user['member_id'],  // Erstellt von sich selbst
                 $todo_title,
                 $todo_description,
@@ -2188,8 +2191,15 @@ if (isset($_POST['quick_todo_create'])) {
             exit;
         } catch (PDOException $e) {
             error_log("Fehler beim Erstellen des Quick-TODOs: " . $e->getMessage());
+            error_log("TODO-Daten: meeting_id=$current_meeting_id, item_id=$item_id, assigned_to=$assigned_to, created_by=" . $current_user['member_id']);
             $redirect_anchor = $item_id ? "#top-$item_id" : '';
-            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=todo_failed$redirect_anchor");
+
+            // Im Debug-Modus detaillierten Fehler anzeigen
+            if (defined('DEBUG_MODE') && DEBUG_MODE) {
+                header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=" . urlencode("TODO-Fehler: " . $e->getMessage()) . "$redirect_anchor");
+            } else {
+                header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=todo_failed$redirect_anchor");
+            }
             exit;
         }
     } else {
