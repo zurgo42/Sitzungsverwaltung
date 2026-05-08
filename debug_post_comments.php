@@ -4,6 +4,8 @@
  */
 
 require_once 'config.php';
+require_once 'config_adapter.php';
+require_once 'member_functions.php';
 
 header('Content-Type: text/html; charset=utf-8');
 
@@ -20,6 +22,63 @@ try {
 }
 
 echo "<h1>🔍 Debug: Nachträgliche Kommentare</h1>";
+
+// 0. Konfiguration und VIEW prüfen
+echo "<h2>0. Konfiguration</h2>";
+echo "<p><strong>MEMBER_SOURCE:</strong> " . (defined('MEMBER_SOURCE') ? MEMBER_SOURCE : 'nicht definiert') . "</p>";
+
+// VIEW svmembers prüfen
+echo "<h3>VIEW svmembers prüfen</h3>";
+try {
+    $stmt = $pdo->query("SHOW FULL TABLES WHERE Table_type = 'VIEW'");
+    $views = $stmt->fetchAll();
+
+    $has_svmembers_view = false;
+    foreach ($views as $view) {
+        if ($view['Tables_in_' . DB_NAME] === 'svmembers') {
+            $has_svmembers_view = true;
+            break;
+        }
+    }
+
+    if ($has_svmembers_view) {
+        echo "<p style='color: green;'>✅ VIEW svmembers existiert</p>";
+
+        // Testen ob VIEW funktioniert
+        $stmt = $pdo->query("SELECT member_id, first_name, last_name FROM svmembers LIMIT 5");
+        $view_data = $stmt->fetchAll();
+
+        if (!empty($view_data)) {
+            echo "<p style='color: green;'>✅ VIEW svmembers liefert Daten (" . count($view_data) . " Einträge)</p>";
+            echo "<table border='1' cellpadding='5' style='border-collapse: collapse;'>";
+            echo "<tr><th>member_id</th><th>first_name</th><th>last_name</th></tr>";
+            foreach ($view_data as $row) {
+                echo "<tr>";
+                echo "<td>" . htmlspecialchars($row['member_id']) . "</td>";
+                echo "<td>" . htmlspecialchars($row['first_name']) . "</td>";
+                echo "<td>" . htmlspecialchars($row['last_name']) . "</td>";
+                echo "</tr>";
+            }
+            echo "</table>";
+        } else {
+            echo "<p style='color: orange;'>⚠️ VIEW svmembers ist leer</p>";
+        }
+
+    } else {
+        echo "<p style='color: red;'>❌ VIEW svmembers existiert NICHT!</p>";
+        echo "<p><strong>LÖSUNG:</strong> ensure_svmembers_view(\$pdo) muss aufgerufen werden!</p>";
+
+        // Versuchen, VIEW zu erstellen
+        echo "<p>Versuche VIEW zu erstellen...</p>";
+        if (ensure_svmembers_view($pdo)) {
+            echo "<p style='color: green;'>✅ VIEW erfolgreich erstellt! Lade Seite neu.</p>";
+        } else {
+            echo "<p style='color: red;'>❌ VIEW konnte nicht erstellt werden. Prüfe Error-Log.</p>";
+        }
+    }
+} catch (PDOException $e) {
+    echo "<p style='color: red;'>Fehler: " . $e->getMessage() . "</p>";
+}
 
 // 1. Tabelle svagenda_post_comments prüfen
 echo "<h2>1. Tabelle svagenda_post_comments</h2>";
