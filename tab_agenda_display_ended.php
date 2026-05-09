@@ -235,6 +235,20 @@ foreach ($agenda_items as $item):
             </div>
         <?php endif; ?>
 
+        <!-- EIGENE PERSÖNLICHE NOTIZEN (nur für den eingeloggten User, falls vorhanden) -->
+        <?php
+        require_once 'personal_notes_functions.php';
+        $personal_note = get_personal_note($pdo, $item['item_id'], $current_user['member_id']);
+        if ($personal_note && !empty(trim($personal_note['note_text']))):
+        ?>
+            <div style="margin-top: 15px; padding: 12px; background: #f1f8e9; border-left: 4px solid #8bc34a; border-radius: 4px;">
+                <strong style="color: #558b2f;">📄 Meine persönlichen Notizen:</strong><br>
+                <div style="margin-top: 6px; color: #333; font-size: 13px; line-height: 1.6; white-space: pre-wrap; font-family: inherit;">
+                    <?php echo htmlspecialchars($personal_note['note_text']); ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- NACHTRÄGLICHE ANMERKUNGEN -->
 
         <!-- 1. ALLE ANMERKUNGEN (für alle eingeladenen Teilnehmer sichtbar, readonly) -->

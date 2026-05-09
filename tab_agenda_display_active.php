@@ -743,26 +743,50 @@ foreach ($agenda_items as $item):
                 </div>
             </div>
 
-            <!-- Eigenes TODO für diesen TOP erstellen -->
+            <!-- Eigenes TODO oder Mitschrift für diesen TOP erstellen -->
+            <?php
+            // Fälligkeitsdatum vorbelegen: Meeting-Datum + 7 Tage
+            $default_due_date = date('Y-m-d', strtotime($meeting['meeting_date'] . ' +7 days'));
+
+            // Persönliche Notiz laden (falls vorhanden)
+            require_once 'personal_notes_functions.php';
+            $personal_note = get_personal_note($pdo, $item['item_id'], $current_user['member_id']);
+            $note_text = $personal_note['note_text'] ?? '';
+            ?>
+
             <details style="margin-top: 15px; background: #fff8e1; border: 2px solid #ffc107; border-radius: 6px; overflow: hidden;">
                 <summary style="padding: 10px 15px; cursor: pointer; font-weight: 600; color: #f57c00; font-size: 14px; user-select: none;">
                     <span style="display: inline-block; transform: rotate(0deg); transition: transform 0.2s;">▶</span>
-                    📝 Eigenes TODO zu diesem TOP aufschreiben
+                    📝 Eigenes TODO oder eigene Mitschrift zu diesem TOP erstellen
                 </summary>
 
                 <div style="padding: 15px; background: #fffef5;">
+                    <!-- TODO-Formular -->
+                    <h4 style="margin: 0 0 10px 0; color: #f57c00; font-size: 14px;">📌 ToDo anlegen</h4>
                     <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>"
                           onsubmit="return confirm('TODO wirklich anlegen?');">
                         <input type="hidden" name="quick_todo_create" value="1">
                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
 
-                        <div style="margin-bottom: 10px;">
-                            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
-                                Titel:
-                            </label>
-                            <input type="text" name="todo_title" required
-                                   placeholder="z.B. Recherche für nächste Sitzung"
-                                   style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
+                        <!-- Responsive Grid: Titel + Fällig bis -->
+                        <div class="todo-form-grid" style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div>
+                                <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
+                                    Titel:
+                                </label>
+                                <input type="text" name="todo_title" required
+                                       placeholder="z.B. Recherche für nächste Sitzung"
+                                       style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
+                            </div>
+
+                            <div class="todo-due-date-field">
+                                <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
+                                    Fällig bis:
+                                </label>
+                                <input type="date" name="todo_due_date" required
+                                       value="<?php echo $default_due_date; ?>"
+                                       style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
+                            </div>
                         </div>
 
                         <div style="margin-bottom: 10px;">
@@ -774,30 +798,56 @@ foreach ($agenda_items as $item):
                                       style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
                         </div>
 
-                        <div style="margin-bottom: 10px;">
-                            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
-                                Fällig bis (optional):
-                            </label>
-                            <input type="date" name="todo_due_date"
-                                   style="padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
-                        </div>
-
-                        <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <button type="submit"
                                     style="padding: 8px 16px; background: #ffc107; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px;">
-                                ✅ TODO anlegen
+                                ✅ ToDo anlegen
                             </button>
                             <span style="font-size: 12px; color: #666;">
                                 (Privat - nur für dich sichtbar)
                             </span>
                         </div>
                     </form>
+
+                    <!-- Trennlinie -->
+                    <hr style="margin: 20px 0; border: none; border-top: 1px solid #ffc107;">
+
+                    <!-- Eigene Notizen mit Autosave -->
+                    <h4 style="margin: 0 0 10px 0; color: #f57c00; font-size: 14px;">📄 Eigene Notizen zu diesem TOP</h4>
+                    <div style="position: relative;">
+                        <textarea
+                            id="personal_note_<?php echo $item['item_id']; ?>"
+                            class="personal-note-textarea"
+                            data-item-id="<?php echo $item['item_id']; ?>"
+                            placeholder="Hier kannst du deine persönlichen Notizen zu diesem TOP festhalten (wird automatisch gespeichert)..."
+                            style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px; resize: vertical; font-family: inherit;"
+                        ><?php echo htmlspecialchars($note_text); ?></textarea>
+
+                        <div id="autosave_status_<?php echo $item['item_id']; ?>"
+                             style="position: absolute; bottom: 8px; right: 8px; font-size: 11px; color: #999; font-style: italic; pointer-events: none;">
+                        </div>
+                    </div>
+                    <div style="font-size: 11px; color: #666; margin-top: 5px;">
+                        💾 Änderungen werden automatisch gespeichert
+                    </div>
                 </div>
 
                 <style>
                 /* Rotate arrow when details open */
                 details[open] > summary span {
                     transform: rotate(90deg) !important;
+                }
+
+                /* Responsive Grid für TODO-Form */
+                @media (min-width: 769px) {
+                    .todo-form-grid {
+                        grid-template-columns: 2fr 1fr !important;
+                    }
+                }
+
+                /* Auto-grow Textarea */
+                .personal-note-textarea {
+                    overflow-y: hidden;
                 }
                 </style>
             </details>
@@ -1249,6 +1299,71 @@ document.addEventListener('DOMContentLoaded', function() {
             this.style.transform = 'scale(1)';
         });
     });
+
+    // Autosave für persönliche Notizen
+    initPersonalNotes();
 });
+
+// Autosave-Funktion für persönliche Notizen
+function initPersonalNotes() {
+    const textareas = document.querySelectorAll('.personal-note-textarea');
+    const saveTimers = {};
+
+    textareas.forEach(textarea => {
+        const itemId = textarea.dataset.itemId;
+        const statusEl = document.getElementById('autosave_status_' + itemId);
+
+        // Auto-grow Textarea
+        function adjustHeight() {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.max(80, textarea.scrollHeight) + 'px';
+        }
+
+        textarea.addEventListener('input', function() {
+            adjustHeight();
+
+            // Debounce: Nach 1 Sekunde ohne Änderung speichern
+            clearTimeout(saveTimers[itemId]);
+            statusEl.textContent = '⏱️ Warte...';
+
+            saveTimers[itemId] = setTimeout(() => {
+                savePersonalNote(itemId, textarea.value, statusEl);
+            }, 1000);
+        });
+
+        // Initial height
+        adjustHeight();
+    });
+}
+
+// Speichert persönliche Notiz via AJAX
+function savePersonalNote(itemId, noteText, statusEl) {
+    statusEl.textContent = '💾 Speichere...';
+
+    const formData = new FormData();
+    formData.append('item_id', itemId);
+    formData.append('note_text', noteText);
+
+    fetch('ajax_save_personal_note.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            statusEl.textContent = '✅ Gespeichert (' + data.timestamp + ')';
+            setTimeout(() => {
+                statusEl.textContent = '';
+            }, 3000);
+        } else {
+            statusEl.textContent = '❌ Fehler';
+            console.error('Save failed:', data.error);
+        }
+    })
+    .catch(error => {
+        statusEl.textContent = '❌ Fehler';
+        console.error('Save error:', error);
+    });
+}
 
 </script>

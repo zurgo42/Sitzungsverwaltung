@@ -5,6 +5,7 @@
  * Erweitert: 07.11.2025 - v2.1
  * Bugfix: 12.11.2025 - Fehlende Funktionen und Handler hinzugefügt
  * Bugfix: 12.11.2025 14:00 - get_member_name() entfernt (existiert in module_helpers.php)
+ * Erweitert: 09.05.2026 - Persönliche Notizen zu TOPs
  *
  * Diese Datei verarbeitet alle POST-Anfragen aus tab_agenda.php
  * Trennung von Business-Logik und Präsentation (MVC-Prinzip)
@@ -12,6 +13,9 @@
  * WICHTIG: Diese Datei wird in index.php NACH dem Laden von functions.php eingebunden
  * Voraussetzungen: $pdo, $current_user, recalculate_item_metrics(), get_next_top_number()
  */
+
+// Persönliche Notizen-Funktionen laden
+require_once __DIR__ . '/personal_notes_functions.php';
 
 // Hilfsfunktion: Vollständigen Link zur Sitzung generieren
 function get_full_meeting_link($meeting_id) {
@@ -2184,6 +2188,11 @@ if (isset($_POST['quick_todo_create'])) {
                 $todo_description,
                 $todo_due_date
             ]);
+
+            // Automatisch Zeile in persönliche Notiz einfügen (nur wenn item_id vorhanden)
+            if ($item_id) {
+                append_todo_to_personal_note($pdo, $item_id, $current_user['member_id'], $todo_title, $todo_due_date);
+            }
 
             // Redirect zum TOP wenn item_id angegeben, sonst zur Agenda
             $redirect_anchor = $item_id ? "#top-$item_id" : '';
