@@ -150,4 +150,40 @@ function render_readonly_participant_list($pdo, $meeting_id, $participants) {
     </div>
     <?php
 }
+
+/**
+ * Sortiert Mitglieder nach Rollenhierarchie
+ *
+ * Hierarchie: gf > vorstand > mitglied > andere
+ *
+ * @param array $members Array von Mitgliedern
+ * @return array Sortiertes Array
+ */
+function sort_members_by_role_hierarchy($members) {
+    // Rollenprioritäten definieren
+    $role_priority = [
+        'gf' => 1,
+        'vorstand' => 2,
+        'mitglied' => 3
+    ];
+
+    usort($members, function($a, $b) use ($role_priority) {
+        $priority_a = $role_priority[$a['role']] ?? 999;
+        $priority_b = $role_priority[$b['role']] ?? 999;
+
+        // Erst nach Rolle sortieren
+        if ($priority_a !== $priority_b) {
+            return $priority_a - $priority_b;
+        }
+
+        // Bei gleicher Rolle: nach Nachname, dann Vorname
+        $cmp = strcmp($a['last_name'], $b['last_name']);
+        if ($cmp === 0) {
+            return strcmp($a['first_name'], $b['first_name']);
+        }
+        return $cmp;
+    });
+
+    return $members;
+}
 ?>
