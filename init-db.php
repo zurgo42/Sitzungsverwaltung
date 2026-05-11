@@ -832,12 +832,68 @@ try {
         result_text TEXT NULL COMMENT 'Abstimmungsergebnis-Text',
         important TINYINT(1) DEFAULT 0 COMMENT 'Besondere Bedeutung',
 
+        -- VTool Legacy-Felder (vollständige Migration)
+        vtool_bart VARCHAR(1) NULL COMMENT 'VTool: Art (V=Verfügung, R=Ressort, B=Vorstand)',
+        vtool_praesenz VARCHAR(11) NULL COMMENT 'VTool: Präsenzsitzung=1 oder Online',
+        vtool_antrst VARCHAR(3) NULL COMMENT 'VTool: Antragsteller-Code',
+        vtool_verein VARCHAR(1) NULL COMMENT 'VTool: Verein/Stiftung',
+        vtool_creator_code VARCHAR(64) NULL COMMENT 'VTool: Ersteller-Kürzel (verf)',
+
+        -- Workflow & Kategorisierung
+        internal_external VARCHAR(1) NULL COMMENT 'i=intern, e=extern',
+        presence_voting TINYINT(1) DEFAULT 0 COMMENT '1=Abstimmung in Präsenzsitzung',
+        prior_review_required TINYINT(1) DEFAULT 0 COMMENT 'Fachliche Vorprüfung erforderlich',
+        immediate_payment TINYINT(1) DEFAULT 0 COMMENT 'Sofortzahlung nach Prüfung',
+        prior_reviewer VARCHAR(64) NULL COMMENT 'Fachliche Vorprüfung durch',
+
+        -- Budget & Finanzen (zusätzliche VTool-Felder)
+        budget_number VARCHAR(16) NULL COMMENT 'Budget-Nummer',
+        budget_code VARCHAR(8) NULL COMMENT 'Budget-Code',
+        finance_code VARCHAR(8) NULL COMMENT 'Finanzielle Auswirkungen (Code)',
+        forwarded_to_finance VARCHAR(16) NULL COMMENT 'An Finanzen weitergeleitet',
+        finance_remarks TEXT NULL COMMENT 'Bemerkungen für Finanzen',
+
+        -- Hinweise & Notizen
+        notes TEXT NULL COMMENT 'Allgemeine Hinweise',
+        hint_to_submitter TEXT NULL COMMENT 'Hinweis an Antragsteller',
+
+        -- Verknüpfungen & Historie
+        original_proposal_number VARCHAR(9) NULL COMMENT 'Urspr. Antragsnummer (warantrag)',
+        linked_proposal_1 INT NULL COMMENT 'Verknüpfter Antrag 1',
+        linked_proposal_2 INT NULL COMMENT 'Verknüpfter Antrag 2',
+        link_remarks TEXT NULL COMMENT 'Verknüpfungs-Bemerkungen',
+
+        -- Zeitablauf
+        timeline TEXT NULL COMMENT 'Zeitlicher Ablauf',
+        last_accessed_at DATETIME NULL COMMENT 'Letzter Zugriff (VTool)',
+
+        -- BESCHLUSS-PHASE (finale Werte aus beschluesse-Tabelle)
+        decision_finalized TINYINT(1) DEFAULT 0 COMMENT 'Beschluss abgeschlossen',
+        decision_important TINYINT(1) DEFAULT 0 COMMENT 'Beschluss wichtig (aus beschluesse)',
+        decision_text TEXT NULL COMMENT 'Beschluss-Volltext',
+        decision_title TEXT NULL COMMENT 'Finaler Beschluss-Titel',
+        decision_content TEXT NULL COMMENT 'Finaler Beschluss-Wortlaut',
+        decision_finance_text TEXT NULL COMMENT 'Finale Finanz-Begründung',
+        decision_personnel TEXT NULL COMMENT 'Finale Personal-Auswirkungen',
+        decision_material TEXT NULL COMMENT 'Finale Sach-Auswirkungen',
+        decision_justification TEXT NULL COMMENT 'Finale Begründung',
+        decision_departments TEXT NULL COMMENT 'Finale Ressort-Zuordnung',
+        decision_internal_external VARCHAR(8) NULL COMMENT 'Finale int_ext',
+        decision_notes TEXT NULL COMMENT 'Anmerkungen zum Beschluss',
+
+        -- Abstimmungsergebnis (Namenslisten aus beschluesse)
+        votes_for_list TEXT NULL COMMENT 'Namen: Dafür gestimmt',
+        votes_against_list TEXT NULL COMMENT 'Namen: Dagegen gestimmt',
+        votes_abstain_list TEXT NULL COMMENT 'Namen: Enthalten',
+
         INDEX idx_status (status),
         INDEX idx_submitter (submitter_id),
         INDEX idx_department (department_id),
         INDEX idx_decision_type (decision_type),
         INDEX idx_finalized (finalized_at),
         INDEX idx_voting_deadline (voting_deadline),
+        INDEX idx_vtool_bart (vtool_bart),
+        INDEX idx_presence_voting (presence_voting),
         FOREIGN KEY (meeting_id) REFERENCES svmeetings(meeting_id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Anträge und Beschlüsse'";
 
@@ -860,11 +916,12 @@ try {
         id INT AUTO_INCREMENT PRIMARY KEY,
         proposal_id INT NOT NULL,
         voter_id INT NOT NULL,
-        vote_type ENUM('yes', 'no', 'abstain', 'refer_back', 'request_time') NOT NULL COMMENT '1=yes, 2=no, 3=abstain, 4=refer_back, 5=request_time',
-        internal_comment TEXT COMMENT 'Begründung (intern, nicht im Protokoll)',
-        protocol_note TEXT COMMENT 'Protokollnotiz (öffentlich)',
+        vote_type ENUM('yes', 'no', 'abstain', 'refer_back', 'request_time', 'no_vote') NOT NULL COMMENT '1=yes, 2=no, 3=abstain, 4=refer_back, 5=request_time, 6=no_vote',
+        internal_comment TEXT COMMENT 'Begründung (intern, VBegr)',
+        protocol_note TEXT COMMENT 'Protokollnotiz (öffentlich, VProt)',
+        concerns TEXT COMMENT 'Bedenken (VBedenk)',
         consideration_until DATE NULL COMMENT 'Bedenkzeit bis',
-        voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'VDat',
 
         INDEX idx_proposal (proposal_id),
         INDEX idx_voter (voter_id),

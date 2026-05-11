@@ -607,7 +607,7 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
         'attachments_migrated' => 0,
         'votes_migrated' => 0,
         'approvers_migrated' => 0,
-        'comments_migrated' => 0,
+        'decisions_merged' => 0,
         'errors' => []
     ];
 
@@ -620,45 +620,144 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
         $stmt = $pdo->prepare("
             SELECT a.*
             FROM `$source_db`.antraege a
-            LEFT JOIN `$target_db`.svbproposals p ON a.Antrnr = p.proposal_number
+            LEFT JOIN `$target_db`.svbproposals p ON a.antrnr = p.proposal_number
             WHERE p.id IS NULL
-            ORDER BY a.Antrnr
+            ORDER BY a.antrnr
         ");
         $stmt->execute();
         $proposals = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($proposals as $old) {
             try {
-                // Status ermitteln
-                $status = getStatusFromProposalNumber($old['Antrnr']);
+                // Status ermitteln (aus Antrnr-Präfix)
+                $status = getStatusFromProposalNumber($old['antrnr']);
 
-                // Decision type ermitteln
-                $amount = floatval($old['Betrag'] ?? 0);
-                $decision_type = getDecisionType($amount);
+                // Decision type: ERST aus bart, dann aus Betrag
+                $decision_type = mapBartToDecisionType($old['bart'] ?? '');
+                if (!$decision_type) {
+                    // Fallback: Aus Betrag ableiten
+                    $amount = floatval($old['Betrag'] ?? 0);
+                    $decision_type = getDecisionType($amount);
+                }
+
+                // Organization type aus verein
+                $org_type = ($old['verein'] ?? '') === 'S' ? 'foundation' : 'association';
+
+                // Presence voting
+                $presence_voting = ($old['praesenz'] ?? '') == '1' ? 1 : 0;
+
+                // Flags
+                $prior_review = ($old['vorher'] ?? '') == '1' ? 1 : 0;
+                $immediate = ($old['sofort'] ?? '') == '1' ? 1 : 0;
+                $important = !empty($old['wichtig']) ? 1 : 0;
+
+                // Beschluss-Daten laden (falls vorhanden)
+                $beschluss = null;
+                if (!empty($old['antrnr'])) {
+                    $stmt_b = $pdo->prepare("SELECT * FROM `$source_db`.beschluesse WHERE antrnr = ?");
+                    $stmt_b->execute([$old['antrnr']]);
+                    $beschluss = $stmt_b->fetch(PDO::FETCH_ASSOC);
+                }
 
                 if (!$dry_run) {
-                    // Proposal einfügen
+                    // Proposal einfügen mit ALLEN Feldern
                     $stmt = $pdo->prepare("
                         INSERT INTO `$target_db`.svbproposals
                         (proposal_number, status, submitter_id, title, description,
-                         financial_amount, decision_type, submitted_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+                         justification, financial_amount, financial_description,
+                         personnel_impact, material_impact, responsible_person,
+                         forum_thread_id, decision_type, organization_type,
+                         internal_external, presence_voting, prior_review_required,
+                         immediate_payment, prior_reviewer, important,
+                         budget_number, budget_code, finance_code,
+                         forwarded_to_finance, finance_remarks,
+                         notes, hint_to_submitter,
+                         original_proposal_number, linked_proposal_1, linked_proposal_2,
+                         link_remarks, timeline, last_accessed_at,
+                         vtool_bart, vtool_praesenz, vtool_antrst, vtool_verein,
+                         vtool_creator_code, result_text,
+                         decision_finalized, decision_important, decision_text,
+                         decision_title, decision_content, decision_finance_text,
+                         decision_personnel, decision_material, decision_justification,
+                         decision_departments, decision_internal_external, decision_notes,
+                         votes_for_list, votes_against_list, votes_abstain_list,
+                         submitted_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
                     ");
+
                     $stmt->execute([
-                        $old['Antrnr'],
+                        // Basis-Felder
+                        $old['antrnr'],
                         $status,
                         $old['AntragstellerID'] ?? 1,
-                        $old['Titel'] ?? 'Unbekannt',
-                        $old['Beschreibung'] ?? '',
-                        $amount,
-                        $decision_type
+                        $old['titel'] ?? 'Unbekannt',
+                        $old['beschluss'] ?? '',
+                        $old['begr'] ?? null,
+                        floatval($old['Betrag'] ?? 0),
+                        $old['fintext'] ?? null,
+                        $old['pers'] ?? null,
+                        $old['sach'] ?? null,
+                        $old['verant'] ?? null,
+                        !empty($old['thread']) ? intval($old['thread']) : null,
+                        $decision_type,
+                        $org_type,
+                        $old['int_ext'] ?? null,
+                        $presence_voting,
+                        $prior_review,
+                        $immediate,
+                        $old['durch'] ?? null,
+                        $important,
+                        // Budget & Finanzen
+                        $old['budgetnr'] ?? null,
+                        $old['budget'] ?? null,
+                        $old['fin'] ?? null,
+                        $old['zufin'] ?? null,
+                        $old['zbem'] ?? null,
+                        // Hinweise
+                        null, // notes (gibt's nicht in antraege)
+                        $old['hinweis'] ?? null,
+                        // Verknüpfungen
+                        $old['warantrag'] ?? null,
+                        !empty($old['verk1']) ? intval($old['verk1']) : null,
+                        !empty($old['verk2']) ? intval($old['verk2']) : null,
+                        $old['verkb'] ?? null,
+                        $old['Zeitablauf'] ?? null,
+                        $old['lzugriff'] ?? null,
+                        // VTool Legacy
+                        $old['bart'] ?? null,
+                        $old['praesenz'] ?? null,
+                        $old['antrst'] ?? null,
+                        $old['verein'] ?? null,
+                        $old['verf'] ?? null,
+                        $old['ergebnis'] ?? null,
+                        // Beschluss-Phase (aus beschluesse-Tabelle)
+                        $beschluss ? (($beschluss['fertig'] ?? '') == '1' ? 1 : 0) : 0,
+                        $beschluss ? (($beschluss['wichtig'] ?? '') == '1' ? 1 : 0) : 0,
+                        $beschluss['text'] ?? null,
+                        $beschluss['titel'] ?? null,
+                        $beschluss['beschluss'] ?? null,
+                        $beschluss['fintext'] ?? null,
+                        $beschluss['pers'] ?? null,
+                        $beschluss['sach'] ?? null,
+                        $beschluss['begr'] ?? null,
+                        $beschluss['ressort'] ?? null,
+                        $beschluss['int_ext'] ?? null,
+                        $beschluss['anmerkungen'] ?? null,
+                        $beschluss['dafuer'] ?? null,
+                        $beschluss['dagegen'] ?? null,
+                        $beschluss['enthaltungen'] ?? null
                     ]);
 
                     $proposal_id = $pdo->lastInsertId();
 
-                    // Anhänge migrieren (file1-4)
+                    if ($beschluss) {
+                        $stats['decisions_merged']++;
+                    }
+
+                    // Anhänge migrieren (file1-4 mit filetext1-4)
                     for ($i = 1; $i <= 4; $i++) {
                         $file_field = "file$i";
+                        $filetext_field = "filetext$i";
                         if (!empty($old[$file_field])) {
                             $stmt = $pdo->prepare("
                                 INSERT INTO `$target_db`.svbproposal_attachments
@@ -668,32 +767,62 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
                             $stmt->execute([
                                 $proposal_id,
                                 $old[$file_field],
-                                "Anhang $i",
+                                $old[$filetext_field] ?? "Anhang $i",
                                 $old['AntragstellerID'] ?? 1
                             ]);
                             $stats['attachments_migrated']++;
                         }
                     }
 
-                    // Stimmen migrieren (VName1-6, Votum1-6)
+                    // Stimmen migrieren MIT DETAILS (VName, Votum, VBegr, VProt, VBedenk, VDat)
                     for ($i = 1; $i <= 6; $i++) {
-                        $name_field = "VName$i";
-                        $vote_field = "Votum$i";
-                        if (!empty($old[$vote_field])) {
-                            $vote_type = mapVoteType($old[$vote_field]);
+                        $votum = $old["Votum$i"] ?? null;
+                        if (!empty($votum)) {
+                            $vote_type = mapVoteType($votum);
                             if ($vote_type) {
                                 $stmt = $pdo->prepare("
                                     INSERT INTO `$target_db`.svbproposal_votes
-                                    (proposal_id, voter_id, vote_type, voted_at)
-                                    VALUES (?, ?, ?, NOW())
+                                    (proposal_id, voter_id, vote_type,
+                                     internal_comment, protocol_note, concerns,
+                                     voted_at)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?)
                                 ");
+
+                                // VDat parsen (könnte leer oder ungültig sein)
+                                $vdat = $old["VDat$i"] ?? null;
+                                $voted_at = null;
+                                if (!empty($vdat) && $vdat !== '0000-00-00 00:00:00') {
+                                    $voted_at = $vdat;
+                                }
+
                                 $stmt->execute([
                                     $proposal_id,
-                                    1, // Dummy voter_id
-                                    $vote_type
+                                    1, // Dummy voter_id (TODO: VName richtig mappen)
+                                    $vote_type,
+                                    $old["VBegr$i"] ?? null,
+                                    $old["VProt$i"] ?? null,
+                                    $old["VBedenk$i"] ?? null,
+                                    $voted_at
                                 ]);
                                 $stats['votes_migrated']++;
                             }
+                        }
+                    }
+
+                    // Freigabeberechtigte (verf1, verf2)
+                    foreach (['verf1', 'verf2'] as $idx => $field) {
+                        if (!empty($old[$field])) {
+                            $stmt = $pdo->prepare("
+                                INSERT INTO `$target_db`.svbproposal_approvers
+                                (proposal_id, approver_id, approver_role, approved)
+                                VALUES (?, ?, ?, 0)
+                            ");
+                            $stmt->execute([
+                                $proposal_id,
+                                1, // Dummy ID
+                                $idx == 0 ? 'primary' : 'secondary'
+                            ]);
+                            $stats['approvers_migrated']++;
                         }
                     }
                 }
@@ -701,7 +830,7 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
                 $stats['proposals_migrated']++;
 
             } catch (Exception $e) {
-                $stats['errors'][] = "Antrag {$old['Antrnr']}: " . $e->getMessage();
+                $stats['errors'][] = "Antrag {$old['antrnr']}: " . $e->getMessage();
             }
         }
 
@@ -731,7 +860,18 @@ function getStatusFromProposalNumber($antrnr) {
     };
 }
 
+function mapBartToDecisionType($bart) {
+    // V = Verfügung, R = Ressortbeschluss, B = Vorstandsabstimmung
+    return match($bart) {
+        'V' => 'single',        // Verfügung = Einzelentscheidung
+        'R' => 'department',    // Ressortbeschluss
+        'B' => 'board',         // Vorstandsabstimmung
+        default => null
+    };
+}
+
 function getDecisionType($amount) {
+    // Fallback wenn bart nicht vorhanden: Aus Betrag ableiten
     if ($amount < 600) return 'single';
     if ($amount < 3000) return 'department';
     return 'board';
@@ -744,6 +884,7 @@ function mapVoteType($votum) {
         3 => 'abstain',
         4 => 'refer_back',
         5 => 'request_time',
+        6 => 'no_vote',
         default => null
     };
 }
