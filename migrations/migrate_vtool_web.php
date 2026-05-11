@@ -83,6 +83,9 @@ if (!isset($pdo) || !($pdo instanceof PDO)) {
 $source_db = DB_NAME;  // Beide in gleicher DB
 $target_db = DB_NAME;
 
+// Prüfen ob Tabellen existieren
+$tables_exist = checkTablesExist($pdo, $source_db, $target_db);
+
 // AJAX-Request für Migration?
 if (isset($_GET['action']) && $_GET['action'] === 'migrate') {
     header('Content-Type: application/json');
@@ -99,8 +102,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'migrate') {
     exit;
 }
 
-// Statistik laden
-$stats = getStatistics($pdo, $source_db, $target_db);
+// Statistik laden (nur wenn Tabellen existieren)
+if ($tables_exist['ready']) {
+    $stats = getStatistics($pdo, $source_db, $target_db);
+} else {
+    $stats = ['source_proposals' => 0, 'target_proposals' => 0, 'pending' => 0];
+}
 
 ?>
 <!DOCTYPE html>
@@ -304,6 +311,55 @@ $stats = getStatistics($pdo, $source_db, $target_db);
         <h1>🔄 VTool → Sitzungsverwaltung Migration</h1>
         <p class="subtitle">Datenbank: <strong><?php echo htmlspecialchars(DB_NAME); ?></strong></p>
 
+        <?php if (!$tables_exist['ready']): ?>
+        <!-- Fehlendes Setup -->
+        <div class="warning">
+            <h3>⚠️ Datenbank-Setup erforderlich</h3>
+            <p style="margin-bottom: 15px;">
+                Die Zieltabellen für die Migration existieren noch nicht in der Datenbank.
+            </p>
+            <p style="margin-bottom: 10px;"><strong>Was fehlt?</strong></p>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <?php if (!$tables_exist['source_table']): ?>
+                <li style="color: #d32f2f;">❌ Tabelle <code>antraege</code> (VTool) nicht gefunden</li>
+                <?php else: ?>
+                <li style="color: #4CAF50;">✅ Tabelle <code>antraege</code> vorhanden</li>
+                <?php endif; ?>
+
+                <?php if (!$tables_exist['target_table']): ?>
+                <li style="color: #d32f2f;">❌ Tabelle <code>svbproposals</code> (Sitzungsverwaltung) nicht gefunden</li>
+                <?php else: ?>
+                <li style="color: #4CAF50;">✅ Tabelle <code>svbproposals</code> vorhanden</li>
+                <?php endif; ?>
+            </ul>
+
+            <div style="background: white; padding: 15px; border-radius: 4px; border-left: 4px solid #2196F3;">
+                <p style="margin-bottom: 10px; font-weight: 600;">📋 Lösung:</p>
+                <p style="margin-bottom: 10px;">
+                    Führen Sie zuerst das Datenbank-Initialisierungs-Script aus:
+                </p>
+                <ol style="margin-left: 20px; line-height: 1.8;">
+                    <li>Öffnen Sie im Browser: <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">http://<?php echo $_SERVER['HTTP_HOST']; ?>/Sitzungsverwaltung/init-db.php</code></li>
+                    <li>Das Script erstellt automatisch alle benötigten Tabellen</li>
+                    <li>Kommen Sie dann hierher zurück und laden Sie diese Seite neu</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-secondary" onclick="window.location.href='../init-db.php'" style="background: #2196F3;">
+                🔧 Jetzt init-db.php öffnen
+            </button>
+            <button class="btn-secondary" onclick="location.reload()" style="background: #FF9800;">
+                🔄 Seite neu laden
+            </button>
+            <button class="btn-logout" onclick="logout()">
+                🚪 Abmelden
+            </button>
+        </div>
+
+        <?php else: ?>
+        <!-- Normales Interface -->
         <div class="info-box">
             <h3>ℹ️ Wichtige Informationen</h3>
             <ul>
@@ -367,6 +423,8 @@ $stats = getStatistics($pdo, $source_db, $target_db);
             <h3>✅ Migration erfolgreich abgeschlossen!</h3>
             <p id="successDetails"></p>
         </div>
+
+        <?php endif; // Ende if ($tables_exist['ready']) ?>
     </div>
 
     <script>
@@ -489,6 +547,31 @@ if (isset($_GET['logout'])) {
 // ============================================
 // FUNKTIONEN
 // ============================================
+
+function checkTablesExist($pdo, $source_db, $target_db) {
+    $result = [
+        'source_table' => false,
+        'target_table' => false,
+        'ready' => false
+    ];
+
+    try {
+        // Prüfe ob antraege-Tabelle existiert (VTool)
+        $stmt = $pdo->query("SHOW TABLES FROM `$source_db` LIKE 'antraege'");
+        $result['source_table'] = ($stmt->rowCount() > 0);
+
+        // Prüfe ob svbproposals-Tabelle existiert (Sitzungsverwaltung)
+        $stmt = $pdo->query("SHOW TABLES FROM `$target_db` LIKE 'svbproposals'");
+        $result['target_table'] = ($stmt->rowCount() > 0);
+
+        $result['ready'] = $result['source_table'] && $result['target_table'];
+    } catch (PDOException $e) {
+        // Bei Fehler: nicht bereit
+        $result['ready'] = false;
+    }
+
+    return $result;
+}
 
 function getStatistics($pdo, $source_db, $target_db) {
     // Anträge in VTool
