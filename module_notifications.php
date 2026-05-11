@@ -147,7 +147,107 @@ function render_user_notifications($pdo, $member_id) {
         ];
     }
 
-    // 5. ZUSAMMENFASSUNG: KOMMENDE SITZUNGEN & TERMINE
+    // 5. AUSSTEHENDE ABSTIMMUNGEN (PROPOSALS)
+    require_once __DIR__ . '/proposals_functions.php';
+    require_once __DIR__ . '/adapters/ProposalPermissionAdapter.php';
+
+    $memberAdapter = get_member_adapter($pdo);
+    $permAdapter = new ProposalPermissionAdapter($pdo, $memberAdapter);
+
+    // Ausstehende Abstimmungen
+    $voting_stats = $permAdapter->get_voting_stats($member);
+
+    if ($voting_stats['pending'] > 0) {
+        // Nächste Deadline ermitteln
+        $votable_ids = $permAdapter->get_votable_proposal_ids($member);
+        if (!empty($votable_ids)) {
+            $placeholders = str_repeat('?,', count($votable_ids) - 1) . '?';
+            $stmt_deadline = $pdo->prepare("
+                SELECT MIN(voting_deadline) as next_deadline
+                FROM svbproposals
+                WHERE id IN ($placeholders)
+                AND status = 'voting'
+                AND voting_deadline IS NOT NULL
+            ");
+            $stmt_deadline->execute($votable_ids);
+            $next_deadline = $stmt_deadline->fetchColumn();
+
+            $deadline_text = '';
+            if ($next_deadline) {
+                $days_left = ceil((strtotime($next_deadline) - time()) / 86400);
+                if ($days_left <= 3) {
+                    $deadline_text = ' <span style="color: #d32f2f; font-weight: 600;">(läuft in ' . $days_left . ' ' . ($days_left == 1 ? 'Tag' : 'Tagen') . ' ab!)</span>';
+                } elseif ($days_left <= 7) {
+                    $deadline_text = ' <span style="color: #ff9800;">(läuft in ' . $days_left . ' Tagen ab)</span>';
+                }
+            }
+        }
+
+        $notifications[] = [
+            'type' => 'proposals_voting',
+            'icon' => '🗳️',
+            'text' => ($voting_stats['pending'] == 1 ? 'Eine Abstimmung wartet auf deine Stimme' : $voting_stats['pending'] . ' Abstimmungen warten auf deine Stimme') . $deadline_text,
+            'link' => '?tab=proposals&view=voting',
+            'link_text' => '→ Abstimmen',
+            'button' => true
+        ];
+    }
+
+    // 6. EXPEDITE-GENEHMIGUNGEN WARTEND (nur für Vorstand)
+    if (strtolower($member_role) === 'vorstand') {
+        $stmt_expedite = $pdo->prepare("
+            SELECT COUNT(*) as count
+            FROM svbproposals
+            WHERE status = 'editing'
+            AND expedite_justification IS NOT NULL
+            AND (
+                (expedite_approver1_id IS NULL)
+                OR (expedite_approver1_id IS NOT NULL AND expedite_approver2_id IS NULL)
+            )
+            AND expedite_approver1_id != ?
+            AND expedite_approver2_id != ?
+            AND submitter_id != ?
+        ");
+        $stmt_expedite->execute([$member_id, $member_id, $member_id]);
+        $expedite_count = $stmt_expedite->fetchColumn();
+
+        if ($expedite_count > 0) {
+            $notifications[] = [
+                'type' => 'proposals_expedite',
+                'icon' => '⚡',
+                'text' => ($expedite_count == 1 ? 'Eine Wartezeitverkürzung' : $expedite_count . ' Wartezeitverkürzungen') . ' warten auf Genehmigung',
+                'link' => '?tab=proposals&view=list',
+                'link_text' => '→ Anträge',
+                'button' => true
+            ];
+        }
+    }
+
+    // 7. FINANZ-FREIGABEN ERFORDERLICH (für Finanzverantwortliche)
+    if ($permAdapter->can_approve_finance($member)) {
+        $stmt_finance = $pdo->prepare("
+            SELECT COUNT(*) as count
+            FROM svbproposals
+            WHERE decision_type = 'department'
+            AND status = 'voting'
+            AND finance_approval = 0
+        ");
+        $stmt_finance->execute();
+        $finance_count = $stmt_finance->fetchColumn();
+
+        if ($finance_count > 0) {
+            $notifications[] = [
+                'type' => 'proposals_finance',
+                'icon' => '💰',
+                'text' => ($finance_count == 1 ? 'Eine Finanzfreigabe wird benötigt' : $finance_count . ' Finanzfreigaben werden benötigt'),
+                'link' => '?tab=proposals&view=list&filter_decision_type=department',
+                'link_text' => '→ Prüfen',
+                'button' => true
+            ];
+        }
+    }
+
+    // 8. ZUSAMMENFASSUNG: KOMMENDE SITZUNGEN & TERMINE
     $stmt_summary = $pdo->prepare("
         (SELECT 'meeting' as type, m.meeting_id as item_id, m.meeting_name as title, m.meeting_date as date_time
          FROM svmeetings m
