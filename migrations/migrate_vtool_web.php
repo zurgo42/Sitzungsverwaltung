@@ -629,6 +629,16 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
 
         foreach ($proposals as $old) {
             try {
+                // DEBUG: Ersten Antrag komplett ausgeben (nur im Dry-Run)
+                static $debug_done = false;
+                if ($dry_run && !$debug_done) {
+                    error_log("DEBUG: Beispiel-Antrag " . $old['antrnr']);
+                    error_log("  file1: " . ($old['file1'] ?? 'NULL'));
+                    error_log("  Votum1: " . ($old['Votum1'] ?? 'NULL'));
+                    error_log("  verf1: " . ($old['verf1'] ?? 'NULL'));
+                    $debug_done = true;
+                }
+
                 // Status ermitteln (aus Antrnr-Präfix)
                 $status = getStatusFromProposalNumber($old['antrnr']);
 
@@ -749,16 +759,19 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
                     ]);
 
                     $proposal_id = $pdo->lastInsertId();
+                }
 
-                    if ($beschluss) {
-                        $stats['decisions_merged']++;
-                    }
+                // Beschluss-Merge zählen (auch im Dry-Run)
+                if ($beschluss) {
+                    $stats['decisions_merged']++;
+                }
 
-                    // Anhänge migrieren (file1-4 mit filetext1-4)
-                    for ($i = 1; $i <= 4; $i++) {
-                        $file_field = "file$i";
-                        $filetext_field = "filetext$i";
-                        if (!empty($old[$file_field])) {
+                // Anhänge zählen (auch im Dry-Run, aber nur speichern wenn !$dry_run)
+                for ($i = 1; $i <= 4; $i++) {
+                    $file_field = "file$i";
+                    $filetext_field = "filetext$i";
+                    if (!empty($old[$file_field])) {
+                        if (!$dry_run) {
                             $stmt = $pdo->prepare("
                                 INSERT INTO `$target_db`.svbproposal_attachments
                                 (proposal_id, file_path, description, uploaded_by, uploaded_at)
@@ -770,16 +783,18 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
                                 $old[$filetext_field] ?? "Anhang $i",
                                 $old['AntragstellerID'] ?? 1
                             ]);
-                            $stats['attachments_migrated']++;
                         }
+                        $stats['attachments_migrated']++;
                     }
+                }
 
-                    // Stimmen migrieren MIT DETAILS (VName, Votum, VBegr, VProt, VBedenk, VDat)
-                    for ($i = 1; $i <= 6; $i++) {
-                        $votum = $old["Votum$i"] ?? null;
-                        if (!empty($votum)) {
-                            $vote_type = mapVoteType($votum);
-                            if ($vote_type) {
+                // Stimmen zählen MIT DETAILS (auch im Dry-Run)
+                for ($i = 1; $i <= 6; $i++) {
+                    $votum = $old["Votum$i"] ?? null;
+                    if (!empty($votum)) {
+                        $vote_type = mapVoteType($votum);
+                        if ($vote_type) {
+                            if (!$dry_run) {
                                 $stmt = $pdo->prepare("
                                     INSERT INTO `$target_db`.svbproposal_votes
                                     (proposal_id, voter_id, vote_type,
@@ -804,14 +819,16 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
                                     $old["VBedenk$i"] ?? null,
                                     $voted_at
                                 ]);
-                                $stats['votes_migrated']++;
                             }
+                            $stats['votes_migrated']++;
                         }
                     }
+                }
 
-                    // Freigabeberechtigte (verf1, verf2)
-                    foreach (['verf1', 'verf2'] as $idx => $field) {
-                        if (!empty($old[$field])) {
+                // Freigabeberechtigte zählen (auch im Dry-Run)
+                foreach (['verf1', 'verf2'] as $idx => $field) {
+                    if (!empty($old[$field])) {
+                        if (!$dry_run) {
                             $stmt = $pdo->prepare("
                                 INSERT INTO `$target_db`.svbproposal_approvers
                                 (proposal_id, approver_id, approver_role, approved)
@@ -822,8 +839,8 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
                                 1, // Dummy ID
                                 $idx == 0 ? 'primary' : 'secondary'
                             ]);
-                            $stats['approvers_migrated']++;
                         }
+                        $stats['approvers_migrated']++;
                     }
                 }
 
