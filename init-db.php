@@ -756,6 +756,24 @@ try {
         INDEX idx_created (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
+    // =========================================================
+    // PERSÖNLICHE NOTIZEN
+    // =========================================================
+
+    // Persönliche Notizen zu Agenda Items (Teilnehmer-Mitschriften)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svagenda_personal_notes (
+        note_id INT AUTO_INCREMENT PRIMARY KEY,
+        item_id INT NOT NULL,
+        member_id INT NOT NULL,
+        note_text TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_item_member (item_id, member_id),
+        INDEX idx_member (member_id),
+        UNIQUE KEY unique_note_per_member_item (item_id, member_id),
+        FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Persönliche Notizen von Teilnehmern zu Agenda Items'";
+
     // Tabellen erstellen
     echo "<p>Erstelle " . count($tables) . " Tabellen...</p>";
     foreach ($tables as $sql) {
