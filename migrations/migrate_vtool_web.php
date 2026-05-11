@@ -499,7 +499,8 @@ if ($tables_exist['ready']) {
                         `${result.approvers_migrated} Freigaben, ` +
                         `${result.decisions_merged} Beschlüsse merged.`;
 
-                    if (!dryRun) {
+                    // Nur neu laden wenn KEINE Fehler und NICHT Dry-Run
+                    if (!dryRun && (!result.errors || result.errors.length === 0)) {
                         setTimeout(() => {
                             location.reload();
                         }, 3000);
@@ -847,7 +848,13 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
                 $stats['proposals_migrated']++;
 
             } catch (Exception $e) {
-                $stats['errors'][] = "Antrag {$old['antrnr']}: " . $e->getMessage();
+                $error_msg = "Antrag {$old['antrnr']}: " . $e->getMessage();
+                $stats['errors'][] = $error_msg;
+                error_log("MIGRATION ERROR: " . $error_msg);
+                // Bei mehr als 5 Fehlern: Abbrechen
+                if (count($stats['errors']) > 5 && !$dry_run) {
+                    throw new Exception("Zu viele Fehler - Migration abgebrochen");
+                }
             }
         }
 
