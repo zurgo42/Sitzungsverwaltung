@@ -483,7 +483,7 @@ if ($tables_exist['ready']) {
                     addLog(`📎 Anhänge: ${result.attachments_migrated}`, 'info');
                     addLog(`🗳️ Stimmen: ${result.votes_migrated}`, 'info');
                     addLog(`✓ Freigaben: ${result.approvers_migrated}`, 'info');
-                    addLog(`💬 Kommentare: ${result.comments_migrated}`, 'info');
+                    addLog(`🔄 Beschlüsse: ${result.decisions_merged} merged`, 'info');
 
                     if (result.errors && result.errors.length > 0) {
                         addLog(`\n⚠️ Fehler: ${result.errors.length}`, 'error');
@@ -497,7 +497,7 @@ if ($tables_exist['ready']) {
                         `${result.attachments_migrated} Anhänge, ` +
                         `${result.votes_migrated} Stimmen, ` +
                         `${result.approvers_migrated} Freigaben, ` +
-                        `${result.comments_migrated} Kommentare migriert.`;
+                        `${result.decisions_merged} Beschlüsse merged.`;
 
                     if (!dryRun) {
                         setTimeout(() => {
