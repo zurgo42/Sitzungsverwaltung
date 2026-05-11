@@ -6,19 +6,18 @@ Wenn Sie keinen Kommandozeilen-Zugriff auf dem Server haben (typisch bei Webhost
 
 ## Setup
 
-### 1. config.php erstellen
+### 1. Vorhandene config.php nutzen
 
-Falls noch nicht vorhanden:
+Die `config.php` im Hauptverzeichnis `Sitzungsverwaltung/config.php` wird automatisch verwendet.
 
+✅ **Keine neue Config-Datei erstellen!**  
+✅ Die bestehende Konfiguration wird genutzt  
+✅ Eine Fehlerquelle weniger  
+
+Falls `config.php` wirklich nicht existiert (unwahrscheinlich):
 ```bash
-# Lokal in Windows:
 copy config.example.php config.php
-
-# Oder Linux/Mac:
-cp config.example.php config.php
 ```
-
-Dann `config.php` bearbeiten und Datenbank-Zugangsdaten eintragen.
 
 ### 2. Passwort ändern (WICHTIG!)
 
@@ -125,7 +124,8 @@ rm migrations/migrate_vtool_web.php
 
 ### "No such file or directory: config.php"
 
-→ Erstellen Sie `config.php` aus `config.example.php`
+→ Die `config.php` sollte bereits im Hauptverzeichnis existieren  
+→ Falls nicht: `copy config.example.php config.php` (nur im Hauptverzeichnis!)
 
 ### "Table 'svbproposals' doesn't exist"
 

@@ -2,11 +2,12 @@
 
 ## Voraussetzungen
 
-1. **Zwei Datenbanken** müssen existieren:
-   - **Source**: VTool Datenbank (z.B. `vtool`)
-   - **Target**: Sitzungsverwaltung Datenbank (z.B. `sitzungsverwaltung`)
+1. **config.php**: Die Hauptkonfiguration im Verzeichnis `Sitzungsverwaltung/config.php` wird automatisch verwendet (keine separate Config nötig!)
 
-2. **Datenbankzugriff**: Beide Datenbanken müssen vom gleichen MySQL-Server erreichbar sein
+2. **Datenbank**: Bei Ihnen sind alle Tabellen in einer Datenbank (z.B. `aktive`):
+   - VTool-Tabelle: `antraege` (Source)
+   - Neue Tabelle: `svbproposals` (Target)
+   - Beide in derselben DB!
 
 3. **PHP CLI**: Das Script muss über die Kommandozeile ausgeführt werden (nicht im Browser!)
 
@@ -18,21 +19,25 @@
 cd /pfad/zu/Sitzungsverwaltung
 ```
 
+**Hinweis**: Die `config.php` im Hauptverzeichnis wird automatisch verwendet. Keine zusätzliche Konfiguration nötig!
+
 ### 2. Dry-Run (Test ohne Änderungen)
 
 **Zeigt nur an was migriert werden würde:**
 
 ```bash
 php migrations/migrate_vtool_data.php \
-  --source-db=vtool \
-  --target-db=sitzungsverwaltung \
+  --source-db=aktive \
+  --target-db=aktive \
   --dry-run
 ```
 
 **Parameter:**
-- `--source-db`: Name der VTool-Datenbank
-- `--target-db`: Name der Sitzungsverwaltung-Datenbank
+- `--source-db`: Name Ihrer Datenbank (z.B. `aktive`)
+- `--target-db`: Gleicher Name (alle Tabellen in einer DB!)
 - `--dry-run`: Nur Simulation, keine Änderungen
+
+**Wichtig**: Bei Ihnen sind Source und Target die gleiche Datenbank!
 
 ### 3. Tatsächliche Migration
 
@@ -40,8 +45,8 @@ php migrations/migrate_vtool_data.php \
 
 ```bash
 php migrations/migrate_vtool_data.php \
-  --source-db=vtool \
-  --target-db=sitzungsverwaltung \
+  --source-db=aktive \
+  --target-db=aktive \
   --execute
 ```
 
@@ -86,8 +91,8 @@ Log: migrations/migration_vtool_20260511_143022.log
 ## Häufige Probleme
 
 ### "Database access denied"
-- DB-Credentials in `config.php` prüfen
-- Beide Datenbanken müssen existieren
+- DB-Credentials in `config.php` (Hauptverzeichnis) prüfen
+- Datenbank muss existieren und erreichbar sein
 
 ### "Table doesn't exist"
 - Target-DB: `php init-db.php` ausführen (erstellt svbproposals etc.)

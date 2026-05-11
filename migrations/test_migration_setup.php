@@ -28,11 +28,14 @@ if (version_compare(phpversion(), '8.0.0', '>=')) {
 
 // 3. Config laden
 echo "3. Config-Datei: ";
-if (file_exists(__DIR__ . '/../config.php')) {
-    echo "✓\n";
-    require_once __DIR__ . '/../config.php';
+$config_path = __DIR__ . '/../config.php';
+if (file_exists($config_path)) {
+    echo "✓ (nutzt vorhandene config.php)\n";
+    require_once $config_path;
 } else {
     echo "✗ (config.php nicht gefunden)\n";
+    echo "   Hinweis: config.php sollte im Hauptverzeichnis existieren\n";
+    echo "   Falls nicht: copy config.example.php config.php\n";
     exit(1);
 }
 
