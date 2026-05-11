@@ -800,17 +800,12 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
                 // Stimmen zählen MIT DETAILS (auch im Dry-Run)
                 for ($i = 1; $i <= 6; $i++) {
                     $votum = $old["Votum$i"] ?? null;
-                    if (!empty($votum)) {
+                    $vname_id = intval($old["VName$i"] ?? 0);
+
+                    if (!empty($votum) && $vname_id > 0) {
                         $vote_type = mapVoteType($votum);
                         if ($vote_type) {
                             if (!$dry_run) {
-                                // VName (Wähler-Kürzel) für späteres Mapping speichern
-                                $vname = $old["VName$i"] ?? null;
-
-                                // Temporäre eindeutige voter_id: 9000 + vote_slot
-                                // WICHTIG: Diese müssen später durch echte Member-IDs ersetzt werden!
-                                $temp_voter_id = 9000 + $i;
-
                                 $stmt = $pdo->prepare("
                                     INSERT INTO `$target_db`.svbproposal_votes
                                     (proposal_id, voter_id, vote_type,
@@ -828,7 +823,7 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
 
                                 $stmt->execute([
                                     $proposal_id,
-                                    $temp_voter_id, // Temporär: 9001-9006 je nach Slot
+                                    $vname_id, // Echte ID aus VName-Feld (berechtigte.ID)
                                     $vote_type,
                                     $old["VBegr$i"] ?? null,
                                     $old["VProt$i"] ?? null,
@@ -843,12 +838,9 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
 
                 // Freigabeberechtigte zählen (auch im Dry-Run)
                 foreach (['verf1', 'verf2'] as $idx => $field) {
-                    if (!empty($old[$field])) {
+                    $approver_id = intval($old[$field] ?? 0);
+                    if ($approver_id > 0) {
                         if (!$dry_run) {
-                            // Temporäre eindeutige approver_id: 8001, 8002
-                            // WICHTIG: Müssen später durch echte Member-IDs ersetzt werden!
-                            $temp_approver_id = 8001 + $idx;
-
                             $stmt = $pdo->prepare("
                                 INSERT INTO `$target_db`.svbproposal_approvers
                                 (proposal_id, approver_id, approver_role, approved)
@@ -856,7 +848,7 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
                             ");
                             $stmt->execute([
                                 $proposal_id,
-                                $temp_approver_id, // Temporär: 8001 oder 8002
+                                $approver_id, // Echte ID aus verf1/verf2 (berechtigte.ID)
                                 $idx == 0 ? 'primary' : 'secondary'
                             ]);
                         }
