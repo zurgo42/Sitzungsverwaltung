@@ -25,7 +25,15 @@ function get_full_meeting_link($meeting_id) {
     return $protocol . $host . $script . "?tab=agenda&meeting_id=" . $meeting_id;
 }
 
-// Berechtigungen ermitteln (falls Meeting geladen)
+// ============================================
+// BERECHTIGUNGEN ERMITTELN (WICHTIG: VOR DEN HANDLERN!)
+// ============================================
+// Falls Meeting noch nicht geladen: hier laden
+if (!isset($meeting) && isset($current_meeting_id)) {
+    $meeting = get_meeting_details($pdo, $current_meeting_id);
+}
+
+// Berechtigungen ermitteln
 $is_secretary = false;
 $is_chairman = false;
 if (isset($meeting) && $meeting) {
@@ -1736,6 +1744,8 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
  */
 if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
     try {
+        $changes_saved = false;
+
         // Protokoll speichern (nur Sekretär)
         if ($is_secretary) {
             $protocol_texts = $_POST['protocol_text'] ?? [];
@@ -1799,6 +1809,7 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
                     ");
                     $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
                 }
+                $changes_saved = true;
             } else {
                 // Leerer Text = Kommentar löschen
                 $stmt = $pdo->prepare("
@@ -1809,10 +1820,12 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
             }
         }
 
-        header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=ended_saved");
         exit;
     } catch (PDOException $e) {
-        error_log("Fehler beim Speichern: " . $e->getMessage());
+        error_log("Fehler beim Speichern (ended): " . $e->getMessage());
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=save_failed&msg=" . urlencode($e->getMessage()));
+        exit;
     }
 }
 

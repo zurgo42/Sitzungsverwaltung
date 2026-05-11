@@ -102,7 +102,7 @@ if (empty($agenda_items)) {
 <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
     <input type="hidden" name="save_ended_changes" value="1">
 
-<?php 
+<?php
 // Berechtigung für vertrauliche TOPs prüfen
 $can_see_confidential = (
     $current_user['is_admin'] == 1 ||
@@ -111,6 +111,16 @@ $can_see_confidential = (
     $is_secretary ||
     $is_chairman
 );
+
+// Debug-Info (nur für Secretary)
+if ($is_secretary && isset($_GET['debug'])) {
+    echo '<div style="background: #fff3cd; padding: 10px; margin: 10px 0; border-left: 4px solid #ffc107;">';
+    echo '🔍 <strong>Debug-Info:</strong><br>';
+    echo 'Meeting Status: ' . ($meeting['status'] ?? 'undefined') . '<br>';
+    echo 'Is Secretary: ' . ($is_secretary ? 'Ja' : 'Nein') . '<br>';
+    echo 'User ID: ' . $current_user['member_id'] . '<br>';
+    echo '</div>';
+}
 
 foreach ($agenda_items as $item): 
     // TOP 999 überspringen
