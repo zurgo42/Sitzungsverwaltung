@@ -589,8 +589,8 @@ function checkTablesExist($pdo, $source_db, $target_db) {
 }
 
 function getStatistics($pdo, $source_db, $target_db) {
-    // Anträge in VTool
-    $source_count = $pdo->query("SELECT COUNT(*) FROM `$source_db`.antraege")->fetchColumn();
+    // EINDEUTIGE Anträge in VTool (ohne Duplikate)
+    $source_count = $pdo->query("SELECT COUNT(DISTINCT antrnr) FROM `$source_db`.antraege")->fetchColumn();
 
     // Bereits migrierte in Sitzungsverwaltung
     $target_count = $pdo->query("SELECT COUNT(*) FROM `$target_db`.svbproposals")->fetchColumn();
