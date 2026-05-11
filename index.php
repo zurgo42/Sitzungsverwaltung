@@ -815,6 +815,11 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             📊 Meinungsbild
         </a>
 
+        <!-- Anträge & Beschlüsse-Tab (immer sichtbar) -->
+        <a href="?tab=proposals" class="<?php echo $active_tab === 'proposals' ? 'active' : ''; ?>">
+            📋 Anträge
+        </a>
+
         <!-- Dokumente-Tab (optional, siehe config.php) -->
         <?php if (defined('ENABLE_DOCUMENTS_TAB') && ENABLE_DOCUMENTS_TAB): ?>
         <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
@@ -862,6 +867,11 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             case 'opinion':
                 // Meinungsbild-Tool anzeigen
                 include 'tab_opinion.php';
+                break;
+
+            case 'proposals':
+                // Anträge & Beschlüsse anzeigen
+                include 'tab_proposals_list.php';
                 break;
 
             case 'todos':
