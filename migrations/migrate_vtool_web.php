@@ -7,6 +7,13 @@
  * WICHTIG: Nach erfolgreicher Migration diese Datei löschen oder umbenennen!
  */
 
+// Fehler-Reporting für AJAX-Anfragen anpassen
+if (isset($_GET['action']) && $_GET['action'] === 'migrate') {
+    // Für AJAX: Keine HTML-Fehler ausgeben
+    ini_set('display_errors', '0');
+    error_reporting(E_ALL);
+}
+
 // Session für Authentifizierung
 session_start();
 
@@ -83,11 +90,11 @@ if (!isset($pdo) || !($pdo instanceof PDO)) {
 $source_db = DB_NAME;  // Beide in gleicher DB
 $target_db = DB_NAME;
 
-// Prüfen ob Tabellen existieren
-$tables_exist = checkTablesExist($pdo, $source_db, $target_db);
-
-// AJAX-Request für Migration?
+// AJAX-Request für Migration? (MUSS VOR allen anderen Funktionsaufrufen kommen!)
 if (isset($_GET['action']) && $_GET['action'] === 'migrate') {
+    // Verhindere jegliche Ausgabe vor dem JSON-Header
+    ob_start();
+
     header('Content-Type: application/json');
 
     $mode = $_GET['mode'] ?? 'dry-run';
@@ -95,12 +102,19 @@ if (isset($_GET['action']) && $_GET['action'] === 'migrate') {
 
     try {
         $result = performMigration($pdo, $source_db, $target_db, $dry_run);
+        ob_clean(); // Lösche alle ungewollten Ausgaben
         echo json_encode(['success' => true, 'data' => $result]);
     } catch (Exception $e) {
+        ob_clean();
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
     exit;
 }
+
+// ===== AB HIER NUR FÜR HTML-AUSGABE =====
+
+// Prüfen ob Tabellen existieren
+$tables_exist = checkTablesExist($pdo, $source_db, $target_db);
 
 // Statistik laden (nur wenn Tabellen existieren)
 if ($tables_exist['ready']) {
