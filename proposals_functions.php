@@ -62,7 +62,7 @@ function create_proposal($pdo, $user, $data) {
 
         // Insert
         $sql = "
-            INSERT INTO proposals (
+            INSERT INTO svbproposals (
                 proposal_number, status, submitter_id, department_id, co_department_id,
                 organization_type, visibility, title, description, justification,
                 financial_amount, financial_description, personnel_impact, material_impact,
@@ -173,7 +173,7 @@ function update_proposal($pdo, $proposal_id, $user, $data) {
         }
 
         // Update durchführen
-        $sql = "UPDATE proposals SET " . implode(', ', $update_fields) . " WHERE id = ?";
+        $sql = "UPDATE svbproposals SET " . implode(', ', $update_fields) . " WHERE id = ?";
         $update_values[] = $proposal_id;
 
         $stmt = $pdo->prepare($sql);
@@ -201,7 +201,7 @@ function update_proposal($pdo, $proposal_id, $user, $data) {
  * @return array|null Proposal-Daten oder null
  */
 function get_proposal_by_id($pdo, $proposal_id, $include_relations = false) {
-    $stmt = $pdo->prepare("SELECT * FROM proposals WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM svbproposals WHERE id = ?");
     $stmt->execute([$proposal_id]);
     $proposal = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -248,7 +248,7 @@ function get_proposal_by_id($pdo, $proposal_id, $include_relations = false) {
  * @return array|null
  */
 function get_proposal_by_number($pdo, $proposal_number) {
-    $stmt = $pdo->prepare("SELECT * FROM proposals WHERE proposal_number = ?");
+    $stmt = $pdo->prepare("SELECT * FROM svbproposals WHERE proposal_number = ?");
     $stmt->execute([$proposal_number]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
@@ -310,7 +310,7 @@ function get_proposals($pdo, $filters = [], $user = null) {
     $sql = "SELECT p.*,
                    m.first_name as submitter_first_name,
                    m.last_name as submitter_last_name
-            FROM proposals p
+            FROM svbproposals p
             LEFT JOIN svmembers m ON p.submitter_id = m.member_id";
 
     if (!empty($where)) {
@@ -405,7 +405,7 @@ function finalize_proposal($pdo, $proposal_id, $user) {
         $new_proposal_number = generate_proposal_number($pdo, $new_status);
 
         $stmt = $pdo->prepare("
-            UPDATE proposals
+            UPDATE svbproposals
             SET status = ?,
                 proposal_number = ?,
                 finalized_at = NOW(),
@@ -472,7 +472,7 @@ function withdraw_proposal($pdo, $proposal_id, $user, $reason = '') {
         $new_proposal_number = generate_proposal_number($pdo, 'withdrawn');
 
         $stmt = $pdo->prepare("
-            UPDATE proposals
+            UPDATE svbproposals
             SET status = 'withdrawn',
                 proposal_number = ?,
                 previous_proposal = ?,
@@ -534,7 +534,7 @@ function submit_vote($pdo, $proposal_id, $user, $vote_type, $comment = '') {
 
         // Vote speichern
         $stmt = $pdo->prepare("
-            INSERT INTO proposal_votes (proposal_id, voter_id, vote_type, comment, voted_at)
+            INSERT INTO svbproposal_votes (proposal_id, voter_id, vote_type, comment, voted_at)
             VALUES (?, ?, ?, ?, NOW())
         ");
         $stmt->execute([$proposal_id, $user['member_id'], $vote_type, $comment]);
@@ -561,7 +561,7 @@ function submit_vote($pdo, $proposal_id, $user, $vote_type, $comment = '') {
  * @return array
  */
 function get_proposal_votes($pdo, $proposal_id, $include_names = true) {
-    $sql = "SELECT v.* FROM proposal_votes v WHERE v.proposal_id = ? ORDER BY v.voted_at ASC";
+    $sql = "SELECT v.* FROM svbproposal_votes v WHERE v.proposal_id = ? ORDER BY v.voted_at ASC";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$proposal_id]);
@@ -663,7 +663,7 @@ function finalize_voting($pdo, $proposal_id) {
 
         // Update Proposal
         $stmt = $pdo->prepare("
-            UPDATE proposals
+            UPDATE svbproposals
             SET status = ?,
                 proposal_number = ?,
                 previous_proposal = ?,
@@ -736,7 +736,7 @@ function approve_expedite($pdo, $proposal_id, $user) {
         // Erste oder zweite Genehmigung?
         if (!$proposal['expedite_approver1_id']) {
             $stmt = $pdo->prepare("
-                UPDATE proposals
+                UPDATE svbproposals
                 SET expedite_approver1_id = ?,
                     expedite_approved_at1 = NOW()
                 WHERE id = ?
@@ -745,7 +745,7 @@ function approve_expedite($pdo, $proposal_id, $user) {
             $approver_number = 1;
         } elseif (!$proposal['expedite_approver2_id']) {
             $stmt = $pdo->prepare("
-                UPDATE proposals
+                UPDATE svbproposals
                 SET expedite_approver2_id = ?,
                     expedite_approved_at2 = NOW()
                 WHERE id = ?
@@ -798,7 +798,7 @@ function add_proposal_attachment($pdo, $proposal_id, $user, $file_path, $descrip
         }
 
         // Anzahl Anhänge prüfen
-        $count_stmt = $pdo->prepare("SELECT COUNT(*) FROM proposal_attachments WHERE proposal_id = ?");
+        $count_stmt = $pdo->prepare("SELECT COUNT(*) FROM svbproposal_attachments WHERE proposal_id = ?");
         $count_stmt->execute([$proposal_id]);
         $count = $count_stmt->fetchColumn();
 
@@ -808,7 +808,7 @@ function add_proposal_attachment($pdo, $proposal_id, $user, $file_path, $descrip
 
         // Insert
         $stmt = $pdo->prepare("
-            INSERT INTO proposal_attachments (proposal_id, file_path, file_url, description, uploaded_by, uploaded_at)
+            INSERT INTO svbproposal_attachments (proposal_id, file_path, file_url, description, uploaded_by, uploaded_at)
             VALUES (?, ?, ?, ?, ?, NOW())
         ");
 
@@ -838,7 +838,7 @@ function add_proposal_attachment($pdo, $proposal_id, $user, $file_path, $descrip
 function get_proposal_attachments($pdo, $proposal_id) {
     $stmt = $pdo->prepare("
         SELECT a.*, m.first_name, m.last_name
-        FROM proposal_attachments a
+        FROM svbproposal_attachments a
         LEFT JOIN svmembers m ON a.uploaded_by = m.member_id
         WHERE a.proposal_id = ?
         ORDER BY a.uploaded_at ASC
@@ -863,7 +863,7 @@ function get_proposal_attachments($pdo, $proposal_id) {
 function add_proposal_comment($pdo, $proposal_id, $user, $comment) {
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO proposal_comments (proposal_id, commenter_id, comment, created_at)
+            INSERT INTO svbproposal_comments (proposal_id, commenter_id, comment, created_at)
             VALUES (?, ?, ?, NOW())
         ");
         $stmt->execute([$proposal_id, $user['member_id'], $comment]);
@@ -888,7 +888,7 @@ function add_proposal_comment($pdo, $proposal_id, $user, $comment) {
 function get_proposal_comments($pdo, $proposal_id) {
     $stmt = $pdo->prepare("
         SELECT c.*, m.first_name, m.last_name
-        FROM proposal_comments c
+        FROM svbproposal_comments c
         LEFT JOIN svmembers m ON c.commenter_id = m.member_id
         WHERE c.proposal_id = ?
         ORDER BY c.created_at ASC
@@ -917,7 +917,7 @@ function generate_proposal_number($pdo, $status) {
     // Höchste Nummer des Jahres finden
     $stmt = $pdo->prepare("
         SELECT proposal_number
-        FROM proposals
+        FROM svbproposals
         WHERE proposal_number LIKE ?
         ORDER BY id DESC
         LIMIT 1
@@ -946,7 +946,7 @@ function generate_proposal_number($pdo, $status) {
 function log_proposal_change($pdo, $proposal_id, $user_id, $change_type, $description) {
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO proposal_changes (proposal_id, changed_by, change_type, description, changed_at)
+            INSERT INTO svbproposal_changes (proposal_id, changed_by, change_type, description, changed_at)
             VALUES (?, ?, ?, ?, NOW())
         ");
         $stmt->execute([$proposal_id, $user_id, $change_type, $description]);
@@ -965,7 +965,7 @@ function log_proposal_change($pdo, $proposal_id, $user_id, $change_type, $descri
 function get_proposal_changes($pdo, $proposal_id) {
     $stmt = $pdo->prepare("
         SELECT c.*, m.first_name, m.last_name
-        FROM proposal_changes c
+        FROM svbproposal_changes c
         LEFT JOIN svmembers m ON c.changed_by = m.member_id
         WHERE c.proposal_id = ?
         ORDER BY c.changed_at DESC

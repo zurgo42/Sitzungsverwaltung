@@ -298,7 +298,7 @@ try {
                 log_message("DRY-RUN: Würde migrieren: $antrnr", 'INFO');
             } else {
                 // Insert Proposal
-                $sql = "INSERT INTO proposals (" . implode(', ', array_keys($proposal_data)) . ")
+                $sql = "INSERT INTO svbproposals (" . implode(', ', array_keys($proposal_data)) . ")
                         VALUES (:" . implode(', :', array_keys($proposal_data)) . ")";
                 $stmt = $target_pdo->prepare($sql);
                 $stmt->execute($proposal_data);
@@ -314,7 +314,7 @@ try {
                     if (!empty($file)) {
                         $is_url = strpos($file, '://') !== false;
                         $stmt = $target_pdo->prepare("
-                            INSERT INTO proposal_attachments
+                            INSERT INTO svbproposal_attachments
                             (proposal_id, file_path, file_url, description, uploaded_by)
                             VALUES (?, ?, ?, ?, ?)
                         ");
@@ -338,7 +338,7 @@ try {
                         $vote_type = map_vote_type($votum);
                         if ($vote_type) {
                             $stmt = $target_pdo->prepare("
-                                INSERT INTO proposal_votes
+                                INSERT INTO svbproposal_votes
                                 (proposal_id, voter_id, vote_type, internal_comment, protocol_note, consideration_until, voted_at)
                                 VALUES (?, ?, ?, ?, ?, ?, ?)
                             ");
@@ -359,7 +359,7 @@ try {
                 // Freigabeberechtigte migrieren (verf1, verf2)
                 if (!empty($old['verf1'])) {
                     $stmt = $target_pdo->prepare("
-                        INSERT INTO proposal_approvers
+                        INSERT INTO svbproposal_approvers
                         (proposal_id, approver_id, approver_role)
                         VALUES (?, ?, 'primary')
                     ");
@@ -370,7 +370,7 @@ try {
                 if (!empty($old['verf2'])) {
                     $role = ($old['bart'] ?? '') === 'R' ? 'finance' : 'secondary';
                     $stmt = $target_pdo->prepare("
-                        INSERT INTO proposal_approvers
+                        INSERT INTO svbproposal_approvers
                         (proposal_id, approver_id, approver_role)
                         VALUES (?, ?, ?)
                     ");
@@ -381,7 +381,7 @@ try {
                 // Hinweise migrieren
                 if (!empty($old['hinweis'])) {
                     $stmt = $target_pdo->prepare("
-                        INSERT INTO proposal_comments
+                        INSERT INTO svbproposal_comments
                         (proposal_id, author_id, comment_text, is_for_submitter)
                         VALUES (?, 0, ?, 1)
                     ");

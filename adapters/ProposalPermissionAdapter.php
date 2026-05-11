@@ -292,7 +292,7 @@ class ProposalPermissionAdapter {
         // Abfrage aus proposal_departments Tabelle
         $stmt = $this->pdo->prepare("
             SELECT DISTINCT department_id
-            FROM proposal_departments
+            FROM svbproposal_departments
             WHERE leader_id = ? AND is_active = 1
         ");
         $stmt->execute([$user['member_id']]);
@@ -385,7 +385,7 @@ class ProposalPermissionAdapter {
         // Oder prüfe explizite Liste in Datenbank
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*)
-            FROM proposal_departments
+            FROM svbproposal_departments
             WHERE leader_id = ? AND department_id = 'finance' AND is_active = 1
         ");
         $stmt->execute([$user['member_id']]);
@@ -469,7 +469,7 @@ class ProposalPermissionAdapter {
 
         $sql = "
             SELECT id
-            FROM proposals
+            FROM svbproposals
             WHERE status = 'voting'
               AND (" . implode(' OR ', $conditions) . ")
         ";
@@ -494,7 +494,7 @@ class ProposalPermissionAdapter {
 
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*)
-            FROM proposal_votes
+            FROM svbproposal_votes
             WHERE proposal_id = ? AND voter_id = ?
         ");
         $stmt->execute([$proposal_id, $user['member_id']]);
@@ -520,7 +520,7 @@ class ProposalPermissionAdapter {
         // Zähle bereits abgestimmte
         $stmt = $this->pdo->prepare("
             SELECT COUNT(DISTINCT proposal_id)
-            FROM proposal_votes
+            FROM svbproposal_votes
             WHERE proposal_id IN ($placeholders) AND voter_id = ?
         ");
         $stmt->execute([...$votable_ids, $user['member_id']]);

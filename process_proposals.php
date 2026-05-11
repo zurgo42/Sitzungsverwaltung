@@ -368,7 +368,7 @@ try {
             }
 
             // Delete proposal (hard delete)
-            $stmt = $pdo->prepare("DELETE FROM proposals WHERE id = ?");
+            $stmt = $pdo->prepare("DELETE FROM svbproposals WHERE id = ?");
             $stmt->execute([$proposal_id]);
 
             $redirect_url .= '&success=deleted&view=my';

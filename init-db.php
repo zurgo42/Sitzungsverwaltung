@@ -779,7 +779,7 @@ try {
     // =========================================================
 
     // Haupttabelle für Anträge und Beschlüsse
-    $tables[] = "CREATE TABLE IF NOT EXISTS proposals (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svbproposals (
         id INT AUTO_INCREMENT PRIMARY KEY,
         proposal_number VARCHAR(15) UNIQUE NOT NULL,
         status ENUM('draft', 'editing', 'voting', 'approved', 'rejected', 'withdrawn') DEFAULT 'editing',
@@ -842,7 +842,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Anträge und Beschlüsse'";
 
     // Dateianhänge zu Anträgen (normalisiert statt file1-4)
-    $tables[] = "CREATE TABLE IF NOT EXISTS proposal_attachments (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svbproposal_attachments (
         id INT AUTO_INCREMENT PRIMARY KEY,
         proposal_id INT NOT NULL,
         file_path VARCHAR(500) NULL COMMENT 'Lokaler Pfad',
@@ -852,11 +852,11 @@ try {
         uploaded_by INT NOT NULL,
 
         INDEX idx_proposal (proposal_id),
-        FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE
+        FOREIGN KEY (proposal_id) REFERENCES svbproposals(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Dateianhänge zu Anträgen'";
 
     // Abstimmungen (normalisiert statt VName1-6, Votum1-6)
-    $tables[] = "CREATE TABLE IF NOT EXISTS proposal_votes (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svbproposal_votes (
         id INT AUTO_INCREMENT PRIMARY KEY,
         proposal_id INT NOT NULL,
         voter_id INT NOT NULL,
@@ -869,11 +869,11 @@ try {
         INDEX idx_proposal (proposal_id),
         INDEX idx_voter (voter_id),
         UNIQUE KEY unique_vote (proposal_id, voter_id),
-        FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE
+        FOREIGN KEY (proposal_id) REFERENCES svbproposals(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Abstimmungen zu Anträgen'";
 
     // Freigabeberechtigte (normalisiert statt verf1/verf2)
-    $tables[] = "CREATE TABLE IF NOT EXISTS proposal_approvers (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svbproposal_approvers (
         id INT AUTO_INCREMENT PRIMARY KEY,
         proposal_id INT NOT NULL,
         approver_id INT NOT NULL,
@@ -883,11 +883,11 @@ try {
 
         INDEX idx_proposal (proposal_id),
         INDEX idx_approver (approver_id),
-        FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE
+        FOREIGN KEY (proposal_id) REFERENCES svbproposals(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Freigabeberechtigte für Anträge'";
 
     // Änderungshistorie
-    $tables[] = "CREATE TABLE IF NOT EXISTS proposal_changes (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svbproposal_changes (
         id INT AUTO_INCREMENT PRIMARY KEY,
         proposal_id INT NOT NULL,
         changed_by INT NOT NULL,
@@ -898,11 +898,11 @@ try {
 
         INDEX idx_proposal (proposal_id),
         INDEX idx_changed_by (changed_by),
-        FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE
+        FOREIGN KEY (proposal_id) REFERENCES svbproposals(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Änderungshistorie für Anträge'";
 
     // Hinweise/Kommentare
-    $tables[] = "CREATE TABLE IF NOT EXISTS proposal_comments (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svbproposal_comments (
         id INT AUTO_INCREMENT PRIMARY KEY,
         proposal_id INT NOT NULL,
         author_id INT NOT NULL,
@@ -912,11 +912,11 @@ try {
 
         INDEX idx_proposal (proposal_id),
         INDEX idx_author (author_id),
-        FOREIGN KEY (proposal_id) REFERENCES proposals(id) ON DELETE CASCADE
+        FOREIGN KEY (proposal_id) REFERENCES svbproposals(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Kommentare zu Anträgen'";
 
     // Departments/Ressorts (für Konfiguration)
-    $tables[] = "CREATE TABLE IF NOT EXISTS departments (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svbproposal_departments (
         id VARCHAR(20) PRIMARY KEY,
         short_name VARCHAR(20) UNIQUE NOT NULL,
         full_name VARCHAR(255) NOT NULL,
@@ -928,7 +928,7 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Ressorts/Departments'";
 
     // Entscheidungsregeln (Konfiguration)
-    $tables[] = "CREATE TABLE IF NOT EXISTS decision_rules (
+    $tables[] = "CREATE TABLE IF NOT EXISTS svbproposal_decision_rules (
         id INT AUTO_INCREMENT PRIMARY KEY,
         rule_name VARCHAR(100) NOT NULL,
 
@@ -1101,12 +1101,12 @@ try {
     }
 
     // Default Decision Rules einfügen (nur wenn leer)
-    $stmt = $pdo->query("SELECT COUNT(*) as count FROM decision_rules");
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM svbproposal_decision_rules");
     if ($stmt->fetch()['count'] == 0) {
         echo "<p>Füge Default-Entscheidungsregeln ein...</p>";
 
         $pdo->exec("
-            INSERT INTO decision_rules
+            INSERT INTO svbproposal_decision_rules
             (rule_name, single_approval_max, single_approval_monthly_max, department_approval_max, board_approval_min,
              waiting_period_days, voting_period_days, consideration_max_days, min_board_members_present, active)
             VALUES

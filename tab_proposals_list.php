@@ -62,7 +62,7 @@ if ($filter_decision_type !== 'all') {
 $proposals = get_proposals($pdo, $filters, $current_user);
 
 // Departments für Filter laden
-$departments_stmt = $pdo->query("SELECT * FROM proposal_departments WHERE is_active = 1 ORDER BY name");
+$departments_stmt = $pdo->query("SELECT * FROM svbproposal_departments WHERE is_active = 1 ORDER BY name");
 $departments = $departments_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Voting-Statistik für aktuellen User
