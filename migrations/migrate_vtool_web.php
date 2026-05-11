@@ -619,6 +619,7 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
     try {
         // Proposals laden die noch nicht migriert wurden
         // WICHTIG: Bei Duplikaten nur LETZTE Vorkommen nehmen (neueste = letzter lzugriff)
+        // GROUP BY am Ende stellt sicher: Auch bei gleichem lzugriff nur 1 Zeile pro antrnr
         $stmt = $pdo->prepare("
             SELECT a.*
             FROM `$source_db`.antraege a
@@ -629,6 +630,7 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
             ) latest ON a.antrnr = latest.antrnr AND (a.lzugriff = latest.latest_access OR (a.lzugriff IS NULL AND latest.latest_access IS NULL))
             LEFT JOIN `$target_db`.svbproposals p ON a.antrnr = p.proposal_number
             WHERE p.id IS NULL
+            GROUP BY a.antrnr
             ORDER BY a.antrnr
         ");
         $stmt->execute();
