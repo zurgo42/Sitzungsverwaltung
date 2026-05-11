@@ -608,7 +608,7 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
             FROM `$source_db`.antraege a
             LEFT JOIN `$target_db`.svbproposals p ON a.Antrnr = p.proposal_number
             WHERE p.id IS NULL
-            ORDER BY a.ID
+            ORDER BY a.Antrnr
         ");
         $stmt->execute();
         $proposals = $stmt->fetchAll(PDO::FETCH_ASSOC);
