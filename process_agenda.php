@@ -2191,13 +2191,16 @@ if (isset($_POST['save_participant_comment']) && $meeting['status'] === 'protoco
  * Redirect: ?tab=agenda&meeting_id=X#top-ITEM_ID (falls item_id angegeben)
  */
 if (isset($_POST['quick_todo_create'])) {
-    $todo_title = trim($_POST['todo_title'] ?? '');
-    $todo_description = trim($_POST['todo_description'] ?? '');
-    $todo_due_date = !empty($_POST['todo_due_date']) ? $_POST['todo_due_date'] : null;
-    $item_id = !empty($_POST['item_id']) ? intval($_POST['item_id']) : null;
+    // Item-ID kommt jetzt aus dem Button-Value (nicht mehr aus hidden field)
+    $item_id = !empty($_POST['quick_todo_create']) ? intval($_POST['quick_todo_create']) : null;
+
+    // Feldnamen haben jetzt item_id als Suffix (wegen Mehrfachformular)
+    $todo_title = trim($_POST["todo_title_$item_id"] ?? '');
+    $todo_description = trim($_POST["todo_description_$item_id"] ?? '');
+    $todo_due_date = !empty($_POST["todo_due_date_$item_id"]) ? $_POST["todo_due_date_$item_id"] : null;
 
     // Zuweisung: Wenn assigned_to_member_id gesetzt (Protokollführer), verwende diesen, sonst sich selbst
-    $assigned_to = !empty($_POST['assigned_to_member_id']) ? intval($_POST['assigned_to_member_id']) : $current_user['member_id'];
+    $assigned_to = !empty($_POST["todo_assigned_to_$item_id"]) ? intval($_POST["todo_assigned_to_$item_id"]) : $current_user['member_id'];
 
     if (!empty($todo_title)) {
         try {
