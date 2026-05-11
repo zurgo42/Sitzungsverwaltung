@@ -618,11 +618,13 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
 
     try {
         // Proposals laden die noch nicht migriert wurden
+        // WICHTIG: Nur ERSTE Vorkommen bei Duplikaten (einige antrnr existieren 2x!)
         $stmt = $pdo->prepare("
             SELECT a.*
             FROM `$source_db`.antraege a
             LEFT JOIN `$target_db`.svbproposals p ON a.antrnr = p.proposal_number
             WHERE p.id IS NULL
+            GROUP BY a.antrnr
             ORDER BY a.antrnr
         ");
         $stmt->execute();
