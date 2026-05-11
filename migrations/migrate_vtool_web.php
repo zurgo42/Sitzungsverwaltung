@@ -851,9 +851,14 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
                 $error_msg = "Antrag {$old['antrnr']}: " . $e->getMessage();
                 $stats['errors'][] = $error_msg;
                 error_log("MIGRATION ERROR: " . $error_msg);
-                // Bei mehr als 5 Fehlern: Abbrechen
-                if (count($stats['errors']) > 5 && !$dry_run) {
-                    throw new Exception("Zu viele Fehler - Migration abgebrochen");
+
+                // Bei mehr als 10 Fehlern: Abbrechen (aber Stats trotzdem zurückgeben)
+                if (count($stats['errors']) > 10 && !$dry_run) {
+                    if (!$dry_run) {
+                        $pdo->rollBack();
+                    }
+                    $stats['errors'][] = ">>> Migration nach 10 Fehlern abgebrochen <<<";
+                    return $stats; // Stats mit Fehlern zurückgeben!
                 }
             }
         }
@@ -866,7 +871,9 @@ function performMigration($pdo, $source_db, $target_db, $dry_run = true) {
         if (!$dry_run) {
             $pdo->rollBack();
         }
-        throw $e;
+        // Auch bei Exception die Stats zurückgeben, damit Fehler sichtbar sind
+        $stats['errors'][] = "FATAL: " . $e->getMessage();
+        return $stats;
     }
 
     return $stats;
