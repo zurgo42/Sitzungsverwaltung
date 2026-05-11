@@ -432,7 +432,7 @@ echo "  Freigaben: {$stats['approvers_migrated']}\n";
 echo "  Kommentare: {$stats['comments_migrated']}\n\n";
 
 if (!empty($stats['errors'])) {
-    echo "FEHLER ({count($stats['errors'])}):\n";
+    echo "FEHLER (" . count($stats['errors']) . "):\n";
     foreach (array_slice($stats['errors'], 0, 10) as $error) {
         echo "  - $error\n";
     }
