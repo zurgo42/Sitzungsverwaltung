@@ -41,66 +41,164 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
 
     $errors = [];
 
-    // Validierung
-    if (empty($first_name)) {
-        $errors[] = 'Bitte geben Sie Ihren Vornamen ein.';
-    }
-    if (empty($last_name)) {
-        $errors[] = 'Bitte geben Sie Ihren Nachnamen ein.';
-    }
-    if (empty($email)) {
-        $errors[] = 'Bitte geben Sie Ihre E-Mail-Adresse ein.';
-    } elseif (!validate_external_email($email)) {
-        $errors[] = 'Bitte geben Sie eine gültige E-Mail-Adresse ein.';
-    }
-    if (!$consent) {
-        $errors[] = 'Bitte stimmen Sie der Datenspeicherung zu.';
+    // Validierung: Wenn MNr angegeben, nur MNr validieren
+    // Wenn keine MNr, dann Name/E-Mail validieren
+    if (!empty($mnr)) {
+        // Mitgliedsnummer-Login: Nur consent erforderlich
+        if (!$consent) {
+            $errors[] = 'Bitte stimmen Sie der Datenspeicherung zu.';
+        }
+    } else {
+        // Externe Registrierung: Name/E-Mail erforderlich
+        if (empty($first_name)) {
+            $errors[] = 'Bitte geben Sie Ihren Vornamen ein.';
+        }
+        if (empty($last_name)) {
+            $errors[] = 'Bitte geben Sie Ihren Nachnamen ein.';
+        }
+        if (empty($email)) {
+            $errors[] = 'Bitte geben Sie Ihre E-Mail-Adresse ein.';
+        } elseif (!validate_external_email($email)) {
+            $errors[] = 'Bitte geben Sie eine gültige E-Mail-Adresse ein.';
+        }
+        if (!$consent) {
+            $errors[] = 'Bitte stimmen Sie der Datenspeicherung zu.';
+        }
     }
 
     if (empty($errors)) {
         try {
-            // IP-Adresse für Tracking
-            $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
+            // Prüfen ob Mitgliedsnummer angegeben wurde
+            $member = null;
+            if (!empty($mnr)) {
+                // Member aus Datenbank laden (über Adapter)
+                // Lade Member nach Mitgliedsnummer
+                $stmt = $pdo->prepare("
+                    SELECT * FROM svmembers
+                    WHERE membership_number = ?
+                    LIMIT 1
+                ");
+                $stmt->execute([$mnr]);
+                $member = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Externen Teilnehmer erstellen
-            $result = create_external_participant(
-                $pdo,
-                $poll_type,
-                $poll_id,
-                $first_name,
-                $last_name,
-                $email,
-                !empty($mnr) ? $mnr : null,
-                $ip_address
-            );
-
-            // Session setzen
-            set_external_participant_session(
-                $result['session_token'],
-                $poll_type,
-                $poll_id,
-                $result['external_id']
-            );
-
-            // Cookie für 30 Tage speichern (zur Wiedererkennung)
-            save_external_participant_cookie($first_name, $last_name, $email);
-
-            // Erfolgsmeldung und Weiterleitung
-            $_SESSION['success'] = 'Willkommen! Sie können jetzt an der Umfrage teilnehmen.';
-
-            // Zur Umfrage weiterleiten
-            // Verwende $redirect_script falls vom standalone-Skript gesetzt, sonst PHP_SELF
-            $script_name = isset($redirect_script) ? $redirect_script : basename($_SERVER['SCRIPT_NAME']);
-            $redirect_url = $script_name . '?poll_id=' . $poll_id;
-            if (isset($_GET['token'])) {
-                $redirect_url .= '&token=' . urlencode($_GET['token']);
+                // Falls nicht in svmembers, versuche berechtigte-Tabelle
+                if (!$member && defined('MEMBER_SOURCE') && MEMBER_SOURCE === 'berechtigte') {
+                    $stmt = $pdo->prepare("
+                        SELECT ID as member_id, MNr as membership_number,
+                               Vorname as first_name, Name as last_name,
+                               eMail as email
+                        FROM berechtigte
+                        WHERE MNr = ?
+                        LIMIT 1
+                    ");
+                    $stmt->execute([$mnr]);
+                    $ber = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($ber) {
+                        $member = [
+                            'member_id' => $ber['member_id'],
+                            'membership_number' => $ber['membership_number'],
+                            'first_name' => $ber['first_name'],
+                            'last_name' => $ber['last_name'],
+                            'email' => $ber['email']
+                        ];
+                    }
+                }
             }
-            header('Location: ' . $redirect_url);
-            exit;
+
+            // Wenn Mitglied gefunden: Als interner User behandeln
+            if ($member) {
+                // Session setzen wie bei normalem Login
+                $_SESSION['member_id'] = $member['member_id'];
+                $_SESSION['success'] = 'Willkommen ' . htmlspecialchars($member['first_name']) . '! Du bist jetzt als Mitglied angemeldet.';
+
+                // Log: Member-Login via MNr
+                log_external_access($pdo, 'member_login', $poll_type, $poll_id, [
+                    'member_id' => $member['member_id'],
+                    'mnr' => $mnr,
+                    'success' => true
+                ]);
+            }
+            // Sonst: MNr angegeben aber nicht gefunden
+            elseif (!empty($mnr)) {
+                // Log: Ungültige MNr-Eingabe
+                log_external_access($pdo, 'invalid_mnr', $poll_type, $poll_id, [
+                    'mnr' => $mnr,
+                    'success' => false,
+                    'error_message' => 'Mitgliedsnummer nicht gefunden'
+                ]);
+
+                $errors[] = 'Die angegebene Mitgliedsnummer wurde nicht gefunden. Bitte überprüfen Sie die Nummer oder registrieren Sie sich als externer Teilnehmer.';
+            }
+            // Sonst: Als externer Teilnehmer behandeln
+            else {
+                // IP-Adresse für Tracking
+                $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
+
+                // Externen Teilnehmer erstellen
+                $result = create_external_participant(
+                    $pdo,
+                    $poll_type,
+                    $poll_id,
+                    $first_name,
+                    $last_name,
+                    $email,
+                    !empty($mnr) ? $mnr : null,
+                    $ip_address
+                );
+
+                // Session setzen
+                set_external_participant_session(
+                    $result['session_token'],
+                    $poll_type,
+                    $poll_id,
+                    $result['external_id']
+                );
+
+                // Cookie für 7 Tage speichern (zur Wiedererkennung)
+                save_external_participant_cookie($first_name, $last_name, $email);
+
+                $_SESSION['success'] = 'Willkommen! Sie können jetzt an der Umfrage teilnehmen.';
+
+                // Log: Externe Registrierung
+                log_external_access($pdo, 'external_registration', $poll_type, $poll_id, [
+                    'external_participant_id' => $result['external_id'],
+                    'email' => $email,
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
+                    'success' => true
+                ]);
+            }
+
+            // Nur weiterleiten wenn keine Fehler aufgetreten sind
+            if (empty($errors)) {
+                // Zur Umfrage weiterleiten
+                // Verwende $redirect_script falls vom standalone-Skript gesetzt, sonst PHP_SELF
+                $script_name = isset($redirect_script) ? $redirect_script : basename($_SERVER['SCRIPT_NAME']);
+                $redirect_url = $script_name . '?poll_id=' . $poll_id;
+                if (isset($_GET['token'])) {
+                    $redirect_url .= '&token=' . urlencode($_GET['token']);
+                }
+                header('Location: ' . $redirect_url);
+                exit;
+            }
 
         } catch (Exception $e) {
             $errors[] = 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.';
             error_log("Externe Registrierung fehlgeschlagen: " . $e->getMessage());
+
+            // Log: Registrierungsfehler
+            try {
+                log_external_access($pdo, 'registration_error', $poll_type, $poll_id, [
+                    'mnr' => $mnr ?? null,
+                    'email' => $email ?? null,
+                    'first_name' => $first_name ?? null,
+                    'last_name' => $last_name ?? null,
+                    'success' => false,
+                    'error_message' => $e->getMessage()
+                ]);
+            } catch (Exception $logError) {
+                // Logging fehlgeschlagen - nur in error_log
+            }
         }
     }
 }
@@ -313,57 +411,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
             <p>Um an dieser Umfrage teilzunehmen, benötigen wir einige Angaben von dir. Deine Daten werden vertraulich behandelt und ausschließlich für diese Umfrage verwendet.</p>
         </div>
 
+        <!-- Hinweis für registrierte Nutzer -->
+        <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
+            <strong style="color: #2e7d32;">💡 Schon im Sitzungstool registriert?</strong>
+            <p style="margin: 8px 0 0 0; color: #1b5e20; line-height: 1.5;">
+                Dann gib einfach nur deine <strong>Mitgliedsnummer</strong> an!
+                Deine Stimme wird dann automatisch mit deinem Profil im Sitzungstool verknüpft.
+                Name und E-Mail werden automatisch aus deinem Profil übernommen.
+            </p>
+        </div>
+
         <form method="POST" action="">
             <input type="hidden" name="register_external" value="1">
 
             <div class="form-group">
                 <label>
-                    Vorname <span class="required">*</span>
-                </label>
-                <input type="text"
-                       name="first_name"
-                       value="<?php echo htmlspecialchars($_POST['first_name'] ?? ($cookie_data['first_name'] ?? '')); ?>"
-                       required
-                       placeholder="z.B. Max">
-            </div>
-
-            <div class="form-group">
-                <label>
-                    Nachname <span class="required">*</span>
-                </label>
-                <input type="text"
-                       name="last_name"
-                       value="<?php echo htmlspecialchars($_POST['last_name'] ?? ($cookie_data['last_name'] ?? '')); ?>"
-                       required
-                       placeholder="z.B. Mustermann">
-            </div>
-
-            <div class="form-group">
-                <label>
-                    E-Mail-Adresse <span class="required">*</span>
-                </label>
-                <input type="email"
-                       name="email"
-                       value="<?php echo htmlspecialchars($_POST['email'] ?? ($cookie_data['email'] ?? '')); ?>"
-                       required
-                       placeholder="max.mustermann@example.com">
-                <p class="info-text">
-                    Wir verwenden deine E-Mail-Adresse nur zur Identifikation für diese Umfrage.
-                </p>
-            </div>
-
-            <div class="form-group">
-                <label>
-                    Mitgliedsnummer (optional)
+                    Mitgliedsnummer (falls registriert)
                 </label>
                 <input type="text"
                        name="mnr"
+                       id="mnr_field"
                        value="<?php echo htmlspecialchars($_POST['mnr'] ?? ''); ?>"
-                       placeholder="Falls vorhanden">
-                <p class="info-text">
-                    Wenn du Mitglied bist, kannst du hier optional deine Mitgliedsnummer angeben.
+                       placeholder="z.B. 0123456"
+                       onchange="toggleExternalFields()">
+                <p class="info-text" style="color: #2e7d32; font-weight: 500;">
+                    ✓ Wenn du deine Mitgliedsnummer eingibst, brauchst du die Felder unten nicht mehr auszufüllen.
                 </p>
             </div>
+
+            <div id="external_fields">
+                <div style="border-top: 2px solid #e0e0e0; margin: 25px 0; padding-top: 20px;">
+                    <p style="color: #666; font-weight: 600; margin-bottom: 15px;">
+                        📋 Oder als Externer Teilnehmer registrieren:
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Vorname <span class="required" id="firstname_required">*</span>
+                    </label>
+                    <input type="text"
+                           name="first_name"
+                           id="first_name"
+                           value="<?php echo htmlspecialchars($_POST['first_name'] ?? ($cookie_data['first_name'] ?? '')); ?>"
+                           placeholder="z.B. Max">
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Nachname <span class="required" id="lastname_required">*</span>
+                    </label>
+                    <input type="text"
+                           name="last_name"
+                           id="last_name"
+                           value="<?php echo htmlspecialchars($_POST['last_name'] ?? ($cookie_data['last_name'] ?? '')); ?>"
+                           placeholder="z.B. Mustermann">
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        E-Mail-Adresse <span class="required" id="email_required">*</span>
+                    </label>
+                    <input type="email"
+                           name="email"
+                           id="email"
+                           value="<?php echo htmlspecialchars($_POST['email'] ?? ($cookie_data['email'] ?? '')); ?>"
+                           placeholder="max.mustermann@example.com">
+                    <p class="info-text">
+                        Wir verwenden deine E-Mail-Adresse nur zur Identifikation für diese Umfrage.
+                    </p>
+                </div>
+            </div>
+
+            <script>
+            function toggleExternalFields() {
+                const mnrField = document.getElementById('mnr_field');
+                const externalFields = document.getElementById('external_fields');
+                const requiredMarkers = document.querySelectorAll('#firstname_required, #lastname_required, #email_required');
+
+                if (mnrField.value.trim() !== '') {
+                    // MNr eingegeben: Externe Felder ausblenden
+                    externalFields.style.opacity = '0.3';
+                    externalFields.style.pointerEvents = 'none';
+                    requiredMarkers.forEach(el => el.style.display = 'none');
+
+                    // Felder leeren und nicht mehr required
+                    document.getElementById('first_name').value = '';
+                    document.getElementById('last_name').value = '';
+                    document.getElementById('email').value = '';
+                    document.getElementById('first_name').removeAttribute('required');
+                    document.getElementById('last_name').removeAttribute('required');
+                    document.getElementById('email').removeAttribute('required');
+                } else {
+                    // Keine MNr: Externe Felder wieder aktivieren
+                    externalFields.style.opacity = '1';
+                    externalFields.style.pointerEvents = 'auto';
+                    requiredMarkers.forEach(el => el.style.display = 'inline');
+
+                    document.getElementById('first_name').setAttribute('required', 'required');
+                    document.getElementById('last_name').setAttribute('required', 'required');
+                    document.getElementById('email').setAttribute('required', 'required');
+                }
+            }
+
+            // Beim Laden prüfen
+            document.addEventListener('DOMContentLoaded', toggleExternalFields);
+            </script>
 
             <div class="checkbox-group">
                 <label>
@@ -371,7 +524,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                     <span>
                         Ich stimme zu, dass meine Daten für diese Umfrage gespeichert werden.
                         Die Daten werden 6 Monate nach Abschluss der Umfrage automatisch gelöscht.
-                        Zur vereinfachten Wiedererkennung wird ein Cookie für 30 Tage gespeichert. <span class="required">*</span>
+                        Zur vereinfachten Wiedererkennung wird ein Cookie für 7 Tage gespeichert. <span class="required">*</span>
                     </span>
                 </label>
             </div>

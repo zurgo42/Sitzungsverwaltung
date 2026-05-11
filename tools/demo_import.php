@@ -399,6 +399,8 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 'svopinion_polls',
                 'svdocuments',
                 'svprotocols',  // Keine FK-Abhängigkeit mehr (meeting_id ist optional)
+                'svnotifications',  // Benachrichtigungs-Center (2026-04-27)
+                'svpush_subscriptions',  // Browser-Push-Abos (2026-04-27)
 
                 // Level 3: Abhängig von Level 2
                 'svmeeting_participants',
@@ -411,13 +413,18 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 'svopinion_responses',
                 'svdocument_downloads',
                 'svmail_queue',
+                'svexternal_participants',  // Externe Teilnehmer für Umfragen (2025-12-18)
 
                 // Level 4: Abhängig von Level 3
                 'svagenda_comments',
+                'svagenda_live_comments',  // Live-Kommentare während Sitzung
+                'svagenda_post_comments',  // Nachträgliche Anmerkungen in ended-Phase
+                'svagenda_attachments',  // Dateianhänge an TOPs (2026-04-27)
                 'svprotocol_change_requests',
                 'svtodo_log',
                 'svpoll_responses',
                 'svopinion_response_options',
+                'svexternal_access_log',  // Log für externe Zugriffe (2026-05-03)
             ];
 
             // Importiere Tabellen in der definierten Reihenfolge
@@ -593,7 +600,11 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
         } catch (Exception $e) {
             // Im Fehlerfall auch Foreign Keys wieder aktivieren
             $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
-            $pdo->rollBack();
+
+            // Nur rollBack wenn Transaktion noch aktiv
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
 
             echo '<div class="error">';
             echo '<h3>❌ Fehler beim Import</h3>';

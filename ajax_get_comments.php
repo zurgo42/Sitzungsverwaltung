@@ -19,8 +19,10 @@ ini_set('display_errors', 0); // Nicht direkt ausgeben, sondern als JSON
 ob_start();
 
 try {
+    // Session-Konfiguration laden (VOR session_start!)
+    require_once 'session_config.php';
     session_start();
-    
+
     // DB-Verbindung aufbauen
     require_once 'config.php';
     require_once 'functions.php';
@@ -60,25 +62,30 @@ try {
     // Kommentare abrufen
     $stmt = $pdo->prepare("
         SELECT 
-            ac.comment_id,
-            ac.comment_text,
-            ac.priority_rating,
-            ac.duration_estimate,
-            ac.created_at,
-            m.first_name,
-            m.last_name,
-            m.member_id
+            ac.*
         FROM svagenda_comments ac
-        JOIN svmembers m ON ac.member_id = m.member_id
         WHERE ac.item_id = ?
         ORDER BY ac.created_at ASC
     ");
     $stmt->execute([$item_id]);
     $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Alle vorherigen Ausgaben l�schen
+
+    // Mitgliederdaten über Adapter laden
+    foreach ($comments as &$comment) {
+        $member = get_member_by_id($pdo, $comment['member_id']);
+        if ($member) {
+            $comment['first_name'] = $member['first_name'];
+            $comment['last_name'] = $member['last_name'];
+        } else {
+            $comment['first_name'] = 'Unbekannt';
+            $comment['last_name'] = '';
+        }
+    }
+    unset($comment);
+
+    // Alle vorherigen Ausgaben löschen
     ob_clean();
-    
+
     echo json_encode([
         'success' => true,
         'comments' => $comments

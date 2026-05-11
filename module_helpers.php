@@ -51,10 +51,15 @@ function get_member_name($pdo, $member_id) {
 function calculate_remaining_time($pdo, $agenda_items, $current_index) {
     $regular_time = 0;
     $confidential_time = 0;
-    
+
     for ($i = $current_index; $i < count($agenda_items); $i++) {
+        // Prüfen ob Element existiert (wichtig bei gefilterten Arrays)
+        if (!isset($agenda_items[$i])) {
+            continue;
+        }
+
         $item = $agenda_items[$i];
-        
+
         // TOP 999 (Sitzungsende) und TOP 0 überspringen
         if (in_array($item['top_number'], [0, 999])) {
             continue;
@@ -144,5 +149,41 @@ function render_readonly_participant_list($pdo, $meeting_id, $participants) {
         <?php echo render_participant_list($pdo, $meeting_id, $participants); ?>
     </div>
     <?php
+}
+
+/**
+ * Sortiert Mitglieder nach Rollenhierarchie
+ *
+ * Hierarchie: gf > vorstand > mitglied > andere
+ *
+ * @param array $members Array von Mitgliedern
+ * @return array Sortiertes Array
+ */
+function sort_members_by_role_hierarchy($members) {
+    // Rollenprioritäten definieren
+    $role_priority = [
+        'gf' => 1,
+        'vorstand' => 2,
+        'mitglied' => 3
+    ];
+
+    usort($members, function($a, $b) use ($role_priority) {
+        $priority_a = $role_priority[$a['role']] ?? 999;
+        $priority_b = $role_priority[$b['role']] ?? 999;
+
+        // Erst nach Rolle sortieren
+        if ($priority_a !== $priority_b) {
+            return $priority_a - $priority_b;
+        }
+
+        // Bei gleicher Rolle: nach Nachname, dann Vorname
+        $cmp = strcmp($a['last_name'], $b['last_name']);
+        if ($cmp === 0) {
+            return strcmp($a['first_name'], $b['first_name']);
+        }
+        return $cmp;
+    });
+
+    return $members;
 }
 ?>

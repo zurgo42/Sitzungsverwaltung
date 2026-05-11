@@ -23,10 +23,7 @@ function is_local_environment() {
         isset($_SERVER['SERVER_ADDR']) && in_array($_SERVER['SERVER_ADDR'], ['127.0.0.1', '::1']),
 
         // Prüfe ob im XAMPP-Pfad
-        stripos(__FILE__, 'xampp') !== false,
-
-        // Prüfe ob im htdocs-Pfad (typisch für XAMPP)
-        stripos(__FILE__, 'htdocs') !== false
+        stripos(__FILE__, 'xampp') !== false
     ];
 
     return in_array(true, $local_indicators, true);
@@ -36,18 +33,29 @@ function is_local_environment() {
 define('IS_LOCAL', is_local_environment());
 
 // ============= DATENBANK-ZUGANGSDATEN =============
-if (IS_LOCAL) {
-    // XAMPP / Lokale Entwicklungsumgebung
-    define('DB_HOST', 'localhost');
-    define('DB_USER', 'root');
-    define('DB_PASS', '');  // XAMPP Standard: kein Passwort
-    define('DB_NAME', 'k126904_div');  // Lokale Datenbank
-} else {
-    // Produktivserver
-    define('DB_HOST', '...');
-    define('DB_USER', '...');
-    define('DB_PASS', '...');
-    define('DB_NAME', '...');
+// BACKWARD COMPATIBILITY: Falls alte VTool config.php mit MYSQL_* Konstanten existiert
+// (z.B. auf Produktivserver), diese bevorzugen
+if (defined('MYSQL_HOST')) {
+    // Alte VTool-Konfiguration gefunden - verwende diese
+    if (!defined('DB_HOST')) define('DB_HOST', MYSQL_HOST);
+    if (!defined('DB_USER')) define('DB_USER', MYSQL_USER);
+    if (!defined('DB_PASS')) define('DB_PASS', MYSQL_PASS);
+    if (!defined('DB_NAME')) define('DB_NAME', MYSQL_DATABASE);
+} elseif (!defined('DB_HOST')) {
+    // Neue Konfiguration - definiere DB_* Konstanten
+    if (IS_LOCAL) {
+        // XAMPP / Lokale Entwicklungsumgebung
+        define('DB_HOST', 'localhost');
+        define('DB_USER', 'root');
+        define('DB_PASS', '');  // XAMPP Standard: kein Passwort
+        define('DB_NAME', 'k126904_div');  // Lokale Datenbank
+    } else {
+        // Produktivserver
+        define('DB_HOST', '...');
+        define('DB_USER', '...');
+        define('DB_PASS', '...');
+        define('DB_NAME', '...');
+    }
 }
 
 // ============= SYSTEM-EINSTELLUNGEN =============
@@ -120,18 +128,15 @@ define('ROLES_CONFIDENTIAL_ACCESS', ['vorstand', 'gf', 'assistenz']); // Rollen 
 date_default_timezone_set(TIMEZONE);
 
 // ============= DEBUG MODE =============
-if (DEBUG_MODE) {
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-} else {
-    error_reporting(0);
-    ini_set('display_errors', 0);
-}
+// TEMPORÄR: Error Reporting IMMER aktiviert für Debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
 
-// ============= SESSION-SICHERHEIT =============
-//ini_set('session.cookie_httponly', 1);
-//ini_set('session.use_only_cookies', 1);
-// ini_set('session.cookie_secure', 1); // Nur bei HTTPS aktivieren!
+// ============= SESSION-KONFIGURATION =============
+// Session-Konfiguration wird zentral aus session_config.php geladen
+// (Diese Datei wird VOR session_start() in index.php und allen anderen Dateien included)
+// Die Konfiguration ist in session_config.php definiert (15 Tage Laufzeit)
 
 // ============= FOOTER-KONFIGURATION =============
 define('FOOTER_COPYRIGHT', '&copy; Dr. Hermann Meier, Horstmannsmühle 1a, 42781 Haan Tel. 02129 379 2870 eMail meier@zurgo.de');

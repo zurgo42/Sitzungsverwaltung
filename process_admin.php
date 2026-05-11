@@ -89,10 +89,12 @@ function log_admin_action($pdo, $admin_id, $action_type, $description, $target_t
  * - Admin-Aktion protokollieren
  */
 if (isset($_POST['edit_meeting'])) {
+
     $meeting_id = intval($_POST['meeting_id'] ?? 0);
     $meeting_name = trim($_POST['meeting_name'] ?? '');
     $meeting_date = $_POST['meeting_date'] ?? '';
     $expected_end_date = !empty($_POST['expected_end_date']) ? $_POST['expected_end_date'] : null;
+    $submission_deadline = !empty($_POST['submission_deadline']) ? $_POST['submission_deadline'] : null;
     $location = trim($_POST['location'] ?? '');
     $video_link = trim($_POST['video_link'] ?? '');
     $status = $_POST['status'] ?? '';
@@ -101,6 +103,18 @@ if (isset($_POST['edit_meeting'])) {
     $chairman_id = !empty($_POST['chairman_id']) ? intval($_POST['chairman_id']) : null;
     $secretary_id = !empty($_POST['secretary_id']) ? intval($_POST['secretary_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
+
+    // Datetime-Format konvertieren: 2026-05-01T17:00 -> 2026-05-01 17:00:00
+    if (!empty($meeting_date)) {
+        $meeting_date = str_replace('T', ' ', $meeting_date) . ':00';
+    }
+    if (!empty($expected_end_date)) {
+        $expected_end_date = str_replace('T', ' ', $expected_end_date) . ':00';
+    }
+    if (!empty($submission_deadline)) {
+        $submission_deadline = str_replace('T', ' ', $submission_deadline) . ':00';
+    }
+
 
     // Validierung
     if (!$meeting_id || !$meeting_name || !$meeting_date || !$status || !$invited_by_member_id) {
@@ -121,6 +135,7 @@ if (isset($_POST['edit_meeting'])) {
                     SET meeting_name = ?,
                         meeting_date = ?,
                         expected_end_date = ?,
+                        submission_deadline = ?,
                         location = ?,
                         video_link = ?,
                         status = ?,
@@ -134,6 +149,7 @@ if (isset($_POST['edit_meeting'])) {
                     $meeting_name,
                     $meeting_date,
                     $expected_end_date,
+                    $submission_deadline,
                     $location,
                     $video_link,
                     $status,
@@ -143,6 +159,8 @@ if (isset($_POST['edit_meeting'])) {
                     $secretary_id,
                     $meeting_id
                 ]);
+
+                $rows_affected = $stmt->rowCount();
 
                 // Teilnehmer aktualisieren
                 $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
@@ -163,6 +181,7 @@ if (isset($_POST['edit_meeting'])) {
                     'meeting_name' => $meeting_name,
                     'meeting_date' => $meeting_date,
                     'expected_end_date' => $expected_end_date,
+                    'submission_deadline' => $submission_deadline,
                     'location' => $location,
                     'video_link' => $video_link,
                     'status' => $status,
@@ -719,15 +738,21 @@ if (isset($_POST['delete_collab_text'])) {
         try {
             // Text-Infos holen (für Protokoll)
             $stmt = $pdo->prepare("
-                SELECT t.title, t.meeting_id,
-                       m.first_name as initiator_first_name,
-                       m.last_name as initiator_last_name
+                SELECT t.title, t.meeting_id, t.initiator_member_id
                 FROM svcollab_texts t
-                JOIN svmembers m ON t.initiator_member_id = m.member_id
                 WHERE t.text_id = ?
             ");
             $stmt->execute([$text_id]);
             $text_info = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Initiator-Daten über Adapter laden
+            if ($text_info && $text_info['initiator_member_id']) {
+                $initiator = get_member_by_id($pdo, $text_info['initiator_member_id']);
+                if ($initiator) {
+                    $text_info['initiator_first_name'] = $initiator['first_name'];
+                    $text_info['initiator_last_name'] = $initiator['last_name'];
+                }
+            }
 
             if ($text_info) {
                 // Text löschen (CASCADE löscht alle zugehörigen Daten)
@@ -758,20 +783,199 @@ if (isset($_POST['delete_collab_text'])) {
 }
 
 // ============================================
+// 3.5 TODO-VERWALTUNG (ADMIN)
+// ============================================
+
+/**
+ * Admin: Neues ToDo erstellen
+ */
+if (isset($_POST['admin_create_todo'])) {
+    $title = trim($_POST['title'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $assigned_to = (int)($_POST['assigned_to_member_id'] ?? 0);
+    $due_date = trim($_POST['due_date'] ?? '');
+    $is_private = isset($_POST['is_private']) ? 1 : 0;
+
+    if (empty($title) || !$assigned_to) {
+        $error_message = "Titel und Empfänger sind erforderlich.";
+    } else {
+        // Due date validieren
+        if (!empty($due_date)) {
+            $date_obj = DateTime::createFromFormat('Y-m-d', $due_date);
+            if (!$date_obj || $date_obj->format('Y-m-d') !== $due_date) {
+                $error_message = "Ungültiges Datum.";
+            }
+        } else {
+            $due_date = null;
+        }
+
+        if (!isset($error_message)) {
+            try {
+                $stmt = $pdo->prepare("
+                    INSERT INTO svtodos (
+                        title, description, assigned_to_member_id, created_by_member_id,
+                        due_date, status, is_private, entry_date
+                    ) VALUES (?, ?, ?, ?, ?, 'open', ?, NOW())
+                ");
+                $stmt->execute([
+                    $title,
+                    $description,
+                    $assigned_to,
+                    $current_user['member_id'],
+                    $due_date,
+                    $is_private
+                ]);
+
+                $todo_id = $pdo->lastInsertId();
+
+                // Logging
+                $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'admin-todo-erstellt', NULL, ?)");
+                $log->execute([$todo_id, $current_user['member_id'], $title]);
+
+                $success_message = '✅ ToDo erfolgreich erstellt.';
+            } catch (PDOException $e) {
+                error_log('Admin Todo Create Error: ' . $e->getMessage());
+                $error_message = '❌ Fehler beim Erstellen: ' . $e->getMessage();
+            }
+        }
+    }
+}
+
+/**
+ * Admin: ToDo bearbeiten
+ */
+if (isset($_POST['admin_edit_todo'])) {
+    $todo_id = (int)($_POST['todo_id'] ?? 0);
+    $title = trim($_POST['title'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $assigned_to = (int)($_POST['assigned_to_member_id'] ?? 0);
+    $status = $_POST['status'] ?? 'open';
+    $due_date = trim($_POST['due_date'] ?? '');
+    $is_private = isset($_POST['is_private']) ? 1 : 0;
+
+    $allowed_statuses = ['open', 'in progress', 'delayed', 'done'];
+
+    if (!$todo_id || empty($title) || !$assigned_to || !in_array($status, $allowed_statuses)) {
+        $error_message = "Ungültige Eingabe.";
+    } else {
+        // Due date validieren
+        if (!empty($due_date)) {
+            $date_obj = DateTime::createFromFormat('Y-m-d', $due_date);
+            if (!$date_obj || $date_obj->format('Y-m-d') !== $due_date) {
+                $error_message = "Ungültiges Datum.";
+            }
+        } else {
+            $due_date = null;
+        }
+
+        if (!isset($error_message)) {
+            try {
+                // Alte Daten für Log
+                $stmt = $pdo->prepare("SELECT * FROM svtodos WHERE todo_id = ?");
+                $stmt->execute([$todo_id]);
+                $old_todo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$old_todo) {
+                    $error_message = "ToDo nicht gefunden.";
+                } else {
+                    // Update mit completed_at
+                    if ($status === 'done' && $old_todo['status'] !== 'done') {
+                        $stmt = $pdo->prepare("
+                            UPDATE svtodos
+                            SET title = ?, description = ?, assigned_to_member_id = ?,
+                                status = ?, due_date = ?, is_private = ?, completed_at = NOW()
+                            WHERE todo_id = ?
+                        ");
+                    } elseif ($status !== 'done' && $old_todo['status'] === 'done') {
+                        $stmt = $pdo->prepare("
+                            UPDATE svtodos
+                            SET title = ?, description = ?, assigned_to_member_id = ?,
+                                status = ?, due_date = ?, is_private = ?, completed_at = NULL
+                            WHERE todo_id = ?
+                        ");
+                    } else {
+                        $stmt = $pdo->prepare("
+                            UPDATE svtodos
+                            SET title = ?, description = ?, assigned_to_member_id = ?,
+                                status = ?, due_date = ?, is_private = ?
+                            WHERE todo_id = ?
+                        ");
+                    }
+
+                    $params = [$title, $description, $assigned_to, $status, $due_date, $is_private, $todo_id];
+                    $stmt->execute($params);
+
+                    // Logging
+                    $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'admin-todo-bearbeitet', ?, ?)");
+                    $log->execute([$todo_id, $current_user['member_id'], json_encode($old_todo), json_encode($params)]);
+
+                    $success_message = '✅ ToDo erfolgreich aktualisiert.';
+                }
+            } catch (PDOException $e) {
+                error_log('Admin Todo Edit Error: ' . $e->getMessage());
+                $error_message = '❌ Fehler beim Aktualisieren: ' . $e->getMessage();
+            }
+        }
+    }
+}
+
+/**
+ * Admin: ToDo löschen
+ */
+if (isset($_POST['admin_delete_todo'])) {
+    $todo_id = (int)($_POST['todo_id'] ?? 0);
+
+    if (!$todo_id) {
+        $error_message = "Ungültige ToDo-ID.";
+    } else {
+        try {
+            $stmt = $pdo->prepare("SELECT title FROM svtodos WHERE todo_id = ?");
+            $stmt->execute([$todo_id]);
+            $todo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$todo) {
+                $error_message = "ToDo nicht gefunden.";
+            } else {
+                // Logging (vor dem Löschen)
+                $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'admin-todo-geloescht', ?, NULL)");
+                $log->execute([$todo_id, $current_user['member_id'], $todo['title']]);
+
+                // Löschen
+                $stmt = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
+                $stmt->execute([$todo_id]);
+
+                $success_message = '✅ ToDo erfolgreich gelöscht.';
+            }
+        } catch (PDOException $e) {
+            error_log('Admin Todo Delete Error: ' . $e->getMessage());
+            $error_message = '❌ Fehler beim Löschen: ' . $e->getMessage();
+        }
+    }
+}
+
+// ============================================
 // 4. DATEN LADEN
 // ============================================
 
 // Alle Meetings laden
 $meetings = $pdo->query("
     SELECT m.*,
-        mem_inv.first_name as inviter_first_name,
-        mem_inv.last_name as inviter_last_name,
         (SELECT COUNT(*) FROM svmeeting_participants WHERE meeting_id = m.meeting_id) as participant_count,
         (SELECT COUNT(*) FROM svagenda_items WHERE meeting_id = m.meeting_id) as agenda_count
     FROM svmeetings m
-    LEFT JOIN svmembers mem_inv ON m.invited_by_member_id = mem_inv.member_id
-    ORDER BY m.meeting_date DESC
+    ORDER BY m.meeting_date ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
+
+// Inviter-Daten über Adapter laden
+foreach ($meetings as &$meeting) {
+    if ($meeting['invited_by_member_id']) {
+        $inviter = get_member_by_id($pdo, $meeting['invited_by_member_id']);
+        if ($inviter) {
+            $meeting['inviter_first_name'] = $inviter['first_name'];
+            $meeting['inviter_last_name'] = $inviter['last_name'];
+        }
+    }
+}
 
 // Teilnehmer für jedes Meeting laden
 foreach ($meetings as &$meeting) {
@@ -779,6 +983,7 @@ foreach ($meetings as &$meeting) {
     $stmt->execute([$meeting['meeting_id']]);
     $meeting['participant_ids'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
+unset($meeting); // Wichtig: Referenz auflösen, um Duplikate zu vermeiden
 
 // Alle Mitglieder laden (über Wrapper-Funktion)
 // Funktioniert mit members ODER berechtigte Tabelle (siehe config_adapter.php)
@@ -789,27 +994,54 @@ $all_absences = get_absences_with_names($pdo);
 
 // Offene ToDos laden
 $open_todos = $pdo->query("
-    SELECT t.*, 
-        m.first_name, m.last_name,
+    SELECT t.*,
         ai.title as agenda_title,
         meet.meeting_name, meet.meeting_date
     FROM svtodos t
-    LEFT JOIN svmembers m ON t.assigned_to_member_id = m.member_id
     LEFT JOIN svagenda_items ai ON t.item_id = ai.item_id
     LEFT JOIN svmeetings meet ON t.meeting_id = meet.meeting_id
     WHERE t.status = 'open'
     ORDER BY t.due_date ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
+// Member-Daten über Adapter laden
+foreach ($open_todos as &$todo) {
+    if ($todo['assigned_to_member_id']) {
+        $member = get_member_by_id($pdo, $todo['assigned_to_member_id']);
+        if ($member) {
+            $todo['first_name'] = $member['first_name'];
+            $todo['last_name'] = $member['last_name'];
+        }
+    }
+}
+unset($todo);
+
 // Admin-Log laden (letzte 50 Einträge)
 $admin_logs = $pdo->query("
-    SELECT al.*, 
-        m.first_name, m.last_name
+    SELECT al.*
     FROM svadmin_log al
-    LEFT JOIN svmembers m ON al.admin_member_id = m.member_id
     ORDER BY al.created_at DESC
     LIMIT 50
 ")->fetchAll(PDO::FETCH_ASSOC);
+
+// Admin-Daten über Adapter laden
+foreach ($admin_logs as &$log) {
+    if ($log['admin_member_id']) {
+        $admin = get_member_by_id($pdo, $log['admin_member_id']);
+        if ($admin) {
+            $log['first_name'] = $admin['first_name'];
+            $log['last_name'] = $admin['last_name'];
+        }
+    }
+}
+unset($log);
+
+// Externe Zugriffs-Logs laden (letzte 100 Einträge)
+require_once __DIR__ . '/external_participants_functions.php';
+$external_access_logs = get_external_access_logs($pdo, ['limit' => 100]);
+
+// Statistiken für externe Zugriffe (letzte 30 Tage)
+$external_access_stats = count_external_access_by_type($pdo, 30);
 
 // Statistiken berechnen
 $stats = [
@@ -823,13 +1055,22 @@ $stats = [
 // Alle kollaborativen Texte laden (Meeting-spezifisch UND allgemein)
 $all_collab_texts = $pdo->query("
     SELECT t.*,
-        m.first_name as initiator_first_name,
-        m.last_name as initiator_last_name,
         mt.meeting_name
     FROM svcollab_texts t
-    JOIN svmembers m ON t.initiator_member_id = m.member_id
     LEFT JOIN svmeetings mt ON t.meeting_id = mt.meeting_id
     ORDER BY t.created_at DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
+
+// Initiator-Daten über Adapter laden
+foreach ($all_collab_texts as &$text) {
+    if ($text['initiator_member_id']) {
+        $initiator = get_member_by_id($pdo, $text['initiator_member_id']);
+        if ($initiator) {
+            $text['initiator_first_name'] = $initiator['first_name'];
+            $text['initiator_last_name'] = $initiator['last_name'];
+        }
+    }
+}
+unset($text);
 
 ?>

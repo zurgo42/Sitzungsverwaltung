@@ -90,7 +90,74 @@ if (!$submission_deadline_passed) {
     // Nach Antragsschluss: Nur Protokollant und Admins
     $can_add_tops = ($is_secretary || $is_admin);
 }
+
+// Künftige Sitzungen für TOP-Verschiebung laden
+// Nur für Einladende, Protokollant und Sitzungsleiter
+$is_inviter = ($meeting['invited_by_member_id'] == $current_user['member_id']);
+$can_move_tops = ($is_inviter || $is_secretary || $is_chairman);
+
+$future_meetings = [];
+if ($can_move_tops) {
+    $stmt = $pdo->prepare("
+        SELECT meeting_id, meeting_name, meeting_date
+        FROM svmeetings
+        WHERE meeting_date > NOW() AND meeting_id != ?
+        ORDER BY meeting_date ASC
+        LIMIT 20
+    ");
+    $stmt->execute([$current_meeting_id]);
+    $future_meetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
+
+<!-- Direktlink zur Sitzung -->
+<?php
+$protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'];
+$path = dirname($_SERVER['PHP_SELF']);
+
+// Im SSO-Modus: sso_direct.php Link, sonst: normaler index.php Link
+if (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt') {
+    $direct_link = $protocol . '://' . $host . $path . '/sso_direct.php?meeting_id=' . $current_meeting_id;
+    $link_description = 'Direktlink zur Sitzung (SSO):';
+} else {
+    $direct_link = $protocol . '://' . $host . $path . '/index.php?tab=agenda&meeting_id=' . $current_meeting_id;
+    $link_description = 'Link zur Sitzung:';
+}
+?>
+<div style="margin: 15px 0; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+    <strong style="color: #1976d2;">🔗 <?php echo $link_description; ?></strong>
+    <div style="margin-top: 8px; display: flex; gap: 10px; align-items: center;">
+        <input type="text" id="directLinkInput" readonly value="<?php echo htmlspecialchars($direct_link); ?>"
+               style="flex: 1; padding: 6px 10px; border: 1px solid #2196f3; border-radius: 4px; font-family: monospace; font-size: 13px;">
+        <button onclick="copyDirectLink()"
+                style="padding: 6px 16px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+            📋 Kopieren
+        </button>
+    </div>
+    <div style="margin-top: 6px; font-size: 12px; color: #666;">
+        Teile diesen Link mit Teilnehmern für direkten Zugriff auf diese Sitzung.
+    </div>
+</div>
+<script>
+function copyDirectLink() {
+    const input = document.getElementById('directLinkInput');
+    input.select();
+    input.setSelectionRange(0, 99999); // Für Mobile
+
+    try {
+        document.execCommand('copy');
+        alert('✅ Link wurde in die Zwischenablage kopiert!');
+    } catch (err) {
+        // Fallback für moderne Browser
+        navigator.clipboard.writeText(input.value).then(() => {
+            alert('✅ Link wurde in die Zwischenablage kopiert!');
+        }).catch(() => {
+            alert('❌ Kopieren fehlgeschlagen. Bitte manuell kopieren.');
+        });
+    }
+}
+</script>
 
 <!-- Teilnehmer hinzufügen (nur für Admins) -->
 <?php if ($is_admin): ?>
@@ -161,7 +228,7 @@ if (!$submission_deadline_passed) {
 
             <!-- Nicht eingeladene Teilnehmer hinzufügen -->
             <h4 style="margin: 0 0 10px 0; color: #1976d2;">➕ Nicht eingeladene Teilnehmer hinzufügen</h4>
-            <form method="POST" action="">
+            <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
                 <input type="hidden" name="add_uninvited_participant" value="1">
 
                 <?php
@@ -303,7 +370,7 @@ if (!$submission_deadline_passed) {
                 }
             }
         </style>
-        <form method="POST" action="">
+        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
             <input type="hidden" name="add_agenda_item" value="1">
 
             <div class="form-group top-form-group">
@@ -514,7 +581,7 @@ foreach ($agenda_items as $item):
             <summary style="cursor: pointer; font-weight: bold; color: #555;">
                 ✏️ TOP bearbeiten
             </summary>
-            <form method="POST" action="" style="margin-top: 10px;">
+            <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="margin-top: 10px;">
                 <input type="hidden" name="edit_agenda_item" value="1">
                 <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                 
@@ -561,32 +628,157 @@ foreach ($agenda_items as $item):
         </details>
         <?php endif; ?>
 
-        <!-- Kommentare (nur anzeigen wenn vorhanden) -->
-        <?php if (!empty($comments)): ?>
-        <div style="margin-top: 15px;">
-            <strong style="display: block; margin-bottom: 10px; color: #333;">💬 Kommentare & Diskussion:</strong>
+        <!-- TOP verschieben (nur für Einladende, Protokollant, Sitzungsleiter) -->
+        <?php if ($can_move_tops && !empty($future_meetings)): ?>
+        <details style="margin-bottom: 15px; border: 1px solid #ff9800; border-radius: 5px; padding: 10px; background: #fff8f0;">
+            <summary style="cursor: pointer; font-weight: bold; color: #e65100;">
+                📤 TOP zu künftiger Sitzung verschieben
+            </summary>
+            <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="margin-top: 10px;" onsubmit="return confirm('TOP wirklich zur ausgewählten Sitzung verschieben?');">
+                <input type="hidden" name="move_agenda_item" value="1">
+                <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
 
-            <!-- Bestehende Kommentare anzeigen -->
-            <div style="margin-bottom: 15px; background: white; border: 1px solid #ddd; border-radius: 5px; padding: 8px;">
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Zielsitzung:</label>
+                    <select name="target_meeting_id" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="">-- Bitte wählen --</option>
+                        <?php foreach ($future_meetings as $fm): ?>
+                            <option value="<?php echo $fm['meeting_id']; ?>">
+                                <?php echo htmlspecialchars($fm['meeting_name']); ?>
+                                (<?php echo date('d.m.Y H:i', strtotime($fm['meeting_date'])); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="display: block; margin-top: 5px; color: #666;">
+                        Der TOP wird aus dieser Sitzung entfernt und zur ausgewählten Sitzung verschoben.
+                    </small>
+                </div>
+
+                <button type="submit" style="background: #ff9800; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">
+                    📤 Verschieben
+                </button>
+            </form>
+        </details>
+        <?php endif; ?>
+
+        <!-- Kommentare & Diskussion -->
+        <div style="margin: 15px 0; padding: 12px; background: #fff; border: 1px solid #ddd; border-radius: 5px;">
+            <strong style="display: block; margin-bottom: 10px; color: #333;">💬 Kommentare & Diskussion</strong>
+
+            <!-- Bestehende Kommentare anzeigen (nur wenn vorhanden) -->
+            <?php if (!empty($comments)): ?>
+            <div style="margin-bottom: 10px; padding: 8px; background: #f9f9f9; border-radius: 4px;">
                 <?php foreach ($comments as $comment): ?>
                     <?php render_comment_line($comment, 'full'); ?>
                 <?php endforeach; ?>
             </div>
+            <?php endif; ?>
 
-            <!-- Kommentar hinzufügen -->
-            <form method="POST" action="" style="margin-top: 10px;">
+            <!-- Kommentar hinzufügen (immer anzeigen) -->
+            <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
                 <input type="hidden" name="add_comment_preparation" value="1">
                 <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
 
-                <textarea name="comment" rows="3" placeholder="Ihr Kommentar zu diesem TOP..."
-                          style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px;"></textarea>
+                <textarea name="comment" rows="2" placeholder="Dein Kommentar zu diesem TOP..."
+                          style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 8px; font-size: 14px;"></textarea>
 
-                <button type="submit" style="background: #2c5aa0; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">
+                <button type="submit" style="background: #2c5aa0; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
                     💬 Kommentar hinzufügen
                 </button>
             </form>
         </div>
-        <?php endif; ?>
+
+        <!-- Dateianhänge (kompakt) -->
+        <details style="margin-bottom: 10px;">
+            <summary style="cursor: pointer; padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                📎 Dateianhänge (<?php
+                // Anzahl vorhandener Attachments
+                $stmt_count = $pdo->prepare("SELECT COUNT(*) FROM svagenda_attachments WHERE item_id = ?");
+                $stmt_count->execute([$item['item_id']]);
+                echo $stmt_count->fetchColumn();
+                ?>)
+            </summary>
+            <div style="margin-top: 10px; padding: 10px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px;">
+                <?php
+                // Vorhandene Attachments laden
+                $stmt_attachments = $pdo->prepare("
+                    SELECT aa.*
+                    FROM svagenda_attachments aa
+                    WHERE aa.item_id = ?
+                    ORDER BY aa.uploaded_at DESC
+                ");
+                $stmt_attachments->execute([$item['item_id']]);
+                $attachments = $stmt_attachments->fetchAll(PDO::FETCH_ASSOC);
+
+                // Mitgliederdaten über Adapter laden
+                foreach ($attachments as &$att) {
+                    if ($att['uploaded_by_member_id']) {
+                        $member = get_member_by_id($pdo, $att['uploaded_by_member_id']);
+                        if ($member) {
+                            $att['first_name'] = $member['first_name'];
+                            $att['last_name'] = $member['last_name'];
+                        } else {
+                            $att['first_name'] = 'Unbekannt';
+                            $att['last_name'] = '';
+                        }
+                    } else {
+                        $att['first_name'] = '';
+                        $att['last_name'] = '';
+                    }
+                }
+                unset($att);
+                ?>
+
+                <!-- Vorhandene Dateien -->
+                <div id="attachments-list-<?php echo $item['item_id']; ?>">
+                    <?php if (!empty($attachments)): ?>
+                        <div style="margin-bottom: 10px;">
+                            <?php foreach ($attachments as $att): ?>
+                                <div style="padding: 6px; background: white; border: 1px solid #ddd; border-radius: 3px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                                    <div>
+                                        📄 <strong><?php echo htmlspecialchars($att['original_filename']); ?></strong>
+                                        <small style="color: #666;">(<?php echo number_format($att['filesize'] / 1024, 1); ?> KB)</small>
+                                    </div>
+                                    <div>
+                                        <a href="<?php echo htmlspecialchars($att['filepath']); ?>" download style="margin-right: 5px; font-size: 12px;">⬇️</a>
+                                        <?php if ($att['uploaded_by_member_id'] == $current_user['member_id'] || $is_admin): ?>
+                                            <button onclick="deleteAttachment(<?php echo $att['attachment_id']; ?>, <?php echo $item['item_id']; ?>)" style="background: none; border: none; cursor: pointer; font-size: 12px;">🗑️</button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Drag & Drop Zone (kompakt) -->
+                <div class="drop-zone" id="drop-zone-<?php echo $item['item_id']; ?>"
+                     ondrop="handleDrop(event, <?php echo $item['item_id']; ?>)"
+                     ondragover="allowDrop(event)"
+                     ondragleave="dragLeave(event)"
+                     style="border: 1px dashed #999; border-radius: 4px; padding: 15px; text-align: center; background: #fefefe; cursor: pointer; font-size: 12px;">
+
+                    <input type="file" id="file-input-<?php echo $item['item_id']; ?>"
+                           multiple
+                           style="display: none;"
+                           onchange="handleFileSelect(event, <?php echo $item['item_id']; ?>)">
+
+                    <div onclick="document.getElementById('file-input-<?php echo $item['item_id']; ?>').click()">
+                        <span style="font-size: 20px;">📎</span>
+                        <span style="color: #666;">Dateien hier ablegen oder klicken</span>
+                        <small style="display: block; color: #999; margin-top: 3px;">Max. 10 MB pro Datei</small>
+                    </div>
+                </div>
+
+                <!-- Upload Progress -->
+                <div id="upload-progress-<?php echo $item['item_id']; ?>" style="display: none; margin-top: 8px;">
+                    <div style="background: #e3f2fd; padding: 8px; border-radius: 3px; font-size: 12px;">
+                        <strong>⏳ Uploading...</strong>
+                        <div id="upload-status-<?php echo $item['item_id']; ?>"></div>
+                    </div>
+                </div>
+            </div>
+        </details>
         
     </div>
 <?php endforeach; ?>
@@ -594,7 +786,7 @@ foreach ($agenda_items as $item):
 <!-- Sitzung starten Button -->
 <?php if ($can_edit_meeting): ?>
     <div style="margin: 30px 0; padding: 20px; background: #4CAF50; border-radius: 8px; text-align: center;">
-        <form method="POST" action="" onsubmit="return confirm('Sitzung jetzt starten? Danach kann nur der Protokollführer neue TOPs hinzufügen.');">
+        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" onsubmit="return confirm('Sitzung jetzt starten? Danach kann nur der Protokollführer neue TOPs hinzufügen.');">
             <input type="hidden" name="start_meeting" value="1">
             <button type="submit" style="background: white; color: #4CAF50; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 1.2em; font-weight: bold;">
                 ▶️ Sitzung starten
@@ -602,3 +794,121 @@ foreach ($agenda_items as $item):
         </form>
     </div>
 <?php endif; ?>
+
+<script>
+// ============================================
+// Drag & Drop File Upload
+// ============================================
+
+function allowDrop(e) {
+    e.preventDefault();
+    e.currentTarget.style.background = '#e3f2fd';
+    e.currentTarget.style.borderColor = '#1976d2';
+}
+
+function dragLeave(e) {
+    e.currentTarget.style.background = '#f5f5f5';
+    e.currentTarget.style.borderColor = '#2196f3';
+}
+
+function handleDrop(e, itemId) {
+    e.preventDefault();
+    e.currentTarget.style.background = '#f5f5f5';
+    e.currentTarget.style.borderColor = '#2196f3';
+
+    const files = e.dataTransfer.files;
+    uploadFiles(files, itemId);
+}
+
+function handleFileSelect(e, itemId) {
+    const files = e.target.files;
+    uploadFiles(files, itemId);
+}
+
+function uploadFiles(files, itemId) {
+    if (files.length === 0) return;
+
+    const formData = new FormData();
+    for (let file of files) {
+        formData.append('files[]', file);
+    }
+    formData.append('item_id', itemId);
+
+    // Progress anzeigen
+    const progressDiv = document.getElementById('upload-progress-' + itemId);
+    const statusDiv = document.getElementById('upload-status-' + itemId);
+    progressDiv.style.display = 'block';
+    statusDiv.innerHTML = 'Uploading ' + files.length + ' Datei(en)...';
+
+    fetch('upload_agenda_attachment.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            statusDiv.innerHTML = '✅ ' + data.uploaded.length + ' Datei(en) erfolgreich hochgeladen!';
+
+            // Seite neu laden um Attachments anzuzeigen
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            statusDiv.innerHTML = '❌ Fehler: ' + (data.error || 'Unbekannter Fehler');
+        }
+
+        if (data.errors && data.errors.length > 0) {
+            statusDiv.innerHTML += '<br><small>' + data.errors.join('<br>') + '</small>';
+        }
+
+        // Progress nach 3 Sekunden ausblenden
+        setTimeout(() => {
+            progressDiv.style.display = 'none';
+        }, 3000);
+    })
+    .catch(error => {
+        statusDiv.innerHTML = '❌ Upload-Fehler: ' + error.message;
+        console.error('Upload error:', error);
+    });
+}
+
+function deleteAttachment(attachmentId, itemId) {
+    if (!confirm('Datei wirklich löschen?')) return;
+
+    fetch('delete_agenda_attachment.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'attachment_id=' + attachmentId
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Fehler: ' + (data.error || 'Löschen fehlgeschlagen'));
+        }
+    })
+    .catch(error => {
+        alert('Fehler beim Löschen: ' + error.message);
+        console.error('Delete error:', error);
+    });
+}
+
+// Drag & Drop Styling
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZones = document.querySelectorAll('.drop-zone');
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', function(e) {
+            this.style.transform = 'scale(1.02)';
+        });
+        zone.addEventListener('dragleave', function(e) {
+            this.style.transform = 'scale(1)';
+        });
+        zone.addEventListener('drop', function(e) {
+            this.style.transform = 'scale(1)';
+        });
+    });
+});
+</script>

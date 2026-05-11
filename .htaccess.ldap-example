@@ -1,0 +1,99 @@
+# ============================================
+# .htaccess für Sitzungsverwaltung mit LDAP-Auth
+# ============================================
+#
+# WICHTIG: Diese Datei umbenennen zu .htaccess
+#
+# Voraussetzungen:
+# - Apache mit mod_authnz_ldap aktiviert
+# - LDAP-Server erreichbar
+# ============================================
+
+# LDAP-Authentifizierung aktivieren
+AuthType Basic
+AuthName "Sitzungsverwaltung - Bitte mit LDAP-Zugangsdaten anmelden"
+
+# LDAP-Server Konfiguration
+# ANPASSEN: Ersetze die Werte durch deine LDAP-Konfiguration!
+AuthBasicProvider ldap
+
+# LDAP-Server URL
+# Format: ldap://hostname:port oder ldaps://hostname:port
+AuthLDAPURL "ldap://ldap.example.com:389/ou=users,dc=example,dc=com?uid"
+
+# LDAP Bind-Methode (optional, falls anonymer Bind nicht erlaubt ist)
+# Wenn dein LDAP-Server Authentifizierung zum Suchen benötigt:
+# AuthLDAPBindDN "cn=readonly,dc=example,dc=com"
+# AuthLDAPBindPassword "password"
+
+# LDAP-Gruppenbeschränkung (optional)
+# Nur Mitglieder dieser LDAP-Gruppe dürfen zugreifen:
+# Require ldap-group cn=vereinsmitglieder,ou=groups,dc=example,dc=com
+
+# Oder: Alle authentifizierten LDAP-User zulassen:
+Require valid-user
+
+# ============================================
+# ALTERNATIVE: .htpasswd Datei (für Testzwecke)
+# ============================================
+# Falls kein LDAP verfügbar ist, kann auch eine .htpasswd-Datei verwendet werden:
+#
+# AuthType Basic
+# AuthName "Sitzungsverwaltung"
+# AuthUserFile /pfad/zu/.htpasswd
+# Require valid-user
+#
+# .htpasswd erstellen mit:
+# htpasswd -c .htpasswd username
+# ============================================
+
+# ============================================
+# PHP-Einstellungen (optional)
+# ============================================
+# Session-Cookie-Einstellungen
+php_value session.cookie_lifetime 0
+php_value session.cookie_httponly 1
+php_value session.cookie_secure 1
+php_value session.cookie_samesite "Lax"
+
+# Upload-Limits für Anhänge
+php_value upload_max_filesize 50M
+php_value post_max_size 50M
+php_value max_execution_time 300
+
+# Error Reporting (in Produktion auf 0 setzen)
+php_flag display_errors Off
+php_value error_reporting 0
+
+# ============================================
+# Security Headers
+# ============================================
+Header set X-Content-Type-Options "nosniff"
+Header set X-Frame-Options "SAMEORIGIN"
+Header set X-XSS-Protection "1; mode=block"
+
+# ============================================
+# Beispiel-Konfigurationen für verschiedene LDAP-Server
+# ============================================
+
+# --- Active Directory ---
+# AuthLDAPURL "ldap://dc.example.com:389/DC=example,DC=com?sAMAccountName"
+# AuthLDAPBindDN "CN=Service Account,CN=Users,DC=example,DC=com"
+# AuthLDAPBindPassword "password"
+# Require ldap-group CN=Vereinsmitglieder,OU=Groups,DC=example,DC=com
+
+# --- OpenLDAP ---
+# AuthLDAPURL "ldap://ldap.example.com:389/ou=people,dc=example,dc=com?uid"
+# Require valid-user
+
+# --- FreeIPA ---
+# AuthLDAPURL "ldap://ipa.example.com:389/cn=users,cn=accounts,dc=example,dc=com?uid"
+# AuthLDAPBindDN "uid=service-account,cn=users,cn=accounts,dc=example,dc=com"
+# AuthLDAPBindPassword "password"
+
+# ============================================
+# Debugging
+# ============================================
+# Bei Problemen: Logging aktivieren
+# LogLevel debug
+# (Logs dann in Apache error.log)

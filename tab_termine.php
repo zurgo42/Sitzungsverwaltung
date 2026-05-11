@@ -1,10 +1,5 @@
 <?php
-
-// Benachrichtigungsmodul laden
 require_once 'module_notifications.php';
-// Member-Functions mit Adapter-Support laden
-require_once 'member_functions.php';
-// Externe Teilnehmer-Functions laden
 require_once 'external_participants_functions.php';
 
 /**
@@ -43,7 +38,7 @@ if ($is_admin) {
     // 1. Umfragen, bei denen sie Teilnehmer sind
     // 2. Umfragen, die sie selbst erstellt haben
     $stmt = $pdo->prepare("
-        SELECT DISTINCT p.*,
+        SELECT p.*,
                COUNT(DISTINCT pd.date_id) as date_count,
                COUNT(DISTINCT pr.member_id) as response_count,
                final_pd.suggested_date as final_date,
@@ -52,12 +47,14 @@ if ($is_admin) {
         LEFT JOIN svpoll_dates pd ON p.poll_id = pd.poll_id
         LEFT JOIN svpoll_responses pr ON p.poll_id = pr.poll_id
         LEFT JOIN svpoll_dates final_pd ON p.final_date_id = final_pd.date_id
-        LEFT JOIN svpoll_participants pp ON p.poll_id = pp.poll_id AND pp.member_id = ?
-        WHERE pp.member_id = ? OR p.created_by_member_id = ?
+        WHERE (
+            EXISTS (SELECT 1 FROM svpoll_participants WHERE poll_id = p.poll_id AND member_id = ?)
+            OR p.created_by_member_id = ?
+        )
         GROUP BY p.poll_id
         ORDER BY p.created_at DESC
     ");
-    $stmt->execute([$current_user['member_id'], $current_user['member_id'], $current_user['member_id']]);
+    $stmt->execute([$current_user['member_id'], $current_user['member_id']]);
 }
 $all_polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -71,6 +68,7 @@ foreach ($all_polls as &$poll) {
         }
     }
 }
+unset($poll); // Referenz aufheben, sonst wird letzter Eintrag doppelt angezeigt
 
 // Meetings für Dropdown laden
 $all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
@@ -535,7 +533,7 @@ function calculateEndTime(index) {
     endTimeInput.value = `${endHours}:${endMinutes}`;
 }
 
-// Auto-Vorschlag: Folgetag mit gleicher Uhrzeit (wird beim Focus ins nächste Feld getriggert)
+// Auto-Vorschlag: Smart-Fill basierend auf vorherigen Einträgen
 function autoFillOnFocus(currentIndex) {
     const currentDateInput = document.getElementById('poll_date_' + currentIndex);
     const currentTimeStartInput = document.getElementById('poll_time_start_' + currentIndex);
@@ -544,23 +542,54 @@ function autoFillOnFocus(currentIndex) {
     const prevTimeStartInput = document.getElementById('poll_time_start_' + (currentIndex - 1));
     const prevTimeEndInput = document.getElementById('poll_time_end_' + (currentIndex - 1));
 
+    // Für Smart-Fill: Vorvorheriges Feld prüfen
+    const prevPrevDateInput = document.getElementById('poll_date_' + (currentIndex - 2));
+    const prevPrevTimeStartInput = document.getElementById('poll_time_start_' + (currentIndex - 2));
+
     // Nur vorausfüllen, wenn das aktuelle Feld leer ist und das vorherige ausgefüllt ist
     if (currentDateInput && !currentDateInput.value && prevDateInput && prevDateInput.value) {
-        // Folgetag berechnen
-        const prevDate = new Date(prevDateInput.value);
-        prevDate.setDate(prevDate.getDate() + 1);
-        const year = prevDate.getFullYear();
-        const month = String(prevDate.getMonth() + 1).padStart(2, '0');
-        const day = String(prevDate.getDate()).padStart(2, '0');
-        currentDateInput.value = `${year}-${month}-${day}`;
-    }
+        // Smart-Fill: Wenn die beiden vorherigen Felder den gleichen Tag haben
+        const useSameDay = (
+            currentIndex >= 3 &&
+            prevPrevDateInput &&
+            prevPrevDateInput.value &&
+            prevDateInput.value === prevPrevDateInput.value
+        );
 
-    // Uhrzeit übernehmen wenn vorhanden
-    if (currentTimeStartInput && !currentTimeStartInput.value && prevTimeStartInput && prevTimeStartInput.value) {
-        currentTimeStartInput.value = prevTimeStartInput.value;
-    }
-    if (currentTimeEndInput && !currentTimeEndInput.value && prevTimeEndInput && prevTimeEndInput.value) {
-        currentTimeEndInput.value = prevTimeEndInput.value;
+        if (useSameDay) {
+            // Gleichen Tag übernehmen
+            currentDateInput.value = prevDateInput.value;
+
+            // Startzeit +2 Stunden wenn vorhanden
+            if (prevTimeStartInput && prevTimeStartInput.value && currentTimeStartInput && !currentTimeStartInput.value) {
+                const [hours, minutes] = prevTimeStartInput.value.split(':');
+                const newHour = (parseInt(hours) + 2) % 24;
+                currentTimeStartInput.value = String(newHour).padStart(2, '0') + ':' + minutes;
+
+                // Ende-Zeit ebenfalls +2h
+                if (prevTimeEndInput && prevTimeEndInput.value && currentTimeEndInput && !currentTimeEndInput.value) {
+                    const [endHours, endMinutes] = prevTimeEndInput.value.split(':');
+                    const newEndHour = (parseInt(endHours) + 2) % 24;
+                    currentTimeEndInput.value = String(newEndHour).padStart(2, '0') + ':' + endMinutes;
+                }
+            }
+        } else {
+            // Standard: Folgetag berechnen
+            const prevDate = new Date(prevDateInput.value);
+            prevDate.setDate(prevDate.getDate() + 1);
+            const year = prevDate.getFullYear();
+            const month = String(prevDate.getMonth() + 1).padStart(2, '0');
+            const day = String(prevDate.getDate()).padStart(2, '0');
+            currentDateInput.value = `${year}-${month}-${day}`;
+
+            // Uhrzeit übernehmen wenn vorhanden
+            if (currentTimeStartInput && !currentTimeStartInput.value && prevTimeStartInput && prevTimeStartInput.value) {
+                currentTimeStartInput.value = prevTimeStartInput.value;
+            }
+            if (currentTimeEndInput && !currentTimeEndInput.value && prevTimeEndInput && prevTimeEndInput.value) {
+                currentTimeEndInput.value = prevTimeEndInput.value;
+            }
+        }
     }
 }
 
@@ -689,7 +718,7 @@ if (isset($_SESSION['error'])) {
                     <div id="date-suggestions-container">
                         <?php for ($i = 1; $i <= 5; $i++): ?>
                         <div class="date-suggestion-row" style="display: grid; grid-template-columns: 150px 100px 100px auto; gap: 10px; align-items: center; margin-bottom: 8px;">
-                            <input type="date" name="date_<?php echo $i; ?>" id="poll_date_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
+                            <input type="date" name="date_<?php echo $i; ?>" id="poll_date_<?php echo $i; ?>" <?php if ($i === 1): ?>value="<?php echo date('Y-m-d'); ?>"<?php endif; ?> onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
                             <input type="time" name="time_start_<?php echo $i; ?>" id="poll_time_start_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" onchange="calculateEndTime(<?php echo $i; ?>)" style="width: 100%;">
                             <input type="time" name="time_end_<?php echo $i; ?>" id="poll_time_end_<?php echo $i; ?>" onfocus="autoFillOnFocus(<?php echo $i; ?>)" style="width: 100%;">
                             <?php if ($i === 5): ?>
@@ -744,9 +773,11 @@ if (isset($_SESSION['error'])) {
                         👥 <strong><?php echo $poll['response_count']; ?></strong> Teilnehmer abgestimmt ·
                         👤 Erstellt von <strong><?php echo htmlspecialchars($poll['creator_first_name'] . ' ' . $poll['creator_last_name']); ?></strong> ·
                         Zielgruppe: <?php
-                            if ($poll['target_type'] === 'individual') echo '🔗 Individuell (Link)';
-                            elseif ($poll['target_type'] === 'list') echo '📋 Ausgewählte Teilnehmer';
-                            elseif ($poll['target_type'] === 'public') echo '🌐 Öffentlich';
+                            $target_type = $poll['target_type'] ?? '';
+                            if ($target_type === 'individual') echo '🔗 Individuell (Link)';
+                            elseif ($target_type === 'list') echo '📋 Ausgewählte Teilnehmer';
+                            elseif ($target_type === 'public') echo '🌐 Öffentlich';
+                            else echo '–';
                         ?> ·
                         📅 <?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?>
                     </p>
@@ -843,21 +874,33 @@ if (isset($_SESSION['error'])) {
         // Member- und Externe-Teilnehmer-Namen nachladen
         foreach ($all_responses as &$response) {
             if ($response['member_id']) {
+                // participant_key IMMER setzen (auch wenn get_member_by_id fehlschlägt)
+                $response['participant_key'] = 'member_' . $response['member_id'];
+
                 $member = get_member_by_id($pdo, $response['member_id']);
                 if ($member) {
-                    $response['first_name'] = $member['first_name'];
-                    $response['last_name'] = $member['last_name'];
-                    $response['participant_key'] = 'member_' . $response['member_id'];
+                    $response['first_name'] = $member['first_name'] ?? '';
+                    $response['last_name'] = $member['last_name'] ?? '';
+                } else {
+                    // Fallback: Member nicht gefunden
+                    $response['first_name'] = 'User';
+                    $response['last_name'] = '#' . $response['member_id'];
                 }
             } elseif ($response['external_participant_id']) {
+                // participant_key IMMER setzen
+                $response['participant_key'] = 'external_' . $response['external_participant_id'];
+
                 // Externen Teilnehmer laden
                 $ext_stmt = $pdo->prepare("SELECT first_name, last_name FROM svexternal_participants WHERE external_id = ?");
                 $ext_stmt->execute([$response['external_participant_id']]);
                 $ext = $ext_stmt->fetch(PDO::FETCH_ASSOC);
                 if ($ext) {
-                    $response['first_name'] = $ext['first_name'];
-                    $response['last_name'] = $ext['last_name'];
-                    $response['participant_key'] = 'external_' . $response['external_participant_id'];
+                    $response['first_name'] = $ext['first_name'] ?? '';
+                    $response['last_name'] = $ext['last_name'] ?? '';
+                } else {
+                    // Fallback: Externer Teilnehmer nicht gefunden
+                    $response['first_name'] = 'Extern';
+                    $response['last_name'] = '#' . $response['external_participant_id'];
                 }
             }
         }
@@ -869,15 +912,20 @@ if (isset($_SESSION['error'])) {
             WHERE pp.poll_id = ?
         ");
         $stmt->execute([$poll_id]);
-        $poll_participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $poll_participants_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Member-Namen über Adapter nachladen und sortieren
-        foreach ($poll_participants as &$participant) {
+        // Member-Namen über Adapter nachladen und nur erfolgreiche behalten
+        $poll_participants = [];
+        foreach ($poll_participants_raw as $participant) {
             if ($participant['member_id']) {
                 $member = get_member_by_id($pdo, $participant['member_id']);
                 if ($member) {
-                    $participant['first_name'] = $member['first_name'];
-                    $participant['last_name'] = $member['last_name'];
+                    $poll_participants[] = [
+                        'member_id' => $participant['member_id'],
+                        'first_name' => $member['first_name'] ?? '',
+                        'last_name' => $member['last_name'] ?? '',
+                        'participant_key' => 'member_' . $participant['member_id']
+                    ];
                 }
             }
         }
@@ -929,9 +977,11 @@ if (isset($_SESSION['error'])) {
                 <p>
                     👤 Erstellt von <strong><?php echo htmlspecialchars($poll['creator_first_name'] . ' ' . $poll['creator_last_name']); ?></strong> ·
                     Zielgruppe: <?php
-                        if ($poll['target_type'] === 'individual') echo '🔗 Individuell (Link)';
-                        elseif ($poll['target_type'] === 'list') echo '📋 Ausgewählte Teilnehmer';
-                        elseif ($poll['target_type'] === 'public') echo '🌐 Öffentlich';
+                        $target_type_detail = $poll['target_type'] ?? '';
+                        if ($target_type_detail === 'individual') echo '🔗 Individuell (Link)';
+                        elseif ($target_type_detail === 'list') echo '📋 Ausgewählte Teilnehmer';
+                        elseif ($target_type_detail === 'public') echo '🌐 Öffentlich';
+                        else echo '–';
                     ?> ·
                     📅 <?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?>
                 </p>
@@ -1082,15 +1132,16 @@ if (isset($_SESSION['error'])) {
                     // Alle Teilnehmer sammeln (Members + Externe)
                     $participants = [];
 
-                    // Eingeladene Members
+                    // Eingeladene Members (verwende participant_key aus dem Array)
                     foreach ($poll_participants as $pp) {
-                        $key = 'member_' . $pp['member_id'];
-                        $participants[$key] = $pp['first_name'] . ' ' . substr($pp['last_name'], 0, 1) . '.';
+                        if (isset($pp['participant_key']) && isset($pp['first_name']) && isset($pp['last_name'])) {
+                            $participants[$pp['participant_key']] = $pp['first_name'] . ' ' . substr($pp['last_name'], 0, 1) . '.';
+                        }
                     }
 
                     // Alle Teilnehmer, die bereits geantwortet haben (Members + Externe)
                     foreach ($all_responses as $resp) {
-                        if (isset($resp['participant_key'])) {
+                        if (isset($resp['participant_key']) && isset($resp['first_name']) && isset($resp['last_name'])) {
                             if (!isset($participants[$resp['participant_key']])) {
                                 $name_display = $resp['first_name'] . ' ' . substr($resp['last_name'], 0, 1) . '.';
                                 // Externe mit Icon markieren

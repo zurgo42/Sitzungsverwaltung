@@ -11,13 +11,16 @@
  * Letzte Aktualisierung: 28.10.2025 MEZ
  */
 
-// Session starten (muss ganz am Anfang stehen, vor jeder Ausgabe)
+// Session-Konfiguration laden (VOR session_start!)
+require_once 'session_config.php';
+
+// Session starten
 // Prüfen ob Session bereits gestartet wurde (z.B. durch sso_direct.php)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Konfiguration und Hilfsfunktionen laden
+// Konfiguration laden
 require_once 'config.php';           // Datenbankverbindung und Konstanten
 require_once 'config_adapter.php';   // Konfiguration für Mitgliederquelle
 require_once 'member_functions.php'; // Prozedurale Wrapper-Funktionen für Mitglieder
@@ -52,8 +55,24 @@ function get_member_from_cache($member_id) {
 // ============================================
 // Wenn der Logout-Link geklickt wurde (?logout=1), Session beenden
 if (isset($_GET['logout'])) {
-    session_destroy();
-    header('Location: index.php');
+    // Im SSO-Modus direkt zum VTool weiterleiten (vermeidet "Keine Mitgliedsnummer" Fehler)
+    if (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt') {
+        // Session erst nach Weiterleitung zerstören wäre sicherer,
+        // aber für SSO-Logout reicht es, Session zu löschen und dann weiterzuleiten
+        session_destroy();
+
+        // Config laden um back_button_url zu bekommen
+        require_once 'config_adapter.php';
+        $back_url = isset($SSO_DIRECT_CONFIG['back_button_url'])
+            ? $SSO_DIRECT_CONFIG['back_button_url']
+            : 'https://aktive.mensa.de/vorstand/vtool.php';
+
+        header('Location: ' . $back_url);
+    } else {
+        // Normaler Logout: Session zerstören und zu Login-Seite
+        session_destroy();
+        header('Location: index.php');
+    }
     exit;
 }
 
@@ -368,6 +387,15 @@ if (!$current_user) {
     exit;
 }
 
+// Pseudo-Cron: Meeting-Erinnerungen im Hintergrund prüfen
+// Läuft max. 1x pro Minute bei Seitenaufrufen (nur für eingeloggte User)
+try {
+    @include_once 'pseudo_cron.php';
+} catch (Exception $e) {
+    // Fehler stillschweigend ignorieren - Pseudo-Cron ist optional
+    error_log("Pseudo-Cron Error: " . $e->getMessage());
+}
+
 // Aktiven Tab aus URL ermitteln (Standard: 'meetings')
 $active_tab = $_GET['tab'] ?? 'meetings';
 
@@ -404,24 +432,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($active_tab === 'meetings' || $act
 // Wird geladen wenn eine Meeting-ID vorhanden ist und der Agenda-Tab aktiv ist
 // WICHTIG: Wird auch bei GET-Requests geladen, da es Status-Updates verarbeitet
 if ($current_meeting_id && isset($_GET['tab']) && $_GET['tab'] === 'agenda') {
-    
+
     // Zuerst Meeting-Details laden
     $meeting = get_meeting_details($pdo, $current_meeting_id);
-    
-    // Debug-Logging (kann später entfernt werden)
-    error_log("=== LOADING process_agenda.php ===");
-    error_log("Meeting loaded: " . ($meeting ? 'YES' : 'NO'));
-    error_log("Meeting Status: " . ($meeting['status'] ?? 'NULL'));
-    error_log("POST data: " . print_r($_POST, true));
-    
+
     // process_agenda.php einbinden (verarbeitet Formular-Aktionen)
-    require_once 'module_helpers.php'; 
+    require_once 'module_helpers.php';
 	require_once 'process_agenda.php';
-    
+
     // WICHTIG: Meeting nach process_agenda NEU laden
     // Der Status könnte durch process_agenda.php geändert worden sein
     $meeting = get_meeting_details($pdo, $current_meeting_id);
-    error_log("Meeting Status nach process: " . ($meeting['status'] ?? 'NULL'));
+}
+
+// PROCESS TODOS
+// Wird bei POST-Requests auf dem ToDo-Tab ausgeführt
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'todos') {
+    require_once 'process_todos.php';
 }
 
 // PROCESS ADMIN
@@ -803,6 +830,9 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                 ⚙️ Admin
             </a>
         <?php endif; ?>
+
+        <!-- Benachrichtigungs-Center -->
+        <?php include 'notification_center.php'; ?>
     </div>
     
     <!-- HAUPTINHALT / CONTENT -->

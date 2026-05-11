@@ -245,6 +245,9 @@ try {
             $external_id = ($participant['type'] === 'external') ? $participant['id'] : null;
             $session_token = ($participant['type'] === 'none' && !$is_authenticated) ? get_or_create_session_token() : null;
 
+            // DEBUG: Logging für Standalone-User Problem
+            error_log("OPINION DEBUG: participant_type={$participant['type']}, member_id=$member_id, external_id=$external_id, is_authenticated=" . ($is_authenticated ? 'YES' : 'NO') . ", current_user_id=" . ($current_user['member_id'] ?? 'NULL'));
+
             // Wenn kein Teilnehmer identifiziert werden konnte
             if ($participant['type'] === 'none' && !$session_token) {
                 $_SESSION['error'] = 'Teilnehmer konnte nicht identifiziert werden. Bitte registriere dich erneut.';

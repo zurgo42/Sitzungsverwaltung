@@ -29,7 +29,7 @@ function get_or_create_session_token() {
 }
 
 /**
- * Speichert externen Teilnehmer in Cookie für 30 Tage
+ * Speichert externen Teilnehmer in Cookie für 7 Tage
  * Ermöglicht automatisches Wiedererkennen bei zukünftigen Umfragen
  *
  * @param string $first_name
@@ -44,7 +44,7 @@ function save_external_participant_cookie($first_name, $last_name, $email) {
         'email' => $email
     ]);
 
-    // Cookie für 30 Tage speichern
+    // Cookie für 30 Tage speichern (externe Umfragen laufen nicht so häufig)
     $expires = time() + (30 * 24 * 60 * 60);
     return setcookie('sv_external_participant', $cookie_data, $expires, '/', '', false, true);
 }
@@ -132,6 +132,29 @@ function create_external_participant($pdo, $poll_type, $poll_id, $first_name, $l
  * @param PDO $pdo
  * @param string $session_token
  * @return array|null Teilnehmer-Daten oder NULL
+ */
+/**
+ * Lädt externen Teilnehmer per ID
+ *
+ * @param PDO $pdo
+ * @param int $external_id
+ * @return array|null Teilnehmer-Daten oder null
+ */
+function get_external_participant_by_id($pdo, $external_id) {
+    $stmt = $pdo->prepare("
+        SELECT * FROM svexternal_participants
+        WHERE external_id = ?
+    ");
+    $stmt->execute([$external_id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Lädt externen Teilnehmer per Session-Token
+ *
+ * @param PDO $pdo
+ * @param string $session_token
+ * @return array|null Teilnehmer-Daten oder null
  */
 function get_external_participant_by_token($pdo, $session_token) {
     $stmt = $pdo->prepare("
@@ -342,5 +365,154 @@ function get_current_participant($current_user, $pdo, $poll_type, $poll_id) {
         'id' => null,
         'data' => null
     ];
+}
+
+/**
+ * Loggt einen externen Zugriff in die Datenbank
+ *
+ * @param PDO $pdo
+ * @param string $access_type 'member_login', 'invalid_mnr', 'external_registration', 'registration_error'
+ * @param string $poll_type 'termine' oder 'meinungsbild'
+ * @param int $poll_id
+ * @param array $data Zusätzliche Daten: member_id, external_participant_id, mnr, email, first_name, last_name, success, error_message
+ * @return bool
+ */
+function log_external_access($pdo, $access_type, $poll_type, $poll_id, $data = []) {
+    try {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
+        $stmt = $pdo->prepare("
+            INSERT INTO svexternal_access_log
+            (access_type, poll_type, poll_id, member_id, external_participant_id,
+             mnr, email, first_name, last_name, ip_address, user_agent, success, error_message)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        $stmt->execute([
+            $access_type,
+            $poll_type,
+            $poll_id,
+            $data['member_id'] ?? null,
+            $data['external_participant_id'] ?? null,
+            $data['mnr'] ?? null,
+            $data['email'] ?? null,
+            $data['first_name'] ?? null,
+            $data['last_name'] ?? null,
+            $ip,
+            $user_agent,
+            $data['success'] ?? true,
+            $data['error_message'] ?? null
+        ]);
+
+        return true;
+    } catch (Exception $e) {
+        error_log("Fehler beim Loggen externen Zugriffs: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Lädt externe Zugriffs-Logs mit Filterung
+ *
+ * @param PDO $pdo
+ * @param array $filters Optional: poll_type, poll_id, access_type, member_id, ip_address, success, limit
+ * @return array
+ */
+function get_external_access_logs($pdo, $filters = []) {
+    $where = [];
+    $params = [];
+
+    if (isset($filters['poll_type'])) {
+        $where[] = "poll_type = ?";
+        $params[] = $filters['poll_type'];
+    }
+
+    if (isset($filters['poll_id'])) {
+        $where[] = "poll_id = ?";
+        $params[] = $filters['poll_id'];
+    }
+
+    if (isset($filters['access_type'])) {
+        $where[] = "access_type = ?";
+        $params[] = $filters['access_type'];
+    }
+
+    if (isset($filters['member_id'])) {
+        $where[] = "member_id = ?";
+        $params[] = $filters['member_id'];
+    }
+
+    if (isset($filters['ip_address'])) {
+        $where[] = "ip_address = ?";
+        $params[] = $filters['ip_address'];
+    }
+
+    if (isset($filters['success'])) {
+        $where[] = "success = ?";
+        $params[] = $filters['success'];
+    }
+
+    $where_clause = empty($where) ? "" : "WHERE " . implode(" AND ", $where);
+    $limit = isset($filters['limit']) ? "LIMIT " . (int)$filters['limit'] : "LIMIT 500";
+
+    $sql = "
+        SELECT l.*
+        FROM svexternal_access_log l
+        $where_clause
+        ORDER BY l.created_at DESC
+        $limit
+    ";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Mitgliederdaten über Adapter laden
+    foreach ($logs as &$log) {
+        if ($log['member_id']) {
+            $member = get_member_by_id($pdo, $log['member_id']);
+            if ($member) {
+                $log['member_first_name'] = $member['first_name'];
+                $log['member_last_name'] = $member['last_name'];
+                $log['membership_number'] = $member['membership_number'] ?? '';
+            } else {
+                $log['member_first_name'] = 'Unbekannt';
+                $log['member_last_name'] = '';
+                $log['membership_number'] = '';
+            }
+        } else {
+            $log['member_first_name'] = '';
+            $log['member_last_name'] = '';
+            $log['membership_number'] = '';
+        }
+    }
+    unset($log);
+
+    return $logs;
+}
+
+/**
+ * Zählt Zugriffe gruppiert nach Typ
+ *
+ * @param PDO $pdo
+ * @param int|null $days Anzahl Tage zurück (NULL = alle)
+ * @return array
+ */
+function count_external_access_by_type($pdo, $days = null) {
+    $where = $days ? "WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)" : "";
+    $params = $days ? [$days] : [];
+
+    $stmt = $pdo->prepare("
+        SELECT access_type,
+               COUNT(*) as count,
+               SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_count,
+               SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failure_count
+        FROM svexternal_access_log
+        $where
+        GROUP BY access_type
+    ");
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>

@@ -36,87 +36,8 @@ if (!$currentMemberID) {
     die('❌ Bitte melde dich an.');
 }
 
-// ============================================
-// POST-HANDLER
-// ============================================
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
-    // STATUS ÄNDERN
-    if (isset($_POST['action']) && $_POST['action'] === 'change_status') {
-        $todo_id = (int)($_POST['todo_id'] ?? 0);
-        $new_status = $_POST['new_status'] ?? '';
-        
-        $allowed_statuses = ['open', 'in progress', 'delayed', 'done'];
-        if (!$todo_id || !in_array($new_status, $allowed_statuses)) {
-            die('❌ Ungültige Eingabe.');
-        }
-        
-        // Berechtigung prüfen (nur Empfänger)
-        $stmt = $pdo->prepare("SELECT status, assigned_to_member_id FROM svtodos WHERE todo_id = ?");
-        $stmt->execute([$todo_id]);
-        $todo = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$todo || $todo['assigned_to_member_id'] != $currentMemberID) {
-            die('❌ Keine Berechtigung.');
-        }
-        
-        try {
-            if ($new_status === 'done') {
-                $stmt = $pdo->prepare("UPDATE svtodos SET status = ?, completed_at = NOW() WHERE todo_id = ?");
-            } else {
-                $stmt = $pdo->prepare("UPDATE svtodos SET status = ?, completed_at = NULL WHERE todo_id = ?");
-            }
-            $stmt->execute([$new_status, $todo_id]);
-            
-            // Logging
-            $logstmt = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'status-change', ?, ?)");
-            $logstmt->execute([$todo_id, $currentMemberID, $todo['status'], $new_status]);
-            
-            header('Location: index.php?tab=todos&msg=status_changed');
-            exit;
-        } catch (PDOException $e) {
-            error_log('Todo Status Error: ' . $e->getMessage());
-            die('❌ Fehler beim Aktualisieren.');
-        }
-    }
-    
-    // TODO ZURÜCKZIEHEN
-    if (isset($_POST['action']) && $_POST['action'] === 'retract') {
-        $todo_id = (int)($_POST['todo_id'] ?? 0);
-        
-        if (!$todo_id) {
-            die('❌ Ungültige Aufgaben-ID.');
-        }
-        
-        $stmt = $pdo->prepare("SELECT created_by_member_id, status, title FROM svtodos WHERE todo_id = ?");
-        $stmt->execute([$todo_id]);
-        $todo = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$todo || $todo['created_by_member_id'] != $currentMemberID) {
-            die('❌ Keine Berechtigung.');
-        }
-        
-        if (!in_array($todo['status'], ['open', 'in progress'])) {
-            die('❌ Nur offene Aufgaben können zurückgezogen werden.');
-        }
-        
-        try {
-            // Logging (vor dem Löschen!)
-            $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'aufgabe-zurueckziehen', ?, NULL)");
-            $log->execute([$todo_id, $currentMemberID, $todo['status']]);
-            
-            $delete = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
-            $delete->execute([$todo_id]);
-            
-            header('Location: index.php?tab=todos&msg=todo_retracted');
-            exit;
-        } catch (PDOException $e) {
-            error_log('Todo Retract Error: ' . $e->getMessage());
-            die('❌ Fehler beim Zurückziehen.');
-        }
-    }
-}
+// POST-Handler wurde nach process_todos.php verschoben
+// und wird in index.php VOR HTML-Output ausgeführt
 
 // ============================================
 // HILFSFUNKTIONEN
@@ -139,10 +60,6 @@ function status_anzeige($status) {
 $sql = "
 SELECT
     t.*,
-    m1.first_name AS assigned_to_first_name,
-    m1.last_name AS assigned_to_last_name,
-    m2.first_name AS created_by_first_name,
-    m2.last_name AS created_by_last_name,
     mtg.meeting_name,
     CASE
         WHEN t.assigned_to_member_id = :member_id THEN 'own'
@@ -150,8 +67,6 @@ SELECT
         ELSE 'done'
     END AS todo_typ
 FROM svtodos t
-LEFT JOIN svmembers m1 ON t.assigned_to_member_id = m1.member_id
-LEFT JOIN svmembers m2 ON t.created_by_member_id = m2.member_id
 LEFT JOIN svmeetings mtg ON t.meeting_id = mtg.meeting_id
 WHERE
     (
@@ -162,25 +77,54 @@ WHERE
 ORDER BY
     (t.assigned_to_member_id = :member_id) DESC,
     (t.status <> 'done') DESC,
-    CASE
-        WHEN t.assigned_to_member_id = :member_id THEN IFNULL(t.due_date, '9999-12-31')
-        WHEN t.status <> 'done' THEN IFNULL(t.due_date, '9999-12-31')
-        ELSE m1.last_name
-    END ASC,
+    IFNULL(t.due_date, '9999-12-31') ASC,
     IFNULL(t.completed_at, '9999-12-31') ASC
 ";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute(['member_id' => $currentMemberID]);
+$todos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Mitgliederdaten über Adapter laden
+foreach ($todos as &$todo) {
+    // Assigned to member
+    if ($todo['assigned_to_member_id']) {
+        $assigned_member = get_member_by_id($pdo, $todo['assigned_to_member_id']);
+        if ($assigned_member) {
+            $todo['assigned_to_first_name'] = $assigned_member['first_name'];
+            $todo['assigned_to_last_name'] = $assigned_member['last_name'];
+        } else {
+            $todo['assigned_to_first_name'] = 'Unbekannt';
+            $todo['assigned_to_last_name'] = '';
+        }
+    } else {
+        $todo['assigned_to_first_name'] = '';
+        $todo['assigned_to_last_name'] = '';
+    }
+
+    // Created by member
+    if ($todo['created_by_member_id']) {
+        $created_member = get_member_by_id($pdo, $todo['created_by_member_id']);
+        if ($created_member) {
+            $todo['created_by_first_name'] = $created_member['first_name'];
+            $todo['created_by_last_name'] = $created_member['last_name'];
+        } else {
+            $todo['created_by_first_name'] = 'Unbekannt';
+            $todo['created_by_last_name'] = '';
+        }
+    } else {
+        $todo['created_by_first_name'] = '';
+        $todo['created_by_last_name'] = '';
+    }
+}
+unset($todo); // Referenz aufheben
 
 // Aufteilen in eigene und fremde ToDos
-
-// Aufteilen in eigene (offen/erledigt) und fremde ToDos
 $own_todos_open = [];
 $own_todos_done = [];
 $other_todos = [];
 
-while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+foreach ($todos as $row) {
     if ($row['assigned_to_member_id'] == $currentMemberID) {
         if ($row['status'] === 'done') {
             $own_todos_done[] = $row;
@@ -201,6 +145,89 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
 
 <h2>Meine ToDos</h2>
+
+<?php
+// Success/Error Messages
+if (isset($_SESSION['success'])) {
+    echo '<div style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px; border-radius: 4px; margin-bottom: 20px;">' . htmlspecialchars($_SESSION['success']) . '</div>';
+    unset($_SESSION['success']);
+}
+
+if (isset($_SESSION['error'])) {
+    echo '<div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px; border-radius: 4px; margin-bottom: 20px;">' . htmlspecialchars($_SESSION['error']) . '</div>';
+    unset($_SESSION['error']);
+}
+
+// Admin-Check: nur assistenz oder is_admin=1
+$is_admin = ($current_user['role'] ?? '') === 'assistenz' || ($current_user['is_admin'] ?? 0) == 1;
+?>
+
+<!-- NEUES TODO ERSTELLEN -->
+<div style="margin-bottom: 30px;">
+    <button class="accordion-button" onclick="this.classList.toggle('active'); this.nextElementSibling.classList.toggle('active');" style="width: 100%; text-align: left; padding: 12px 15px; background: #4CAF50; border: none; cursor: pointer; font-size: 16px; font-weight: bold; color: white; border-radius: 5px;">
+        ➕ Neues ToDo erstellen
+    </button>
+    <div class="accordion-content" style="display: none; padding: 20px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 5px 5px; background: white;">
+        <form method="POST" action="index.php?tab=todos">
+            <input type="hidden" name="action" value="create_todo">
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px;">Titel *</label>
+                <input type="text" name="title" required placeholder="z.B. Präsentation vorbereiten" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px;">Beschreibung</label>
+                <textarea name="description" rows="4" placeholder="Details zur Aufgabe..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px;">Fälligkeitsdatum</label>
+                <input type="date" name="due_date" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+
+            <?php if ($is_admin): ?>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px;">Zuweisen an</label>
+                <select name="assigned_to_member_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="<?php echo $currentMemberID; ?>">Mir selbst</option>
+                    <?php
+                    // Adapter-kompatibel: get_all_members() verwenden
+                    $all_members_for_assign = get_all_members($pdo);
+                    foreach ($all_members_for_assign as $member) {
+                        if ($member['member_id'] != $currentMemberID) {
+                            echo '<option value="' . $member['member_id'] . '">';
+                            echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['role'] . ')');
+                            echo '</option>';
+                        }
+                    }
+                    ?>
+                </select>
+            </div>
+            <?php endif; ?>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block;">
+                    <input type="checkbox" name="is_private" value="1">
+                    <strong>Privat</strong> (nur für mich und den Empfänger sichtbar)
+                </label>
+            </div>
+
+            <button type="submit" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-size: 14px;">
+                ✓ ToDo erstellen
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+.accordion-button.active {
+    background: #45a049 !important;
+}
+.accordion-content.active {
+    display: block !important;
+}
+</style>
 
 
 <?php if (empty($own_todos_open)): ?>

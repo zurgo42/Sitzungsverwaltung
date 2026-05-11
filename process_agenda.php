@@ -5,6 +5,7 @@
  * Erweitert: 07.11.2025 - v2.1
  * Bugfix: 12.11.2025 - Fehlende Funktionen und Handler hinzugefügt
  * Bugfix: 12.11.2025 14:00 - get_member_name() entfernt (existiert in module_helpers.php)
+ * Erweitert: 09.05.2026 - Persönliche Notizen zu TOPs
  *
  * Diese Datei verarbeitet alle POST-Anfragen aus tab_agenda.php
  * Trennung von Business-Logik und Präsentation (MVC-Prinzip)
@@ -12,6 +13,9 @@
  * WICHTIG: Diese Datei wird in index.php NACH dem Laden von functions.php eingebunden
  * Voraussetzungen: $pdo, $current_user, recalculate_item_metrics(), get_next_top_number()
  */
+
+// Persönliche Notizen-Funktionen laden
+require_once __DIR__ . '/personal_notes_functions.php';
 
 // Hilfsfunktion: Vollständigen Link zur Sitzung generieren
 function get_full_meeting_link($meeting_id) {
@@ -115,9 +119,78 @@ if (isset($_POST['add_agenda_item'])) {
 }
 
 /**
+ * Einzelnen TOP löschen (Ersteller in Vorbereitung)
+ *
+ * POST-Parameter:
+ * - delete_agenda_item: 1
+ * - item_id: Int (required)
+ *
+ * Verwendet von: tab_agenda_display_preparation.php - "Löschen" Button beim Bearbeiten
+ * Redirect: ?tab=agenda&meeting_id=X
+ */
+if (isset($_POST['delete_agenda_item']) && isset($_POST['item_id'])) {
+    $item_id = intval($_POST['item_id'] ?? 0);
+
+    if ($item_id) {
+        try {
+            // Prüfen ob User der Ersteller ist und Meeting in Vorbereitung
+            $stmt = $pdo->prepare("
+                SELECT ai.created_by_member_id, ai.meeting_id, m.status, ai.title
+                FROM svagenda_items ai
+                JOIN svmeetings m ON ai.meeting_id = m.meeting_id
+                WHERE ai.item_id = ?
+            ");
+            $stmt->execute([$item_id]);
+            $item = $stmt->fetch();
+
+            if (!$item) {
+                error_log("DELETE TOP FAILED: Item not found");
+                header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
+                exit;
+            }
+
+            // Löschbar wenn:
+            // 1. Ersteller UND Meeting in Vorbereitung
+            // 2. Protokollant UND Meeting in ended-Phase
+            $can_delete = false;
+
+            if ($item['created_by_member_id'] == $current_user['member_id'] &&
+                $item['status'] === 'preparation') {
+                $can_delete = true;
+            }
+
+            if ($is_secretary && $item['status'] === 'ended') {
+                $can_delete = true;
+            }
+
+            if ($can_delete) {
+                // TOP löschen
+                $stmt = $pdo->prepare("DELETE FROM svagenda_items WHERE item_id = ?");
+                $stmt->execute([$item_id]);
+
+                error_log("DELETE TOP Success: Item $item_id ({$item['title']}) deleted by " .
+                         ($is_secretary ? "secretary" : "creator"));
+
+                header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&success=top_deleted");
+                exit;
+            } else {
+                error_log("DELETE TOP FAILED: No permission or wrong status (status={$item['status']}, is_secretary=" .
+                         ($is_secretary ? "true" : "false") . ")");
+                header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&error=no_permission");
+                exit;
+            }
+        } catch (PDOException $e) {
+            error_log("DELETE TOP Error: " . $e->getMessage());
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=delete_failed");
+            exit;
+        }
+    }
+}
+
+/**
  * Einzelnen TOP editieren (Ersteller in Vorbereitung)
  */
-if (isset($_POST['edit_agenda_item'])) {
+if (isset($_POST['edit_agenda_item']) && !isset($_POST['delete_agenda_item'])) {
     $item_id = intval($_POST['item_id'] ?? 0);
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -169,16 +242,127 @@ if (isset($_POST['edit_agenda_item'])) {
         error_log("EDIT TOP FAILED: Missing item_id or title");
     }
 }
+
+/**
+ * TOP zu künftiger Sitzung verschieben
+ *
+ * POST-Parameter:
+ * - move_agenda_item: 1
+ * - item_id: Int (required)
+ * - target_meeting_id: Int (required)
+ *
+ * Berechtigung: Einladende, Protokollant oder Sitzungsleiter der AKTUELLEN Sitzung
+ * Status: Nur während "preparation"
+ * Redirect: ?tab=agenda&meeting_id=X
+ */
+if (isset($_POST['move_agenda_item'])) {
+    $item_id = intval($_POST['item_id'] ?? 0);
+    $target_meeting_id = intval($_POST['target_meeting_id'] ?? 0);
+
+    error_log("MOVE TOP: Received request - item_id=$item_id, target_meeting_id=$target_meeting_id, user={$current_user['member_id']}");
+
+    if ($item_id && $target_meeting_id) {
+        try {
+            // Aktuelle Sitzung und TOP-Daten laden
+            $stmt = $pdo->prepare("
+                SELECT ai.meeting_id, ai.title, ai.is_confidential,
+                       m.status, m.invited_by_member_id, m.secretary_member_id, m.chairman_member_id
+                FROM svagenda_items ai
+                JOIN svmeetings m ON ai.meeting_id = m.meeting_id
+                WHERE ai.item_id = ?
+            ");
+            $stmt->execute([$item_id]);
+            $item = $stmt->fetch();
+
+            error_log("MOVE TOP: Item loaded - " . ($item ? json_encode($item) : 'NOT FOUND'));
+
+            if (!$item) {
+                error_log("MOVE TOP FAILED: Item not found");
+                header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=item_not_found");
+                exit;
+            }
+
+            // Berechtigung prüfen: Einladende, Protokollant oder Sitzungsleiter
+            $is_inviter = ($item['invited_by_member_id'] == $current_user['member_id']);
+            $is_secretary = ($item['secretary_member_id'] == $current_user['member_id']);
+            $is_chairman = ($item['chairman_member_id'] == $current_user['member_id']);
+
+            error_log("MOVE TOP: Permission check - inviter=$is_inviter, secretary=$is_secretary, chairman=$is_chairman");
+
+            if (!$is_inviter && !$is_secretary && !$is_chairman) {
+                error_log("MOVE TOP FAILED: No permission (user={$current_user['member_id']})");
+                header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&error=no_permission");
+                exit;
+            }
+
+            // Nur in Vorbereitungsphase erlaubt
+            if ($item['status'] !== 'preparation') {
+                error_log("MOVE TOP FAILED: Wrong status ({$item['status']})");
+                header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&error=wrong_status");
+                exit;
+            }
+
+            // Ziel-Sitzung validieren (muss existieren und in Zukunft liegen)
+            $stmt = $pdo->prepare("
+                SELECT meeting_id, meeting_date, status
+                FROM svmeetings
+                WHERE meeting_id = ? AND meeting_date > NOW()
+            ");
+            $stmt->execute([$target_meeting_id]);
+            $target_meeting = $stmt->fetch();
+
+            if (!$target_meeting) {
+                error_log("MOVE TOP FAILED: Target meeting not found or not in future");
+                header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&error=invalid_target");
+                exit;
+            }
+
+            // TOP verschieben
+            $pdo->beginTransaction();
+
+            // Neue TOP-Nummer in Zielsitzung bestimmen
+            $new_top_number = get_next_top_number($pdo, $target_meeting_id, $item['is_confidential']);
+
+            // TOP aktualisieren
+            $stmt = $pdo->prepare("
+                UPDATE svagenda_items
+                SET meeting_id = ?, top_number = ?
+                WHERE item_id = ?
+            ");
+            $stmt->execute([$target_meeting_id, $new_top_number, $item_id]);
+
+            $pdo->commit();
+
+            error_log("MOVE TOP Success: Item $item_id moved to meeting $target_meeting_id with TOP# $new_top_number");
+
+            header("Location: ?tab=agenda&meeting_id={$item['meeting_id']}&success=top_moved");
+            exit;
+
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("MOVE TOP Error: " . $e->getMessage());
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=move_failed");
+            exit;
+        }
+    } else {
+        error_log("MOVE TOP FAILED: Missing item_id or target_meeting_id");
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=missing_data");
+        exit;
+    }
+}
+
 /**
  * Alle TOP-Änderungen speichern
- * 
+ *
  * POST-Parameter:
  * - save_all_changes: 1
  * - edit_title[ITEM_ID]: String (optional, pro editierbarem TOP)
  * - edit_description[ITEM_ID]: String (optional, pro editierbarem TOP)
  * - priority[ITEM_ID]: Float (optional, für Bewertungen)
  * - duration[ITEM_ID]: Int (optional, für Bewertungen)
- * 
+ *
  * Verwendet von: tab_agenda.php - Großes Formular im Status "preparation"
  * Redirect: ?tab=agenda&meeting_id=X
  */
@@ -1559,17 +1743,17 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
             $vote_no = $_POST['vote_no'] ?? [];
             $vote_abstain = $_POST['vote_abstain'] ?? [];
             $vote_result = $_POST['vote_result'] ?? [];
-            
+
             foreach ($protocol_texts as $item_id => $text) {
                 $item_id = intval($item_id);
                 $text = trim($text);
-                
+
                 $stmt = $pdo->prepare("UPDATE svagenda_items SET protocol_notes = ? WHERE item_id = ?");
                 $stmt->execute([$text, $item_id]);
-                
+
                 if (isset($vote_result[$item_id]) && !empty($vote_result[$item_id])) {
                     $stmt = $pdo->prepare("
-                        UPDATE svagenda_items 
+                        UPDATE svagenda_items
                         SET vote_yes = ?, vote_no = ?, vote_abstain = ?, vote_result = ?
                         WHERE item_id = ?
                     ");
@@ -1583,26 +1767,26 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
                 }
             }
         }
-        
+
         // Nachträgliche Kommentare speichern (alle Teilnehmer)
         $post_comments = $_POST['post_comment'] ?? [];
         foreach ($post_comments as $item_id => $comment_text) {
             $item_id = intval($item_id);
             $comment_text = trim($comment_text);
-            
+
             if (!empty($comment_text)) {
                 // Prüfen ob schon Kommentar existiert
                 $stmt = $pdo->prepare("
-                    SELECT comment_id FROM svagenda_post_comments 
+                    SELECT comment_id FROM svagenda_post_comments
                     WHERE item_id = ? AND member_id = ?
                 ");
                 $stmt->execute([$item_id, $current_user['member_id']]);
                 $existing = $stmt->fetch();
-                
+
                 if ($existing) {
                     // Update
                     $stmt = $pdo->prepare("
-                        UPDATE svagenda_post_comments 
+                        UPDATE svagenda_post_comments
                         SET comment_text = ?, updated_at = NOW()
                         WHERE comment_id = ?
                     ");
@@ -1618,13 +1802,13 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
             } else {
                 // Leerer Text = Kommentar löschen
                 $stmt = $pdo->prepare("
-                    DELETE FROM svagenda_post_comments 
+                    DELETE FROM svagenda_post_comments
                     WHERE item_id = ? AND member_id = ?
                 ");
                 $stmt->execute([$item_id, $current_user['member_id']]);
             }
         }
-        
+
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
     } catch (PDOException $e) {
@@ -1919,4 +2103,117 @@ if (isset($_POST['save_chairman_comment']) && $is_chairman && $meeting['status']
     }
 }
 
-?>
+// Kommentar eines Teilnehmers speichern (protocol_ready Status)
+if (isset($_POST['save_participant_comment']) && $meeting['status'] === 'protocol_ready') {
+    $item_id = intval($_POST['item_id'] ?? 0);
+    $comment_text = trim($_POST['comment_text'] ?? '');
+
+    if ($item_id) {
+        try {
+            // Prüfen ob bereits ein Kommentar existiert
+            $stmt = $pdo->prepare("
+                SELECT comment_id
+                FROM svagenda_post_comments
+                WHERE item_id = ? AND member_id = ?
+            ");
+            $stmt->execute([$item_id, $current_user['member_id']]);
+            $existing = $stmt->fetch();
+
+            if ($existing) {
+                // Update
+                if (!empty($comment_text)) {
+                    $stmt = $pdo->prepare("
+                        UPDATE svagenda_post_comments
+                        SET comment_text = ?, created_at = NOW()
+                        WHERE comment_id = ?
+                    ");
+                    $stmt->execute([$comment_text, $existing['comment_id']]);
+                } else {
+                    // Löschen wenn leer
+                    $stmt = $pdo->prepare("DELETE FROM svagenda_post_comments WHERE comment_id = ?");
+                    $stmt->execute([$existing['comment_id']]);
+                }
+            } elseif (!empty($comment_text)) {
+                // Insert
+                $stmt = $pdo->prepare("
+                    INSERT INTO svagenda_post_comments (item_id, member_id, comment_text, created_at)
+                    VALUES (?, ?, ?, NOW())
+                ");
+                $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+            }
+
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
+            exit;
+        } catch (PDOException $e) {
+            error_log("Fehler beim Speichern des Teilnehmer-Kommentars: " . $e->getMessage());
+        }
+    }
+}
+
+/**
+ * Schnelles TODO während Sitzung erstellen
+ *
+ * POST-Parameter:
+ * - quick_todo_create: 1
+ * - todo_title: String (required)
+ * - todo_description: String (optional)
+ * - todo_due_date: Date (optional)
+ * - item_id: Int (optional) - verknüpft TODO mit spezifischem TOP
+ *
+ * Verwendet von: tab_agenda_display_active.php - "Eigenes TODO aufschreiben" Akkordeon in jedem TOP
+ * Redirect: ?tab=agenda&meeting_id=X#top-ITEM_ID (falls item_id angegeben)
+ */
+if (isset($_POST['quick_todo_create'])) {
+    $todo_title = trim($_POST['todo_title'] ?? '');
+    $todo_description = trim($_POST['todo_description'] ?? '');
+    $todo_due_date = !empty($_POST['todo_due_date']) ? $_POST['todo_due_date'] : null;
+    $item_id = !empty($_POST['item_id']) ? intval($_POST['item_id']) : null;
+
+    // Zuweisung: Wenn assigned_to_member_id gesetzt (Protokollführer), verwende diesen, sonst sich selbst
+    $assigned_to = !empty($_POST['assigned_to_member_id']) ? intval($_POST['assigned_to_member_id']) : $current_user['member_id'];
+
+    if (!empty($todo_title)) {
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO svtodos
+                (meeting_id, item_id, assigned_to_member_id, created_by_member_id, title, description, due_date, status, is_private, entry_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'open', 1, CURDATE())
+            ");
+            $stmt->execute([
+                $current_meeting_id,
+                $item_id,  // Verknüpfung mit TOP (optional)
+                $assigned_to,  // Zugewiesen an (sich selbst oder andere)
+                $current_user['member_id'],  // Erstellt von sich selbst
+                $todo_title,
+                $todo_description,
+                $todo_due_date
+            ]);
+
+            // Automatisch Zeile in persönliche Notiz einfügen (nur wenn item_id vorhanden)
+            if ($item_id) {
+                append_todo_to_personal_note($pdo, $item_id, $current_user['member_id'], $todo_title, $todo_due_date);
+            }
+
+            // Redirect zum TOP wenn item_id angegeben, sonst zur Agenda
+            $redirect_anchor = $item_id ? "#top-$item_id" : '';
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=todo_created$redirect_anchor");
+            exit;
+        } catch (PDOException $e) {
+            error_log("Fehler beim Erstellen des Quick-TODOs: " . $e->getMessage());
+            error_log("TODO-Daten: meeting_id=$current_meeting_id, item_id=$item_id, assigned_to=$assigned_to, created_by=" . $current_user['member_id']);
+            $redirect_anchor = $item_id ? "#top-$item_id" : '';
+
+            // Im Debug-Modus detaillierten Fehler anzeigen
+            if (defined('DEBUG_MODE') && DEBUG_MODE) {
+                header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=" . urlencode("TODO-Fehler: " . $e->getMessage()) . "$redirect_anchor");
+            } else {
+                header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=todo_failed$redirect_anchor");
+            }
+            exit;
+        }
+    } else {
+        $redirect_anchor = $item_id ? "#top-$item_id" : '';
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=todo_title_required$redirect_anchor");
+        exit;
+    }
+}

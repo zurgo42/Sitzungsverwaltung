@@ -104,10 +104,7 @@ if ($MNr) {
     echo "❌ Kein MNr verfügbar\n";
 }
 ?>
-
-$_SESSION keys: <?php print_r(array_keys($_SESSION)); ?>
             </pre>
-            <p style="font-size: 11px;">Für vollständiges Debug: /debug_iframe.php aufrufen</p>
             <?php endif; ?>
         </div>
     </body>

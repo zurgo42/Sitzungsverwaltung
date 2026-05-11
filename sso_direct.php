@@ -14,12 +14,21 @@
  * - index.php übernimmt: Configs, Auth, Members-Array, UI
  */
 
+// Session-Konfiguration laden (zentral aus session_config.php)
+require_once 'session_config.php';
+
 // Session starten
 session_start();
 
 // DISPLAY_MODE auf SSOdirekt setzen (MUSS VOR include index.php definiert werden)
 // Wird von index.php beim Rendern der UI verwendet
 define('DISPLAY_MODE_OVERRIDE', 'SSOdirekt');
+
+// Direktlink-Support: meeting_id aus URL übernehmen
+// Wenn meeting_id als GET-Parameter übergeben wird, direkt zu dieser Sitzung navigieren
+if (isset($_GET['meeting_id']) && is_numeric($_GET['meeting_id'])) {
+    $_GET['tab'] = 'agenda';  // Zur Agenda-Ansicht wechseln
+}
 
 // Das war's! index.php übernimmt jetzt:
 // 1. Laden aller Configs (config.php, config_adapter.php, etc.)

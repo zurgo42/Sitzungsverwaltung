@@ -281,18 +281,21 @@ if (isset($_POST['create_meeting'])) {
  * Redirect: index.php?tab=meetings&success=updated&meeting_id=X
  */
 if (isset($_POST['edit_meeting'])) {
+
     $meeting_id = intval($_POST['meeting_id'] ?? 0);
-    
+
+
     if (!$meeting_id) {
         header("Location: index.php?tab=meetings&error=invalid_id");
         exit;
     }
-    
+
     // Meeting laden und Berechtigung prüfen
     $stmt = $pdo->prepare("SELECT * FROM svmeetings WHERE meeting_id = ?");
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
+
     if (!is_authorized_for_meeting($meeting, $current_user, ['preparation'])) {
         header("Location: index.php?tab=meetings&error=permission");
         exit;
@@ -310,6 +313,18 @@ if (isset($_POST['edit_meeting'])) {
     $participant_ids = $_POST['participant_ids'] ?? [];
     $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
 
+    // Datetime-Format konvertieren: 2026-05-01T17:00 -> 2026-05-01 17:00:00
+    if (!empty($meeting_date)) {
+        $meeting_date = str_replace('T', ' ', $meeting_date) . ':00';
+    }
+    if (!empty($expected_end_date)) {
+        $expected_end_date = str_replace('T', ' ', $expected_end_date) . ':00';
+    }
+    if (!empty($submission_deadline)) {
+        $submission_deadline = str_replace('T', ' ', $submission_deadline) . ':00';
+    }
+
+
     if (empty($meeting_name) || empty($meeting_date)) {
         header("Location: index.php?tab=meetings&error=missing_data&meeting_id=$meeting_id");
         exit;
@@ -324,6 +339,20 @@ if (isset($_POST['edit_meeting'])) {
     if (!in_array($visibility_type, ['public', 'authenticated', 'invited_only'])) {
         $visibility_type = 'invited_only';
     }
+
+
+    // DEBUG: Zeige den exakten SQL-Befehl mit Werten
+    $debug_sql = "UPDATE svmeetings SET " .
+                 "meeting_name='$meeting_name', " .
+                 "meeting_date='$meeting_date', " .
+                 "expected_end_date='$expected_end_date', " .
+                 "submission_deadline='$submission_deadline', " .
+                 "location='$location', " .
+                 "video_link='$video_link', " .
+                 "chairman_member_id=" . ($chairman_member_id ?: 'NULL') . ", " .
+                 "secretary_member_id=" . ($secretary_member_id ?: 'NULL') . ", " .
+                 "visibility_type='$visibility_type' " .
+                 "WHERE meeting_id=$meeting_id";
 
     try {
         $pdo->beginTransaction();
@@ -347,18 +376,27 @@ if (isset($_POST['edit_meeting'])) {
             $visibility_type,
             $meeting_id
         ]);
-        
+
+        $rows_affected = $stmt->rowCount();
+
+        // VERIFY: Lese die gespeicherten Werte direkt aus DB zurück
+        $verify_stmt = $pdo->prepare("SELECT meeting_name, meeting_date, expected_end_date, submission_deadline FROM svmeetings WHERE meeting_id = ?");
+        $verify_stmt->execute([$meeting_id]);
+        $saved_data = $verify_stmt->fetch(PDO::FETCH_ASSOC);
+
         // 2. Teilnehmer neu setzen
         $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
         $stmt->execute([$meeting_id]);
-        
+
         add_participants($pdo, $meeting_id, $participant_ids);
-        
+
+
         $pdo->commit();
-        
+
+
         header("Location: index.php?tab=meetings&success=updated&meeting_id=$meeting_id");
         exit;
-        
+
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Fehler beim Meeting-Aktualisieren: " . $e->getMessage());

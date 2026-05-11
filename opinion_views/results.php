@@ -42,6 +42,10 @@ if (!can_show_final_results($poll, $current_user, $has_responded)) {
 // Statistiken laden
 $stats = get_opinion_results($pdo, $poll_id);
 $all_responses = get_all_responses($pdo, $poll_id, !$poll['is_anonymous'] || $is_creator || $is_admin);
+
+// Voter-Namen pro Option laden (für Tooltips bei nicht-anonymen Umfragen)
+$show_voter_names = !$poll['is_anonymous'] || $is_creator || $is_admin;
+$voters_per_option = get_voters_per_option($pdo, $poll_id, $show_voter_names);
 ?>
 
 <div style="margin-bottom: 20px;">
@@ -76,13 +80,22 @@ $all_responses = get_all_responses($pdo, $poll_id, !$poll['is_anonymous'] || $is
     <?php else: ?>
         <h4>Ergebnisse</h4>
 
-        <?php foreach ($stats['option_stats'] as $option_stat): ?>
+        <?php foreach ($stats['option_stats'] as $option_stat):
+            // Tooltip mit Voter-Namen erstellen
+            $tooltip = '';
+            if ($show_voter_names && isset($voters_per_option[$option_stat['option_id']]) && !empty($voters_per_option[$option_stat['option_id']]['names'])) {
+                $names = $voters_per_option[$option_stat['option_id']]['names'];
+                $tooltip = implode(', ', $names);
+            } elseif ($option_stat['vote_count'] > 0) {
+                $tooltip = $option_stat['vote_count'] . ' Stimme' . ($option_stat['vote_count'] != 1 ? 'n' : '');
+            }
+        ?>
             <div style="margin-bottom: 20px;">
                 <div style="margin-bottom: 5px; font-weight: 500;">
                     <?php echo htmlspecialchars($option_stat['option_text']); ?>
                 </div>
 
-                <div class="result-bar">
+                <div class="result-bar" <?php if ($tooltip): ?>title="<?php echo htmlspecialchars($tooltip); ?>"<?php endif; ?> style="cursor: <?php echo $tooltip ? 'help' : 'default'; ?>;">
                     <div class="result-bar-fill" style="width: <?php echo $option_stat['percentage']; ?>%;">
                         <?php if ($option_stat['percentage'] > 15): ?>
                             <?php echo $option_stat['vote_count']; ?> (<?php echo number_format($option_stat['percentage'], 1); ?>%)
@@ -109,7 +122,8 @@ $all_responses = get_all_responses($pdo, $poll_id, !$poll['is_anonymous'] || $is
                     <div class="response-meta">
                         <?php
                         $name = 'Anonym';
-                        if ($response['member_id'] && (!$response['force_anonymous'] || $is_creator || $is_admin)) {
+                        // Namen anzeigen wenn member_id ODER external_participant_id vorhanden
+                        if (($response['member_id'] || $response['external_participant_id']) && (!$response['force_anonymous'] || $is_creator || $is_admin)) {
                             $name = htmlspecialchars($response['first_name'] . ' ' . $response['last_name']);
                             if ($response['force_anonymous']) {
                                 $name .= ' <em>(will anonym bleiben)</em>';

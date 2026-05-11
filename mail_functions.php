@@ -260,9 +260,8 @@ function queue_mail($to, $subject, $message_text, $message_html, $from_email, $f
 function send_poll_invitation($pdo, $poll_id, $host_url_base = null) {
     // Umfrage-Daten laden
     $stmt = $pdo->prepare("
-        SELECT p.*, m.first_name, m.last_name, m.email as creator_email
+        SELECT p.*
         FROM svpolls p
-        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         WHERE p.poll_id = ?
     ");
     $stmt->execute([$poll_id]);
@@ -270,6 +269,16 @@ function send_poll_invitation($pdo, $poll_id, $host_url_base = null) {
 
     if (!$poll) {
         return 0;
+    }
+
+    // Creator-Daten über Adapter laden
+    if ($poll['created_by_member_id']) {
+        $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
+        if ($creator) {
+            $poll['first_name'] = $creator['first_name'];
+            $poll['last_name'] = $creator['last_name'];
+            $poll['creator_email'] = $creator['email'];
+        }
     }
 
     // Terminvorschläge laden
@@ -283,13 +292,25 @@ function send_poll_invitation($pdo, $poll_id, $host_url_base = null) {
 
     // Ausgewählte Teilnehmer laden
     $stmt = $pdo->prepare("
-        SELECT m.email, m.first_name, m.last_name
+        SELECT pp.member_id
         FROM svpoll_participants pp
-        LEFT JOIN svmembers m ON pp.member_id = m.member_id
-        WHERE pp.poll_id = ? AND m.email IS NOT NULL AND m.email != ''
+        WHERE pp.poll_id = ?
     ");
     $stmt->execute([$poll_id]);
-    $participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $participant_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    // Member-Daten über Adapter laden (nur mit E-Mail)
+    $participants = [];
+    foreach ($participant_ids as $member_id) {
+        $member = get_member_by_id($pdo, $member_id);
+        if ($member && !empty($member['email'])) {
+            $participants[] = [
+                'email' => $member['email'],
+                'first_name' => $member['first_name'],
+                'last_name' => $member['last_name']
+            ];
+        }
+    }
 
     if (empty($participants)) {
         return 0;
@@ -422,9 +443,8 @@ function send_poll_finalization_notification($pdo, $poll_id, $final_date_id, $ho
 
     // Umfrage-Daten laden
     $stmt = $pdo->prepare("
-        SELECT p.*, m.first_name, m.last_name, m.email as creator_email
+        SELECT p.*
         FROM svpolls p
-        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         WHERE p.poll_id = ?
     ");
     $stmt->execute([$poll_id]);
@@ -432,6 +452,16 @@ function send_poll_finalization_notification($pdo, $poll_id, $final_date_id, $ho
 
     if (!$poll) {
         return 0;
+    }
+
+    // Creator-Daten über Adapter laden
+    if ($poll['created_by_member_id']) {
+        $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
+        if ($creator) {
+            $poll['first_name'] = $creator['first_name'];
+            $poll['last_name'] = $creator['last_name'];
+            $poll['creator_email'] = $creator['email'];
+        }
     }
 
     // Finalen Termin laden
@@ -447,23 +477,44 @@ function send_poll_finalization_notification($pdo, $poll_id, $final_date_id, $ho
     if ($recipients === 'all') {
         // Alle ausgewählten Teilnehmer
         $stmt = $pdo->prepare("
-            SELECT DISTINCT m.email, m.first_name, m.last_name
+            SELECT DISTINCT pp.member_id
             FROM svpoll_participants pp
-            LEFT JOIN svmembers m ON pp.member_id = m.member_id
-            WHERE pp.poll_id = ? AND m.email IS NOT NULL AND m.email != ''
+            WHERE pp.poll_id = ?
         ");
         $stmt->execute([$poll_id]);
-        $participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $member_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
     } else {
         // Nur Teilnehmer die abgestimmt haben (Standard)
         $stmt = $pdo->prepare("
-            SELECT DISTINCT m.email, m.first_name, m.last_name
+            SELECT DISTINCT pr.member_id
             FROM svpoll_responses pr
-            LEFT JOIN svmembers m ON pr.member_id = m.member_id
-            WHERE pr.poll_id = ? AND m.email IS NOT NULL AND m.email != ''
+            WHERE pr.poll_id = ?
         ");
         $stmt->execute([$poll_id]);
-        $participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $member_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    // Member-Daten über Adapter laden (nur mit E-Mail)
+    $participants = [];
+    foreach ($member_ids as $member_id) {
+        $member = get_member_by_id($pdo, $member_id);
+        if ($member && !empty($member['email'])) {
+            // Duplikate vermeiden
+            $email_exists = false;
+            foreach ($participants as $p) {
+                if ($p['email'] === $member['email']) {
+                    $email_exists = true;
+                    break;
+                }
+            }
+            if (!$email_exists) {
+                $participants[] = [
+                    'email' => $member['email'],
+                    'first_name' => $member['first_name'],
+                    'last_name' => $member['last_name']
+                ];
+            }
+        }
     }
 
     // Termin formatieren
@@ -598,9 +649,8 @@ function send_simple_mail($to, $subject, $message, $from = null) {
 function send_poll_reminder($pdo, $poll_id, $host_url_base = null) {
     // Umfrage-Daten laden
     $stmt = $pdo->prepare("
-        SELECT p.*, m.first_name, m.last_name, m.email as creator_email
+        SELECT p.*
         FROM svpolls p
-        LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
         WHERE p.poll_id = ? AND p.status = 'finalized' AND p.reminder_enabled = 1 AND p.reminder_sent = 0
     ");
     $stmt->execute([$poll_id]);
@@ -608,6 +658,16 @@ function send_poll_reminder($pdo, $poll_id, $host_url_base = null) {
 
     if (!$poll || empty($poll['final_date_id'])) {
         return 0;
+    }
+
+    // Creator-Daten über Adapter laden
+    if ($poll['created_by_member_id']) {
+        $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
+        if ($creator) {
+            $poll['first_name'] = $creator['first_name'];
+            $poll['last_name'] = $creator['last_name'];
+            $poll['creator_email'] = $creator['email'];
+        }
     }
 
     // Finalen Termin laden
@@ -629,23 +689,44 @@ function send_poll_reminder($pdo, $poll_id, $host_url_base = null) {
     if ($recipients_type === 'all') {
         // Alle ausgewählten Teilnehmer
         $stmt = $pdo->prepare("
-            SELECT DISTINCT m.email, m.first_name, m.last_name
+            SELECT DISTINCT pp.member_id
             FROM svpoll_participants pp
-            LEFT JOIN svmembers m ON pp.member_id = m.member_id
-            WHERE pp.poll_id = ? AND m.email IS NOT NULL AND m.email != ''
+            WHERE pp.poll_id = ?
         ");
         $stmt->execute([$poll_id]);
-        $participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $member_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
     } else {
         // Nur Teilnehmer die abgestimmt haben
         $stmt = $pdo->prepare("
-            SELECT DISTINCT m.email, m.first_name, m.last_name
+            SELECT DISTINCT pr.member_id
             FROM svpoll_responses pr
-            LEFT JOIN svmembers m ON pr.member_id = m.member_id
-            WHERE pr.poll_id = ? AND m.email IS NOT NULL AND m.email != ''
+            WHERE pr.poll_id = ?
         ");
         $stmt->execute([$poll_id]);
-        $participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $member_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    // Member-Daten über Adapter laden (nur mit E-Mail)
+    $participants = [];
+    foreach ($member_ids as $member_id) {
+        $member = get_member_by_id($pdo, $member_id);
+        if ($member && !empty($member['email'])) {
+            // Duplikate vermeiden
+            $email_exists = false;
+            foreach ($participants as $p) {
+                if ($p['email'] === $member['email']) {
+                    $email_exists = true;
+                    break;
+                }
+            }
+            if (!$email_exists) {
+                $participants[] = [
+                    'email' => $member['email'],
+                    'first_name' => $member['first_name'],
+                    'last_name' => $member['last_name']
+                ];
+            }
+        }
     }
 
     if (empty($participants)) {

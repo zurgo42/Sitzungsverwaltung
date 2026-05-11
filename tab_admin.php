@@ -192,6 +192,14 @@ require_once 'process_admin.php';
                     <input type="datetime-local" name="expected_end_date" id="edit_expected_end_date">
                 </div>
                 <div class="form-group">
+                    <label>Antragsschluss:</label>
+                    <input type="datetime-local" name="submission_deadline" id="edit_submission_deadline">
+                    <small style="display: block; margin-top: 5px; color: #666;">
+                        Bis zu diesem Zeitpunkt dürfen Teilnehmer neue Tagesordnungspunkte hinzufügen.<br>
+                        Standard: 24 Stunden vor Sitzungsbeginn. Danach können nur noch Protokollant und Admins TOPs hinzufügen.
+                    </small>
+                </div>
+                <div class="form-group">
                     <label>Ort:</label>
                     <input type="text" name="location" id="edit_location">
                 </div>
@@ -267,6 +275,208 @@ require_once 'process_admin.php';
         </div>
     </div>
     </div> <!-- End admin-section-content -->
+</div>
+
+<!-- ToDo-Verwaltung -->
+<div id="admin-todos" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">✅ ToDo-Verwaltung</h3>
+
+    <div class="admin-section-content">
+        <button onclick="showAddTodoForm()" class="btn-primary" style="margin-bottom: 15px;">+ Neues ToDo erstellen</button>
+
+        <!-- Add Todo Form -->
+        <div id="add-todo-form" class="form-box" style="display: none; margin-bottom: 20px;">
+            <h4>Neues ToDo erstellen</h4>
+            <form method="POST">
+                <input type="hidden" name="admin_create_todo" value="1">
+                <div class="form-group">
+                    <label>Titel *</label>
+                    <input type="text" name="title" required placeholder="z.B. Präsentation vorbereiten">
+                </div>
+                <div class="form-group">
+                    <label>Beschreibung</label>
+                    <textarea name="description" rows="3" placeholder="Details zur Aufgabe..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Zuweisen an *</label>
+                        <select name="assigned_to_member_id" required>
+                            <option value="">-- Bitte wählen --</option>
+                            <?php foreach ($members as $m): ?>
+                                <option value="<?php echo $m['member_id']; ?>">
+                                    <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name'] . ' (' . $m['role'] . ')'); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fälligkeitsdatum</label>
+                        <input type="date" name="due_date">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="is_private" value="1">
+                        Privat (nur für Ersteller und Empfänger sichtbar)
+                    </label>
+                </div>
+                <button type="submit" class="btn-primary">ToDo erstellen</button>
+                <button type="button" onclick="hideAddTodoForm()" class="btn-secondary">Abbrechen</button>
+            </form>
+        </div>
+
+        <!-- Todos Tabelle -->
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Titel</th>
+                    <th>Zugewiesen an</th>
+                    <th>Erstellt von</th>
+                    <th>Status</th>
+                    <th>Fällig am</th>
+                    <th>Privat</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                // Alle TODOs laden (Admin sieht alle) - Adapter-kompatibel
+                try {
+                    $all_todos_stmt = $pdo->query("
+                        SELECT t.*
+                        FROM svtodos t
+                        ORDER BY
+                            CASE t.status
+                                WHEN 'open' THEN 1
+                                WHEN 'in progress' THEN 2
+                                WHEN 'delayed' THEN 3
+                                WHEN 'done' THEN 4
+                            END,
+                            t.due_date ASC,
+                            t.todo_id DESC
+                    ");
+                    $all_todos = $all_todos_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    // Member-Daten über Adapter holen
+                    foreach ($all_todos as &$todo) {
+                        if ($todo['assigned_to_member_id']) {
+                            $assigned = get_member_by_id($pdo, $todo['assigned_to_member_id']);
+                            $todo['assigned_first'] = $assigned['first_name'] ?? '';
+                            $todo['assigned_last'] = $assigned['last_name'] ?? '';
+                        }
+                        if ($todo['created_by_member_id']) {
+                            $created = get_member_by_id($pdo, $todo['created_by_member_id']);
+                            $todo['created_first'] = $created['first_name'] ?? '';
+                            $todo['created_last'] = $created['last_name'] ?? '';
+                        }
+                    }
+                    unset($todo);
+                } catch (PDOException $e) {
+                    error_log("Admin TODO Load Error: " . $e->getMessage());
+                    $all_todos = [];
+                }
+
+                if (empty($all_todos)):
+                ?>
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: #999;">Keine TODOs vorhanden</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($all_todos as $todo):
+                        $status_colors = [
+                            'open' => '#ffc107',
+                            'in progress' => '#2196f3',
+                            'delayed' => '#f44336',
+                            'done' => '#4caf50'
+                        ];
+                        $status_color = $status_colors[$todo['status']] ?? '#999';
+                    ?>
+                        <tr>
+                            <td><?php echo $todo['todo_id']; ?></td>
+                            <td>
+                                <strong><?php echo htmlspecialchars($todo['title']); ?></strong>
+                                <?php if ($todo['description']): ?>
+                                    <br><small style="color: #666;"><?php echo htmlspecialchars(mb_substr($todo['description'], 0, 100)); ?><?php echo mb_strlen($todo['description']) > 100 ? '...' : ''; ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo htmlspecialchars(($todo['assigned_first'] ?? '') . ' ' . ($todo['assigned_last'] ?? '')); ?></td>
+                            <td><?php echo htmlspecialchars(($todo['created_first'] ?? '') . ' ' . ($todo['created_last'] ?? '')); ?></td>
+                            <td>
+                                <span class="status-badge" style="background: <?php echo $status_color; ?>; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">
+                                    <?php echo htmlspecialchars($todo['status']); ?>
+                                </span>
+                            </td>
+                            <td><?php echo $todo['due_date'] && $todo['due_date'] !== '0000-00-00' ? date('d.m.Y', strtotime($todo['due_date'])) : '-'; ?></td>
+                            <td><?php echo $todo['is_private'] ? '🔒' : ''; ?></td>
+                            <td>
+                                <button class="btn-view" onclick="editTodo(<?php echo $todo['todo_id']; ?>)" title="Bearbeiten">✏️</button>
+                                <form method="POST" style="display: inline;" onsubmit="return confirm('ToDo wirklich löschen?');">
+                                    <input type="hidden" name="admin_delete_todo" value="1">
+                                    <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
+                                    <button type="submit" class="btn-delete" title="Löschen">🗑️</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+        <!-- Edit Todo Modal -->
+        <div id="edit-todo-modal" class="modal">
+            <div class="modal-content">
+                <h3>ToDo bearbeiten</h3>
+                <form method="POST" id="edit-todo-form">
+                    <input type="hidden" name="admin_edit_todo" value="1">
+                    <input type="hidden" name="todo_id" id="edit_todo_id">
+                    <div class="form-group">
+                        <label>Titel *</label>
+                        <input type="text" name="title" id="edit_todo_title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Beschreibung</label>
+                        <textarea name="description" id="edit_todo_description" rows="3"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Zugewiesen an *</label>
+                            <select name="assigned_to_member_id" id="edit_todo_assigned_to" required>
+                                <?php foreach ($members as $m): ?>
+                                    <option value="<?php echo $m['member_id']; ?>">
+                                        <?php echo htmlspecialchars($m['first_name'] . ' ' . $m['last_name'] . ' (' . $m['role'] . ')'); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Status *</label>
+                            <select name="status" id="edit_todo_status" required>
+                                <option value="open">Open</option>
+                                <option value="in progress">In Progress</option>
+                                <option value="delayed">Delayed</option>
+                                <option value="done">Done</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Fälligkeitsdatum</label>
+                            <input type="date" name="due_date" id="edit_todo_due_date">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" name="is_private" id="edit_todo_is_private" value="1">
+                                Privat
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary">Speichern</button>
+                    <button type="button" onclick="closeEditTodoModal()" class="btn-secondary">Abbrechen</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Mitgliederverwaltung -->
@@ -660,65 +870,6 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
 });
 </script>
 
-<!-- Offene ToDos -->
-<div id="admin-todos" class="admin-section">
-    <h3 class="admin-section-header" onclick="toggleSection(this)">📝 Offene ToDos</h3>
-
-    <div class="admin-section-content">
-
-    <?php if (empty($open_todos)): ?>
-        <div class="info-box">Keine offenen ToDos vorhanden.</div>
-    <?php else: ?>
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Meeting</th>
-                    <th>TOP</th>
-                    <th>Aufgabe</th>
-                    <th>Zugewiesen an</th>
-                    <th>Fällig am</th>
-                    <th>Aktion</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($open_todos as $todo): ?>
-                    <tr>
-                        <td>
-                            <?php if ($todo['meeting_name']): ?>
-                                <strong><?php echo htmlspecialchars($todo['meeting_name']); ?></strong><br>
-                                <small><?php echo date('d.m.Y', strtotime($todo['meeting_date'])); ?></small>
-                            <?php else: ?>
-                                -
-                            <?php endif; ?>
-                        </td>
-                        <td><?php echo $todo['agenda_title'] ? htmlspecialchars($todo['agenda_title']) : '-'; ?></td>
-                        <td>
-                            <?php if (!empty($todo['title'])): ?>
-                                <strong><?php echo htmlspecialchars($todo['title']); ?></strong><br>
-                            <?php endif; ?>
-                            <?php echo htmlspecialchars($todo['description']); ?>
-                        </td>
-                        <td><?php echo htmlspecialchars($todo['first_name'] . ' ' . $todo['last_name']); ?></td>
-                        <td><?php echo $todo['due_date'] ? date('d.m.Y', strtotime($todo['due_date'])) : '-'; ?></td>
-                        <td class="action-buttons">
-                            <button class="btn-view" onclick="editTodo(<?php echo $todo['todo_id']; ?>)">✏️</button>
-                            <form method="POST" onsubmit="return confirm('ToDo als erledigt markieren?');" style="display: inline;">
-                                <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
-                                <button type="submit" name="close_todo" class="btn-primary">✓ Erledigt</button>
-                            </form>
-                            <form method="POST" onsubmit="return confirm('ToDo wirklich löschen?');" style="display: inline;">
-                                <input type="hidden" name="todo_id" value="<?php echo $todo['todo_id']; ?>">
-                                <button type="submit" name="delete_todo" class="btn-delete">🗑️</button>
-                            </form>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    <?php endif; ?>
-    </div> <!-- End admin-section-content -->
-</div>
-
 <!-- Textbearbeitung-Verwaltung -->
 <div id="admin-texts" class="admin-section">
     <h3 class="admin-section-header" onclick="toggleSection(this)">✍️ Textbearbeitung-Verwaltung</h3>
@@ -834,6 +985,123 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
                         <td>
                             <?php if ($log['old_values'] || $log['new_values']): ?>
                                 <button class="btn-view" onclick="showLogDetails(<?php echo $log['log_id']; ?>)">
+                                    🔍 Details
+                                </button>
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+    </div> <!-- End admin-section-content -->
+</div>
+
+<!-- Externe Zugriffs-Logs -->
+<div id="external-access-log" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">🔐 Externe Zugriffs-Logs (Terminumfragen & Meinungsbilder)</h3>
+
+    <div class="admin-section-content">
+
+    <?php if (!empty($external_access_stats)): ?>
+        <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px;">
+            <?php
+            $access_type_labels = [
+                'member_login' => ['icon' => '✅', 'label' => 'Member-Logins', 'color' => '#4caf50'],
+                'invalid_mnr' => ['icon' => '⚠️', 'label' => 'Ungültige MNr', 'color' => '#ff9800'],
+                'external_registration' => ['icon' => '👤', 'label' => 'Externe Registrierungen', 'color' => '#2196f3'],
+                'registration_error' => ['icon' => '❌', 'label' => 'Fehler', 'color' => '#f44336']
+            ];
+
+            foreach ($external_access_stats as $stat):
+                $info = $access_type_labels[$stat['access_type']] ?? ['icon' => '📊', 'label' => $stat['access_type'], 'color' => '#999'];
+            ?>
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid <?php echo $info['color']; ?>; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div style="font-size: 24px; margin-bottom: 5px;"><?php echo $info['icon']; ?></div>
+                    <div style="font-size: 28px; font-weight: bold; color: <?php echo $info['color']; ?>; margin-bottom: 5px;">
+                        <?php echo $stat['count']; ?>
+                    </div>
+                    <div style="font-size: 14px; color: #666;">
+                        <?php echo $info['label']; ?>
+                        <span style="font-size: 12px; color: #999;">(30 Tage)</span>
+                    </div>
+                    <?php if ($stat['failure_count'] > 0): ?>
+                        <div style="font-size: 12px; color: #f44336; margin-top: 5px;">
+                            ⚠️ <?php echo $stat['failure_count']; ?> fehlgeschlagen
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (empty($external_access_logs)): ?>
+        <div class="info-box">Keine externen Zugriffe protokolliert.</div>
+    <?php else: ?>
+        <table class="admin-table compact-log-table">
+            <thead>
+                <tr>
+                    <th>Zeitpunkt</th>
+                    <th>Typ</th>
+                    <th>Umfrage</th>
+                    <th>Person</th>
+                    <th>IP-Adresse</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($external_access_logs as $log):
+                    $access_badges = [
+                        'member_login' => ['label' => '✅ Member-Login', 'class' => 'success'],
+                        'invalid_mnr' => ['label' => '⚠️ Ungültige MNr', 'class' => 'warning'],
+                        'external_registration' => ['label' => '👤 Externe Reg.', 'class' => 'info'],
+                        'registration_error' => ['label' => '❌ Fehler', 'class' => 'error']
+                    ];
+                    $badge = $access_badges[$log['access_type']] ?? ['label' => $log['access_type'], 'class' => 'default'];
+
+                    // Person identifizieren
+                    $person = '';
+                    if ($log['member_first_name']) {
+                        $person = htmlspecialchars($log['member_first_name'] . ' ' . $log['member_last_name']);
+                        if ($log['membership_number']) {
+                            $person .= ' <span style="color: #666; font-size: 0.9em;">(MNr: ' . htmlspecialchars($log['membership_number']) . ')</span>';
+                        }
+                    } elseif ($log['first_name'] && $log['last_name']) {
+                        $person = htmlspecialchars($log['first_name'] . ' ' . $log['last_name']);
+                    } elseif ($log['email']) {
+                        $person = htmlspecialchars($log['email']);
+                    } elseif ($log['mnr']) {
+                        $person = '<span style="color: #999;">MNr: ' . htmlspecialchars($log['mnr']) . '</span>';
+                    } else {
+                        $person = '<span style="color: #999;">-</span>';
+                    }
+                ?>
+                    <tr style="<?php echo !$log['success'] ? 'background: #fff3cd;' : ''; ?>">
+                        <td style="white-space: nowrap;"><?php echo date('d.m.Y H:i:s', strtotime($log['created_at'])); ?></td>
+                        <td>
+                            <span class="action-badge action-<?php echo $badge['class']; ?>">
+                                <?php echo $badge['label']; ?>
+                            </span>
+                        </td>
+                        <td>
+                            <strong><?php echo $log['poll_type'] === 'termine' ? '📅 Termin' : '📊 Meinungsbild'; ?></strong>
+                            <span style="color: #666; font-size: 0.9em;">#<?php echo $log['poll_id']; ?></span>
+                        </td>
+                        <td><?php echo $person; ?></td>
+                        <td style="font-family: monospace; font-size: 0.9em;"><?php echo htmlspecialchars($log['ip_address']); ?></td>
+                        <td>
+                            <?php if ($log['success']): ?>
+                                <span style="color: #4caf50;">✓ Erfolg</span>
+                            <?php else: ?>
+                                <span style="color: #f44336;">✗ Fehler</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($log['error_message'] || $log['user_agent']): ?>
+                                <button class="btn-view" onclick="showExternalLogDetails(<?php echo $log['log_id']; ?>)">
                                     🔍 Details
                                 </button>
                             <?php else: ?>
@@ -1118,6 +1386,7 @@ function editMeeting(meetingId) {
         document.getElementById('edit_meeting_name').value = meeting.meeting_name;
         document.getElementById('edit_meeting_date').value = meeting.meeting_date.replace(' ', 'T').substring(0, 16);
         document.getElementById('edit_expected_end_date').value = meeting.expected_end_date ? meeting.expected_end_date.replace(' ', 'T').substring(0, 16) : '';
+        document.getElementById('edit_submission_deadline').value = meeting.submission_deadline ? meeting.submission_deadline.replace(' ', 'T').substring(0, 16) : '';
         document.getElementById('edit_location').value = meeting.location || '';
         document.getElementById('edit_video_link').value = meeting.video_link || '';
         document.getElementById('edit_status').value = meeting.status;
@@ -1212,6 +1481,77 @@ function closeLogDetailsModal() {
     document.getElementById('log-details-modal').classList.remove('show');
 }
 
+// Externe Zugriffs-Log Details
+function showExternalLogDetails(logId) {
+    const logs = <?php echo json_encode($external_access_logs); ?>;
+    const log = logs.find(l => l.log_id == logId);
+
+    if (log) {
+        let html = '<div class="log-details">';
+
+        html += '<h4>Zugriffs-Details:</h4>';
+        html += '<table style="width: 100%; border-collapse: collapse;">';
+
+        if (log.access_type) {
+            const types = {
+                'member_login': '✅ Member-Login via Mitgliedsnummer',
+                'invalid_mnr': '⚠️ Ungültiger Mitgliedsnummer-Versuch',
+                'external_registration': '👤 Externe Registrierung',
+                'registration_error': '❌ Registrierungsfehler'
+            };
+            html += '<tr><td style="padding: 5px; font-weight: bold;">Typ:</td><td style="padding: 5px;">' + (types[log.access_type] || log.access_type) + '</td></tr>';
+        }
+
+        if (log.poll_type) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">Umfrage:</td><td style="padding: 5px;">' +
+                    (log.poll_type === 'termine' ? '📅 Terminumfrage' : '📊 Meinungsbild') + ' #' + log.poll_id + '</td></tr>';
+        }
+
+        if (log.member_first_name) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">Mitglied:</td><td style="padding: 5px;">' +
+                    log.member_first_name + ' ' + log.member_last_name +
+                    (log.membership_number ? ' (MNr: ' + log.membership_number + ')' : '') + '</td></tr>';
+        }
+
+        if (log.mnr) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">Eingeg. MNr:</td><td style="padding: 5px;">' + log.mnr + '</td></tr>';
+        }
+
+        if (log.first_name || log.last_name) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">Name:</td><td style="padding: 5px;">' +
+                    (log.first_name || '') + ' ' + (log.last_name || '') + '</td></tr>';
+        }
+
+        if (log.email) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">E-Mail:</td><td style="padding: 5px;">' + log.email + '</td></tr>';
+        }
+
+        if (log.ip_address) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">IP-Adresse:</td><td style="padding: 5px; font-family: monospace;">' + log.ip_address + '</td></tr>';
+        }
+
+        if (log.user_agent) {
+            html += '<tr><td style="padding: 5px; font-weight: bold;">Browser:</td><td style="padding: 5px; font-size: 0.9em; word-break: break-all;">' + log.user_agent + '</td></tr>';
+        }
+
+        html += '<tr><td style="padding: 5px; font-weight: bold;">Status:</td><td style="padding: 5px;">' +
+                (log.success ? '<span style="color: #4caf50;">✓ Erfolgreich</span>' : '<span style="color: #f44336;">✗ Fehlgeschlagen</span>') + '</td></tr>';
+
+        if (log.error_message) {
+            html += '<tr><td style="padding: 5px; font-weight: bold; vertical-align: top;">Fehlermeldung:</td><td style="padding: 5px; color: #f44336;">' + log.error_message + '</td></tr>';
+        }
+
+        html += '<tr><td style="padding: 5px; font-weight: bold;">Zeitpunkt:</td><td style="padding: 5px;">' +
+                new Date(log.created_at).toLocaleString('de-DE') + '</td></tr>';
+
+        html += '</table>';
+        html += '</div>';
+
+        document.getElementById('log-details-content').innerHTML = html;
+        document.getElementById('log-details-modal').classList.add('show');
+    }
+}
+
 // Akkordion-Funktionalität
 function toggleSection(header) {
     header.classList.toggle('collapsed');
@@ -1221,7 +1561,7 @@ function toggleSection(header) {
 
 // ToDo bearbeiten
 function editTodo(todoId) {
-    const todos = <?php echo json_encode($open_todos); ?>;
+    const todos = <?php echo json_encode($all_todos ?? []); ?>;
     const todo = todos.find(t => t.todo_id == todoId);
 
     if (todo) {
@@ -1230,14 +1570,22 @@ function editTodo(todoId) {
         document.getElementById('edit_todo_description').value = todo.description || '';
         document.getElementById('edit_todo_assigned_to').value = todo.assigned_to_member_id || '';
         document.getElementById('edit_todo_status').value = todo.status || 'open';
-        document.getElementById('edit_todo_entry_date').value = todo.entry_date || '';
-        document.getElementById('edit_todo_due_date').value = todo.due_date || '';
+        document.getElementById('edit_todo_due_date').value = todo.due_date && todo.due_date !== '0000-00-00' ? todo.due_date : '';
+        document.getElementById('edit_todo_is_private').checked = todo.is_private == 1;
         document.getElementById('edit-todo-modal').classList.add('show');
     }
 }
 
 function closeEditTodoModal() {
     document.getElementById('edit-todo-modal').classList.remove('show');
+}
+
+function showAddTodoForm() {
+    document.getElementById('add-todo-form').style.display = 'block';
+}
+
+function hideAddTodoForm() {
+    document.getElementById('add-todo-form').style.display = 'none';
 }
 
 // Initialize: Start with all sections collapsed

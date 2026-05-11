@@ -9,31 +9,71 @@
 function generate_compact_protocol($pdo, $meeting_id) {
     // Meeting-Daten laden
     $stmt = $pdo->prepare("
-        SELECT m.*,
-            chairman.first_name as chairman_first, chairman.last_name as chairman_last,
-            secretary.first_name as secretary_first, secretary.last_name as secretary_last
+        SELECT m.*
         FROM svmeetings m
-        LEFT JOIN svmembers chairman ON m.chairman_member_id = chairman.member_id
-        LEFT JOIN svmembers secretary ON m.secretary_member_id = secretary.member_id
         WHERE m.meeting_id = ?
     ");
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch();
-    
+
     if (!$meeting) {
         return false;
     }
-    
+
+    // Chairman und Secretary Namen über Adapter laden
+    if ($meeting['chairman_member_id']) {
+        $chairman = get_member_by_id($pdo, $meeting['chairman_member_id']);
+        if ($chairman) {
+            $meeting['chairman_first'] = $chairman['first_name'];
+            $meeting['chairman_last'] = $chairman['last_name'];
+        } else {
+            $meeting['chairman_first'] = 'Unbekannt';
+            $meeting['chairman_last'] = '';
+        }
+    } else {
+        $meeting['chairman_first'] = '';
+        $meeting['chairman_last'] = '';
+    }
+
+    if ($meeting['secretary_member_id']) {
+        $secretary = get_member_by_id($pdo, $meeting['secretary_member_id']);
+        if ($secretary) {
+            $meeting['secretary_first'] = $secretary['first_name'];
+            $meeting['secretary_last'] = $secretary['last_name'];
+        } else {
+            $meeting['secretary_first'] = 'Unbekannt';
+            $meeting['secretary_last'] = '';
+        }
+    } else {
+        $meeting['secretary_first'] = '';
+        $meeting['secretary_last'] = '';
+    }
+
     // Teilnehmer laden
     $stmt = $pdo->prepare("
-        SELECT m.first_name, m.last_name
+        SELECT mp.member_id
         FROM svmeeting_participants mp
-        JOIN svmembers m ON mp.member_id = m.member_id
         WHERE mp.meeting_id = ?
-        ORDER BY m.last_name, m.first_name
     ");
     $stmt->execute([$meeting_id]);
-    $participants = $stmt->fetchAll();
+    $participant_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    // Mitgliederdaten über Adapter laden und sortieren
+    $participants = [];
+    foreach ($participant_ids as $member_id) {
+        $member = get_member_by_id($pdo, $member_id);
+        if ($member) {
+            $participants[] = $member;
+        }
+    }
+
+    usort($participants, function($a, $b) {
+        $cmp = strcmp($a['last_name'], $b['last_name']);
+        if ($cmp === 0) {
+            return strcmp($a['first_name'], $b['first_name']);
+        }
+        return $cmp;
+    });
     
     // Agenda Items laden (nur nicht-vertrauliche, sortiert nach TOP-Nummer)
     $stmt = $pdo->prepare("
