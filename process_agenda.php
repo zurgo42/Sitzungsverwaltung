@@ -1743,11 +1743,19 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
  * Änderungen im Status "ended" speichern
  */
 if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
+    // Debug-Log schreiben
+    error_log("DEBUG save_ended_changes: POST empfangen");
+    error_log("DEBUG is_secretary: " . ($is_secretary ? 'true' : 'false'));
+    error_log("DEBUG meeting_status: " . $meeting['status']);
+    error_log("DEBUG current_user_id: " . $current_user['member_id']);
+    error_log("DEBUG secretary_id: " . $meeting['secretary_member_id']);
+
     try {
         $changes_saved = false;
 
         // Protokoll speichern (nur Sekretär)
         if ($is_secretary) {
+            error_log("DEBUG: Secretary check passed - saving protocol");
             $protocol_texts = $_POST['protocol_text'] ?? [];
             $vote_yes = $_POST['vote_yes'] ?? [];
             $vote_no = $_POST['vote_no'] ?? [];
@@ -1820,13 +1828,19 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
             }
         }
 
-        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=ended_saved");
+        error_log("DEBUG: Save completed - redirecting");
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=ended_saved&debug=1");
         exit;
     } catch (PDOException $e) {
         error_log("Fehler beim Speichern (ended): " . $e->getMessage());
-        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=save_failed&msg=" . urlencode($e->getMessage()));
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=save_failed&msg=" . urlencode($e->getMessage()) . "&debug=1");
         exit;
     }
+} elseif (isset($_POST['save_ended_changes'])) {
+    // Handler wurde aufgerufen aber Bedingung nicht erfüllt
+    error_log("DEBUG save_ended_changes: Handler called but condition failed");
+    error_log("DEBUG meeting_status: " . ($meeting['status'] ?? 'undefined'));
+    error_log("DEBUG expected: ended");
 }
 
 /**

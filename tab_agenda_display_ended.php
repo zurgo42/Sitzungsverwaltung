@@ -8,6 +8,23 @@ if (empty($agenda_items)) {
     echo '<div class="info-box">Keine Tagesordnungspunkte vorhanden.</div>';
     return;
 }
+
+// DEBUG MODUS (immer sichtbar wenn ?debug=1)
+if (isset($_GET['debug']) && $_GET['debug'] == 1) {
+    echo '<div style="background: #fff3cd; padding: 15px; margin: 15px 0; border-left: 4px solid #ffc107; font-family: monospace; font-size: 13px;">';
+    echo '<strong style="font-size: 16px;">🔍 DEBUG-INFO</strong><br><br>';
+    echo '<strong>Meeting Status:</strong> ' . htmlspecialchars($meeting['status'] ?? 'undefined') . '<br>';
+    echo '<strong>Is Secretary:</strong> ' . ($is_secretary ? '✅ JA' : '❌ NEIN') . '<br>';
+    echo '<strong>Current User ID:</strong> ' . ($current_user['member_id'] ?? 'undefined') . '<br>';
+    echo '<strong>Secretary ID in Meeting:</strong> ' . ($meeting['secretary_member_id'] ?? 'undefined') . '<br>';
+    echo '<strong>POST submitted:</strong> ' . ($_SERVER['REQUEST_METHOD'] === 'POST' ? '✅ JA' : '❌ NEIN (GET)') . '<br>';
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        echo '<strong>POST save_ended_changes:</strong> ' . (isset($_POST['save_ended_changes']) ? '✅ Vorhanden' : '❌ Fehlt') . '<br>';
+    }
+    echo '<strong>URL Success Param:</strong> ' . (isset($_GET['success']) ? $_GET['success'] : 'keiner') . '<br>';
+    echo '<strong>URL Error Param:</strong> ' . (isset($_GET['error']) ? $_GET['error'] : 'keiner') . '<br>';
+    echo '</div>';
+}
 ?>
 
 <h3 style="margin: 20px 0 15px 0;">📋 Sitzungsverlauf - Protokoll in Bearbeitung</h3>
