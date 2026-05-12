@@ -6,8 +6,9 @@
  * (gefiltert nach fertig = '1')
  */
 
-session_start();
 require_once 'session_config.php';
+session_start();
+require_once 'config.php';
 
 // Prüfen ob eingeloggt (mit Adapter-Pattern)
 if (!isset($_SESSION['member_id'])) {
@@ -17,9 +18,9 @@ if (!isset($_SESSION['member_id'])) {
 
 // Datenbankverbindung
 $pdo = new PDO(
-    "mysql:host=localhost;dbname=aktive;charset=utf8mb4",
-    "root",
-    "password",
+    "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+    DB_USER,
+    DB_PASS,
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
 );
 
