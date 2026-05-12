@@ -8,7 +8,7 @@
 
 require_once 'session_config.php';
 session_start();
-require_once 'config.php';
+require_once 'config.php'; // Lädt auch $pdo
 
 // Prüfen ob eingeloggt (mit Adapter-Pattern)
 if (!isset($_SESSION['member_id'])) {
@@ -16,13 +16,7 @@ if (!isset($_SESSION['member_id'])) {
     exit;
 }
 
-// Datenbankverbindung
-$pdo = new PDO(
-    "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
-    DB_USER,
-    DB_PASS,
-    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-);
+// $pdo ist bereits durch config.php verfügbar
 
 // Filter-Parameter
 $filter_year = $_GET['year'] ?? '';
