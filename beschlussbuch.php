@@ -50,7 +50,7 @@ $sql = "SELECT
     b.enthaltungen,
     b.anmerkungen,
     b.text as volltext,
-    a.Betrag,
+    a.betrag,
     a.ergebnis,
     a.verant,
     a.lzugriff
@@ -391,10 +391,10 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                 <?php endif; ?>
 
                 <div class="beschluss-meta">
-                    <?php if ($b['Betrag'] && $b['Betrag'] != 0): ?>
+                    <?php if ($b['betrag'] && $b['betrag'] != 0): ?>
                         <div class="meta-item">
                             <span class="meta-label">Betrag</span>
-                            <span class="meta-value"><?= number_format($b['Betrag'], 2, ',', '.') ?> €</span>
+                            <span class="meta-value"><?= number_format($b['betrag'], 2, ',', '.') ?> €</span>
                         </div>
                     <?php endif; ?>
 
