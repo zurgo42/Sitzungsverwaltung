@@ -35,38 +35,28 @@ $search = $_GET['search'] ?? '';
 
 // SQL-Basis
 $sql = "SELECT
-    antrnr,
-    titel,
-    beschluss,
-    begr,
-    pers,
-    sach,
-    fintext,
-    Betrag,
-    ergebnis,
-    wichtig,
-    ressort1,
-    ressort2,
-    verant,
-    int_ext,
-    lzugriff,
-    -- Beschluss-Felder (falls ALTER-Skript ausgeführt)
-    fertig,
-    besch_text,
-    besch_titel,
-    besch_beschluss,
-    besch_fintext,
-    besch_pers,
-    besch_sach,
-    besch_begr,
-    besch_ressort,
-    besch_int_ext,
-    besch_dafuer,
-    besch_dagegen,
-    besch_enthaltungen,
-    besch_anmerkungen
-FROM antraege
-WHERE fertig = '1'";
+    b.antrnr,
+    b.titel,
+    b.beschluss,
+    b.begr,
+    b.pers,
+    b.sach,
+    b.fintext,
+    b.wichtig,
+    b.ressort,
+    b.int_ext,
+    b.dafuer,
+    b.dagegen,
+    b.enthaltungen,
+    b.anmerkungen,
+    b.text as volltext,
+    a.Betrag,
+    a.ergebnis,
+    a.verant,
+    a.lzugriff
+FROM beschluesse b
+LEFT JOIN antraege a ON b.antrnr = a.antrnr
+WHERE 1=1";
 
 $params = [];
 
@@ -83,26 +73,22 @@ if ($filter_wichtig === '1') {
 
 // Filter: Ressort
 if ($filter_ressort) {
-    $sql .= " AND (ressort1 = ? OR ressort2 = ?)";
-    $params[] = $filter_ressort;
-    $params[] = $filter_ressort;
+    $sql .= " AND b.ressort LIKE ?";
+    $params[] = "%$filter_ressort%";
 }
 
 // Suche: Titel, Beschluss, Begründung
 if ($search) {
     $sql .= " AND (
-        titel LIKE ? OR
-        beschluss LIKE ? OR
-        begr LIKE ? OR
-        besch_titel LIKE ? OR
-        besch_beschluss LIKE ? OR
-        besch_begr LIKE ?
+        b.titel LIKE ? OR
+        b.beschluss LIKE ? OR
+        b.begr LIKE ?
     )";
     $search_param = "%$search%";
-    $params = array_merge($params, array_fill(0, 6, $search_param));
+    $params = array_merge($params, array_fill(0, 3, $search_param));
 }
 
-$sql .= " ORDER BY antrnr DESC";
+$sql .= " ORDER BY b.antrnr DESC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -111,21 +97,21 @@ $beschluesse = $stmt->fetchAll();
 // Jahres-Liste für Filter
 $years_stmt = $pdo->query("
     SELECT DISTINCT SUBSTRING(antrnr, 3, 2) as jahr
-    FROM antraege
-    WHERE fertig = '1'
+    FROM beschluesse
     ORDER BY jahr DESC
 ");
 $years = $years_stmt->fetchAll(PDO::FETCH_COLUMN);
 
-// Ressort-Liste
+// Ressort-Liste (aus beschluesse, enthält bereits aufgelöste Namen)
 $ressorts_stmt = $pdo->query("
-    SELECT DISTINCT ressort1 as ressort
-    FROM antraege
-    WHERE fertig = '1' AND ressort1 IS NOT NULL AND ressort1 != ''
-    UNION
-    SELECT DISTINCT ressort2
-    FROM antraege
-    WHERE fertig = '1' AND ressort2 IS NOT NULL AND ressort2 != ''
+    SELECT DISTINCT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(ressort, ',', numbers.n), ',', -1)) as ressort
+    FROM beschluesse
+    CROSS JOIN (
+        SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+    ) numbers
+    WHERE ressort IS NOT NULL
+    AND ressort != ''
+    AND CHAR_LENGTH(ressort) - CHAR_LENGTH(REPLACE(ressort, ',', '')) >= numbers.n - 1
     ORDER BY ressort
 ");
 $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -367,12 +353,18 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                             <span class="badge wichtig">Wichtig</span>
                         <?php endif; ?>
 
-                        <?php if ($b['ressort1']): ?>
-                            <span class="badge ressort"><?= htmlspecialchars($b['ressort1']) ?></span>
-                        <?php endif; ?>
-
-                        <?php if ($b['ressort2']): ?>
-                            <span class="badge ressort"><?= htmlspecialchars($b['ressort2']) ?></span>
+                        <?php if ($b['ressort']): ?>
+                            <?php
+                            // Ressort kann kommasepariert sein
+                            $ressorts_arr = array_map('trim', explode(',', $b['ressort']));
+                            foreach ($ressorts_arr as $r):
+                                if ($r):
+                            ?>
+                                <span class="badge ressort"><?= htmlspecialchars($r) ?></span>
+                            <?php
+                                endif;
+                            endforeach;
+                            ?>
                         <?php endif; ?>
 
                         <?php if ($b['int_ext'] === 'i'): ?>
@@ -383,20 +375,18 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                     </div>
                 </div>
 
-                <!-- Titel: Beschluss-Titel falls vorhanden, sonst Original-Titel -->
                 <div class="beschluss-title">
-                    <?= htmlspecialchars($b['besch_titel'] ?: $b['titel']) ?>
+                    <?= htmlspecialchars($b['titel']) ?>
                 </div>
 
-                <!-- Beschluss-Text: Finale Version falls vorhanden -->
                 <div class="beschluss-content">
-                    <?= nl2br(htmlspecialchars($b['besch_beschluss'] ?: $b['beschluss'])) ?>
+                    <?= nl2br(htmlspecialchars($b['beschluss'])) ?>
                 </div>
 
-                <?php if ($b['besch_begr'] || $b['begr']): ?>
+                <?php if ($b['begr']): ?>
                     <div class="beschluss-content" style="margin-top: 12px; font-style: italic; color: #666;">
                         <strong>Begründung:</strong><br>
-                        <?= nl2br(htmlspecialchars($b['besch_begr'] ?: $b['begr'])) ?>
+                        <?= nl2br(htmlspecialchars($b['begr'])) ?>
                     </div>
                 <?php endif; ?>
 
@@ -408,24 +398,24 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                         </div>
                     <?php endif; ?>
 
-                    <?php if ($b['besch_fintext'] || $b['fintext']): ?>
+                    <?php if ($b['fintext']): ?>
                         <div class="meta-item">
                             <span class="meta-label">Finanzielle Auswirkungen</span>
-                            <span class="meta-value"><?= htmlspecialchars($b['besch_fintext'] ?: $b['fintext']) ?></span>
+                            <span class="meta-value"><?= htmlspecialchars($b['fintext']) ?></span>
                         </div>
                     <?php endif; ?>
 
-                    <?php if ($b['besch_pers'] || $b['pers']): ?>
+                    <?php if ($b['pers']): ?>
                         <div class="meta-item">
                             <span class="meta-label">Personelle Auswirkungen</span>
-                            <span class="meta-value"><?= htmlspecialchars($b['besch_pers'] ?: $b['pers']) ?></span>
+                            <span class="meta-value"><?= htmlspecialchars($b['pers']) ?></span>
                         </div>
                     <?php endif; ?>
 
-                    <?php if ($b['besch_sach'] || $b['sach']): ?>
+                    <?php if ($b['sach']): ?>
                         <div class="meta-item">
                             <span class="meta-label">Sachliche Auswirkungen</span>
-                            <span class="meta-value"><?= htmlspecialchars($b['besch_sach'] ?: $b['sach']) ?></span>
+                            <span class="meta-value"><?= htmlspecialchars($b['sach']) ?></span>
                         </div>
                     <?php endif; ?>
 
@@ -443,24 +433,31 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                         </div>
                     <?php endif; ?>
 
-                    <?php if ($b['besch_dafuer']): ?>
+                    <?php if ($b['dafuer']): ?>
                         <div class="meta-item">
                             <span class="meta-label">Dafür</span>
-                            <span class="meta-value"><?= htmlspecialchars($b['besch_dafuer']) ?></span>
+                            <span class="meta-value"><?= htmlspecialchars($b['dafuer']) ?></span>
                         </div>
                     <?php endif; ?>
 
-                    <?php if ($b['besch_dagegen']): ?>
+                    <?php if ($b['dagegen']): ?>
                         <div class="meta-item">
                             <span class="meta-label">Dagegen</span>
-                            <span class="meta-value"><?= htmlspecialchars($b['besch_dagegen']) ?></span>
+                            <span class="meta-value"><?= htmlspecialchars($b['dagegen']) ?></span>
                         </div>
                     <?php endif; ?>
 
-                    <?php if ($b['besch_enthaltungen']): ?>
+                    <?php if ($b['enthaltungen']): ?>
                         <div class="meta-item">
                             <span class="meta-label">Enthaltungen</span>
-                            <span class="meta-value"><?= htmlspecialchars($b['besch_enthaltungen']) ?></span>
+                            <span class="meta-value"><?= htmlspecialchars($b['enthaltungen']) ?></span>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($b['anmerkungen']): ?>
+                        <div class="meta-item">
+                            <span class="meta-label">Anmerkungen</span>
+                            <span class="meta-value"><?= nl2br(htmlspecialchars($b['anmerkungen'])) ?></span>
                         </div>
                     <?php endif; ?>
                 </div>
