@@ -38,6 +38,19 @@ echo "<!DOCTYPE html>
             color: #333;
             font-family: sans-serif;
         }
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-family: sans-serif;
+            font-size: 14px;
+        }
+        .info-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
         .summary {
             background: white;
             padding: 20px;
@@ -111,19 +124,27 @@ echo "<!DOCTYPE html>
 </head>
 <body>
 <h1>Vergleich: Beschlüsse vs. Anträge</h1>
+
+<div class='info-box'>
+    <strong>ℹ️ Hinweis zum Vergleich:</strong>
+    <ul>
+        <li><strong>fintext:</strong> Nicht verglichen (Betrag und Text in antraege getrennt gespeichert)</li>
+        <li><strong>ressort:</strong> Nicht verglichen (wird in beschluesse aus Ressortliste aufgelöst)</li>
+        <li><strong>wichtig:</strong> Nicht verglichen (identisch)</li>
+    </ul>
+    <p><strong>Verglichene Felder:</strong> titel, beschluss, pers, sach, begr, int_ext</p>
+</div>
 ";
 
 // Felder zum Vergleichen
+// NICHT verglichen: fintext (Betrag+Text in antraege getrennt), ressort (wird aufgelöst), wichtig (identisch)
 $fields_to_compare = [
     'titel' => 'Titel',
     'beschluss' => 'Beschluss',
-    'fintext' => 'Finanzielle Auswirkungen',
     'pers' => 'Personelle Auswirkungen',
     'sach' => 'Sachliche Auswirkungen',
     'begr' => 'Begründung',
-    'ressort' => 'Ressort',
-    'int_ext' => 'Intern/Extern',
-    'wichtig' => 'Wichtig-Flag'
+    'int_ext' => 'Intern/Extern'
 ];
 
 // Hole alle Beschlüsse und vergleiche mit Anträgen
