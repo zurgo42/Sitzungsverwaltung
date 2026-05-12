@@ -407,24 +407,42 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                         </div>
                     <?php endif; ?>
 
-                    <?php if ($b['dafuer']): ?>
-                        <div class="meta-item">
-                            <span class="meta-label">Dafür</span>
-                            <span class="meta-value"><?= htmlspecialchars($b['dafuer']) ?></span>
-                        </div>
-                    <?php endif; ?>
+                    <?php
+                    // Abstimmungsergebnis zusammenstellen und leere Einträge entfernen
+                    $voting_parts = [];
 
-                    <?php if ($b['dagegen']): ?>
-                        <div class="meta-item">
-                            <span class="meta-label">Dagegen</span>
-                            <span class="meta-value"><?= htmlspecialchars($b['dagegen']) ?></span>
-                        </div>
-                    <?php endif; ?>
+                    if ($b['dafuer']) {
+                        $dafuer_clean = preg_replace('/,\s*:\s*[^,]*/', '', $b['dafuer']); // Entfernt ", : xyz"
+                        $dafuer_clean = preg_replace('/:\s*kein Votum\s*,?\s*/', '', $dafuer_clean); // Entfernt ": kein Votum"
+                        $dafuer_clean = trim($dafuer_clean, ', ');
+                        if ($dafuer_clean) {
+                            $voting_parts[] = '<strong>Dafür:</strong> ' . htmlspecialchars($dafuer_clean);
+                        }
+                    }
 
-                    <?php if ($b['enthaltungen']): ?>
+                    if ($b['dagegen']) {
+                        $dagegen_clean = preg_replace('/,\s*:\s*[^,]*/', '', $b['dagegen']);
+                        $dagegen_clean = preg_replace('/:\s*kein Votum\s*,?\s*/', '', $dagegen_clean);
+                        $dagegen_clean = trim($dagegen_clean, ', ');
+                        if ($dagegen_clean) {
+                            $voting_parts[] = '<strong>Dagegen:</strong> ' . htmlspecialchars($dagegen_clean);
+                        }
+                    }
+
+                    if ($b['enthaltungen']) {
+                        $enthaltungen_clean = preg_replace('/,\s*:\s*[^,]*/', '', $b['enthaltungen']);
+                        $enthaltungen_clean = preg_replace('/:\s*kein Votum\s*,?\s*/', '', $enthaltungen_clean);
+                        $enthaltungen_clean = trim($enthaltungen_clean, ', ');
+                        if ($enthaltungen_clean) {
+                            $voting_parts[] = '<strong>Enthaltung:</strong> ' . htmlspecialchars($enthaltungen_clean);
+                        }
+                    }
+
+                    if (!empty($voting_parts)):
+                    ?>
                         <div class="meta-item">
-                            <span class="meta-label">Enthaltungen</span>
-                            <span class="meta-value"><?= htmlspecialchars($b['enthaltungen']) ?></span>
+                            <span class="meta-label">Abstimmungsergebnis</span>
+                            <span class="meta-value"><?= implode('<br>', $voting_parts) ?></span>
                         </div>
                     <?php endif; ?>
 
