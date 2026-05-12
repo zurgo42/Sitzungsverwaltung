@@ -49,13 +49,8 @@ $sql = "SELECT
     b.dagegen,
     b.enthaltungen,
     b.anmerkungen,
-    b.text as volltext,
-    a.betrag,
-    a.ergebnis,
-    a.verant,
-    a.lzugriff
+    b.text as volltext
 FROM beschluesse b
-LEFT JOIN antraege a ON b.antrnr = a.antrnr
 WHERE 1=1";
 
 $params = [];
@@ -391,13 +386,6 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                 <?php endif; ?>
 
                 <div class="beschluss-meta">
-                    <?php if ($b['betrag'] && $b['betrag'] != 0): ?>
-                        <div class="meta-item">
-                            <span class="meta-label">Betrag</span>
-                            <span class="meta-value"><?= number_format($b['betrag'], 2, ',', '.') ?> €</span>
-                        </div>
-                    <?php endif; ?>
-
                     <?php if ($b['fintext']): ?>
                         <div class="meta-item">
                             <span class="meta-label">Finanzielle Auswirkungen</span>
@@ -416,20 +404,6 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                         <div class="meta-item">
                             <span class="meta-label">Sachliche Auswirkungen</span>
                             <span class="meta-value"><?= htmlspecialchars($b['sach']) ?></span>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($b['verant']): ?>
-                        <div class="meta-item">
-                            <span class="meta-label">Verantwortlich</span>
-                            <span class="meta-value"><?= htmlspecialchars($b['verant']) ?></span>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($b['ergebnis']): ?>
-                        <div class="meta-item">
-                            <span class="meta-label">Abstimmungsergebnis</span>
-                            <span class="meta-value"><?= htmlspecialchars($b['ergebnis']) ?></span>
                         </div>
                     <?php endif; ?>
 
