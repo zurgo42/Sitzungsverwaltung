@@ -144,6 +144,42 @@ if ($action === '') {
     }
     echo "</div>";
 
+    // Liste der Beschlüsse ohne Antrag anzeigen
+    if ($stats['beschluesse_without_antrag'] > 0) {
+        echo "<h3>Beschlüsse ohne passenden Antrag:</h3>";
+        echo "<button onclick=\"toggleList()\">Liste anzeigen/verbergen</button>";
+        echo "<div id='missing-list' style='display: none; margin-top: 10px;'>";
+
+        $stmt = $pdo->query("
+            SELECT b.antrnr, b.titel, b.beschluss
+            FROM beschluesse b
+            LEFT JOIN antraege a ON b.antrnr = a.antrnr
+            WHERE a.antrnr IS NULL
+            ORDER BY b.antrnr
+        ");
+        $missing = $stmt->fetchAll();
+
+        echo "<div class='log'>";
+        foreach ($missing as $m) {
+            echo "<div class='log-item'>";
+            echo "<strong>{$m['antrnr']}</strong><br>";
+            echo "Titel: " . htmlspecialchars(substr($m['titel'], 0, 100)) . (strlen($m['titel']) > 100 ? '...' : '') . "<br>";
+            if ($m['beschluss']) {
+                echo "Beschluss: " . htmlspecialchars(substr($m['beschluss'], 0, 100)) . (strlen($m['beschluss']) > 100 ? '...' : '');
+            }
+            echo "</div>";
+        }
+        echo "</div>";
+        echo "</div>";
+
+        echo "<script>
+        function toggleList() {
+            var list = document.getElementById('missing-list');
+            list.style.display = list.style.display === 'none' ? 'block' : 'none';
+        }
+        </script>";
+    }
+
     echo "<h3>Was passiert beim Merge?</h3>";
     echo "<ol>";
     echo "<li>Für jeden Eintrag in <code>beschluesse</code> wird der passende Antrag gesucht</li>";
