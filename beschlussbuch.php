@@ -408,12 +408,12 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                     <?php endif; ?>
 
                     <?php
-                    // Abstimmungsergebnis zusammenstellen und leere Einträge entfernen
+                    // Abstimmungsergebnis zusammenstellen - nur leere Namen entfernen
                     $voting_parts = [];
 
                     if ($b['dafuer']) {
-                        $dafuer_clean = preg_replace('/,\s*:\s*[^,]*/', '', $b['dafuer']); // Entfernt ", : xyz"
-                        $dafuer_clean = preg_replace('/:\s*kein Votum\s*,?\s*/', '', $dafuer_clean); // Entfernt ": kein Votum"
+                        // Entfernt Einträge wo der Name leer ist (", : xyz" oder am Anfang ": xyz")
+                        $dafuer_clean = preg_replace('/(^|,)\s*:\s*[^,]*/', '', $b['dafuer']);
                         $dafuer_clean = trim($dafuer_clean, ', ');
                         if ($dafuer_clean) {
                             $voting_parts[] = '<strong>Dafür:</strong> ' . htmlspecialchars($dafuer_clean);
@@ -421,8 +421,7 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                     }
 
                     if ($b['dagegen']) {
-                        $dagegen_clean = preg_replace('/,\s*:\s*[^,]*/', '', $b['dagegen']);
-                        $dagegen_clean = preg_replace('/:\s*kein Votum\s*,?\s*/', '', $dagegen_clean);
+                        $dagegen_clean = preg_replace('/(^|,)\s*:\s*[^,]*/', '', $b['dagegen']);
                         $dagegen_clean = trim($dagegen_clean, ', ');
                         if ($dagegen_clean) {
                             $voting_parts[] = '<strong>Dagegen:</strong> ' . htmlspecialchars($dagegen_clean);
@@ -430,8 +429,7 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                     }
 
                     if ($b['enthaltungen']) {
-                        $enthaltungen_clean = preg_replace('/,\s*:\s*[^,]*/', '', $b['enthaltungen']);
-                        $enthaltungen_clean = preg_replace('/:\s*kein Votum\s*,?\s*/', '', $enthaltungen_clean);
+                        $enthaltungen_clean = preg_replace('/(^|,)\s*:\s*[^,]*/', '', $b['enthaltungen']);
                         $enthaltungen_clean = trim($enthaltungen_clean, ', ');
                         if ($enthaltungen_clean) {
                             $voting_parts[] = '<strong>Enthaltung:</strong> ' . htmlspecialchars($enthaltungen_clean);
