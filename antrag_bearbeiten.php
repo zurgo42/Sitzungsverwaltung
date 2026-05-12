@@ -72,6 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 pers = ?,
                 sach = ?,
                 fintext = ?,
+                fin = ?,
+                bart = ?,
                 verant = ?,
                 ressort1 = ?,
                 ressort2 = ?,
@@ -82,6 +84,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             WHERE antrnr = ?
         ");
 
+        // Automatik: bart basierend auf fin berechnen
+        $fin = floatval($_POST['fin'] ?? 0);
+        $bart = 'B'; // Default: Vorstandsbeschluss
+
+        if ($fin <= 600) {
+            $bart = 'V'; // Verfügung
+        } elseif ($fin <= 3000) {
+            $bart = 'R'; // Ressortbeschluss
+        }
+
         $update->execute([
             $_POST['titel'],
             $_POST['beschluss'],
@@ -89,6 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST['pers'] ?? null,
             $_POST['sach'] ?? null,
             $_POST['fintext'] ?? null,
+            $fin,
+            $bart,
             $_POST['verant'] ?? null,
             $_POST['ressort1'] ?? null,
             $_POST['ressort2'] ?? null,
@@ -248,7 +262,61 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
             color: #666;
             margin-top: 5px;
         }
+        .bart-display {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .bart-v {
+            background: #d4edda;
+            color: #155724;
+        }
+        .bart-r {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .bart-b {
+            background: #cce5ff;
+            color: #004085;
+        }
     </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const finInput = document.getElementById('fin');
+            const bartInfo = document.getElementById('bart-info');
+
+            function updateBartDisplay() {
+                const fin = parseFloat(finInput.value) || 0;
+                let bart, bartLabel, bartClass;
+
+                if (fin <= 600) {
+                    bart = 'V';
+                    bartLabel = 'Verfügung';
+                    bartClass = 'bart-v';
+                } else if (fin <= 3000) {
+                    bart = 'R';
+                    bartLabel = 'Ressortbeschluss';
+                    bartClass = 'bart-r';
+                } else {
+                    bart = 'B';
+                    bartLabel = 'Vorstandsbeschluss';
+                    bartClass = 'bart-b';
+                }
+
+                bartInfo.innerHTML = `
+                    <strong>Automatische Zuordnung:</strong>
+                    <span class="bart-display ${bartClass}">${bartLabel} (${bart})</span>
+                    <br><small>≤600€ = Verfügung | 601-3000€ = Ressortbeschluss | >3000€ = Vorstandsbeschluss</small>
+                `;
+            }
+
+            finInput.addEventListener('input', updateBartDisplay);
+            updateBartDisplay(); // Initial
+        });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -301,9 +369,21 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
             </div>
 
             <div class="form-group">
-                <label for="fintext">Finanzielle Auswirkungen</label>
+                <label for="fin">Betrag (€)</label>
+                <input type="number" id="fin" name="fin" step="0.01" min="0"
+                       value="<?= htmlspecialchars($antrag['fin'] ?? '0') ?>">
+                <div class="help-text" id="bart-info">
+                    Automatik:
+                    ≤600€ = Verfügung |
+                    601-3000€ = Ressortbeschluss |
+                    >3000€ = Vorstandsbeschluss
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="fintext">Finanzielle Auswirkungen (Beschreibung)</label>
                 <textarea id="fintext" name="fintext"><?= htmlspecialchars($antrag['fintext'] ?? '') ?></textarea>
-                <div class="help-text">Beschreibung der finanziellen Auswirkungen</div>
+                <div class="help-text">Textliche Beschreibung der finanziellen Auswirkungen</div>
             </div>
 
             <div class="form-group">
