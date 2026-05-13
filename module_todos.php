@@ -37,7 +37,7 @@ function render_todo_creation_form($pdo, $item, $meeting_id, $is_secretary, $mee
     // Member-Daten über Adapter holen
     $participants_with_attendance = [];
     foreach ($participant_rows as $row) {
-        $member = $memberAdapter->get_member_by_id($row['member_id']);
+        $member = $memberAdapter->getMemberById($row['member_id']);
         if ($member) {
             $participants_with_attendance[] = [
                 'member_id' => $member['member_id'],
