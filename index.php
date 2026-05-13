@@ -1,15 +1,19 @@
 <?php
 /**
  * index.php - Hauptdatei der Sitzungsverwaltung
- * 
+ *
  * Diese Datei ist der zentrale Einstiegspunkt der Anwendung und koordiniert:
  * - Login/Logout-Verwaltung
  * - Session-Handling
  * - Routing zwischen verschiedenen Tabs
  * - Einbindung der Processing- und Presentation-Dateien
- * 
+ *
  * Letzte Aktualisierung: 28.10.2025 MEZ
  */
+
+// Fehleranzeige aktivieren (Debug-Modus)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 // Session-Konfiguration laden (VOR session_start!)
 require_once 'session_config.php';
