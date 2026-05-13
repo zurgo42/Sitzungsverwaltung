@@ -109,22 +109,14 @@ if (isset($_POST['action']) && $_POST['action'] === 'retract') {
 
 // NEUES TODO ERSTELLEN
 if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
-    error_log("DEBUG: ToDo-Erstellung gestartet");
-    error_log("DEBUG: POST-Daten: " . print_r($_POST, true));
-    error_log("DEBUG: current_user: " . print_r($current_user ?? 'NICHT DEFINIERT', true));
-    error_log("DEBUG: currentMemberID: " . ($currentMemberID ?? 'NICHT DEFINIERT'));
-
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $due_date = trim($_POST['due_date'] ?? '');
     $assigned_to = (int)($_POST['assigned_to_member_id'] ?? 0);
     $is_private = isset($_POST['is_private']) ? 1 : 0;
 
-    error_log("DEBUG: Validierung - Titel: '$title'");
-
     // Validierung
     if (empty($title)) {
-        error_log("DEBUG: Validierung fehlgeschlagen - Titel leer");
         $_SESSION['error'] = 'Titel ist erforderlich';
         header('Location: index.php?tab=todos');
         exit;
@@ -150,8 +142,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
         $due_date = null;
     }
 
-    error_log("DEBUG: Vor INSERT - assigned_to: $assigned_to, created_by: $currentMemberID, due_date: " . ($due_date ?? 'NULL'));
-
     try {
         $stmt = $pdo->prepare("
             INSERT INTO svtodos (
@@ -159,8 +149,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
                 due_date, status, is_private, entry_date
             ) VALUES (?, ?, ?, ?, ?, 'open', ?, NOW())
         ");
-
-        error_log("DEBUG: SQL vorbereitet, führe aus...");
 
         $stmt->execute([
             $title,
@@ -172,19 +160,16 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
         ]);
 
         $todo_id = $pdo->lastInsertId();
-        error_log("DEBUG: ToDo erstellt mit ID: $todo_id");
 
         // Logging
         $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'todo-erstellt', NULL, ?)");
         $log->execute([$todo_id, $currentMemberID, $title]);
 
-        error_log("DEBUG: Erfolgreich! Redirect zu todos");
         $_SESSION['success'] = 'ToDo erfolgreich erstellt';
         header('Location: index.php?tab=todos');
         exit;
     } catch (PDOException $e) {
-        error_log('DEBUG: EXCEPTION - Todo Create Error: ' . $e->getMessage());
-        error_log('DEBUG: Exception Details: ' . print_r($e, true));
+        error_log('Todo Create Error: ' . $e->getMessage());
         $_SESSION['error'] = 'Fehler beim Erstellen des ToDos: ' . $e->getMessage();
         header('Location: index.php?tab=todos');
         exit;
