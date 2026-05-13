@@ -1,9 +1,10 @@
 <?php
 /**
- * antrag_bearbeiten.php - Antrag bearbeiten
+ * antrag_bearbeiten.php - Antrag bearbeiten mit vollständiger Workflow-Logik
  *
- * Bearbeitung eines bestehenden Antrags
- * Rechte: aktiv > 10
+ * Bearbeitung eines bestehenden Antrags mit Statusübergängen:
+ * - A (Editieren) → B (Abstimmung) → VS (Beschluss)
+ * - Rechte: aktiv > 10
  */
 
 session_start();
@@ -35,6 +36,40 @@ function getUserAktivLevel($pdo, $member_id) {
     return $result ? (int)$result['aktiv'] : 0;
 }
 
+// Hilfsfunktion: Berechtigte mit Funktion holen
+function getBerechtigteByFunktion($pdo, $funktion) {
+    $stmt = $pdo->prepare("SELECT ID, KurzN FROM berechtigte WHERE Funktion = ? ORDER BY KurzN");
+    $stmt->execute([$funktion]);
+    return $stmt->fetchAll();
+}
+
+// Hilfsfunktion: Alle aktiven Vorstandsmitglieder holen
+function getVorstandsmitglieder($pdo) {
+    $stmt = $pdo->query("SELECT ID, KurzN FROM berechtigte WHERE aktiv >= 18 ORDER BY KurzN");
+    return $stmt->fetchAll();
+}
+
+// Hilfsfunktion: Wartezeit berechnen (7 Tage ab Antragsdatum)
+function berechneWartezeit($antrnr) {
+    if (strlen($antrnr) < 7) return null;
+
+    // Extrahiere Datum aus Antragsnummer (Format: AJJMMTT...)
+    $jahr = '20' . substr($antrnr, 1, 2);
+    $monat = substr($antrnr, 3, 2);
+    $tag = substr($antrnr, 5, 2);
+
+    $antragsdatum = strtotime("$jahr-$monat-$tag");
+    if (!$antragsdatum) return null;
+
+    $wartezeit_bis = $antragsdatum + (7 * 24 * 60 * 60); // +7 Tage
+
+    if (time() >= $wartezeit_bis) {
+        return 'erfüllt';
+    } else {
+        return date('d.m.Y', $wartezeit_bis);
+    }
+}
+
 // Berechtigungen prüfen
 $user_aktiv = getUserAktivLevel($pdo, $_SESSION['member_id']);
 
@@ -58,91 +93,42 @@ if (!$antrag) {
     die("Antrag nicht gefunden.");
 }
 
-// Bei POST: Speichern
+// Status-Meldungen
 $saved = false;
 $error = null;
+$message = null;
 
+// Bei POST: Verarbeitung basierend auf Action
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+
     try {
-        $update = $pdo->prepare("
-            UPDATE antraege SET
-                titel = ?,
-                beschluss = ?,
-                begr = ?,
-                pers = ?,
-                sach = ?,
-                fintext = ?,
-                fin = ?,
-                bart = ?,
-                verant = ?,
-                ressort1 = ?,
-                ressort2 = ?,
-                wichtig = ?,
-                int_ext = ?,
-                hinweis = ?,
-                thread = ?,
-                filetext1 = ?,
-                filetext2 = ?,
-                filetext3 = ?,
-                filetext4 = ?,
-                sofort = ?,
-                durch = ?,
-                zufin = ?,
-                zbem = ?,
-                praesenz = ?,
-                lzugriff = NOW()
-            WHERE antrnr = ?
-        ");
+        switch ($action) {
+            case 'save':
+                // Einfaches Speichern ohne Statusänderung
+                speichereAntrag($pdo, $antrnr, $_POST, $antrag);
+                $saved = true;
+                $message = "Antrag gespeichert.";
+                break;
 
-        // Automatik: bart basierend auf fin berechnen
-        $fin = floatval($_POST['fin'] ?? 0);
-        $bart = 'B'; // Default: Vorstandsbeschluss
+            case 'finalize':
+                // Antrag verbindlich einstellen (A → B oder A → VS)
+                finalisiereAntrag($pdo, $antrnr, $_POST, $antrag, $user_aktiv, $_SESSION['member_id']);
+                $saved = true;
+                $message = "Antrag wurde verbindlich eingestellt und zur Abstimmung freigegeben.";
+                break;
 
-        if ($fin <= 600) {
-            $bart = 'V'; // Verfügung
-        } elseif ($fin <= 3000) {
-            $bart = 'R'; // Ressortbeschluss
+            case 'delete':
+                // Antrag unwiderruflich löschen
+                loescheAntrag($pdo, $antrnr, $antrag, $_SESSION['member_id'], $user_aktiv);
+                header('Location: antragsliste.php?msg=deleted');
+                exit;
+
+            default:
+                $error = "Unbekannte Aktion.";
         }
 
-        // sofort-Wert ermitteln (kann 0, 1 oder 2 sein)
-        $sofort = 0;
-        if (isset($_POST['sofort_1'])) {
-            $sofort = 1;
-        } elseif (isset($_POST['sofort_2'])) {
-            $sofort = 2;
-        }
-
-        $update->execute([
-            $_POST['titel'],
-            $_POST['beschluss'],
-            $_POST['begr'] ?? null,
-            $_POST['pers'] ?? null,
-            $_POST['sach'] ?? null,
-            $_POST['fintext'] ?? null,
-            $fin,
-            $bart,
-            $_POST['verant'] ?? null,
-            $_POST['ressort1'] ?? null,
-            $_POST['ressort2'] ?? null,
-            isset($_POST['wichtig']) ? 1 : 0,
-            $_POST['int_ext'] ?? null,
-            $_POST['hinweis'] ?? null,
-            $_POST['thread'] ?? null,
-            $_POST['filetext1'] ?? null,
-            $_POST['filetext2'] ?? null,
-            $_POST['filetext3'] ?? null,
-            $_POST['filetext4'] ?? null,
-            $sofort,
-            $_POST['durch'] ?? null,
-            isset($_POST['zufin']) ? 1 : 0,
-            $_POST['zbem'] ?? null,
-            isset($_POST['praesenz']) ? 1 : 0,
-            $antrnr
-        ]);
-
-        $saved = true;
-
-        // Antrag neu laden
+        // Antrag neu laden nach Änderungen
         $stmt->execute([$antrnr]);
         $antrag = $stmt->fetch();
 
@@ -151,9 +137,183 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Speichern-Funktion
+function speichereAntrag($pdo, $antrnr, $post, $antrag) {
+    // Automatik: bart basierend auf fin berechnen
+    $fin = floatval($post['fin'] ?? 0);
+    $bart = 'B'; // Default: Vorstandsbeschluss
+
+    if ($fin <= 600) {
+        $bart = 'V'; // Verfügung
+    } elseif ($fin <= 3000) {
+        $bart = 'R'; // Ressortbeschluss
+    }
+
+    // Board-Member kann eskalieren (wichtig-Flag)
+    $wichtig = 0;
+    if (isset($post['wichtig_escalate'])) {
+        $wichtig = (int)$post['wichtig_member_id'];
+    }
+
+    // sofort-Wert ermitteln (kann 0, 1 oder 2 sein)
+    $sofort = 0;
+    if (isset($post['sofort_1'])) {
+        $sofort = 1;
+    } elseif (isset($post['sofort_2'])) {
+        $sofort = 2;
+    }
+
+    // Hinweis anhängen falls vorhanden
+    $hinweis = $antrag['hinweis'] ?? '';
+    if (!empty($post['neuerhinweis'])) {
+        if (!empty($hinweis)) {
+            $hinweis .= "\n---\n";
+        }
+        $hinweis .= date('d.m.Y H:i') . ': ' . $post['neuerhinweis'];
+    }
+
+    $update = $pdo->prepare("
+        UPDATE antraege SET
+            titel = ?,
+            beschluss = ?,
+            begr = ?,
+            pers = ?,
+            sach = ?,
+            fintext = ?,
+            fin = ?,
+            bart = ?,
+            verant = ?,
+            ressort1 = ?,
+            ressort2 = ?,
+            wichtig = ?,
+            int_ext = ?,
+            verein = ?,
+            hinweis = ?,
+            thread = ?,
+            filetext1 = ?,
+            filetext2 = ?,
+            filetext3 = ?,
+            filetext4 = ?,
+            sofort = ?,
+            durch = ?,
+            zufin = ?,
+            zbem = ?,
+            praesenz = ?,
+            lzugriff = NOW()
+        WHERE antrnr = ?
+    ");
+
+    $update->execute([
+        $post['titel'],
+        $post['beschluss'],
+        $post['begr'] ?? null,
+        $post['pers'] ?? null,
+        $post['sach'] ?? null,
+        $post['fintext'] ?? null,
+        $fin,
+        $bart,
+        $post['verant'] ?? null,
+        $post['ressort1'] ?? null,
+        $post['ressort2'] ?? null,
+        $wichtig,
+        $post['int_ext'] ?? null,
+        $post['verein'] ?? 'V',
+        $hinweis,
+        $post['thread'] ?? null,
+        $post['filetext1'] ?? null,
+        $post['filetext2'] ?? null,
+        $post['filetext3'] ?? null,
+        $post['filetext4'] ?? null,
+        $sofort,
+        $post['durch'] ?? null,
+        isset($post['zufin']) ? 1 : 0,
+        $post['zbem'] ?? null,
+        isset($post['praesenz']) ? 1 : 0,
+        $antrnr
+    ]);
+}
+
+// Finalisieren-Funktion (A → B oder A → VS)
+function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user_aktiv, $member_id) {
+    // Erst speichern
+    speichereAntrag($pdo, $antrnr, $post, $antrag);
+
+    // Antrag neu laden um aktuelle Werte zu haben
+    $stmt = $pdo->prepare("SELECT * FROM antraege WHERE antrnr = ?");
+    $stmt->execute([$antrnr]);
+    $antrag = $stmt->fetch();
+
+    // Validierung
+    if (empty($antrag['ressort1'])) {
+        throw new Exception("Ressort muss angegeben werden.");
+    }
+    if (empty($antrag['verant'])) {
+        throw new Exception("Verantwortlicher muss angegeben werden.");
+    }
+
+    // Neue Antragsnummer generieren
+    $prefix = substr($antrnr, 0, 1);
+    if ($prefix === 'A') {
+        // Von A nach B (Abstimmung) oder direkt nach VS (Verfügung mit Selbstfreigabe)
+        $neue_nr = 'B' . substr($antrnr, 1);
+
+        // Bei Verfügung durch Antragsteller selbst: direkt VS
+        if ($antrag['bart'] === 'V' && $antrag['verf1'] == $antrag['antrst']) {
+            $datumstr = date('ymd');
+            $neue_nr = 'VS' . $datumstr . substr($antrnr, 7);
+        }
+
+        // Update Antragsnummer
+        $update = $pdo->prepare("UPDATE antraege SET antrnr = ? WHERE antrnr = ?");
+        $update->execute([$neue_nr, $antrnr]);
+    } else {
+        throw new Exception("Antrag kann nur im Editiermodus (A) finalisiert werden.");
+    }
+}
+
+// Löschen-Funktion
+function loescheAntrag($pdo, $antrnr, $antrag, $member_id, $user_aktiv) {
+    // Berechtigung prüfen: Nur Antragsteller, Vorstand oder GF
+    if ($antrag['antrst'] != $member_id && $user_aktiv < 18) {
+        throw new Exception("Keine Berechtigung zum Löschen. Nur Antragsteller, Vorstand und Geschäftsführung dürfen löschen.");
+    }
+
+    $stmt = $pdo->prepare("DELETE FROM antraege WHERE antrnr = ?");
+    $stmt->execute([$antrnr]);
+}
+
 // Ressort-Liste für Dropdown
 $ressorts_stmt = $pdo->query("SELECT DISTINCT ressort FROM ressortliste ORDER BY ressort");
 $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Vorstandsmitglieder für Dropdown
+$vorstand = getVorstandsmitglieder($pdo);
+
+// Wartezeit berechnen
+$wartezeit = berechneWartezeit($antrnr);
+$wartezeit_erfuellt = ($wartezeit === 'erfüllt' ||
+                       ($antrag['verk1'] && $antrag['verk2']) ||
+                       $antrag['bart'] === 'B');
+
+// Blockierung prüfen
+$blockiert = false;
+$blockierung_grund = [];
+if (empty($antrag['ressort1'])) {
+    $blockiert = true;
+    $blockierung_grund[] = "Ressort fehlt";
+}
+if (empty($antrag['verant']) || strlen($antrag['verant']) < 3) {
+    $blockiert = true;
+    $blockierung_grund[] = "Verantwortlicher fehlt";
+}
+
+// Kann finalisiert werden?
+$kann_finalisieren = !$blockiert && $wartezeit_erfuellt &&
+                     substr($antrnr, 0, 1) === 'A' &&
+                     ($antrag['antrst'] == $_SESSION['member_id'] || $user_aktiv >= 18);
+
+// Kann löschen?
+$kann_loeschen = ($antrag['antrst'] == $_SESSION['member_id'] || $user_aktiv >= 18);
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -192,6 +352,26 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
             color: #0066cc;
             font-size: 14px;
         }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .status-editing {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-voting {
+            background: #cce5ff;
+            color: #004085;
+        }
+        .status-finalized {
+            background: #d4edda;
+            color: #155724;
+        }
         .form-container {
             background: white;
             padding: 30px;
@@ -207,7 +387,11 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
             margin-bottom: 5px;
             color: #333;
         }
+        .required {
+            color: #d32f2f;
+        }
         input[type="text"],
+        input[type="number"],
         textarea,
         select {
             width: 100%;
@@ -235,6 +419,7 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
             margin-top: 30px;
             padding-top: 20px;
             border-top: 1px solid #eee;
+            flex-wrap: wrap;
         }
         .btn {
             padding: 12px 24px;
@@ -244,6 +429,7 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
             cursor: pointer;
             text-decoration: none;
             display: inline-block;
+            font-weight: 600;
         }
         .btn-primary {
             background: #0066cc;
@@ -252,12 +438,30 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
         .btn-primary:hover {
             background: #0052a3;
         }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
         .btn-secondary {
             background: #666;
             color: white;
         }
         .btn-secondary:hover {
             background: #555;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
         }
         .alert {
             padding: 15px;
@@ -273,6 +477,16 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
+        }
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
         }
         .back-link {
             display: inline-block;
@@ -310,6 +524,25 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
             background: #cce5ff;
             color: #004085;
         }
+        .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #0066cc;
+            margin-bottom: 20px;
+        }
+        .warning-box {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #ffc107;
+            margin-bottom: 20px;
+        }
+        .section-divider {
+            border-top: 2px solid #0066cc;
+            padding-top: 20px;
+            margin-top: 20px;
+        }
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -343,6 +576,16 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
 
             finInput.addEventListener('input', updateBartDisplay);
             updateBartDisplay(); // Initial
+
+            // Bestätigung für Löschen
+            const deleteBtn = document.getElementById('delete-btn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', function(e) {
+                    if (!confirm('ACHTUNG: Dieser Antrag wird unwiderruflich gelöscht! Fortfahren?')) {
+                        e.preventDefault();
+                    }
+                });
+            }
         });
     </script>
 </head>
@@ -352,12 +595,24 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
 
         <div class="header">
             <h1>Antrag bearbeiten</h1>
-            <div class="antrnr"><?= htmlspecialchars($antrag['antrnr']) ?></div>
+            <div class="antrnr">
+                <?= htmlspecialchars($antrag['antrnr']) ?>
+                <?php
+                $status_prefix = substr($antrnr, 0, 1);
+                if ($status_prefix === 'A') {
+                    echo '<span class="status-badge status-editing">Editiermodus</span>';
+                } elseif ($status_prefix === 'B') {
+                    echo '<span class="status-badge status-voting">In Abstimmung</span>';
+                } elseif (substr($antrnr, 0, 2) === 'VS') {
+                    echo '<span class="status-badge status-finalized">Beschlossen</span>';
+                }
+                ?>
+            </div>
         </div>
 
         <?php if ($saved): ?>
             <div class="alert alert-success">
-                ✓ Antrag erfolgreich gespeichert!
+                ✓ <?= htmlspecialchars($message ?? 'Änderungen gespeichert') ?>
             </div>
         <?php endif; ?>
 
@@ -367,15 +622,37 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
             </div>
         <?php endif; ?>
 
+        <?php if (substr($antrnr, 0, 1) === 'A'): ?>
+            <div class="info-box">
+                <strong>Editiermodus:</strong> Anträge werden zunächst im Editiermodus eingestellt und können von allen im Führungsteam bearbeitet werden.
+                Der Antragsteller entscheidet, wann er (nach der Wartezeit) den Antrag endgültig abschickt.
+            </div>
+        <?php endif; ?>
+
+        <?php if ($wartezeit && $wartezeit !== 'erfüllt' && substr($antrnr, 0, 1) === 'A'): ?>
+            <div class="warning-box">
+                <strong>Wartezeit:</strong> Dieser Antrag kann erst ab dem <?= htmlspecialchars($wartezeit) ?> zur Abstimmung gestellt werden (7 Tage Wartezeit gemäß Verfahrensordnung).
+                <?php if ($antrag['bart'] !== 'B'): ?>
+                    Jedes Vorstandsmitglied kann in dieser Frist verlangen, dass der Antrag im Gesamtvorstand behandelt wird.
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($blockiert): ?>
+            <div class="alert alert-error">
+                <strong>Antrag unvollständig:</strong> <?= implode(', ', $blockierung_grund) ?>
+            </div>
+        <?php endif; ?>
+
         <form method="POST" class="form-container">
             <div class="form-group">
-                <label for="titel">Titel *</label>
+                <label for="titel">Titel <span class="required">*</span></label>
                 <input type="text" id="titel" name="titel"
                        value="<?= htmlspecialchars($antrag['titel']) ?>" required>
             </div>
 
             <div class="form-group">
-                <label for="beschluss">Beschlusstext *</label>
+                <label for="beschluss">Beschlusstext <span class="required">*</span></label>
                 <textarea id="beschluss" name="beschluss" required><?= htmlspecialchars($antrag['beschluss']) ?></textarea>
             </div>
 
@@ -415,16 +692,16 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
             </div>
 
             <div class="form-group">
-                <label for="verant">Verantwortlich</label>
+                <label for="verant">Verantwortlich für die Umsetzung <span class="required">*</span></label>
                 <input type="text" id="verant" name="verant"
-                       value="<?= htmlspecialchars($antrag['verant'] ?? '') ?>">
+                       value="<?= htmlspecialchars($antrag['verant'] ?? '') ?>" required>
             </div>
 
             <div class="row">
                 <div class="form-group">
-                    <label for="ressort1">Ressort 1</label>
-                    <select id="ressort1" name="ressort1">
-                        <option value="">-- Kein Ressort --</option>
+                    <label for="ressort1">Ressort <span class="required">*</span></label>
+                    <select id="ressort1" name="ressort1" required>
+                        <option value="">-- Bitte wählen --</option>
                         <?php foreach ($ressorts as $r): ?>
                             <option value="<?= htmlspecialchars($r) ?>"
                                     <?= $antrag['ressort1'] === $r ? 'selected' : '' ?>>
@@ -435,9 +712,9 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                 </div>
 
                 <div class="form-group">
-                    <label for="ressort2">Ressort 2</label>
+                    <label for="ressort2">Mitwirkendes Ressort</label>
                     <select id="ressort2" name="ressort2">
-                        <option value="">-- Kein Ressort --</option>
+                        <option value="">-- Kein weiteres Ressort --</option>
                         <?php foreach ($ressorts as $r): ?>
                             <option value="<?= htmlspecialchars($r) ?>"
                                     <?= $antrag['ressort2'] === $r ? 'selected' : '' ?>>
@@ -448,13 +725,24 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="int_ext">Intern/Extern</label>
-                <select id="int_ext" name="int_ext">
-                    <option value="">-- Nicht angegeben --</option>
-                    <option value="i" <?= $antrag['int_ext'] === 'i' ? 'selected' : '' ?>>Intern</option>
-                    <option value="e" <?= $antrag['int_ext'] === 'e' ? 'selected' : '' ?>>Extern</option>
-                </select>
+            <div class="row">
+                <div class="form-group">
+                    <label for="verein">Verein/Stiftung</label>
+                    <select id="verein" name="verein">
+                        <option value="V" <?= ($antrag['verein'] ?? 'V') === 'V' ? 'selected' : '' ?>>Verein</option>
+                        <option value="S" <?= ($antrag['verein'] ?? '') === 'S' ? 'selected' : '' ?>>Stiftung</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="int_ext">Intern/Extern</label>
+                    <select id="int_ext" name="int_ext">
+                        <option value="e" <?= ($antrag['int_ext'] ?? 'e') === 'e' ? 'selected' : '' ?>>Extern (alle Ms)</option>
+                        <option value="n" <?= ($antrag['int_ext'] ?? '') === 'n' ? 'selected' : '' ?>>Nicht öffentlich (Führungskreis)</option>
+                        <option value="i" <?= ($antrag['int_ext'] ?? '') === 'i' ? 'selected' : '' ?>>Intern (nur Vorstand)</option>
+                    </select>
+                    <div class="help-text">Regelt, wer später den Beschluss sehen kann</div>
+                </div>
             </div>
 
             <div class="form-group">
@@ -468,7 +756,7 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                 <div class="help-text">Die ID wird im Forum in der Adresszeile angezeigt</div>
             </div>
 
-            <div class="form-group" style="border-top: 2px solid #0066cc; padding-top: 20px; margin-top: 20px;">
+            <div class="form-group section-divider">
                 <label style="font-size: 16px; color: #0066cc;">Angebote, erläuternde Unterlagen</label>
                 <div class="help-text" style="margin-bottom: 15px;">Beschreibung der hochgeladenen Dateien oder Links</div>
 
@@ -479,7 +767,7 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                             <div style="margin-bottom: 8px; font-size: 13px; color: #666;">
                                 Vorhandene Datei:
                                 <a href="<?= htmlspecialchars($antrag["file$i"]) ?>" target="datei" style="color: #0066cc;">
-                                    <?= htmlspecialchars(substr($antrag["file$i"], strpos($antrag["file$i"], "f$i") + 2 * (strpos($antrag["file$i"], "://") == 0))) ?>
+                                    <?= htmlspecialchars(basename($antrag["file$i"])) ?>
                                 </a>
                             </div>
                         <?php endif; ?>
@@ -491,7 +779,7 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                 <?php endfor; ?>
             </div>
 
-            <div class="form-group" style="border-top: 2px solid #0066cc; padding-top: 20px; margin-top: 20px;">
+            <div class="form-group section-divider">
                 <label style="font-size: 16px; color: #0066cc;">Vereinfachte Freigabe</label>
                 <div class="help-text" style="margin-bottom: 15px;">Ist mit dem Beschluss/der Verfügung zu genehmigen</div>
 
@@ -532,7 +820,7 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                 </div>
             </div>
 
-            <div class="form-group" style="border-top: 2px solid #0066cc; padding-top: 20px; margin-top: 20px;">
+            <div class="form-group section-divider">
                 <label style="display: flex; align-items: center; gap: 10px;">
                     <input type="checkbox" id="praesenz" name="praesenz" value="1"
                            <?= ($antrag['praesenz'] ?? 0) ? 'checked' : '' ?>>
@@ -541,19 +829,51 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                 <div class="help-text">Wenn markiert, wird dieser Antrag nicht online abgestimmt.</div>
             </div>
 
-            <div class="form-group">
-                <label for="hinweis">Hinweise</label>
-                <textarea id="hinweis" name="hinweis"><?= htmlspecialchars($antrag['hinweis'] ?? '') ?></textarea>
+            <?php if ($user_aktiv >= 18 && ($antrag['fin'] ?? 0) <= 3000 && $antrag['bart'] !== 'B'): ?>
+            <div class="form-group section-divider">
+                <label style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="wichtig_escalate" name="wichtig_escalate" value="1"
+                           <?= ($antrag['wichtig'] ?? 0) > 0 ? 'checked' : '' ?>>
+                    <span style="font-weight: 600;">Als Vorstandsmitglied melde ich an: Die Angelegenheit ist unabhängig von den finanziellen Auswirkungen als Vorstandsbeschluss zu behandeln.</span>
+                </label>
+                <input type="hidden" name="wichtig_member_id" value="<?= $_SESSION['member_id'] ?>">
             </div>
+            <?php endif; ?>
 
-            <div class="form-group checkbox-group">
-                <input type="checkbox" id="wichtig" name="wichtig" value="1"
-                       <?= $antrag['wichtig'] ? 'checked' : '' ?>>
-                <label for="wichtig" style="margin: 0;">Als wichtig markieren</label>
+            <div class="form-group section-divider">
+                <label for="neuerhinweis">Hinweise für den Antragsteller / Anmerkungen</label>
+                <?php if (!empty($antrag['hinweis'])): ?>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-style: italic;">
+                        <?= nl2br(htmlspecialchars($antrag['hinweis'])) ?>
+                    </div>
+                <?php endif; ?>
+                <textarea id="neuerhinweis" name="neuerhinweis" placeholder="Neuer Hinweis..."
+                          style="width: 100%; min-height: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
+                <div class="help-text">Wird mit Zeitstempel an die bestehenden Hinweise angehängt</div>
             </div>
 
             <div class="actions">
-                <button type="submit" class="btn btn-primary">Speichern</button>
+                <button type="submit" name="action" value="save" class="btn btn-primary">
+                    Speichern
+                </button>
+
+                <?php if ($kann_finalisieren): ?>
+                    <button type="submit" name="action" value="finalize" class="btn btn-success"
+                            onclick="return confirm('Antrag verbindlich einstellen? Der Antrag wird zur Abstimmung freigegeben und kann dann nicht mehr geändert werden.');">
+                        Verbindlich einstellen
+                    </button>
+                <?php elseif (substr($antrnr, 0, 1) === 'A'): ?>
+                    <button type="button" class="btn btn-success" disabled title="<?= implode(', ', $blockierung_grund) ?>">
+                        Verbindlich einstellen <?= !$wartezeit_erfuellt ? '(Wartezeit)' : '' ?>
+                    </button>
+                <?php endif; ?>
+
+                <?php if ($kann_loeschen && substr($antrnr, 0, 1) === 'A'): ?>
+                    <button type="submit" name="action" value="delete" id="delete-btn" class="btn btn-danger">
+                        Unwiderruflich löschen
+                    </button>
+                <?php endif; ?>
+
                 <a href="antragsliste.php" class="btn btn-secondary">Abbrechen</a>
             </div>
         </form>
