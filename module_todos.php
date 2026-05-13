@@ -17,21 +17,41 @@
  */
 function render_todo_creation_form($pdo, $item, $meeting_id, $is_secretary, $meeting_status, $participants) {
     // Nur für Sekretär in aktiver Sitzung, nicht für TOP 0, 99, 999
-    if (!$is_secretary || $meeting_status !== 'active' || 
+    if (!$is_secretary || $meeting_status !== 'active' ||
         in_array($item['top_number'], [0, 99, 999])) {
         return;
     }
-    
-    // Teilnehmer mit Anwesenheitsstatus laden
+
+    // Teilnehmer mit Anwesenheitsstatus laden (OHNE svmembers - nutze Adapter)
+    require_once __DIR__ . '/adapters/MemberAdapter.php';
+    $memberAdapter = get_member_adapter($pdo);
+
     $stmt = $pdo->prepare("
-        SELECT m.*, mp.attendance_status
-        FROM svmembers m
-        JOIN svmeeting_participants mp ON m.member_id = mp.member_id
+        SELECT mp.member_id, mp.attendance_status
+        FROM svmeeting_participants mp
         WHERE mp.meeting_id = ?
-        ORDER BY m.last_name, m.first_name
     ");
     $stmt->execute([$meeting_id]);
-    $participants_with_attendance = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $participant_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Member-Daten über Adapter holen
+    $participants_with_attendance = [];
+    foreach ($participant_rows as $row) {
+        $member = $memberAdapter->get_member_by_id($row['member_id']);
+        if ($member) {
+            $participants_with_attendance[] = [
+                'member_id' => $member['member_id'],
+                'first_name' => $member['first_name'],
+                'last_name' => $member['last_name'],
+                'attendance_status' => $row['attendance_status']
+            ];
+        }
+    }
+
+    // Sortieren nach Nachname
+    usort($participants_with_attendance, function($a, $b) {
+        return strcmp($a['last_name'], $b['last_name']);
+    });
     ?>
     
     <div style="margin-top: 15px; padding: 12px; background: #fff8e1; border: 2px solid #ffc107; border-radius: 6px;">
