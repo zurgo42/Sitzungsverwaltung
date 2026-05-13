@@ -11,7 +11,7 @@
 
 // Module laden
 require_once 'module_categories.php';
-require_once 'module_proposals.php';
+// require_once 'module_proposals.php'; // Entfernt - alte Proposals nicht mehr verwendet
 require_once 'module_comments.php';
 require_once 'module_helpers.php';
 require_once 'module_protocol.php';
