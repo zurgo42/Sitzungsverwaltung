@@ -874,8 +874,9 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                 break;
 
             case 'proposals':
-                // Anträge & Beschlüsse anzeigen
-                include 'tab_proposals_list.php';
+                // Anträge & Beschlüsse - Redirect zu antragsliste.php
+                header('Location: antragsliste.php');
+                exit;
                 break;
 
             case 'todos':
