@@ -30,52 +30,59 @@ $pdo = new PDO(
 $filter_status = $_GET['status'] ?? 'all';
 $search = $_GET['search'] ?? '';
 
-// SQL für offene Anträge (ohne VS-Präfix)
+// SQL für offene Anträge (ohne VS-Präfix) mit Antragsteller-Namen und Ressort-Namen
 $sql = "SELECT
-    antrnr,
-    titel,
-    bart,
-    antrst,
-    ressort1,
-    ressort2,
-    wichtig,
-    lzugriff,
-    verant
-FROM antraege
-WHERE antrnr NOT LIKE 'VS%'";
+    a.antrnr,
+    a.titel,
+    a.bart,
+    a.antrst,
+    a.ressort1,
+    a.ressort2,
+    a.wichtig,
+    a.lzugriff,
+    a.verant,
+    b.Vorname,
+    b.Nachname,
+    r1.klartext as ressort1_name,
+    r2.klartext as ressort2_name
+FROM antraege a
+LEFT JOIN berechtigte b ON a.antrst = b.ID
+LEFT JOIN ressortliste r1 ON a.ressort1 = r1.ressort
+LEFT JOIN ressortliste r2 ON a.ressort2 = r2.ressort
+WHERE a.antrnr NOT LIKE 'VS%'";
 
 $params = [];
 
-// Filter nach Status
+// Filter nach Antragsteller
 if ($filter_status !== 'all') {
-    $sql .= " AND antrst = ?";
+    $sql .= " AND a.antrst = ?";
     $params[] = $filter_status;
 }
 
 // Suche
 if ($search) {
-    $sql .= " AND (antrnr LIKE ? OR titel LIKE ?)";
+    $sql .= " AND (a.antrnr LIKE ? OR a.titel LIKE ?)";
     $search_param = "%$search%";
     $params[] = $search_param;
     $params[] = $search_param;
 }
 
-$sql .= " ORDER BY lzugriff DESC, antrnr DESC";
+$sql .= " ORDER BY a.lzugriff DESC, a.antrnr DESC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $antraege = $stmt->fetchAll();
 
-// Status-Werte für Filter ermitteln
+// Antragsteller für Filter ermitteln
 $status_stmt = $pdo->query("
-    SELECT DISTINCT antrst
-    FROM antraege
-    WHERE antrnr NOT LIKE 'VS%'
-    AND antrst IS NOT NULL
-    AND antrst != ''
-    ORDER BY antrst
+    SELECT DISTINCT a.antrst, b.Vorname, b.Nachname
+    FROM antraege a
+    LEFT JOIN berechtigte b ON a.antrst = b.ID
+    WHERE a.antrnr NOT LIKE 'VS%'
+    AND a.antrst IS NOT NULL
+    ORDER BY b.Nachname, b.Vorname
 ");
-$status_values = $status_stmt->fetchAll(PDO::FETCH_COLUMN);
+$antragsteller = $status_stmt->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -233,11 +240,11 @@ $status_values = $status_stmt->fetchAll(PDO::FETCH_COLUMN);
 
     <form method="GET" class="filters">
         <select name="status">
-            <option value="all">Alle Status</option>
-            <?php foreach ($status_values as $status): ?>
-                <option value="<?= htmlspecialchars($status) ?>"
-                        <?= $filter_status === $status ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($status) ?>
+            <option value="all">Alle Antragsteller</option>
+            <?php foreach ($antragsteller as $ast): ?>
+                <option value="<?= htmlspecialchars($ast['antrst']) ?>"
+                        <?= $filter_status == $ast['antrst'] ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($ast['Vorname'] . ' ' . $ast['Nachname']) ?>
                 </option>
             <?php endforeach; ?>
         </select>
@@ -265,8 +272,7 @@ $status_values = $status_stmt->fetchAll(PDO::FETCH_COLUMN);
                 <thead>
                     <tr>
                         <th>Antragsnummer</th>
-                        <th>Titel</th>
-                        <th>Status</th>
+                        <th>Titel / Antragsteller</th>
                         <th>Ressort</th>
                         <th>Letzter Zugriff</th>
                         <th>Aktion</th>
@@ -276,21 +282,27 @@ $status_values = $status_stmt->fetchAll(PDO::FETCH_COLUMN);
                     <?php foreach ($antraege as $a): ?>
                         <tr>
                             <td>
-                                <span class="antrnr"><?= htmlspecialchars($a['antrnr']) ?></span>
+                                <span style="color: #333; font-weight: 600;"><?= htmlspecialchars($a['antrnr']) ?></span>
                                 <?php if ($a['wichtig']): ?>
                                     <span class="badge wichtig">Wichtig</span>
                                 <?php endif; ?>
                             </td>
-                            <td><?= htmlspecialchars($a['titel']) ?></td>
                             <td>
-                                <?php if ($a['antrst']): ?>
-                                    <span class="badge status"><?= htmlspecialchars($a['antrst']) ?></span>
-                                <?php endif; ?>
+                                <div style="font-weight: 600; margin-bottom: 4px;"><?= htmlspecialchars($a['titel']) ?></div>
+                                <div style="font-size: 13px; color: #666;">
+                                    <?= htmlspecialchars(($a['Vorname'] ?? '') . ' ' . ($a['Nachname'] ?? '')) ?>
+                                </div>
                             </td>
                             <td>
                                 <?php
-                                $ressorts = array_filter([$a['ressort1'], $a['ressort2']]);
-                                echo htmlspecialchars(implode(', ', $ressorts));
+                                $ressort_namen = [];
+                                if (!empty($a['ressort1_name'])) {
+                                    $ressort_namen[] = $a['ressort1_name'];
+                                }
+                                if (!empty($a['ressort2_name'])) {
+                                    $ressort_namen[] = $a['ressort2_name'];
+                                }
+                                echo htmlspecialchars(implode(', ', $ressort_namen));
                                 ?>
                             </td>
                             <td><?= $a['lzugriff'] ? date('d.m.Y H:i', strtotime($a['lzugriff'])) : '-' ?></td>
