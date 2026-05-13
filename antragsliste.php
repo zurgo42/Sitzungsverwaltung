@@ -49,7 +49,9 @@ FROM antraege a
 LEFT JOIN berechtigte b ON a.antrst = b.ID
 LEFT JOIN ressortliste r1 ON a.ressort1 = r1.ID
 LEFT JOIN ressortliste r2 ON a.ressort2 = r2.ID
-WHERE a.antrnr NOT LIKE 'VS%'";
+WHERE a.antrnr NOT LIKE 'VS%'
+  AND a.antrnr NOT LIKE 'X%'
+  AND a.antrnr NOT LIKE 'Z%'";
 
 $params = [];
 
@@ -79,7 +81,9 @@ $status_stmt = $pdo->query("
     FROM antraege a
     LEFT JOIN berechtigte b ON a.antrst = b.ID
     WHERE a.antrnr NOT LIKE 'VS%'
-    AND a.antrst IS NOT NULL
+      AND a.antrnr NOT LIKE 'X%'
+      AND a.antrnr NOT LIKE 'Z%'
+      AND a.antrst IS NOT NULL
     ORDER BY b.Name, b.Vorname
 ");
 $antragsteller = $status_stmt->fetchAll();
@@ -244,7 +248,7 @@ $antragsteller = $status_stmt->fetchAll();
             <?php foreach ($antragsteller as $ast): ?>
                 <option value="<?= htmlspecialchars($ast['antrst']) ?>"
                         <?= $filter_status == $ast['antrst'] ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($ast['Vorname'] . ' ' . $ast['Nachname']) ?>
+                    <?= htmlspecialchars($ast['Vorname'] . ' ' . $ast['Name']) ?>
                 </option>
             <?php endforeach; ?>
         </select>
@@ -290,7 +294,7 @@ $antragsteller = $status_stmt->fetchAll();
                             <td>
                                 <div style="font-weight: 600; margin-bottom: 4px;"><?= htmlspecialchars($a['titel']) ?></div>
                                 <div style="font-size: 13px; color: #666;">
-                                    <?= htmlspecialchars(($a['Vorname'] ?? '') . ' ' . ($a['Nachname'] ?? '')) ?>
+                                    <?= htmlspecialchars(($a['Vorname'] ?? '') . ' ' . ($a['Name'] ?? '')) ?>
                                 </div>
                             </td>
                             <td>
