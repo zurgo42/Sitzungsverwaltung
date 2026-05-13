@@ -80,6 +80,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 wichtig = ?,
                 int_ext = ?,
                 hinweis = ?,
+                thread = ?,
+                filetext1 = ?,
+                filetext2 = ?,
+                filetext3 = ?,
+                filetext4 = ?,
+                sofort = ?,
+                durch = ?,
+                zufin = ?,
+                zbem = ?,
+                praesenz = ?,
                 lzugriff = NOW()
             WHERE antrnr = ?
         ");
@@ -92,6 +102,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $bart = 'V'; // Verfügung
         } elseif ($fin <= 3000) {
             $bart = 'R'; // Ressortbeschluss
+        }
+
+        // sofort-Wert ermitteln (kann 0, 1 oder 2 sein)
+        $sofort = 0;
+        if (isset($_POST['sofort_1'])) {
+            $sofort = 1;
+        } elseif (isset($_POST['sofort_2'])) {
+            $sofort = 2;
         }
 
         $update->execute([
@@ -109,6 +127,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             isset($_POST['wichtig']) ? 1 : 0,
             $_POST['int_ext'] ?? null,
             $_POST['hinweis'] ?? null,
+            $_POST['thread'] ?? null,
+            $_POST['filetext1'] ?? null,
+            $_POST['filetext2'] ?? null,
+            $_POST['filetext3'] ?? null,
+            $_POST['filetext4'] ?? null,
+            $sofort,
+            $_POST['durch'] ?? null,
+            isset($_POST['zufin']) ? 1 : 0,
+            $_POST['zbem'] ?? null,
+            isset($_POST['praesenz']) ? 1 : 0,
             $antrnr
         ]);
 
@@ -427,6 +455,90 @@ $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_COLUMN);
                     <option value="i" <?= $antrag['int_ext'] === 'i' ? 'selected' : '' ?>>Intern</option>
                     <option value="e" <?= $antrag['int_ext'] === 'e' ? 'selected' : '' ?>>Extern</option>
                 </select>
+            </div>
+
+            <div class="form-group">
+                <label for="thread">ID im Forum</label>
+                <input type="number" id="thread" name="thread" min="0"
+                       value="<?= htmlspecialchars($antrag['thread'] ?? '') ?>">
+                <?php if (($antrag['thread'] ?? 0) > 0): ?>
+                    <a href="https://vorstand.mensa.de/forum/index.php?id=<?= $antrag['thread'] ?>"
+                       target="forum" style="margin-left: 10px; color: #0066cc;">→ Link zum Forum</a>
+                <?php endif; ?>
+                <div class="help-text">Die ID wird im Forum in der Adresszeile angezeigt</div>
+            </div>
+
+            <div class="form-group" style="border-top: 2px solid #0066cc; padding-top: 20px; margin-top: 20px;">
+                <label style="font-size: 16px; color: #0066cc;">Angebote, erläuternde Unterlagen</label>
+                <div class="help-text" style="margin-bottom: 15px;">Beschreibung der hochgeladenen Dateien oder Links</div>
+
+                <?php for ($i = 1; $i <= 4; $i++): ?>
+                    <div style="margin-bottom: 12px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                        <label for="filetext<?= $i ?>" style="font-weight: 600; margin-bottom: 5px;">Datei <?= $i ?></label>
+                        <?php if (!empty($antrag["file$i"])): ?>
+                            <div style="margin-bottom: 8px; font-size: 13px; color: #666;">
+                                Vorhandene Datei:
+                                <a href="<?= htmlspecialchars($antrag["file$i"]) ?>" target="datei" style="color: #0066cc;">
+                                    <?= htmlspecialchars(substr($antrag["file$i"], strpos($antrag["file$i"], "f$i") + 2 * (strpos($antrag["file$i"], "://") == 0))) ?>
+                                </a>
+                            </div>
+                        <?php endif; ?>
+                        <input type="text" id="filetext<?= $i ?>" name="filetext<?= $i ?>"
+                               placeholder="Beschreibung der Datei (z.B. 'Angebot')"
+                               value="<?= htmlspecialchars($antrag["filetext$i"] ?? '') ?>"
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                <?php endfor; ?>
+            </div>
+
+            <div class="form-group" style="border-top: 2px solid #0066cc; padding-top: 20px; margin-top: 20px;">
+                <label style="font-size: 16px; color: #0066cc;">Vereinfachte Freigabe</label>
+                <div class="help-text" style="margin-bottom: 15px;">Ist mit dem Beschluss/der Verfügung zu genehmigen</div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: flex; align-items: start; gap: 10px;">
+                        <input type="checkbox" id="sofort_1" name="sofort_1" value="1"
+                               <?= ($antrag['sofort'] ?? 0) == 1 ? 'checked' : '' ?>
+                               onchange="if(this.checked) document.getElementById('sofort_2').checked = false;">
+                        <span>Wenn der in Rechnung gestellte Betrag dem Angebot entspricht, kann sofort überwiesen werden.</span>
+                    </label>
+                </div>
+
+                <div style="margin-bottom: 12px; padding-left: 10px; border-left: 3px solid #ddd;">
+                    <label style="display: flex; align-items: start; gap: 10px; margin-bottom: 8px;">
+                        <input type="checkbox" id="sofort_2" name="sofort_2" value="2"
+                               <?= ($antrag['sofort'] ?? 0) == 2 ? 'checked' : '' ?>
+                               onchange="if(this.checked) document.getElementById('sofort_1').checked = false;">
+                        <span>Alternativ: Nach fachlicher Vorprüfung durch:</span>
+                    </label>
+                    <input type="text" id="durch" name="durch"
+                           placeholder="Name der prüfenden Person"
+                           value="<?= htmlspecialchars($antrag['durch'] ?? '') ?>"
+                           style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-left: 32px;">
+                    <div class="help-text" style="margin-left: 32px;">kann der Rechnungsbetrag ohne weitere Freigabe überwiesen werden.</div>
+                </div>
+
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <input type="checkbox" id="zufin" name="zufin" value="1"
+                               <?= ($antrag['zufin'] ?? 0) ? 'checked' : '' ?>>
+                        <span style="font-weight: 600;">Zustimmung Finanzvorstand</span>
+                    </label>
+
+                    <label for="zbem" style="display: block; margin-bottom: 5px; font-weight: 600;">Bemerkungsfeld zum späteren Zahlungsvorgang:</label>
+                    <textarea id="zbem" name="zbem"
+                              placeholder="Hinweise für den Zahlungsvorgang..."
+                              style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"><?= htmlspecialchars($antrag['zbem'] ?? '') ?></textarea>
+                </div>
+            </div>
+
+            <div class="form-group" style="border-top: 2px solid #0066cc; padding-top: 20px; margin-top: 20px;">
+                <label style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="praesenz" name="praesenz" value="1"
+                           <?= ($antrag['praesenz'] ?? 0) ? 'checked' : '' ?>>
+                    <span style="font-weight: 600;">Dies ist ein Antrag zu einer Präsenzsitzung oder -Telko</span>
+                </label>
+                <div class="help-text">Wenn markiert, wird dieser Antrag nicht online abgestimmt.</div>
             </div>
 
             <div class="form-group">
