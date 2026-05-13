@@ -148,6 +148,9 @@ function render_user_notifications($pdo, $member_id) {
     }
 
     // 5. AUSSTEHENDE ABSTIMMUNGEN (PROPOSALS)
+    // DEAKTIVIERT: Alte svbproposals-Tabellen wurden entfernt
+    // Wir arbeiten jetzt direkt mit antraege/beschluesse
+    /*
     require_once __DIR__ . '/proposals_functions.php';
     require_once __DIR__ . '/adapters/ProposalPermissionAdapter.php';
 
@@ -246,6 +249,7 @@ function render_user_notifications($pdo, $member_id) {
             ];
         }
     }
+    */
 
     // 8. ZUSAMMENFASSUNG: KOMMENDE SITZUNGEN & TERMINE
     $stmt_summary = $pdo->prepare("
