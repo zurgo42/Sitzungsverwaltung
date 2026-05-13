@@ -43,12 +43,12 @@ $sql = "SELECT
     a.verant,
     b.Vorname,
     b.Name,
-    r1.klartext as ressort1_name,
-    r2.klartext as ressort2_name
+    r1.Ressort as ressort1_name,
+    r2.Ressort as ressort2_name
 FROM antraege a
 LEFT JOIN berechtigte b ON a.antrst = b.ID
-LEFT JOIN ressortliste r1 ON a.ressort1 = r1.ressort
-LEFT JOIN ressortliste r2 ON a.ressort2 = r2.ressort
+LEFT JOIN ressortliste r1 ON a.ressort1 = r1.ID
+LEFT JOIN ressortliste r2 ON a.ressort2 = r2.ID
 WHERE a.antrnr NOT LIKE 'VS%'";
 
 $params = [];

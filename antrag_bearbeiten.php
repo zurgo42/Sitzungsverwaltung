@@ -279,7 +279,7 @@ function wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user) {
 }
 
 // Daten für UI
-$ressorts = $pdo->query("SELECT DISTINCT ressort, klartext FROM ressortliste ORDER BY ressort")->fetchAll();
+$ressorts = $pdo->query("SELECT ID as ressort, Ressort as klartext FROM ressortliste ORDER BY Reihenfolge, ID")->fetchAll();
 $verfuegungsber = getVerfuegungsberechtigte($pdo);
 $wartezeit = berechneWartezeit($antrnr);
 $wartezeit_erfuellt = ($wartezeit === 'erfüllt' || ($antrag['verk1'] && $antrag['verk2']) || $antrag['bart'] === 'B');
