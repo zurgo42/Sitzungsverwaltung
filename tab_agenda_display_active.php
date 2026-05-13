@@ -765,8 +765,7 @@ foreach ($agenda_items as $item):
                     <h4 style="margin: 0 0 10px 0; color: #f57c00; font-size: 14px;">📌 ToDo anlegen</h4>
                     <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>"
                           onsubmit="return confirm('TODO wirklich anlegen?');">
-                        <input type="hidden" name="quick_todo_create" value="1">
-                        <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                        <input type="hidden" name="quick_todo_create" value="<?php echo $item['item_id']; ?>">
 
                         <!-- Responsive Grid: Titel + Fällig bis -->
                         <div class="todo-form-grid" style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px;">
@@ -774,7 +773,7 @@ foreach ($agenda_items as $item):
                                 <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
                                     Titel:
                                 </label>
-                                <input type="text" name="todo_title" required
+                                <input type="text" name="todo_title_<?php echo $item['item_id']; ?>" required
                                        placeholder="z.B. Recherche für nächste Sitzung"
                                        style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
                             </div>
@@ -783,7 +782,7 @@ foreach ($agenda_items as $item):
                                 <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
                                     Fällig bis:
                                 </label>
-                                <input type="date" name="todo_due_date" required
+                                <input type="date" name="todo_due_date_<?php echo $item['item_id']; ?>" required
                                        value="<?php echo $default_due_date; ?>"
                                        style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
                             </div>
@@ -793,7 +792,7 @@ foreach ($agenda_items as $item):
                             <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
                                 Beschreibung (optional):
                             </label>
-                            <textarea name="todo_description" rows="3"
+                            <textarea name="todo_description_<?php echo $item['item_id']; ?>" rows="3"
                                       placeholder="Details zum TODO..."
                                       style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
                         </div>
