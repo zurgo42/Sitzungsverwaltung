@@ -34,7 +34,6 @@ $search = $_GET['search'] ?? '';
 $sql = "SELECT
     antrnr,
     titel,
-    AntragstellerID,
     bart,
     antrst,
     ressort1,
