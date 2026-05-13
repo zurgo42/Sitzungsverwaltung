@@ -70,7 +70,7 @@ if (!$antrnr) die("Keine Antragsnummer angegeben.");
 
 // Antrag laden mit Antragsteller-Daten
 $stmt = $pdo->prepare("
-    SELECT a.*, b.Vorname, b.Nachname, b.KurzN as AntragstellerKurz
+    SELECT a.*, b.Vorname, b.Name, b.KurzN as AntragstellerKurz
     FROM antraege a
     LEFT JOIN berechtigte b ON a.antrst = b.ID
     WHERE a.antrnr = ?
@@ -426,7 +426,7 @@ if ($antrag['verf2']) {
                 </div>
                 <div class="form-group">
                     <label>Antragsteller</label>
-                    <input type="text" value="<?= htmlspecialchars(($antrag['Vorname'] ?? '') . ' ' . ($antrag['Nachname'] ?? '')) ?>" class="read-only" readonly>
+                    <input type="text" value="<?= htmlspecialchars(($antrag['Vorname'] ?? '') . ' ' . ($antrag['Name'] ?? '')) ?>" class="read-only" readonly>
                 </div>
                 <div class="form-group">
                     <label>Beschlussart</label>

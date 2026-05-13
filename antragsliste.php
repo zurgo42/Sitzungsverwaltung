@@ -42,7 +42,7 @@ $sql = "SELECT
     a.lzugriff,
     a.verant,
     b.Vorname,
-    b.Nachname,
+    b.Name,
     r1.klartext as ressort1_name,
     r2.klartext as ressort2_name
 FROM antraege a
@@ -75,12 +75,12 @@ $antraege = $stmt->fetchAll();
 
 // Antragsteller für Filter ermitteln
 $status_stmt = $pdo->query("
-    SELECT DISTINCT a.antrst, b.Vorname, b.Nachname
+    SELECT DISTINCT a.antrst, b.Vorname, b.Name
     FROM antraege a
     LEFT JOIN berechtigte b ON a.antrst = b.ID
     WHERE a.antrnr NOT LIKE 'VS%'
     AND a.antrst IS NOT NULL
-    ORDER BY b.Nachname, b.Vorname
+    ORDER BY b.Name, b.Vorname
 ");
 $antragsteller = $status_stmt->fetchAll();
 ?>
