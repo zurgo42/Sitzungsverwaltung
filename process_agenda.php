@@ -1118,16 +1118,23 @@ if (isset($_POST['save_protocol'])) {
                 'due_date' => $_POST['todo_due_date'] ?? [],
                 'private' => $_POST['todo_private'] ?? []
             ];
-            
-            if (isset($todo_arrays['assigned_to'][$item_id]) && 
-                $todo_arrays['assigned_to'][$item_id] && 
+
+            error_log("DEBUG AGENDA TODO: item_id=$item_id, todo_arrays=" . print_r($todo_arrays, true));
+
+            if (isset($todo_arrays['assigned_to'][$item_id]) &&
+                $todo_arrays['assigned_to'][$item_id] &&
                 !empty($todo_arrays['description'][$item_id])) {
-                
+
+                error_log("DEBUG AGENDA TODO: Bedingung erfüllt, erstelle ToDo");
+
                 $assigned_to = intval($todo_arrays['assigned_to'][$item_id]);
                 $todo_desc = trim($todo_arrays['description'][$item_id]);
                 $due_date = $todo_arrays['due_date'][$item_id] ?? null;
                 $is_private = isset($todo_arrays['private'][$item_id]) && $todo_arrays['private'][$item_id] == 1 ? 1 : 0;
-                
+
+                error_log("DEBUG AGENDA TODO: assigned_to=$assigned_to, todo_desc='$todo_desc', due_date=$due_date, is_private=$is_private");
+                error_log("DEBUG AGENDA TODO: current_user=" . print_r($current_user ?? 'NICHT DEFINIERT', true));
+
                 // ToDo in Protokoll-Text einfügen
                 // Mitglied über Wrapper-Funktion laden
                 $member = get_member_by_id($pdo, $assigned_to);
@@ -1150,23 +1157,36 @@ if (isset($_POST['save_protocol'])) {
                     // ToDo-Beschreibung mit Meeting-Link erweitern
                     $todo_description_with_link = $todo_desc . "\n\nLink zur Sitzung: " . get_full_meeting_link($current_meeting_id);
 
-                    // ToDo in Datenbank speichern
-                    $stmt = $pdo->prepare("
-                        INSERT INTO svtodos
-                        (meeting_id, item_id, assigned_to_member_id, title, description, status, is_private, due_date, entry_date, created_by_member_id)
-                        VALUES (?, ?, ?, ?, ?, 'open', ?, ?, CURDATE(), ?)
-                    ");
-                    $stmt->execute([
-                        $current_meeting_id,
-                        $item_id,
-                        $assigned_to,
-                        $todo_desc,
-                        $todo_description_with_link,
-                        $is_private,
-                        $due_date,
-                        $current_user['member_id']
-                    ]);
+                    error_log("DEBUG AGENDA TODO: Vor INSERT - meeting_id=$current_meeting_id, created_by=" . ($current_user['member_id'] ?? 'FEHLT'));
+
+                    try {
+                        // ToDo in Datenbank speichern
+                        $stmt = $pdo->prepare("
+                            INSERT INTO svtodos
+                            (meeting_id, item_id, assigned_to_member_id, title, description, status, is_private, due_date, entry_date, created_by_member_id)
+                            VALUES (?, ?, ?, ?, ?, 'open', ?, ?, CURDATE(), ?)
+                        ");
+                        $stmt->execute([
+                            $current_meeting_id,
+                            $item_id,
+                            $assigned_to,
+                            $todo_desc,
+                            $todo_description_with_link,
+                            $is_private,
+                            $due_date,
+                            $current_user['member_id']
+                        ]);
+
+                        $todo_id = $pdo->lastInsertId();
+                        error_log("DEBUG AGENDA TODO: Erfolgreich erstellt! todo_id=$todo_id");
+                    } catch (PDOException $e) {
+                        error_log("DEBUG AGENDA TODO: FEHLER beim INSERT: " . $e->getMessage());
+                        error_log("DEBUG AGENDA TODO: Exception Details: " . print_r($e, true));
+                        throw $e; // Re-throw für weitere Fehlerbehandlung
+                    }
                 }
+            } else {
+                error_log("DEBUG AGENDA TODO: Bedingung NICHT erfüllt für item_id=$item_id");
             }
             
             // 3. Wiedervorlage erstellen (falls gewünscht)
