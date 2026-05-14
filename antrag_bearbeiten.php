@@ -105,8 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
 
             case 'delete':
-                loescheAntrag($pdo, $antrnr, $antrag, $user);
-                header('Location: antragsliste.php?msg=deleted');
+                verwerfenAntrag($pdo, $antrnr, $antrag, $user);
+                header('Location: antragsliste.php?msg=withdrawn');
                 exit;
 
             case 'verkuerzung':
@@ -251,11 +251,18 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 }
 
 // Löschen-Funktion
-function loescheAntrag($pdo, $antrnr, $antrag, $user) {
-    if ($antrag['antrst'] != $user['ID'] && $user['aktiv'] < 18) {
-        throw new Exception("Keine Berechtigung zum Löschen.");
+function verwerfenAntrag($pdo, $antrnr, $antrag, $user) {
+    // Nur Antragsteller, Vorstand oder GF dürfen verwerfen
+    $ist_antragsteller = ($antrag['antrst'] == $user['ID']);
+    $ist_vorstand_gf = ($user['aktiv'] >= 19 || $user['Funktion'] === 'GF');
+
+    if (!$ist_antragsteller && !$ist_vorstand_gf) {
+        throw new Exception("Nur Antragsteller, Vorstand und GF dürfen Anträge verwerfen.");
     }
-    $pdo->prepare("DELETE FROM antraege WHERE antrnr = ?")->execute([$antrnr]);
+
+    // Antragsnummer zu X ändern (zurückgezogen)
+    $neue_antrnr = 'X' . substr($antrnr, 1);
+    $pdo->prepare("UPDATE antraege SET antrnr = ? WHERE antrnr = ?")->execute([$neue_antrnr, $antrnr]);
 }
 
 // Wartezeitverkürzung
@@ -292,7 +299,7 @@ if (empty($antrag['verant']) || strlen($antrag['verant']) < 3) { $blockiert = tr
 
 $kann_finalisieren = !$blockiert && $wartezeit_erfuellt && substr($antrnr, 0, 1) === 'A' &&
                      ($antrag['antrst'] == $user['ID'] || $user['aktiv'] >= 18);
-$kann_loeschen = ($antrag['antrst'] == $user['ID'] || $user['aktiv'] >= 18);
+$kann_verwerfen = ($antrag['antrst'] == $user['ID'] || $user['aktiv'] >= 19 || $user['Funktion'] === 'GF');
 $kann_verkuerzen = ($user['aktiv'] >= 18 && $antrag['antrst'] != $user['ID'] &&
                     (!$antrag['verk1'] || (!$antrag['verk2'] && $antrag['verk1'] != $user['ID'])));
 
@@ -394,11 +401,14 @@ if ($antrag['verf2']) {
 
         <?php if (substr($antrnr, 0, 1) === 'A'): ?>
             <div class="info-box">
-                <strong>Editiermodus:</strong> Anträge können von allen im Führungsteam bearbeitet werden.
+                <strong>Editiermodus:</strong> Anträge werden erst mal im Editiermodus eingestellt und können von allen im Führungsteam bearbeitet werden.
+                Der Antragsteller entscheidet dann, wann er (nach der in der Verfahrensordnung geregelten Wartezeit) den Antrag endgültig abschickt.
                 <?php if ($wartezeit && $wartezeit !== 'erfüllt'): ?>
-                    <strong>Wartezeit bis <?= htmlspecialchars($wartezeit) ?></strong>
-                    <?php if (!empty($antrag['verkb'])): ?>
-                        - Wartezeitverkürzung beantragt
+                <br><strong>Wartezeit bis <?= htmlspecialchars($wartezeit) ?></strong>
+                    <?php if ($antrag['verk1'] && $antrag['verk2']): ?>
+                        - Wartezeit verkürzt
+                    <?php elseif ($antrag['verk1'] || $antrag['verk2']): ?>
+                        - Wartezeitverkürzung teilweise bestätigt
                     <?php endif; ?>
                 <?php endif; ?>
             </div>
@@ -406,7 +416,16 @@ if ($antrag['verf2']) {
 
         <?php if ($blockiert): ?>
             <div class="alert alert-error">
-                <strong>Unvollständig:</strong> <?= implode(', ', $blockierung_grund) ?>
+                <strong>Der Antrag kann nicht zur Abstimmung gestellt werden:</strong><br>
+                Wesentliche Angaben fehlen - kontrolliere das Ressort, den/die Freigabeberechtigten und die Angabe der für die Umsetzung Verantwortlichen.
+                <br>Fehlende Felder: <?= implode(', ', $blockierung_grund) ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($kann_verwerfen && substr($antrnr, 0, 1) === 'A'): ?>
+            <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
+                <strong>Nur für Vorstand, GF und Antragsteller:</strong>
+                Wenn der Antrag obsolet ist und nicht mehr benötigt wird, kannst du ihn verwerfen - das ist nicht mehr rückholbar!
             </div>
         <?php endif; ?>
 
@@ -659,10 +678,10 @@ if ($antrag['verf2']) {
                     </button>
                 <?php endif; ?>
 
-                <?php if ($kann_loeschen && substr($antrnr, 0, 1) === 'A'): ?>
+                <?php if ($kann_verwerfen && substr($antrnr, 0, 1) === 'A'): ?>
                     <button type="submit" name="action" value="delete" class="btn btn-danger"
-                            onclick="return confirm('ACHTUNG: Unwiderruflich löschen?');">
-                        Löschen
+                            onclick="return confirm('Antrag verwerfen? Der Antrag wird als zurückgezogen markiert (X-Präfix).');">
+                        Verwerfen
                     </button>
                 <?php endif; ?>
 
@@ -670,5 +689,82 @@ if ($antrag['verf2']) {
             </div>
         </form>
     </div>
+
+<script>
+// Drag & Drop File Upload
+document.addEventListener('DOMContentLoaded', function() {
+    const fileItems = document.querySelectorAll('.file-item');
+
+    fileItems.forEach((item, index) => {
+        const fileInput = item.querySelector('input[type="file"]');
+        const fileNumber = index + 1;
+
+        // Styling für Drop Zone
+        item.style.position = 'relative';
+        item.style.border = '2px dashed #ddd';
+        item.style.borderRadius = '8px';
+        item.style.padding = '15px';
+        item.style.transition = 'all 0.3s ease';
+
+        // Drag Events
+        ['dragenter', 'dragover'].forEach(eventName => {
+            item.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                item.style.borderColor = '#2196f3';
+                item.style.backgroundColor = '#f0f7ff';
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            item.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                item.style.borderColor = '#ddd';
+                item.style.backgroundColor = 'transparent';
+            });
+        });
+
+        item.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+
+                // Zeige Dateinamen an
+                const fileName = files[0].name;
+                let feedback = item.querySelector('.drop-feedback');
+                if (!feedback) {
+                    feedback = document.createElement('div');
+                    feedback.className = 'drop-feedback';
+                    feedback.style.marginTop = '8px';
+                    feedback.style.fontSize = '12px';
+                    feedback.style.color = '#2196f3';
+                    feedback.style.fontWeight = '600';
+                    item.appendChild(feedback);
+                }
+                feedback.textContent = '✓ Datei ausgewählt: ' + fileName;
+            }
+        });
+
+        // Auch bei normalem File-Input Feedback zeigen
+        fileInput.addEventListener('change', (e) => {
+            if (fileInput.files.length > 0) {
+                const fileName = fileInput.files[0].name;
+                let feedback = item.querySelector('.drop-feedback');
+                if (!feedback) {
+                    feedback = document.createElement('div');
+                    feedback.className = 'drop-feedback';
+                    feedback.style.marginTop = '8px';
+                    feedback.style.fontSize = '12px';
+                    feedback.style.color = '#2196f3';
+                    feedback.style.fontWeight = '600';
+                    item.appendChild(feedback);
+                }
+                feedback.textContent = '✓ Datei ausgewählt: ' + fileName;
+            }
+        });
+    });
+});
+</script>
 </body>
 </html>
