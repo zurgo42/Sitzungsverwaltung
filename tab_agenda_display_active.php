@@ -516,9 +516,7 @@ foreach ($agenda_items as $item):
                 </div>
             <?php endif; ?>
         </div>
-        
-        <?php render_proposal_display($item['proposal_text']); ?>
-        
+
         <!-- Beschreibung -->
         <?php if ($item['description']): ?>
             <div style="color: #666; margin: 8px 0; font-size: 14px;">
