@@ -469,7 +469,7 @@ if ($antrag['verf2']) {
         <?php if (substr($antrnr, 0, 1) === 'A'): ?>
             <div class="info-box">
                 <strong>Editiermodus:</strong> Anträge werden erst mal im Editiermodus eingestellt und können von allen im Führungsteam bearbeitet werden.
-                Der Antragsteller entscheidet dann, wann er (nach der in der Verfahrensordnung geregelten Wartezeit) den Antrag endgültig abschickt.
+                Bei Verfügungen und Ressortbeschlüssen entscheidet der Antragsteller dann, wann er (nach der in der Verfahrensordnung geregelten Wartezeit) den Antrag endgültig abschickt.
                 <?php if ($wartezeit && $wartezeit !== 'erfüllt'): ?>
                 <br><strong>Wartezeit bis <?= htmlspecialchars($wartezeit) ?></strong>
                     <?php if ($antrag['verk1'] && $antrag['verk2']): ?>
@@ -489,13 +489,6 @@ if ($antrag['verf2']) {
             </div>
         <?php endif; ?>
 
-        <?php if ($kann_verwerfen && substr($antrnr, 0, 1) === 'A'): ?>
-            <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
-                <strong>Nur für Vorstand, GF und Antragsteller:</strong>
-                Wenn der Antrag obsolet ist und nicht mehr benötigt wird, kannst du ihn verwerfen - das ist nicht mehr rückholbar!
-            </div>
-        <?php endif; ?>
-
         <?php if ($monatssumme > 0 && ($antrag['fin'] ?? 0) < 600): ?>
             <div class="alert alert-warning">
                 <strong>Monatssumme Verfügungen:</strong> <?= number_format($monatssumme, 2) ?>€ + aktuell <?= number_format($antrag['fin'] ?? 0, 2) ?>€ = <?= number_format($monatssumme + ($antrag['fin'] ?? 0), 2) ?>€
@@ -512,37 +505,26 @@ if ($antrag['verf2']) {
                     Antragsteller: <?= htmlspecialchars(($antrag['Vorname'] ?? '') . ' ' . ($antrag['Name'] ?? '')) ?>
                 </div>
 
-                <!-- Zeile 1: Beschlussart - Abstimmung - Leer -->
+                <!-- Zeile 1: Beschlussart - Abstimmung 1 - Abstimmung 2 -->
                 <div class="form-row">
                     <div class="form-group">
                         <label>Beschlussart</label>
                         <input type="text" value="<?= $antrag['bart'] === 'V' ? 'Verfügung' : ($antrag['bart'] === 'R' ? 'Ressortbeschluss' : 'Vorstandsbeschluss') ?>" class="read-only" readonly>
                     </div>
-                    <div class="form-group">
-                        <?php if ($antrag['bart'] === 'V' || $antrag['bart'] === 'R'): ?>
-                            <label for="verf1">Abstimmung durch</label>
+
+                    <?php if ($antrag['bart'] === 'V' || $antrag['bart'] === 'R'): ?>
+                        <div class="form-group">
+                            <label for="verf1">Abstimmung durch (1.)</label>
                             <select id="verf1" name="verf1">
                                 <option value="">-- Bitte wählen --</option>
                                 <?php foreach ($abstimmende as $m): ?>
-                                    <option value="<?= $m['ID'] ?>" <?= ($antrag['verf1'] ?? '') == $m['ID'] ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($m['KurzN']) ?><?= $m['Funktion'] ? ' (' . $m['Funktion'] . ')' : '' ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-
-                            <?php if ($antrag['bart'] === 'R'): ?>
-                            <!-- Bei R: 2. Abstimmender -->
-                            <select name="verf2" style="margin-top: 4px;">
-                                <option value="">-- 2. Person (FVo/FVv) --</option>
-                                <?php foreach ($verfuegungsber as $m): ?>
-                                    <?php if ($m['Funktion'] === 'FVo' || $m['Funktion'] === 'FVv'): ?>
-                                        <option value="<?= $m['ID'] ?>" <?= ($antrag['verf2'] ?? '') == $m['ID'] ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($m['KurzN']) ?> (<?= $m['Funktion'] ?>)
+                                    <?php if (!str_starts_with($m['KurzN'], 'ASt ')): ?>
+                                        <option value="<?= $m['ID'] ?>" <?= ($antrag['verf1'] ?? '') == $m['ID'] ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($m['KurzN']) ?><?= $m['Funktion'] ? ' (' . $m['Funktion'] . ')' : '' ?>
                                         </option>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
                             </select>
-                            <?php endif; ?>
 
                             <?php
                             // Prüfen wer wichtig gesetzt hat
@@ -558,7 +540,6 @@ if ($antrag['verf2']) {
                                 </div>
 
                                 <?php if ($wichtig_von_antragsteller): ?>
-                                <!-- Antragsteller kann zurücknehmen -->
                                 <div class="checkbox-inline" style="margin-top: 4px;">
                                     <input type="checkbox" id="wichtig_reset" name="wichtig_reset" value="1">
                                     <label for="wichtig_reset" style="margin: 0; font-size: 11px; color: #666;">Beschlussart entsprechend Betrag</label>
@@ -571,18 +552,43 @@ if ($antrag['verf2']) {
                                 </div>
                                 <?php endif; ?>
                             </div>
+                        </div>
 
-                        <?php elseif ($antrag['bart'] === 'B'): ?>
+                        <?php if ($antrag['bart'] === 'R'): ?>
+                        <div class="form-group">
+                            <label for="verf2">Abstimmung durch (2. - Vorstand)</label>
+                            <select id="verf2" name="verf2">
+                                <option value="">-- FVo/FVv --</option>
+                                <?php foreach ($verfuegungsber as $m): ?>
+                                    <?php if (($m['Funktion'] === 'FVo' || $m['Funktion'] === 'FVv') && !str_starts_with($m['KurzN'], 'ASt ')): ?>
+                                        <option value="<?= $m['ID'] ?>" <?= ($antrag['verf2'] ?? '') == $m['ID'] ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($m['KurzN']) ?> (<?= $m['Funktion'] ?>)
+                                        </option>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <?php else: ?>
+                        <div class="form-group">
+                            <!-- Bei V: Leer -->
+                        </div>
+                        <?php endif; ?>
+
+                    <?php elseif ($antrag['bart'] === 'B'): ?>
+                        <div class="form-group">
                             <label for="praesenz">Abstimmung</label>
                             <select id="praesenz" name="praesenz">
                                 <option value="online" <?= ($antrag['praesenz'] ?? 'online') === 'online' ? 'selected' : '' ?>>Online</option>
                                 <option value="praesenz" <?= ($antrag['praesenz'] ?? '') === 'praesenz' ? 'selected' : '' ?>>Präsenzsitzung</option>
                             </select>
-                        <?php endif; ?>
-                    </div>
-                    <div class="form-group">
-                        <!-- Leer -->
-                    </div>
+                        </div>
+                        <div class="form-group">
+                            <!-- Leer -->
+                        </div>
+                    <?php else: ?>
+                        <div class="form-group"></div>
+                        <div class="form-group"></div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Zeile 4: Ressort - Mitwirkendes Ressort - Verantwortlich -->
@@ -673,8 +679,8 @@ if ($antrag['verf2']) {
                 <!-- Betrag -->
                 <div class="form-row full">
                     <div class="form-group">
-                        <label for="fin">Betrag (€)</label>
-                        <input type="number" id="fin" name="fin" step="0.01" min="0" value="<?= htmlspecialchars($antrag['fin'] ?? '0') ?>">
+                        <label for="fin">Betrag (volle Euro)</label>
+                        <input type="number" id="fin" name="fin" step="1" min="0" value="<?= htmlspecialchars($antrag['fin'] ?? '0') ?>" style="max-width: 150px;">
                         <div class="help-text">≤600€=Verfügung | 601-3000€=Ressort | >3000€=Vorstand</div>
                     </div>
                 </div>
@@ -721,33 +727,40 @@ if ($antrag['verf2']) {
             <div class="form-section section-gray-4 compact-box">
                 <div class="section-header" style="font-size: 13px; margin-bottom: 8px;">Vereinfachte Freigabe</div>
 
+                <!-- Eine Zeile mit beiden Optionen -->
                 <div class="checkbox-inline">
                     <input type="checkbox" id="sofort_1" name="sofort_1" value="1" <?= ($antrag['sofort'] ?? 0) == 1 ? 'checked' : '' ?>
                            onchange="toggleFinanzFreigabe()">
                     <label for="sofort_1" style="margin:0; font-size: 12px;">Rechnung = Angebot: sofort überweisen</label>
-                </div>
 
-                <div style="padding-left: 20px; margin: 4px 0;">
-                    <div class="checkbox-inline">
-                        <input type="checkbox" id="sofort_2" name="sofort_2" value="2" <?= ($antrag['sofort'] ?? 0) == 2 ? 'checked' : '' ?>
-                               onchange="toggleFinanzFreigabe()">
-                        <label for="sofort_2" style="margin:0; font-size: 12px;">Nach Vorprüfung durch:</label>
-                        <input type="text" name="durch" placeholder="Name" value="<?= htmlspecialchars($antrag['durch'] ?? '') ?>" style="width: 150px; margin-left: 8px; font-size: 12px;">
-                        <span style="margin-left: 4px; font-size: 12px;">überweisen</span>
-                    </div>
+                    <span style="margin-left: 20px;">ODER</span>
+
+                    <input type="checkbox" id="sofort_2" name="sofort_2" value="2" <?= ($antrag['sofort'] ?? 0) == 2 ? 'checked' : '' ?>
+                           onchange="toggleFinanzFreigabe()" style="margin-left: 20px;">
+                    <label for="sofort_2" style="margin:0; font-size: 12px;">Nach Vorprüfung durch:</label>
+                    <input type="text" name="durch" placeholder="Name" value="<?= htmlspecialchars($antrag['durch'] ?? '') ?>" style="width: 120px; margin-left: 8px; font-size: 12px;">
+                    <span style="margin-left: 4px; font-size: 12px;">überweisen</span>
                 </div>
 
                 <?php
                 // Prüfen ob User FVo oder FVv ist
                 $ist_finanzvorstand = ($user['Funktion'] === 'FVo' || $user['Funktion'] === 'FVv');
                 $sofort_aktiv = (($antrag['sofort'] ?? 0) > 0);
+                $vorher_erteilt = (($antrag['vorher'] ?? 0) == 1);
                 ?>
 
                 <!-- Finanzvorstand-Freigabe (nur sichtbar wenn sofort aktiv) -->
                 <div id="finanz_freigabe_box" style="<?= !$sofort_aktiv ? 'display: none;' : '' ?> margin-top: 8px; padding: 8px; background: #fff8dc; border-left: 3px solid #ffa500; border-radius: 4px;">
+
+                    <?php if (!$vorher_erteilt): ?>
+                        <div style="font-size: 12px; color: #d32f2f; font-weight: 600; margin-bottom: 6px;">
+                            ⚠️ Zustimmung durch Finanzvorstand (FVo bzw. FVv) erforderlich
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ($ist_finanzvorstand): ?>
                         <div class="checkbox-inline">
-                            <input type="checkbox" id="vorher" name="vorher" value="1" <?= ($antrag['vorher'] ?? 0) == 1 ? 'checked' : '' ?>>
+                            <input type="checkbox" id="vorher" name="vorher" value="1" <?= $vorher_erteilt ? 'checked' : '' ?>>
                             <label for="vorher" style="margin:0; font-size: 12px; font-weight: 600;">Zustimmung Finanzvorstand</label>
                         </div>
                         <div style="font-size: 10px; color: #666; margin-top: 2px; padding-left: 20px;">
@@ -755,7 +768,7 @@ if ($antrag['verf2']) {
                         </div>
                     <?php endif; ?>
 
-                    <?php if (($antrag['vorher'] ?? 0) == 1): ?>
+                    <?php if ($vorher_erteilt): ?>
                         <div style="margin-top: 4px; font-size: 11px; color: #2e7d32; font-weight: 600;">
                             ✓ Zustimmung Finanzvorstand bzw. Vertreter liegt vor
                         </div>
@@ -811,6 +824,22 @@ if ($antrag['verf2']) {
             <!-- ========== SEKTION 6: NÄCHSTE SCHRITTE ========== -->
             <div class="form-section section-gray-6">
                 <div class="section-header">Nächste Schritte</div>
+
+                <?php if ($kann_verwerfen && substr($antrnr, 0, 1) === 'A'): ?>
+                    <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107; margin-bottom: 12px;">
+                        <strong>Nur für Vorstand, GF und Antragsteller:</strong>
+                        Wenn der Antrag obsolet ist und nicht mehr benötigt wird, kannst du ihn löschen - das ist nicht mehr rückholbar!
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($wartezeit === 'erfüllt' && ($antrag['bart'] === 'V' || $antrag['bart'] === 'R')): ?>
+                    <div style="background: #d4edda; color: #155724; padding: 10px; margin-bottom: 12px; border-radius: 4px; border: 1px solid #c3e6cb;">
+                        Die Wartezeit ist erfüllt; du kannst den Antrag zur Abstimmung stellen.
+                        <?php if (($antrag['verf1'] ?? '') == $antrag['antrst']): ?>
+                            <span style="color: #d32f2f; font-weight: 600;">Bitte nicht vergessen, dort dann abzustimmen!</span>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
 
                 <div class="actions" style="border-top: none; padding-top: 0; margin-top: 8px;">
                     <button type="submit" name="action" value="save" class="btn btn-primary">💾 Speichern</button>
