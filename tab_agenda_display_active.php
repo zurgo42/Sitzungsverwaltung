@@ -957,7 +957,15 @@ foreach ($agenda_items as $item):
                     <?php echo nl2br(linkify_text($item['protocol_notes'] ?? 'Noch kein Protokolleintrag...')); ?>
                 </div>
                 <div id="vote-display-<?php echo $item['item_id']; ?>" style="margin-top: 8px;">
-                    <?php render_voting_result($item); ?>
+                    <?php if (!empty($item['vote_result'])): ?>
+                        <div style="padding: 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+                            <strong>Abstimmung:</strong>
+                            Ja: <?= (int)($item['vote_yes'] ?? 0) ?> |
+                            Nein: <?= (int)($item['vote_no'] ?? 0) ?> |
+                            Enthaltungen: <?= (int)($item['vote_abstain'] ?? 0) ?> →
+                            <strong><?= htmlspecialchars($item['vote_result']) ?></strong>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         <?php endif; ?>

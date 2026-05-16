@@ -83,11 +83,16 @@ foreach ($agenda_items as $item):
                 <div style="color: #333; line-height: 1.6;">
                     <?php echo nl2br(linkify_text($item['protocol_notes'])); ?>
                 </div>
-                
-                <?php 
-                // Abstimmungsergebnis anzeigen (aus module_proposals.php)
-                render_voting_result($item); 
-                ?>
+
+                <?php if (!empty($item['vote_result'])): ?>
+                    <div style="margin-top: 10px; padding: 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+                        <strong>Abstimmung:</strong>
+                        Ja: <?= (int)($item['vote_yes'] ?? 0) ?> |
+                        Nein: <?= (int)($item['vote_no'] ?? 0) ?> |
+                        Enthaltungen: <?= (int)($item['vote_abstain'] ?? 0) ?> →
+                        <strong><?= htmlspecialchars($item['vote_result']) ?></strong>
+                    </div>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
         
