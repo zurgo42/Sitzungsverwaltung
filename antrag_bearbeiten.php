@@ -220,7 +220,8 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
             int_ext = ?, verein = ?, hinweis = ?, thread = ?,
             file1 = ?, file2 = ?, file3 = ?, file4 = ?,
             filetext1 = ?, filetext2 = ?, filetext3 = ?, filetext4 = ?,
-            sofort = ?, durch = ?, zufin = ?, zbem = ?, praesenz = ?,
+            sofort = ?, durch = ?, zufin = ?, zbem = ?,
+            praesenz = ?, verf1 = ?, verf2 = ?,
             lzugriff = NOW()
         WHERE antrnr = ?
     ");
@@ -236,7 +237,8 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         $post['filetext3'] ?? null, $post['filetext4'] ?? null,
         $sofort, $post['durch'] ?? null,
         isset($post['zufin']) ? 1 : 0, $post['zbem'] ?? null,
-        isset($post['praesenz']) ? 1 : 0, $antrnr
+        $post['praesenz'] ?? null, $post['verf1'] ?? null, $post['verf2'] ?? null,
+        $antrnr
     ]);
 }
 
@@ -408,6 +410,17 @@ if ($antrag['verf2']) {
         .checkbox-inline input[type="checkbox"] { width: auto; }
         .help-text { font-size: 11px; color: #666; margin-top: 2px; }
         .hint-box { background: #fffbea; padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 12px; font-style: italic; white-space: pre-wrap; }
+
+        /* Neue Section-Styles mit dezenten Grautönen */
+        .form-section { padding: 15px; margin-bottom: 12px; border-radius: 6px; }
+        .section-header { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid #666; }
+        .section-gray-1 { background: #f8f9fa; } /* Hellstes Grau */
+        .section-gray-2 { background: #f0f1f3; }
+        .section-gray-3 { background: #e8e9eb; }
+        .section-gray-4 { background: #f5f7f9; }
+        .section-gray-5 { background: #eef0f2; }
+        .section-gray-6 { background: #e0e2e4; } /* Dunkelstes Grau */
+        .compact-box { padding: 10px; }
     </style>
 </head>
 <body>
@@ -474,257 +487,290 @@ if ($antrag['verf2']) {
             </div>
         <?php endif; ?>
 
-        <form method="POST" enctype="multipart/form-data" class="form-container">
-            <!-- Stammdaten -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Antragsnummer</label>
-                    <input type="text" value="<?= htmlspecialchars($antrag['antrnr']) ?>" class="read-only" readonly>
-                </div>
-                <div class="form-group">
-                    <label>Antragsteller</label>
-                    <input type="text" value="<?= htmlspecialchars(($antrag['Vorname'] ?? '') . ' ' . ($antrag['Name'] ?? '')) ?>" class="read-only" readonly>
-                </div>
-                <div class="form-group">
-                    <label>Beschlussart</label>
-                    <input type="text" value="<?= $antrag['bart'] === 'V' ? 'Verfügung' : ($antrag['bart'] === 'R' ? 'Ressortbeschluss' : 'Vorstandsbeschluss') ?>" class="read-only" readonly>
-                </div>
-            </div>
+        <form method="POST" enctype="multipart/form-data">
 
-            <div class="form-row full">
-                <div class="form-group">
-                    <label for="titel">Titel <span class="required">*</span></label>
-                    <input type="text" id="titel" name="titel" value="<?= htmlspecialchars($antrag['titel']) ?>" required>
-                </div>
-            </div>
+            <!-- ========== SEKTION 1: DATEN ZUM ANTRAG ========== -->
+            <div class="form-section section-gray-1">
+                <div class="section-header">Daten zum Antrag</div>
 
-            <div class="form-row full">
-                <div class="form-group">
-                    <label for="beschluss">Beschlusstext <span class="required">*</span></label>
-                    <textarea id="beschluss" name="beschluss" class="large" required><?= htmlspecialchars($antrag['beschluss']) ?></textarea>
-                </div>
-            </div>
-
-            <div class="form-row full">
-                <div class="form-group">
-                    <label for="begr">Begründung</label>
-                    <textarea id="begr" name="begr"><?= htmlspecialchars($antrag['begr'] ?? '') ?></textarea>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="pers">Personelle Auswirkungen</label>
-                    <textarea id="pers" name="pers"><?= htmlspecialchars($antrag['pers'] ?? '') ?></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="sach">Sachliche Auswirkungen</label>
-                    <textarea id="sach" name="sach"><?= htmlspecialchars($antrag['sach'] ?? '') ?></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="verant">Verantwortlich <span class="required">*</span></label>
-                    <input type="text" id="verant" name="verant" value="<?= htmlspecialchars($antrag['verant'] ?? '') ?>" required>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="fin">Betrag (€)</label>
-                    <input type="number" id="fin" name="fin" step="0.01" min="0" value="<?= htmlspecialchars($antrag['fin'] ?? '0') ?>">
-                    <div class="help-text">≤600€=Verfügung | 601-3000€=Ressort | >3000€=Vorstand</div>
-                </div>
-                <div class="form-group">
-                    <label for="ressort1">Ressort <span class="required">*</span></label>
-                    <select id="ressort1" name="ressort1" required>
-                        <option value="">-- Bitte wählen --</option>
-                        <?php foreach ($ressorts as $r): ?>
-                            <option value="<?= htmlspecialchars($r['ressort']) ?>" <?= $antrag['ressort1'] === $r['ressort'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($r['klartext'] ?? $r['ressort']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="ressort2">Mitwirkendes Ressort</label>
-                    <select id="ressort2" name="ressort2">
-                        <option value="">-- Kein weiteres --</option>
-                        <?php foreach ($ressorts as $r): ?>
-                            <option value="<?= htmlspecialchars($r['ressort']) ?>" <?= $antrag['ressort2'] === $r['ressort'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($r['klartext'] ?? $r['ressort']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-row full">
-                <div class="form-group">
-                    <label for="fintext">Finanzielle Auswirkungen (Beschreibung)</label>
-                    <textarea id="fintext" name="fintext"><?= htmlspecialchars($antrag['fintext'] ?? '') ?></textarea>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="verein">Verein/Stiftung</label>
-                    <select id="verein" name="verein">
-                        <option value="V" <?= ($antrag['verein'] ?? 'V') === 'V' ? 'selected' : '' ?>>Verein</option>
-                        <option value="S" <?= ($antrag['verein'] ?? '') === 'S' ? 'selected' : '' ?>>Stiftung</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="int_ext">Sichtbarkeit</label>
-                    <select id="int_ext" name="int_ext">
-                        <option value="e" <?= ($antrag['int_ext'] ?? 'e') === 'e' ? 'selected' : '' ?>>Extern (alle Ms)</option>
-                        <option value="n" <?= ($antrag['int_ext'] ?? '') === 'n' ? 'selected' : '' ?>>Nicht öffentlich (Führung)</option>
-                        <option value="i" <?= ($antrag['int_ext'] ?? '') === 'i' ? 'selected' : '' ?>>Intern (nur Vorstand)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="thread">Forum-ID</label>
-                    <input type="number" id="thread" name="thread" min="0" value="<?= htmlspecialchars($antrag['thread'] ?? '') ?>">
-                    <?php if (($antrag['thread'] ?? 0) > 0): ?>
-                        <a href="https://vorstand.mensa.de/forum/index.php?id=<?= $antrag['thread'] ?>" target="forum" style="font-size: 11px;">→ Forum</a>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <?php if ($antrag['verf1'] || $antrag['verf2']): ?>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Verfügungsberechtigt 1</label>
-                    <input type="text" value="<?= htmlspecialchars($verf1_name) ?>" class="read-only" readonly>
-                </div>
-                <?php if ($antrag['verf2']): ?>
-                <div class="form-group">
-                    <label>Verfügungsberechtigt 2</label>
-                    <input type="text" value="<?= htmlspecialchars($verf2_name) ?>" class="read-only" readonly>
-                </div>
-                <?php endif; ?>
-            </div>
-            <?php endif; ?>
-
-            <!-- Dateien -->
-            <div class="section-title">Angebote / Unterlagen</div>
-            <div class="form-row two-col">
-                <?php for ($i = 1; $i <= 4; $i++): ?>
-                    <div class="file-item">
-                        <label for="file<?= $i ?>">Datei <?= $i ?></label>
-                        <?php if (!empty($antrag["file$i"])): ?>
-                            <div style="font-size: 11px; color: #666; margin-bottom: 4px;">
-                                Aktuell: <a href="<?= htmlspecialchars($antrag["file$i"]) ?>" target="_blank"><?= basename($antrag["file$i"]) ?></a>
-                            </div>
-                        <?php endif; ?>
-                        <input type="file" id="file<?= $i ?>" name="file<?= $i ?>" style="font-size: 12px; padding: 4px;">
-                        <input type="text" name="filetext<?= $i ?>" placeholder="Beschreibung (z.B. 'Angebot')"
-                               value="<?= htmlspecialchars($antrag["filetext$i"] ?? '') ?>" style="margin-top: 4px;">
+                <!-- Zeile 1: Antragsnummer -->
+                <div class="form-row full">
+                    <div class="form-group">
+                        <label>Antragsnummer</label>
+                        <input type="text" value="<?= htmlspecialchars($antrag['antrnr']) ?>" class="read-only" readonly>
                     </div>
-                <?php endfor; ?>
+                </div>
+
+                <!-- Zeile 2: Antragsteller - Beschlussart - Abstimmung durch -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Antragsteller</label>
+                        <input type="text" value="<?= htmlspecialchars(($antrag['Vorname'] ?? '') . ' ' . ($antrag['Name'] ?? '')) ?>" class="read-only" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Beschlussart</label>
+                        <input type="text" value="<?= $antrag['bart'] === 'V' ? 'Verfügung' : ($antrag['bart'] === 'R' ? 'Ressortbeschluss' : 'Vorstandsbeschluss') ?>" class="read-only" readonly>
+                    </div>
+                    <div class="form-group">
+                        <?php if ($antrag['bart'] === 'V' || $antrag['bart'] === 'R'): ?>
+                            <label for="verf1">Abstimmung durch (1. Person)</label>
+                            <select id="verf1" name="verf1">
+                                <option value="">-- Bitte wählen --</option>
+                                <?php foreach ($abstimmende as $m): ?>
+                                    <option value="<?= $m['ID'] ?>" <?= ($antrag['verf1'] ?? '') == $m['ID'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($m['KurzN']) ?><?= $m['Funktion'] ? ' (' . $m['Funktion'] . ')' : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php elseif ($antrag['bart'] === 'B'): ?>
+                            <label for="praesenz">Abstimmung</label>
+                            <select id="praesenz" name="praesenz">
+                                <option value="online" <?= ($antrag['praesenz'] ?? 'online') === 'online' ? 'selected' : '' ?>>Online</option>
+                                <option value="praesenz" <?= ($antrag['praesenz'] ?? '') === 'praesenz' ? 'selected' : '' ?>>Präsenzsitzung</option>
+                            </select>
+                        <?php else: ?>
+                            <label>Abstimmung durch</label>
+                            <input type="text" value="(wird automatisch bestimmt)" class="read-only" readonly>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <?php if ($antrag['bart'] === 'R'): ?>
+                <!-- Zeile 3: Bei Ressortbeschluss zusätzlich 2. Abstimmender -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="verf2">Abstimmung durch (2. Person - Vorstand)</label>
+                        <select id="verf2" name="verf2">
+                            <option value="">-- Automatisch (FVo/FVv) --</option>
+                            <?php foreach ($verfuegungsber as $m): ?>
+                                <?php if ($m['Funktion'] === 'FVo' || $m['Funktion'] === 'FVv'): ?>
+                                    <option value="<?= $m['ID'] ?>" <?= ($antrag['verf2'] ?? '') == $m['ID'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($m['KurzN']) ?> (<?= $m['Funktion'] ?>)
+                                    </option>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($antrag['bart'] === 'V' || $antrag['bart'] === 'R'): ?>
+                <!-- Checkbox: Vorstandsbeschluss erforderlich -->
+                <div class="checkbox-inline" style="margin-top: 8px;">
+                    <input type="checkbox" id="wichtig_escalate" name="wichtig_escalate" value="1" <?= !empty($antrag['wichtig']) ? 'checked' : '' ?>>
+                    <label for="wichtig_escalate" style="margin: 0;">Vorstandsbeschluss erforderlich (unabhängig von Betrag)</label>
+                </div>
+                <?php endif; ?>
+
+                <!-- Zeile 4: Ressort - Mitwirkendes Ressort - Verantwortlich -->
+                <div class="form-row" style="margin-top: 12px;">
+                    <div class="form-group">
+                        <label for="ressort1">Ressort <span class="required">*</span></label>
+                        <select id="ressort1" name="ressort1" required>
+                            <option value="">-- Bitte wählen --</option>
+                            <?php foreach ($ressorts as $r): ?>
+                                <option value="<?= htmlspecialchars($r['ressort']) ?>" <?= $antrag['ressort1'] === $r['ressort'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($r['klartext'] ?? $r['ressort']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="ressort2">Mitwirkendes Ressort</label>
+                        <select id="ressort2" name="ressort2">
+                            <option value="">-- Kein weiteres --</option>
+                            <?php foreach ($ressorts as $r): ?>
+                                <option value="<?= htmlspecialchars($r['ressort']) ?>" <?= $antrag['ressort2'] === $r['ressort'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($r['klartext'] ?? $r['ressort']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="verant">Verantwortlich für die Umsetzung <span class="required">*</span></label>
+                        <input type="text" id="verant" name="verant" value="<?= htmlspecialchars($antrag['verant'] ?? '') ?>" required>
+                    </div>
+                </div>
+
+                <!-- Zeile 5: Verein/Stiftung - Sichtbarkeit - Forum-ID -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="verein">Verein/Stiftung</label>
+                        <select id="verein" name="verein">
+                            <option value="V" <?= ($antrag['verein'] ?? 'V') === 'V' ? 'selected' : '' ?>>Verein</option>
+                            <option value="S" <?= ($antrag['verein'] ?? '') === 'S' ? 'selected' : '' ?>>Stiftung</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="int_ext">Sichtbarkeit</label>
+                        <select id="int_ext" name="int_ext">
+                            <option value="e" <?= ($antrag['int_ext'] ?? 'e') === 'e' ? 'selected' : '' ?>>Extern (alle Ms)</option>
+                            <option value="n" <?= ($antrag['int_ext'] ?? '') === 'n' ? 'selected' : '' ?>>Nicht öffentlich (Führung)</option>
+                            <option value="i" <?= ($antrag['int_ext'] ?? '') === 'i' ? 'selected' : '' ?>>Intern (nur Vorstand)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="thread">Forum-ID</label>
+                        <input type="number" id="thread" name="thread" min="0" value="<?= htmlspecialchars($antrag['thread'] ?? '') ?>">
+                        <?php if (($antrag['thread'] ?? 0) > 0): ?>
+                            <a href="https://vorstand.mensa.de/forum/index.php?id=<?= $antrag['thread'] ?>" target="forum" style="font-size: 11px;">→ Forum</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
 
-            <!-- Vereinfachte Freigabe -->
-            <div class="section-title">Vereinfachte Freigabe</div>
-            <div class="checkbox-inline">
-                <input type="checkbox" id="sofort_1" name="sofort_1" value="1" <?= ($antrag['sofort'] ?? 0) == 1 ? 'checked' : '' ?>
-                       onchange="if(this.checked) document.getElementById('sofort_2').checked = false;">
-                <label for="sofort_1" style="margin:0;">Rechnung = Angebot: sofort überweisen</label>
+            <!-- ========== SEKTION 2: ANTRAG ========== -->
+            <div class="form-section section-gray-2">
+                <div class="section-header">Antrag</div>
+
+                <!-- Titel -->
+                <div class="form-row full">
+                    <div class="form-group">
+                        <label for="titel">Titel <span class="required">*</span></label>
+                        <input type="text" id="titel" name="titel" value="<?= htmlspecialchars($antrag['titel']) ?>" required>
+                    </div>
+                </div>
+
+                <!-- Beschlusstext (nur 2 Zeilen) -->
+                <div class="form-row full">
+                    <div class="form-group">
+                        <label for="beschluss">Beschlusstext <span class="required">*</span></label>
+                        <textarea id="beschluss" name="beschluss" required style="min-height: 50px; max-height: 50px;"><?= htmlspecialchars($antrag['beschluss']) ?></textarea>
+                    </div>
+                </div>
+
+                <!-- Begründung -->
+                <div class="form-row full">
+                    <div class="form-group">
+                        <label for="begr">Begründung</label>
+                        <textarea id="begr" name="begr"><?= htmlspecialchars($antrag['begr'] ?? '') ?></textarea>
+                    </div>
+                </div>
+
+                <!-- Betrag -->
+                <div class="form-row full">
+                    <div class="form-group">
+                        <label for="fin">Betrag (€)</label>
+                        <input type="number" id="fin" name="fin" step="0.01" min="0" value="<?= htmlspecialchars($antrag['fin'] ?? '0') ?>">
+                        <div class="help-text">≤600€=Verfügung | 601-3000€=Ressort | >3000€=Vorstand</div>
+                    </div>
+                </div>
+
+                <!-- Finanzielle - Personelle - Sachliche Auswirkungen -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fintext">Finanzielle Auswirkungen</label>
+                        <textarea id="fintext" name="fintext"><?= htmlspecialchars($antrag['fintext'] ?? '') ?></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="pers">Personelle Auswirkungen</label>
+                        <textarea id="pers" name="pers"><?= htmlspecialchars($antrag['pers'] ?? '') ?></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="sach">Sachliche Auswirkungen</label>
+                        <textarea id="sach" name="sach"><?= htmlspecialchars($antrag['sach'] ?? '') ?></textarea>
+                    </div>
+                </div>
             </div>
-            <div style="padding-left: 20px; margin-bottom: 8px;">
+
+            <!-- ========== SEKTION 3: ANGEBOTE/UNTERLAGEN ========== -->
+            <div class="form-section section-gray-3">
+                <div class="section-header">Angebote / Unterlagen</div>
+
+                <div class="form-row two-col">
+                    <?php for ($i = 1; $i <= 4; $i++): ?>
+                        <div class="file-item">
+                            <label for="file<?= $i ?>">Datei <?= $i ?></label>
+                            <?php if (!empty($antrag["file$i"])): ?>
+                                <div style="font-size: 11px; color: #666; margin-bottom: 4px;">
+                                    Aktuell: <a href="<?= htmlspecialchars($antrag["file$i"]) ?>" target="_blank"><?= basename($antrag["file$i"]) ?></a>
+                                </div>
+                            <?php endif; ?>
+                            <input type="file" id="file<?= $i ?>" name="file<?= $i ?>" style="font-size: 12px; padding: 4px;">
+                            <input type="text" name="filetext<?= $i ?>" placeholder="Beschreibung (z.B. 'Angebot')"
+                                   value="<?= htmlspecialchars($antrag["filetext$i"] ?? '') ?>" style="margin-top: 4px;">
+                        </div>
+                    <?php endfor; ?>
+                </div>
+            </div>
+
+            <!-- ========== SEKTION 4: VEREINFACHTE FREIGABE (KOMPAKT) ========== -->
+            <div class="form-section section-gray-4 compact-box">
+                <div class="section-header" style="font-size: 13px; margin-bottom: 8px;">Vereinfachte Freigabe</div>
+
                 <div class="checkbox-inline">
-                    <input type="checkbox" id="sofort_2" name="sofort_2" value="2" <?= ($antrag['sofort'] ?? 0) == 2 ? 'checked' : '' ?>
-                           onchange="if(this.checked) document.getElementById('sofort_1').checked = false;">
-                    <label for="sofort_2" style="margin:0;">Nach Vorprüfung durch:</label>
+                    <input type="checkbox" id="sofort_1" name="sofort_1" value="1" <?= ($antrag['sofort'] ?? 0) == 1 ? 'checked' : '' ?>
+                           onchange="if(this.checked) document.getElementById('sofort_2').checked = false;">
+                    <label for="sofort_1" style="margin:0; font-size: 12px;">Rechnung = Angebot: sofort überweisen</label>
                 </div>
-                <input type="text" name="durch" placeholder="Name der prüfenden Person" value="<?= htmlspecialchars($antrag['durch'] ?? '') ?>" style="margin-left: 20px; max-width: 300px;">
-            </div>
-            <div class="checkbox-inline">
-                <input type="checkbox" id="zufin" name="zufin" value="1" <?= ($antrag['zufin'] ?? 0) ? 'checked' : '' ?>>
-                <label for="zufin" style="margin:0;"><strong>Zustimmung Finanzvorstand</strong></label>
-            </div>
-            <div class="form-group">
-                <label for="zbem">Bemerkung zum Zahlungsvorgang</label>
-                <textarea id="zbem" name="zbem" style="min-height: 50px;"><?= htmlspecialchars($antrag['zbem'] ?? '') ?></textarea>
-            </div>
 
-            <!-- Präsenzsitzung -->
-            <div class="checkbox-inline">
-                <input type="checkbox" id="praesenz" name="praesenz" value="1" <?= ($antrag['praesenz'] ?? 0) ? 'checked' : '' ?>>
-                <label for="praesenz" style="margin:0;"><strong>Präsenzsitzung/Telko</strong> (nicht online abstimmen)</label>
-            </div>
-
-            <!-- Wichtig-Eskalation für Vorstand -->
-            <?php if ($user['aktiv'] >= 18 && ($antrag['fin'] ?? 0) <= 3000 && $antrag['bart'] !== 'B'): ?>
-            <div class="checkbox-inline" style="margin-top: 12px; padding: 8px; background: #fff3cd; border-radius: 4px;">
-                <input type="checkbox" id="wichtig_escalate" name="wichtig_escalate" value="1" <?= ($antrag['wichtig'] ?? 0) > 0 ? 'checked' : '' ?>>
-                <label for="wichtig_escalate" style="margin:0;"><strong>Als VM: Vorstandsbeschluss erforderlich</strong> (unabhängig von Betrag)</label>
-                <input type="hidden" name="wichtig_member_id" value="<?= $user['ID'] ?>">
-            </div>
-            <?php endif; ?>
-
-            <!-- Wartezeitverkürzung -->
-            <?php if (!empty($antrag['verkb']) && substr($antrnr, 0, 1) === 'A'): ?>
-            <div class="section-title">Wartezeitverkürzung</div>
-            <div class="info-box">
-                <strong>Begründung:</strong> <?= nl2br(htmlspecialchars($antrag['verkb'])) ?>
-                <div style="margin-top: 8px;">
-                    <?php if ($antrag['verk1']): ?>
-                        <div>✓ Zustimmung 1: <?php
-                            $stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
-                            $stmt->execute([$antrag['verk1']]);
-                            echo htmlspecialchars($stmt->fetchColumn());
-                        ?></div>
-                    <?php endif; ?>
-                    <?php if ($antrag['verk2']): ?>
-                        <div>✓ Zustimmung 2: <?php
-                            $stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
-                            $stmt->execute([$antrag['verk2']]);
-                            echo htmlspecialchars($stmt->fetchColumn());
-                        ?></div>
-                    <?php endif; ?>
+                <div style="padding-left: 20px; margin: 4px 0;">
+                    <div class="checkbox-inline">
+                        <input type="checkbox" id="sofort_2" name="sofort_2" value="2" <?= ($antrag['sofort'] ?? 0) == 2 ? 'checked' : '' ?>
+                               onchange="if(this.checked) document.getElementById('sofort_1').checked = false;">
+                        <label for="sofort_2" style="margin:0; font-size: 12px;">Nach Vorprüfung durch:</label>
+                        <input type="text" name="durch" placeholder="Name" value="<?= htmlspecialchars($antrag['durch'] ?? '') ?>" style="width: 200px; margin-left: 8px; font-size: 12px;">
+                    </div>
                 </div>
-                <?php if ($kann_verkuerzen): ?>
-                    <button type="submit" name="action" value="verkuerzung" class="btn btn-warning" style="margin-top: 8px;">
-                        Wartezeitverkürzung zustimmen
-                    </button>
+
+                <div class="checkbox-inline">
+                    <input type="checkbox" id="zufin" name="zufin" value="1" <?= ($antrag['zufin'] ?? 0) ? 'checked' : '' ?>>
+                    <label for="zufin" style="margin:0; font-size: 12px;">Freigabe durch GF zusätzlich erforderlich</label>
+                </div>
+
+                <?php if (!empty($antrag['zbem'])): ?>
+                <div style="margin-top: 6px; font-size: 11px; color: #666;">
+                    <strong>Bemerkung Finanzreferat:</strong> <?= htmlspecialchars($antrag['zbem']) ?>
+                </div>
                 <?php endif; ?>
             </div>
-            <?php endif; ?>
 
-            <!-- Hinweise -->
-            <?php if (!empty($antrag['hinweis'])): ?>
-            <div class="section-title">Bisherige Hinweise</div>
-            <div class="hint-box"><?= nl2br(htmlspecialchars($antrag['hinweis'])) ?></div>
-            <?php endif; ?>
+            <!-- ========== SEKTION 5: BEMERKUNGEN/HINWEISE ========== -->
+            <div class="form-section section-gray-5">
+                <div class="section-header">Bemerkungen / Hinweise</div>
 
-            <div class="form-group">
-                <label for="neuerhinweis">Neuer Hinweis</label>
-                <textarea id="neuerhinweis" name="neuerhinweis" placeholder="Wird mit Zeitstempel angehängt..." style="min-height: 50px;"></textarea>
-            </div>
-
-            <!-- Actions -->
-            <div class="actions">
-                <button type="submit" name="action" value="save" class="btn btn-primary">Speichern</button>
-
-                <?php if ($kann_finalisieren): ?>
-                    <button type="submit" name="action" value="finalize" class="btn btn-success"
-                            onclick="return confirm('Antrag verbindlich einstellen? Nicht mehr änderbar!');">
-                        Verbindlich einstellen
-                    </button>
-                <?php elseif (substr($antrnr, 0, 1) === 'A'): ?>
-                    <button type="button" class="btn btn-success" disabled title="<?= implode(', ', $blockierung_grund) ?>">
-                        Verbindlich einstellen <?= !$wartezeit_erfuellt ? '(Wartezeit)' : '' ?>
-                    </button>
+                <?php if (!empty($antrag['hinweis'])): ?>
+                <div class="hint-box" style="margin-bottom: 10px;">
+                    <strong>Bisherige Hinweise:</strong><br>
+                    <?= nl2br(htmlspecialchars($antrag['hinweis'])) ?>
+                </div>
                 <?php endif; ?>
 
-                <?php if ($kann_verwerfen && substr($antrnr, 0, 1) === 'A'): ?>
-                    <button type="submit" name="action" value="delete" class="btn btn-danger"
-                            onclick="return confirm('Antrag verwerfen? Der Antrag wird als zurückgezogen markiert (X-Präfix).');">
-                        Verwerfen
-                    </button>
-                <?php endif; ?>
-
-                <a href="antragsliste.php" class="btn btn-secondary">Abbrechen</a>
+                <div class="form-group">
+                    <label for="neuerhinweis">Neuer Hinweis (wird mit Zeitstempel angehängt)</label>
+                    <textarea id="neuerhinweis" name="neuerhinweis" placeholder="Wird mit Zeitstempel angehängt..." style="min-height: 50px;"></textarea>
+                </div>
             </div>
+
+            <!-- ========== SEKTION 6: NÄCHSTE SCHRITTE ========== -->
+            <div class="form-section section-gray-6">
+                <div class="section-header">Nächste Schritte</div>
+
+                <div class="actions" style="border-top: none; padding-top: 0; margin-top: 8px;">
+                    <button type="submit" name="action" value="save" class="btn btn-primary">💾 Speichern</button>
+
+                    <?php if ($kann_finalisieren): ?>
+                        <button type="submit" name="action" value="finalize" class="btn btn-success"
+                                onclick="return confirm('Antrag verbindlich einstellen? Nicht mehr änderbar!');">
+                            ✅ Verbindlich einstellen
+                        </button>
+                    <?php elseif (substr($antrnr, 0, 1) === 'A'): ?>
+                        <button type="button" class="btn btn-success" disabled title="<?= implode(', ', $blockierung_grund) ?>">
+                            Verbindlich einstellen <?= !$wartezeit_erfuellt ? '(Wartezeit)' : '' ?>
+                        </button>
+                    <?php endif; ?>
+
+                    <?php if ($kann_verwerfen && substr($antrnr, 0, 1) === 'A'): ?>
+                        <button type="submit" name="action" value="delete" class="btn btn-danger"
+                                onclick="return confirm('Antrag löschen? Der Antrag wird als zurückgezogen markiert (X-Präfix).');">
+                            🗑️ Löschen
+                        </button>
+                    <?php endif; ?>
+
+                    <a href="antragsliste.php" class="btn btn-secondary">❌ Abbrechen</a>
+                </div>
+            </div>
+
         </form>
     </div>
 
