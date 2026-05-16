@@ -32,6 +32,43 @@ function getVerfuegungsberechtigte($pdo) {
     return $stmt->fetchAll();
 }
 
+function getAbstimmungsberechtigte($pdo, $bart, $antrst) {
+    // Für V und R: aktiv >= 14
+    if ($bart === 'V' || $bart === 'R') {
+        $members = $pdo->query("SELECT ID, KurzN, Funktion FROM berechtigte WHERE aktiv >= 14 ORDER BY KurzN")->fetchAll();
+
+        // Für R: zusätzlich FVo oder FVv
+        if ($bart === 'R') {
+            // Prüfen ob Antragsteller FVo ist
+            $antrst_data = $pdo->prepare("SELECT Funktion FROM berechtigte WHERE ID = ?");
+            $antrst_data->execute([$antrst]);
+            $antrst_funktion = $antrst_data->fetchColumn();
+
+            if ($antrst_funktion === 'FVo') {
+                // FVv als zweiten Abstimmenden
+                $zusatz = 'FVv';
+            } else {
+                // FVo als zweiten Abstimmenden
+                $zusatz = 'FVo';
+            }
+
+            $vorstand = $pdo->prepare("SELECT ID, KurzN, Funktion FROM berechtigte WHERE Funktion = ?");
+            $vorstand->execute([$zusatz]);
+            $vorstand_member = $vorstand->fetch();
+
+            if ($vorstand_member) {
+                // FVo/FVv als erstes Element hinzufügen
+                array_unshift($members, $vorstand_member);
+            }
+        }
+
+        return $members;
+    }
+
+    // Für B: alle mit aktiv >= 18 (Vorstand)
+    return $pdo->query("SELECT ID, KurzN, Funktion FROM berechtigte WHERE aktiv >= 18 ORDER BY KurzN")->fetchAll();
+}
+
 function berechneWartezeit($antrnr) {
     if (strlen($antrnr) < 7) return null;
     $jahr = '20' . substr($antrnr, 1, 2);
@@ -288,6 +325,7 @@ function wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user) {
 // Daten für UI
 $ressorts = $pdo->query("SELECT ID as ressort, Ressort as klartext FROM ressortliste ORDER BY Reihenfolge, ID")->fetchAll();
 $verfuegungsber = getVerfuegungsberechtigte($pdo);
+$abstimmende = getAbstimmungsberechtigte($pdo, $antrag['bart'], $antrag['antrst']);
 $wartezeit = berechneWartezeit($antrnr);
 $wartezeit_erfuellt = ($wartezeit === 'erfüllt' || ($antrag['verk1'] && $antrag['verk2']) || $antrag['bart'] === 'B');
 $monatssumme = berechneMonatssumme($pdo, $antrag['antrst'], $antrnr);
