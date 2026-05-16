@@ -26,9 +26,33 @@ $pdo = new PDO(
     ]
 );
 
+// Aktuellen User laden
+$user_stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
+$user_stmt->execute([$_SESSION['member_id']]);
+$user = $user_stmt->fetch();
+
+// Berechtigungen prüfen
+$kann_intern_sehen = ($user['aktiv'] > 17 || $user['Funktion'] === 'VA' || $user['is_admin'] == 1);
+$ist_admin = ($user['aktiv'] >= 19 || $user['is_admin'] == 1);
+
+// POST-Verarbeitung für permanentes Löschen
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_permanent']) && $ist_admin) {
+    $antrnr_to_delete = $_POST['antrnr'] ?? '';
+
+    // Nur X und Z Anträge dürfen permanent gelöscht werden
+    if ($antrnr_to_delete && (substr($antrnr_to_delete, 0, 1) === 'X' || substr($antrnr_to_delete, 0, 1) === 'Z')) {
+        $delete_stmt = $pdo->prepare("DELETE FROM antraege WHERE antrnr = ?");
+        $delete_stmt->execute([$antrnr_to_delete]);
+
+        header('Location: antragsliste.php?show_deleted=1&msg=deleted');
+        exit;
+    }
+}
+
 // Filter
 $filter_status = $_GET['status'] ?? 'all';
 $search = $_GET['search'] ?? '';
+$show_deleted = isset($_GET['show_deleted']) && $_GET['show_deleted'] == 1;
 
 // SQL für offene Anträge (ohne VS-Präfix) mit Antragsteller-Namen und Ressort-Namen
 $sql = "SELECT
@@ -41,6 +65,7 @@ $sql = "SELECT
     a.wichtig,
     a.lzugriff,
     a.verant,
+    a.int_ext,
     b.Vorname,
     b.Name,
     r1.Ressort as ressort1_name,
@@ -49,9 +74,19 @@ FROM antraege a
 LEFT JOIN berechtigte b ON a.antrst = b.ID
 LEFT JOIN ressortliste r1 ON a.ressort1 = r1.ID
 LEFT JOIN ressortliste r2 ON a.ressort2 = r2.ID
-WHERE a.antrnr NOT LIKE 'VS%'
-  AND a.antrnr NOT LIKE 'X%'
-  AND a.antrnr NOT LIKE 'Z%'";
+WHERE a.antrnr NOT LIKE 'VS%'";
+
+// Gelöschte einbeziehen oder ausschließen
+if (!$show_deleted) {
+    $sql .= " AND a.antrnr NOT LIKE 'X%' AND a.antrnr NOT LIKE 'Z%'";
+}
+
+// Intern-Filter für nicht-berechtigte User
+if (!$kann_intern_sehen) {
+    $sql .= " AND (a.int_ext IS NULL OR a.int_ext != 'i')";
+}
+
+$sql .= " AND 1=1";
 
 $params = [];
 
@@ -229,6 +264,39 @@ $antragsteller = $status_stmt->fetchAll();
             color: #0066cc;
             text-decoration: none;
         }
+        .visibility-hint {
+            font-size: 11px;
+            color: #666;
+            font-weight: normal;
+            margin-top: 2px;
+        }
+        .deleted-row {
+            background: #ffe0e0 !important;
+            opacity: 0.7;
+        }
+        .delete-form {
+            display: inline-block;
+            margin-top: 5px;
+        }
+        .delete-form input[type="text"] {
+            width: 150px;
+            padding: 4px 6px;
+            font-size: 11px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .delete-form button {
+            padding: 4px 10px;
+            font-size: 11px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .delete-form button:hover {
+            background: #c82333;
+        }
     </style>
 </head>
 <body>
@@ -258,6 +326,11 @@ $antragsteller = $status_stmt->fetchAll();
                placeholder="Suche Nummer/Titel..."
                value="<?= htmlspecialchars($search) ?>">
 
+        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <input type="checkbox" name="show_deleted" value="1" <?= $show_deleted ? 'checked' : '' ?>>
+            <span style="font-size: 13px;">Auch gelöschte anzeigen</span>
+        </label>
+
         <button type="submit">Filtern</button>
         <a href="antragsliste.php" style="padding: 8px 16px; background: #666; color: white; text-decoration: none; border-radius: 4px;">Zurücksetzen</a>
     </form>
@@ -283,12 +356,34 @@ $antragsteller = $status_stmt->fetchAll();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($antraege as $a): ?>
-                        <tr>
+                    <?php foreach ($antraege as $a):
+                        $is_deleted = (substr($a['antrnr'], 0, 1) === 'X' || substr($a['antrnr'], 0, 1) === 'Z');
+                    ?>
+                        <tr <?= $is_deleted ? 'class="deleted-row"' : '' ?>>
                             <td>
-                                <span style="color: #333; font-weight: 600;"><?= htmlspecialchars($a['antrnr']) ?></span>
-                                <?php if ($a['wichtig']): ?>
-                                    <span class="badge wichtig">Wichtig</span>
+                                <div>
+                                    <span style="color: #333; font-weight: 600;"><?= htmlspecialchars($a['antrnr']) ?></span>
+                                    <?php if ($a['wichtig']): ?>
+                                        <span class="badge wichtig">Wichtig</span>
+                                    <?php endif; ?>
+                                </div>
+                                <?php
+                                // Sichtbarkeits-Hinweis
+                                if ($a['int_ext'] === 'i') {
+                                    echo '<div class="visibility-hint">🔒 Intern (nur Vorstand)</div>';
+                                } elseif ($a['int_ext'] === 'n') {
+                                    echo '<div class="visibility-hint">👥 Nicht öffentlich (Führung)</div>';
+                                } elseif ($a['int_ext'] === 'e') {
+                                    echo '<div class="visibility-hint">🌐 Extern (alle Ms)</div>';
+                                }
+
+                                // Delete-Form für Admins bei X und Z
+                                if ($ist_admin && $is_deleted): ?>
+                                    <form method="POST" class="delete-form" onsubmit="return confirm('Antrag ENDGÜLTIG löschen? Nicht rückholbar!');">
+                                        <input type="hidden" name="antrnr" value="<?= htmlspecialchars($a['antrnr']) ?>">
+                                        <input type="text" name="delete_permanent" placeholder="Zum Löschen tippen" required>
+                                        <button type="submit">🗑️ Endgültig löschen</button>
+                                    </form>
                                 <?php endif; ?>
                             </td>
                             <td>

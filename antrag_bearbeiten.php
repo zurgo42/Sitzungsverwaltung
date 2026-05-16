@@ -35,7 +35,7 @@ function getVerfuegungsberechtigte($pdo) {
 function getAbstimmungsberechtigte($pdo, $bart, $antrst) {
     // Für V und R: aktiv >= 14
     if ($bart === 'V' || $bart === 'R') {
-        $members = $pdo->query("SELECT ID, KurzN, Funktion FROM berechtigte WHERE aktiv >= 14 ORDER BY KurzN")->fetchAll();
+        $members = $pdo->query("SELECT ID, KurzN, Funktion FROM berechtigte WHERE aktiv >= 14 ORDER BY Funktion DESC, KurzN ASC")->fetchAll();
 
         // Für R: zusätzlich FVo oder FVv
         if ($bart === 'R') {
@@ -66,7 +66,7 @@ function getAbstimmungsberechtigte($pdo, $bart, $antrst) {
     }
 
     // Für B: alle mit aktiv >= 18 (Vorstand)
-    return $pdo->query("SELECT ID, KurzN, Funktion FROM berechtigte WHERE aktiv >= 18 ORDER BY KurzN")->fetchAll();
+    return $pdo->query("SELECT ID, KurzN, Funktion FROM berechtigte WHERE aktiv >= 18 ORDER BY Funktion DESC, KurzN ASC")->fetchAll();
 }
 
 function berechneWartezeit($antrnr) {
@@ -128,6 +128,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($action) {
             case 'save':
                 speichereAntrag($pdo, $antrnr, $_POST, $antrag, $user);
+
+                // Wartezeitverkürzung verarbeiten
+                if (isset($_POST['wartezeit_verkuerzen']) && $_POST['wartezeit_verkuerzen'] == 1) {
+                    if ($user['aktiv'] >= 18 && $antrag['antrst'] != $user['ID']) {
+                        wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user);
+                    }
+                }
+
                 $saved = true;
                 $message = "Antrag gespeichert.";
                 break;
@@ -166,8 +174,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     $fin = floatval($post['fin'] ?? 0);
 
+    // Admin kann Antragsteller ändern
+    $antrst = $antrag['antrst'];
+    if ($user['aktiv'] >= 19 && isset($post['antrst']) && $post['antrst'] != $antrag['antrst']) {
+        $antrst = $post['antrst'];
+    }
+
     // Monatssummen-Prüfung für Verfügungen
-    $monatssumme = berechneMonatssumme($pdo, $antrag['antrst'], $antrnr);
+    $monatssumme = berechneMonatssumme($pdo, $antrst, $antrnr);
     if ($fin < 600 && ($monatssumme + $fin) > 2000) {
         throw new Exception("Monatliche Verfügungsgrenze von 2000€ überschritten! Aktuelle Summe: " . number_format($monatssumme, 2) . "€");
     }
@@ -229,7 +243,7 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 
     $update = $pdo->prepare("
         UPDATE antraege SET
-            titel = ?, beschluss = ?, begr = ?, pers = ?, sach = ?,
+            antrst = ?, titel = ?, beschluss = ?, begr = ?, pers = ?, sach = ?,
             fintext = ?, fin = ?, bart = ?, verant = ?,
             ressort1 = ?, ressort2 = ?, wichtig = ?,
             int_ext = ?, verein = ?, hinweis = ?, thread = ?,
@@ -242,7 +256,7 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     ");
 
     $update->execute([
-        $post['titel'], $post['beschluss'], $post['begr'] ?? null,
+        $antrst, $post['titel'], $post['beschluss'], $post['begr'] ?? null,
         $post['pers'] ?? null, $post['sach'] ?? null, $post['fintext'] ?? null,
         $fin, $bart, $post['verant'] ?? null,
         $post['ressort1'] ?? null, $post['ressort2'] ?? null, $wichtig,
@@ -370,6 +384,25 @@ if ($antrag['verf2']) {
     $stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
     $stmt->execute([$antrag['verf2']]);
     $verf2_name = $stmt->fetchColumn() ?: '';
+}
+
+// Verk-Namen holen (Wartezeitverkürzung)
+$verk1_name = $verk2_name = '';
+if ($antrag['verk1']) {
+    $stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
+    $stmt->execute([$antrag['verk1']]);
+    $verk1_name = $stmt->fetchColumn() ?: '';
+}
+if ($antrag['verk2']) {
+    $stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
+    $stmt->execute([$antrag['verk2']]);
+    $verk2_name = $stmt->fetchColumn() ?: '';
+}
+
+// Alle User mit aktiv>=9 für Admin-Antragsteller-Auswahl
+$alle_antragsteller = [];
+if ($user['aktiv'] >= 19) {
+    $alle_antragsteller = $pdo->query("SELECT ID, KurzN, Vorname, Name FROM berechtigte WHERE aktiv >= 9 ORDER BY KurzN")->fetchAll();
 }
 ?>
 <!DOCTYPE html>
@@ -501,8 +534,19 @@ if ($antrag['verf2']) {
             <!-- ========== SEKTION 1: DATEN ZUM ANTRAG ========== -->
             <div class="form-section section-gray-1">
                 <div class="section-header">Daten zum Antrag:
-                    Antragsnummer <?= htmlspecialchars($antrag['antrnr']) ?> -
-                    Antragsteller: <?= htmlspecialchars(($antrag['Vorname'] ?? '') . ' ' . ($antrag['Name'] ?? '')) ?>
+                    Antragsnummer <?= htmlspecialchars($antrag['antrnr']) ?>
+                    <?php if ($user['aktiv'] >= 19): ?>
+                        - Antragsteller:
+                        <select name="antrst" style="display: inline-block; width: auto; padding: 2px 6px; font-size: 13px; margin-left: 5px;">
+                            <?php foreach ($alle_antragsteller as $ast): ?>
+                                <option value="<?= $ast['ID'] ?>" <?= $antrag['antrst'] == $ast['ID'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($ast['KurzN']) ?> (<?= htmlspecialchars($ast['Vorname'] . ' ' . $ast['Name']) ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php else: ?>
+                        - Antragsteller: <?= htmlspecialchars(($antrag['Vorname'] ?? '') . ' ' . ($antrag['Name'] ?? '')) ?>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Zeile 1: Beschlussart - Abstimmung 1 - Abstimmung 2 -->
@@ -536,7 +580,7 @@ if ($antrag['verf2']) {
                             <div style="margin-top: 8px;">
                                 <div class="checkbox-inline">
                                     <input type="checkbox" id="wichtig_escalate" name="wichtig_escalate" value="1" <?= !empty($antrag['wichtig']) ? 'checked' : '' ?>>
-                                    <label for="wichtig_escalate" style="margin: 0; font-size: 12px;">Vorstandsbeschluss erforderlich</label>
+                                    <label for="wichtig_escalate" style="margin: 0; font-size: 12px;">Alternativ: Als Abstimmung im Gesamtvorstand einstellen</label>
                                 </div>
 
                                 <?php if ($wichtig_von_antragsteller): ?>
@@ -731,7 +775,7 @@ if ($antrag['verf2']) {
                 <div class="checkbox-inline">
                     <input type="checkbox" id="sofort_1" name="sofort_1" value="1" <?= ($antrag['sofort'] ?? 0) == 1 ? 'checked' : '' ?>
                            onchange="toggleFinanzFreigabe()">
-                    <label for="sofort_1" style="margin:0; font-size: 12px;">Rechnung = Angebot: sofort überweisen</label>
+                    <label for="sofort_1" style="margin:0; font-size: 12px;">Wenn Rechnungsbetrag = Angebot, sofort überweisen</label>
 
                     <span style="margin-left: 20px;">ODER</span>
 
@@ -829,6 +873,31 @@ if ($antrag['verf2']) {
                     <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107; margin-bottom: 12px;">
                         <strong>Nur für Vorstand, GF und Antragsteller:</strong>
                         Wenn der Antrag obsolet ist und nicht mehr benötigt wird, kannst du ihn löschen - das ist nicht mehr rückholbar!
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($kann_verkuerzen && substr($antrnr, 0, 1) === 'A' && $wartezeit !== 'erfüllt'): ?>
+                    <div style="background: #fff8dc; padding: 10px; margin-bottom: 12px; border-radius: 4px; border-left: 3px solid #ffa500;">
+                        <div class="checkbox-inline">
+                            <input type="checkbox" id="wartezeit_verkuerzen" name="wartezeit_verkuerzen" value="1"
+                                   <?= ($antrag['verk1'] == $user['ID'] || $antrag['verk2'] == $user['ID']) ? 'checked' : '' ?>>
+                            <label for="wartezeit_verkuerzen" style="margin: 0; font-size: 12px; font-weight: 600;">Wartezeit aufheben</label>
+                        </div>
+                        <div style="font-size: 11px; color: #666; margin-top: 4px;">
+                            (Vorstandsmitglieder können der Verkürzung zustimmen)
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (($antrag['verk1'] || $antrag['verk2']) && $wartezeit !== 'erfüllt'): ?>
+                    <div style="background: #e8f5e9; padding: 10px; margin-bottom: 12px; border-radius: 4px; border-left: 3px solid #4caf50;">
+                        <div style="font-size: 12px; color: #2e7d32;">
+                            <?php if ($antrag['verk1'] && $antrag['verk2']): ?>
+                                ✓ Zustimmung durch <?= htmlspecialchars($verk1_name) ?> und <?= htmlspecialchars($verk2_name) ?> liegt vor
+                            <?php elseif ($antrag['verk1']): ?>
+                                ✓ Zustimmung durch <?= htmlspecialchars($verk1_name) ?> liegt vor
+                            <?php endif; ?>
+                        </div>
                     </div>
                 <?php endif; ?>
 
