@@ -305,9 +305,9 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
     } else {
         // Keine Mitgliedsnummer übergeben
         show_access_denied_page(
-            'SSO-Fehler',
-            'Es wurde keine Mitgliedsnummer übergeben. Bitte versuche es über das VTool erneut.',
-            'Technischer Hinweis: SSO_SOURCE ist auf "' . SSO_SOURCE . '" konfiguriert'
+            'Bitte Zugriff verifizieren',
+            'Es wurde keine Mitgliedsnummer übergeben. Bitte authentifiziere dich über das VTool.',
+            ''
         );
     }
 }
