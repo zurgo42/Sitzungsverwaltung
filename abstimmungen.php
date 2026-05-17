@@ -103,83 +103,153 @@ function render_antrag_detail($pdo, $antrag) {
             <?php endif; ?>
         </div>
 
-        <!-- Expandierbare Details -->
+        <!-- Expandierbare Details - VOLLSTÄNDIG für rechtssicheres Votum -->
         <div id="details_<?= htmlspecialchars($antrag['antrnr']) ?>" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 2px solid #e0e0e0;">
-            <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #333;">Vollständige Antragsinformationen</h3>
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #d32f2f; font-weight: 700;">
+                ⚠️ Vollständige Antragsinformationen für Abstimmung
+            </h3>
+            <div style="background: rgba(250, 170, 0, 0.1); padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 12px; color: #666;">
+                Bitte prüfen Sie alle Details vor der Abstimmung. Diese Ansicht enthält ALLE Informationen aus dem Antragsformular.
+            </div>
 
-            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 8px; margin-bottom: 15px; font-size: 13px;">
+            <!-- Basisdaten -->
+            <h4 style="margin: 12px 0 8px 0; font-size: 14px; color: #333; font-weight: 600;">Basisdaten:</h4>
+            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 8px; margin-bottom: 15px; font-size: 13px; background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                <div style="font-weight: 600; color: #666;">Antragsnummer:</div>
+                <div><?= htmlspecialchars($antrag['antrnr']) ?></div>
+
+                <div style="font-weight: 600; color: #666;">Antragsteller:</div>
+                <div><?= htmlspecialchars(($antrst['Vorname'] ?? '') . ' ' . ($antrst['Name'] ?? '')) ?> (<?= htmlspecialchars($antrst['KurzN'] ?? '') ?>)</div>
+
+                <div style="font-weight: 600; color: #666;">Beschlussart:</div>
+                <div><?= $bart_text[$antrag['bart']] ?? $antrag['bart'] ?></div>
+
+                <?php
+                // Verfügungsberechtigte laden falls vorhanden
+                $verf1_name = $verf2_name = '';
+                if (!empty($antrag['verf1'])) {
+                    $v_stmt = $pdo->prepare("SELECT Vorname, Name FROM berechtigte WHERE ID = ?");
+                    $v_stmt->execute([$antrag['verf1']]);
+                    $v = $v_stmt->fetch();
+                    $verf1_name = $v ? $v['Vorname'] . ' ' . $v['Name'] : '';
+                }
+                if (!empty($antrag['verf2'])) {
+                    $v_stmt = $pdo->prepare("SELECT Vorname, Name FROM berechtigte WHERE ID = ?");
+                    $v_stmt->execute([$antrag['verf2']]);
+                    $v = $v_stmt->fetch();
+                    $verf2_name = $v ? $v['Vorname'] . ' ' . $v['Name'] : '';
+                }
+                if ($verf1_name):
+                ?>
+                <div style="font-weight: 600; color: #666;">Verfügungsberechtigt:</div>
+                <div>
+                    <?= htmlspecialchars($verf1_name) ?>
+                    <?php if ($verf2_name): ?>
+                        + <?= htmlspecialchars($verf2_name) ?>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
+                <div style="font-weight: 600; color: #666;">Ressort:</div>
+                <div><?= htmlspecialchars($ressort1_name) ?><?= $ressort2_name ? ' + ' . htmlspecialchars($ressort2_name) : '' ?></div>
+
+                <div style="font-weight: 600; color: #666;">Verantwortlich:</div>
+                <div><?= htmlspecialchars($antrag['verant'] ?? '') ?></div>
+
                 <div style="font-weight: 600; color: #666;">Sichtbarkeit:</div>
                 <div><?= $int_ext_text[$antrag['int_ext']] ?? 'Extern' ?></div>
 
                 <div style="font-weight: 600; color: #666;">Verein/Stiftung:</div>
                 <div><?= $antrag['verein'] === 'S' ? 'Stiftung' : 'Verein' ?></div>
 
-                <?php if ($antrag['verant']): ?>
-                <div style="font-weight: 600; color: #666;">Verantwortlich:</div>
-                <div><?= htmlspecialchars($antrag['verant']) ?></div>
-                <?php endif; ?>
-
                 <?php if ($antrag['sofort']): ?>
                 <div style="font-weight: 600; color: #666;">Priorität:</div>
-                <div><?= $antrag['sofort'] == 1 ? '🔥 Eilig' : '⚡ Sehr eilig' ?></div>
+                <div><?= $antrag['sofort'] == 1 ? '🔥 Eilig' : ($antrag['sofort'] == 2 ? '⚡ Sehr eilig' : 'Normal') ?></div>
                 <?php endif; ?>
+
+                <?php if ($antrag['praesenz']): ?>
+                <div style="font-weight: 600; color: #666;">Abstimmungsform:</div>
+                <div><?= $antrag['praesenz'] === 'praesenz' ? 'Präsenzsitzung' : 'Online' ?></div>
+                <?php endif; ?>
+
+                <?php if ($antrag['thread']): ?>
+                <div style="font-weight: 600; color: #666;">Forum-Thread:</div>
+                <div>
+                    <a href="https://vorstand.mensa.de/forum/index.php?id=<?= (int)$antrag['thread'] ?>" target="forum" style="color: #0066cc;">
+                        → Thread #<?= (int)$antrag['thread'] ?> öffnen
+                    </a>
+                </div>
+                <?php endif; ?>
+
+                <div style="font-weight: 600; color: #666;">Letzter Zugriff:</div>
+                <div><?= $antrag['lzugriff'] ? date('d.m.Y H:i', strtotime($antrag['lzugriff'])) : '-' ?></div>
             </div>
 
+            <!-- Auswirkungen -->
+            <h4 style="margin: 15px 0 8px 0; font-size: 14px; color: #333; font-weight: 600;">Auswirkungen:</h4>
+
             <?php if ($antrag['fintext']): ?>
-                <h4 style="margin: 12px 0 6px 0; font-size: 14px; color: #333;">Finanzielle Details:</h4>
-                <div style="font-size: 13px; color: #666; margin-bottom: 10px;">
-                    <?= nl2br(htmlspecialchars($antrag['fintext'])) ?>
+                <div style="margin-bottom: 12px;">
+                    <div style="font-weight: 600; color: #666; font-size: 13px; margin-bottom: 4px;">Finanzielle Details:</div>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 4px solid #d32f2f; font-size: 13px;">
+                        <?= nl2br(htmlspecialchars($antrag['fintext'])) ?>
+                    </div>
                 </div>
             <?php endif; ?>
 
             <?php if ($antrag['pers'] && $antrag['pers'] !== 'keine'): ?>
-                <h4 style="margin: 12px 0 6px 0; font-size: 14px; color: #333;">Personelle Auswirkungen:</h4>
-                <div style="font-size: 13px; color: #666; margin-bottom: 10px;">
-                    <?= nl2br(htmlspecialchars($antrag['pers'])) ?>
+                <div style="margin-bottom: 12px;">
+                    <div style="font-weight: 600; color: #666; font-size: 13px; margin-bottom: 4px;">Personelle Auswirkungen:</div>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 4px solid #0066cc; font-size: 13px;">
+                        <?= nl2br(htmlspecialchars($antrag['pers'])) ?>
+                    </div>
                 </div>
             <?php endif; ?>
 
             <?php if ($antrag['sach'] && $antrag['sach'] !== 'keine'): ?>
-                <h4 style="margin: 12px 0 6px 0; font-size: 14px; color: #333;">Sachliche Auswirkungen:</h4>
-                <div style="font-size: 13px; color: #666; margin-bottom: 10px;">
-                    <?= nl2br(htmlspecialchars($antrag['sach'])) ?>
+                <div style="margin-bottom: 12px;">
+                    <div style="font-weight: 600; color: #666; font-size: 13px; margin-bottom: 4px;">Sachliche Auswirkungen:</div>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 4px solid #4caf50; font-size: 13px;">
+                        <?= nl2br(htmlspecialchars($antrag['sach'])) ?>
+                    </div>
                 </div>
             <?php endif; ?>
 
-            <?php if ($antrag['thread']): ?>
-                <h4 style="margin: 12px 0 6px 0; font-size: 14px; color: #333;">Forum-Thread:</h4>
-                <div style="margin-bottom: 10px;">
-                    <a href="https://vorstand.mensa.de/forum/index.php?id=<?= (int)$antrag['thread'] ?>" target="forum" style="color: #0066cc; font-size: 13px;">
-                        → Diskussion im Forum öffnen
-                    </a>
-                </div>
-            <?php endif; ?>
-
-            <?php if ($antrag['hinweis']): ?>
-                <h4 style="margin: 12px 0 6px 0; font-size: 14px; color: #333;">Hinweise/Protokoll:</h4>
-                <div style="background: #fff3cd; padding: 10px; border-radius: 4px; border-left: 4px solid #ffc107; font-size: 13px;">
-                    <?= nl2br(htmlspecialchars($antrag['hinweis'])) ?>
-                </div>
-            <?php endif; ?>
-
+            <!-- Dateien -->
             <?php
-            // Dateien anzeigen
             $has_files = false;
             for ($i = 1; $i <= 4; $i++) {
                 if (!empty($antrag["file$i"])) {
                     if (!$has_files) {
-                        echo '<h4 style="margin: 12px 0 6px 0; font-size: 14px; color: #333;">Angehängte Dateien:</h4>';
+                        echo '<h4 style="margin: 15px 0 8px 0; font-size: 14px; color: #333; font-weight: 600;">Angehängte Dateien/Angebote:</h4>';
                         $has_files = true;
                     }
-                    echo '<div style="margin-bottom: 6px; font-size: 13px;">';
-                    echo '<a href="' . htmlspecialchars($antrag["file$i"]) . '" target="_blank" style="color: #0066cc;">📎 ' . basename($antrag["file$i"]) . '</a>';
+                    echo '<div style="margin-bottom: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">';
+                    echo '<a href="' . htmlspecialchars($antrag["file$i"]) . '" target="_blank" style="color: #0066cc; font-weight: 600; text-decoration: none;">';
+                    echo '📎 ' . basename($antrag["file$i"]) . '</a>';
                     if (!empty($antrag["filetext$i"])) {
-                        echo ' – ' . htmlspecialchars($antrag["filetext$i"]);
+                        echo '<div style="margin-top: 3px; font-size: 12px; color: #666; margin-left: 20px;">' . htmlspecialchars($antrag["filetext$i"]) . '</div>';
                     }
                     echo '</div>';
                 }
             }
             ?>
+
+            <!-- Hinweise/Protokoll -->
+            <?php if ($antrag['hinweis']): ?>
+                <h4 style="margin: 15px 0 8px 0; font-size: 14px; color: #333; font-weight: 600;">Hinweise/Protokoll:</h4>
+                <div style="background: #fff3cd; padding: 10px; border-radius: 4px; border-left: 4px solid #ffc107; font-size: 13px;">
+                    <?= nl2br(htmlspecialchars($antrag['hinweis'])) ?>
+                </div>
+            <?php endif; ?>
+
+            <!-- Link zur separaten Vollansicht -->
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                <a href="antrag_ansehen.php?antrnr=<?= urlencode($antrag['antrnr']) ?>" target="_blank"
+                   class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px;">
+                    🔍 In separatem Fenster öffnen
+                </a>
+            </div>
         </div>
     </div>
     <?php

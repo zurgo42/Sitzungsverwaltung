@@ -466,10 +466,15 @@ foreach ($b_antraege as $a) {
                             </td>
                             <td><?= $a['lzugriff'] ? date('d.m.Y H:i', strtotime($a['lzugriff'])) : '-' ?></td>
                             <td>
+                                <a href="antrag_ansehen.php?antrnr=<?= urlencode($a['antrnr']) ?>"
+                                   class="btn btn-secondary"
+                                   style="padding: 6px 12px; font-size: 13px;">
+                                    👁️ Ansehen
+                                </a>
                                 <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($a['antrnr']) ?>"
                                    class="btn"
-                                   style="padding: 6px 12px; font-size: 13px;">
-                                    Bearbeiten
+                                   style="padding: 6px 12px; font-size: 13px; margin-left: 5px;">
+                                    ✏️ Bearbeiten
                                 </a>
                             </td>
                         </tr>
