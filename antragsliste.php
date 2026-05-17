@@ -423,9 +423,6 @@ foreach ($b_antraege as $a) {
                             <td>
                                 <div>
                                     <span style="color: #333; font-weight: 600;"><?= htmlspecialchars($a['antrnr']) ?></span>
-                                    <?php if ($a['wichtig']): ?>
-                                        <span class="badge wichtig">Wichtig</span>
-                                    <?php endif; ?>
                                 </div>
                                 <?php
                                 // Sichtbarkeits-Hinweis

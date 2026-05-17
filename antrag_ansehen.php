@@ -79,7 +79,16 @@ if ($antrag['verk2']) {
 }
 
 $prefix = substr($antrnr, 0, 1);
-$kann_bearbeiten = ($prefix === 'A' && ($user['aktiv'] > 10) && ($antrag['antrst'] == $user['ID'] || $user['aktiv'] >= 18));
+$ist_admin = ($user['is_admin'] == 1);
+
+// Berechtigungsprüfung
+if ($prefix === 'A') {
+    // A-Anträge: Antragsteller oder Vorstand darf bearbeiten
+    $kann_bearbeiten = (($user['aktiv'] > 10) && ($antrag['antrst'] == $user['ID'] || $user['aktiv'] >= 18));
+} else {
+    // B/VS/X/Z-Anträge: Nur Admins dürfen bearbeiten
+    $kann_bearbeiten = $ist_admin;
+}
 
 $bart_text = ['V' => 'Verfügung', 'R' => 'Ressortbeschluss', 'B' => 'Vorstandsbeschluss'];
 $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vorstand'];
@@ -166,10 +175,10 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                     <div class="compact-label">Verein/Stiftung:</div>
                     <div class="compact-value"><?= $antrag['verein'] === 'S' ? 'Stiftung' : 'Verein' ?></div>
                 </div>
-                <?php if ($antrag['praesenz']): ?>
+                <?php if (isset($antrag['praesenz'])): ?>
                 <div class="compact-row">
                     <div class="compact-label">Abstimmungsform:</div>
-                    <div class="compact-value"><?= $antrag['praesenz'] === 'praesenz' ? 'Präsenzsitzung' : 'Online' ?></div>
+                    <div class="compact-value"><?= $antrag['praesenz'] == 1 ? 'Präsenzsitzung' : 'Online' ?></div>
                 </div>
                 <?php endif; ?>
                 <?php if ($antrag['thread']): ?>
@@ -182,6 +191,41 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                     <div class="compact-label">Letzte Änderung:</div>
                     <div class="compact-value"><?= $antrag['lzugriff'] ? date('d.m.Y H:i', strtotime($antrag['lzugriff'])) : '-' ?></div>
                 </div>
+                <?php
+                // Abstimmungs- und Beschlussdatum
+                $prefix = substr($antrnr, 0, 1);
+                if ($prefix === 'B' || $prefix === 'V'):
+                    // Zur Abstimmung gestellt: Datum aus warantrag oder erstes VDat
+                    $abstimmung_seit = null;
+                    if (!empty($antrag['warantrag'])) {
+                        // Bei VS-Anträgen: warantrag enthält alte B-Nummer, Datum extrahieren
+                        $old_nr = $antrag['warantrag'];
+                        if (preg_match('/^B(\d{6})/', $old_nr, $matches)) {
+                            $datum_str = $matches[1];
+                            $abstimmung_seit = '20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2);
+                        }
+                    }
+                    // Letztes Votum finden
+                    $letztes_votum = null;
+                    for ($i = 6; $i >= 1; $i--) {
+                        if (!empty($antrag["VDat$i"])) {
+                            $letztes_votum = $antrag["VDat$i"];
+                            break;
+                        }
+                    }
+                    if ($abstimmung_seit): ?>
+                <div class="compact-row">
+                    <div class="compact-label">Zur Abstimmung:</div>
+                    <div class="compact-value"><?= date('d.m.Y', strtotime($abstimmung_seit)) ?></div>
+                </div>
+                    <?php endif;
+                    if ($prefix === 'V' && $letztes_votum): ?>
+                <div class="compact-row">
+                    <div class="compact-label">Beschlossen am:</div>
+                    <div class="compact-value" style="font-weight: 600; color: var(--success);"><?= date('d.m.Y H:i', strtotime($letztes_votum)) ?></div>
+                </div>
+                    <?php endif;
+                endif; ?>
             </div>
         </div>
 

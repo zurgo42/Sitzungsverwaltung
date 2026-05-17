@@ -167,9 +167,9 @@ function render_antrag_detail($pdo, $antrag) {
                 <div><?= $antrag['sofort'] == 1 ? '🔥 Eilig' : ($antrag['sofort'] == 2 ? '⚡ Sehr eilig' : 'Normal') ?></div>
                 <?php endif; ?>
 
-                <?php if ($antrag['praesenz']): ?>
+                <?php if (isset($antrag['praesenz'])): ?>
                 <div style="font-weight: 600; color: #666;">Abstimmungsform:</div>
-                <div><?= $antrag['praesenz'] === 'praesenz' ? 'Präsenzsitzung' : 'Online' ?></div>
+                <div><?= $antrag['praesenz'] == 1 ? 'Präsenzsitzung' : 'Online' ?></div>
                 <?php endif; ?>
 
                 <?php if ($antrag['thread']): ?>

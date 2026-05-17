@@ -116,6 +116,26 @@ $stmt->execute([$antrnr]);
 $antrag = $stmt->fetch();
 if (!$antrag) die("Antrag nicht gefunden.");
 
+// Berechtigungsprüfung je nach Status
+$prefix = substr($antrnr, 0, 1);
+$ist_admin = ($user['is_admin'] == 1);
+
+if ($prefix === 'A') {
+    // A-Anträge: Antragsteller oder Vorstand darf bearbeiten
+    $darf_bearbeiten = ($antrag['antrst'] == $user['ID'] || $user_aktiv >= 18);
+} else {
+    // B/VS/X/Z-Anträge: Nur Admins dürfen bearbeiten
+    $darf_bearbeiten = $ist_admin;
+}
+
+if (!$darf_bearbeiten) {
+    die("⚠️ Keine Berechtigung zur Bearbeitung.<br><br>" .
+        "Dieser Antrag wurde bereits finalisiert und kann nur noch von Administratoren bearbeitet werden.<br>" .
+        "Status: " . htmlspecialchars($prefix) . "-Antrag<br><br>" .
+        "<a href='antragsliste.php'>← Zurück zur Liste</a> | " .
+        "<a href='antrag_ansehen.php?antrnr=" . urlencode($antrnr) . "'>Antrag ansehen</a>");
+}
+
 $saved = false;
 $error = null;
 $message = null;
@@ -138,6 +158,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $saved = true;
                 $message = "Antrag gespeichert.";
+                if ($prefix === 'A' && !$ist_admin) {
+                    $message .= " <strong style='color: var(--warning);'>⚠️ Hinweis:</strong> Nach dem 'Verbindlich einstellen' kann der Antrag nur noch von Administratoren bearbeitet werden!";
+                }
                 break;
 
             case 'finalize':
@@ -667,8 +690,8 @@ if ($user['aktiv'] >= 19) {
                         <div class="form-group">
                             <label for="praesenz">Abstimmung</label>
                             <select id="praesenz" name="praesenz">
-                                <option value="online" <?= ($antrag['praesenz'] ?? 'online') === 'online' ? 'selected' : '' ?>>Online</option>
-                                <option value="praesenz" <?= ($antrag['praesenz'] ?? '') === 'praesenz' ? 'selected' : '' ?>>Präsenzsitzung</option>
+                                <option value="0" <?= ($antrag['praesenz'] ?? 0) == 0 ? 'selected' : '' ?>>Online</option>
+                                <option value="1" <?= ($antrag['praesenz'] ?? 0) == 1 ? 'selected' : '' ?>>Präsenzsitzung</option>
                             </select>
                             <div style="font-size: 11px; color: #666; margin-top: 4px;">
                                 Vorstandsbeschluss
