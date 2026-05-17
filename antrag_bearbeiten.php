@@ -659,12 +659,23 @@ if ($user['aktiv'] >= 19) {
                         <?php endif; ?>
 
                     <?php elseif ($antrag['bart'] === 'B'): ?>
+                        <!-- Hidden input um wichtig-Flag zu erhalten -->
+                        <?php if (!empty($antrag['wichtig'])): ?>
+                            <input type="hidden" name="wichtig_escalate" value="1">
+                        <?php endif; ?>
+
                         <div class="form-group">
                             <label for="praesenz">Abstimmung</label>
                             <select id="praesenz" name="praesenz">
                                 <option value="online" <?= ($antrag['praesenz'] ?? 'online') === 'online' ? 'selected' : '' ?>>Online</option>
                                 <option value="praesenz" <?= ($antrag['praesenz'] ?? '') === 'praesenz' ? 'selected' : '' ?>>Präsenzsitzung</option>
                             </select>
+                            <div style="font-size: 11px; color: #666; margin-top: 4px;">
+                                Vorstandsbeschluss
+                                <?php if (!empty($antrag['wichtig']) && $antrag['wichtig'] != $antrag['antrst']): ?>
+                                    (von Vorstand festgelegt)
+                                <?php endif; ?>
+                            </div>
                         </div>
                         <div class="form-group">
                             <!-- Leer -->
