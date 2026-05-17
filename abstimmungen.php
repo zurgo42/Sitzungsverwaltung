@@ -29,7 +29,11 @@ $user = $user_stmt->fetch();
 
 $user_aktiv = (int)($user['aktiv'] ?? 0);
 
-// Hilfsfunktion: Antrag kompakt anzeigen mit expandierbaren Details
+// Hilfsfunktion wurde entfernt - jetzt wird antrag_ansehen.php per iframe eingebunden
+// (siehe Zeile 562+)
+
+// Alte render_antrag_detail() Funktion nicht mehr benötigt
+/*
 function render_antrag_detail($pdo, $antrag) {
     // Antragsteller laden
     $antrst_stmt = $pdo->prepare("SELECT Vorname, Name, KurzN FROM berechtigte WHERE ID = ?");
@@ -254,6 +258,7 @@ function render_antrag_detail($pdo, $antrag) {
     </div>
     <?php
 }
+*/
 
 // POST-Verarbeitung: Votum speichern
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['votum_action'])) {
