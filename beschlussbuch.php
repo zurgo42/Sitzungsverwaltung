@@ -2,7 +2,7 @@
 /**
  * beschlussbuch.php - Beschlossene Anträge
  *
- * Zeigt alle VS-Anträge (beschlossene Anträge) aus der antraege-Tabelle
+ * Zeigt alle VS-Beschlüsse aus der beschluesse-Tabelle
  */
 
 session_start();
@@ -49,44 +49,17 @@ $kann_duplizieren = ($user['aktiv'] >= 9);
 // Filter - POST statt GET für Kompatibilität mit altem System
 $filter_von = $_POST['von'] ?? ($_GET['von'] ?? date('Y-01-01'));
 $filter_bis = $_POST['bis'] ?? ($_GET['bis'] ?? date('Y-12-31'));
-$filter_ressort = $_POST['ressort'] ?? ($_GET['ressort'] ?? '');
 $search = $_POST['stichwort'] ?? ($_GET['search'] ?? '');
 $sortierung = $_POST['sort'] ?? ($_GET['sort'] ?? 'desc'); // desc = neueste zuerst
 $view_mode = $_POST['view_mode'] ?? ($_GET['view_mode'] ?? 'table');
 $limit = (int)($_POST['limit'] ?? ($_GET['limit'] ?? 25));
 
-// SQL für VS-Anträge mit allen Details
-$sql = "SELECT
-    a.antrnr,
-    a.titel,
-    a.beschluss,
-    a.begr,
-    a.antrst,
-    a.ressort1,
-    a.ressort2,
-    a.wichtig,
-    a.lzugriff,
-    a.int_ext,
-    a.warantrag,
-    a.fin,
-    a.fintext,
-    a.sach,
-    a.pers,
-    a.VName1, a.VName2, a.VName3, a.VName4, a.VName5, a.VName6,
-    a.Votum1, a.Votum2, a.Votum3, a.Votum4, a.Votum5, a.Votum6,
-    b.Vorname,
-    b.Name,
-    r1.Ressort as ressort1_name,
-    r2.Ressort as ressort2_name
-FROM antraege a
-LEFT JOIN berechtigte b ON a.antrst = b.ID
-LEFT JOIN ressortliste r1 ON a.ressort1 = r1.ID
-LEFT JOIN ressortliste r2 ON a.ressort2 = r2.ID
-WHERE a.antrnr LIKE 'VS%'";
+// SQL für VS-Beschlüsse aus beschluesse-Tabelle
+$sql = "SELECT b.* FROM beschluesse b WHERE b.antrnr LIKE 'VS%'";
 
-// Sichtbarkeits-Filter für nicht-berechtigte User (nur Berechtigungsprüfung, kein Filter)
+// Sichtbarkeits-Filter für nicht-berechtigte User
 if (!$kann_intern_sehen) {
-    $sql .= " AND (a.int_ext IS NULL OR a.int_ext != 'i')";
+    $sql .= " AND (b.int_ext IS NULL OR b.int_ext = '' OR b.int_ext != 'i')";
 }
 
 $params = [];
@@ -95,23 +68,15 @@ $params = [];
 if ($filter_von || $filter_bis) {
     $von_ymd = $filter_von ? date('ymd', strtotime($filter_von)) : '000000';
     $bis_ymd = $filter_bis ? date('ymd', strtotime($filter_bis)) : '991231';
-    $sql .= " AND SUBSTRING(a.antrnr, 3, 6) BETWEEN ? AND ?";
+    $sql .= " AND SUBSTRING(b.antrnr, 3, 6) BETWEEN ? AND ?";
     $params[] = $von_ymd;
     $params[] = $bis_ymd;
 }
 
-// Ressort-Filter
-if ($filter_ressort) {
-    $sql .= " AND (a.ressort1 = ? OR a.ressort2 = ?)";
-    $params[] = $filter_ressort;
-    $params[] = $filter_ressort;
-}
-
 // Erweiterte Suche in allen relevanten Feldern
 if ($search) {
-    $sql .= " AND (a.antrnr LIKE ? OR a.titel LIKE ? OR a.beschluss LIKE ? OR a.begr LIKE ? OR r1.Ressort LIKE ? OR r2.Ressort LIKE ? OR a.sach LIKE ? OR a.pers LIKE ?)";
+    $sql .= " AND (b.antrnr LIKE ? OR b.titel LIKE ? OR b.beschluss LIKE ? OR b.begr LIKE ? OR b.ressort LIKE ? OR b.sach LIKE ? OR b.pers LIKE ?)";
     $search_param = "%$search%";
-    $params[] = $search_param;
     $params[] = $search_param;
     $params[] = $search_param;
     $params[] = $search_param;
@@ -122,7 +87,7 @@ if ($search) {
 }
 
 // Sortierung
-$sql .= $sortierung === 'asc' ? " ORDER BY a.antrnr ASC" : " ORDER BY a.antrnr DESC";
+$sql .= $sortierung === 'asc' ? " ORDER BY b.antrnr ASC" : " ORDER BY b.antrnr DESC";
 
 // Limit
 $sql .= " LIMIT " . (int)$limit;
@@ -131,67 +96,42 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $beschluesse = $stmt->fetchAll();
 
-// Votum-Zusammenfassung mit Namen berechnen
+// Warantrag für jeden Beschluss aus antraege-Tabelle holen
 foreach ($beschluesse as &$b) {
-    $ja_namen = [];
-    $nein_namen = [];
-    $enthaltung_namen = [];
-    $kein_votum_namen = [];
+    $warantrag_stmt = $pdo->prepare("SELECT warantrag FROM antraege WHERE antrnr = ?");
+    $warantrag_stmt->execute([$b['antrnr']]);
+    $b['warantrag'] = $warantrag_stmt->fetchColumn();
 
-    for ($i = 1; $i <= 6; $i++) {
-        if (!empty($b["VName$i"])) {
-            // Namen der Abstimmenden holen
-            $voter_stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
-            $voter_stmt->execute([$b["VName$i"]]);
-            $voter_name = $voter_stmt->fetchColumn();
+    // Finanzielle Auswirkungen: Betrag aus fintext extrahieren
+    $b['fin'] = 0;
+    if (!empty($b['fintext']) && preg_match('/(\d+)\s*Euro/', $b['fintext'], $matches)) {
+        $b['fin'] = (int)$matches[1];
+    }
 
-            if ($voter_name) {
-                if (empty($b["Votum$i"])) {
-                    $kein_votum_namen[] = $voter_name;
-                } elseif ($b["Votum$i"] == 1) {
-                    $ja_namen[] = $voter_name;
-                } elseif ($b["Votum$i"] == 2) {
-                    $nein_namen[] = $voter_name;
-                } elseif ($b["Votum$i"] == 3) {
-                    $enthaltung_namen[] = $voter_name;
-                }
-            }
+    // Votum-Text aus dafuer, dagegen, enthaltungen zusammensetzen
+    if (!empty($b['dafuer']) || !empty($b['dagegen']) || !empty($b['enthaltungen'])) {
+        $b['votum_text'] = '';
+        if (!empty($b['dafuer'])) $b['votum_text'] .= 'Ja: ' . $b['dafuer'];
+        if (!empty($b['dagegen'])) {
+            if ($b['votum_text']) $b['votum_text'] .= ' | ';
+            $b['votum_text'] .= 'Nein: ' . $b['dagegen'];
         }
-    }
-
-    // Votum-Text zusammenstellen
-    $parts = [];
-    if (!empty($ja_namen)) {
-        $parts[] = "Ja: " . implode(", ", $ja_namen);
-    }
-    if (!empty($nein_namen)) {
-        $parts[] = "Nein: " . implode(", ", $nein_namen);
-    }
-    if (!empty($enthaltung_namen)) {
-        $parts[] = "Enthaltung: " . implode(", ", $enthaltung_namen);
-    }
-    if (!empty($kein_votum_namen)) {
-        $parts[] = "Kein Votum: " . implode(", ", $kein_votum_namen);
-    }
-
-    if (!empty($parts)) {
-        $b['votum_text'] = implode(" | ", $parts);
+        if (!empty($b['enthaltungen'])) {
+            if ($b['votum_text']) $b['votum_text'] .= ' | ';
+            $b['votum_text'] .= 'Enthaltung: ' . $b['enthaltungen'];
+        }
     } else {
         $b['votum_text'] = 'Einstimmig';
     }
 }
 unset($b);
 
-// Ressorts für Filter
-$ressorts_stmt = $pdo->query("SELECT ID, Ressort FROM ressortliste ORDER BY Ressort");
-$ressorts = $ressorts_stmt->fetchAll();
-
 // Antrag duplizieren
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $kann_duplizieren) {
     $alt_antrnr = $_POST['antrnr'] ?? '';
 
-    // Original laden
-    $orig_stmt = $pdo->prepare("SELECT * FROM antraege WHERE antrnr = ?");
+    // Original aus beschluesse-Tabelle laden (dort stehen die redaktionell bearbeiteten Texte)
+    $orig_stmt = $pdo->prepare("SELECT * FROM beschluesse WHERE antrnr = ?");
     $orig_stmt->execute([$alt_antrnr]);
     $orig = $orig_stmt->fetch();
 
@@ -203,38 +143,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
         $count = $count_stmt->fetchColumn();
         $neue_nr = 'A' . $heute . sprintf('%02d', $count + 1);
 
-        // Duplikat erstellen
+        // Finanzielle Auswirkungen: Betrag aus fintext extrahieren
+        $fin = 0;
+        if (!empty($orig['fintext']) && preg_match('/(\d+)\s*Euro/', $orig['fintext'], $matches)) {
+            $fin = (int)$matches[1];
+        }
+
+        // Duplikat erstellen (Felder die beschluesse nicht hat bleiben leer)
         $insert_sql = "INSERT INTO antraege (
             antrnr, titel, beschluss, begr, fin, fintext, pers, sach,
-            ressort1, ressort2, verant, antrst, int_ext, verein,
-            file1, file2, file3, file4, filetext1, filetext2, filetext3, filetext4,
-            thread, lzugriff
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            antrst, int_ext, lzugriff
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
         $pdo->prepare($insert_sql)->execute([
             $neue_nr,
             $orig['titel'],
             $orig['beschluss'],
-            $orig['begr'],
-            $orig['fin'],
-            $orig['fintext'],
-            $orig['pers'],
-            $orig['sach'],
-            $orig['ressort1'],
-            $orig['ressort2'],
-            $orig['verant'],
+            $orig['begr'] ?? '',
+            $fin,
+            $orig['fintext'] ?? '',
+            $orig['pers'] ?? '',
+            $orig['sach'] ?? '',
             $user['ID'], // Neuer Antragsteller = aktueller User
-            $orig['int_ext'],
-            $orig['verein'],
-            $orig['file1'],
-            $orig['file2'],
-            $orig['file3'],
-            $orig['file4'],
-            $orig['filetext1'],
-            $orig['filetext2'],
-            $orig['filetext3'],
-            $orig['filetext4'],
-            $orig['thread']
+            $orig['int_ext'] ?? 'e'
         ]);
 
         header("Location: antrag_bearbeiten.php?antrnr=" . urlencode($neue_nr) . "&msg=dupliziert");
@@ -404,17 +335,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
             <input type="date" name="bis" value="<?= h($filter_bis) ?>">
         </div>
         <div>
-            <div class="filter-label">Ressort:</div>
-            <select name="ressort">
-                <option value="">Alle Ressorts</option>
-                <?php foreach ($ressorts as $r): ?>
-                    <option value="<?= h($r['ID']) ?>" <?= $filter_ressort == $r['ID'] ? 'selected' : '' ?>>
-                        <?= h($r['Ressort']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-        <div>
             <div class="filter-label">Sortierung:</div>
             <select name="sort">
                 <option value="desc" <?= $sortierung === 'desc' ? 'selected' : '' ?>>Neueste zuerst</option>
@@ -466,10 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                 } else {
                     $datum_anzeige = '-';
                 }
-                $ressort_namen = [];
-                if (!empty($b['ressort1_name'])) $ressort_namen[] = $b['ressort1_name'];
-                if (!empty($b['ressort2_name'])) $ressort_namen[] = $b['ressort2_name'];
-                $ressort_text = !empty($ressort_namen) ? implode(', ', $ressort_namen) : 'Vorstand Gesamt';
+                $ressort_text = !empty($b['ressort']) ? $b['ressort'] : 'Vorstand Gesamt';
             ?>
             <p style="text-align: left; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
                 <b><a href="antrag_ansehen.php?antrnr=<?= h($b['antrnr']) ?>" style="color:black;text-decoration:none;"><?= h($b['antrnr']) ?></a></b> (<?= $datum_anzeige ?>)<br>
@@ -495,6 +412,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                     Begründung: <?= highlightWords2(h($b['begr']), $search) ?><br>
                 <?php endif; ?>
                 Abstimmung: <?= h($b['votum_text']) ?><br>
+                <?php if (!empty($b['anmerkungen'])): ?>
+                    Protokollnotiz/Anmerkung: <?= highlightWords2(h($b['anmerkungen']), $search) ?><br>
+                <?php endif; ?>
             </p>
             <?php endforeach; ?>
         </div>
@@ -509,10 +429,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
             } else {
                 $datum_anzeige = '-';
             }
-            $ressort_namen = [];
-            if (!empty($b['ressort1_name'])) $ressort_namen[] = $b['ressort1_name'];
-            if (!empty($b['ressort2_name'])) $ressort_namen[] = $b['ressort2_name'];
-            $ressort_text = !empty($ressort_namen) ? implode(', ', $ressort_namen) : 'Vorstand Gesamt';
+            $ressort_text = !empty($b['ressort']) ? $b['ressort'] : 'Vorstand Gesamt';
         ?>
         <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <div style="display:flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
@@ -579,6 +496,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
             <div style="margin-top: 10px; font-size: 12px; color: #495057; font-style: italic; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div>
                     <strong>Abstimmung:</strong> <?= h($b['votum_text']) ?>
+                    <?php if (!empty($b['anmerkungen'])): ?>
+                        <br><strong>Protokollnotiz:</strong> <?= highlightWords2(h($b['anmerkungen']), $search) ?>
+                    <?php endif; ?>
                 </div>
                 <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                     <?php if (($user['aktiv'] == 3 || $user['aktiv'] > 9) && $isVTool): ?>
