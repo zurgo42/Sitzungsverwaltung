@@ -218,6 +218,12 @@ $antragsteller = $antragsteller_stmt->fetchAll();
     body.dark-mode .proposals-table-container tr:hover {
         background: #333;
     }
+    body.dark-mode .antrnr {
+        color: #64b5f6 !important;
+    }
+    body.dark-mode .visibility-hint {
+        color: #e0e0e0 !important;
+    }
 </style>
 
 <!-- BENACHRICHTIGUNGEN -->
