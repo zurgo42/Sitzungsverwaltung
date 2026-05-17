@@ -425,6 +425,15 @@ foreach ($b_antraege as $a) {
                                     <span style="color: #333; font-weight: 600;"><?= htmlspecialchars($a['antrnr']) ?></span>
                                 </div>
                                 <?php
+                                // Finalisierungsdatum bei B/VS Anträgen
+                                $prefix_a = substr($a['antrnr'], 0, 1);
+                                if ($prefix_a === 'B' || $prefix_a === 'V') {
+                                    if (preg_match('/^[BV](\d{6})/', $a['antrnr'], $matches)) {
+                                        $datum_str = $matches[1];
+                                        $datum = '20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2);
+                                        echo '<div class="visibility-hint" style="color: #0066cc;">📅 Finalisiert: ' . date('d.m.Y', strtotime($datum)) . '</div>';
+                                    }
+                                }
                                 // Sichtbarkeits-Hinweis
                                 if ($a['int_ext'] === 'i') {
                                     echo '<div class="visibility-hint">🔒 Intern (nur Vorstand)</div>';

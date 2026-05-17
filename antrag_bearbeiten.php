@@ -118,7 +118,7 @@ if (!$antrag) die("Antrag nicht gefunden.");
 
 // Berechtigungsprüfung je nach Status
 $prefix = substr($antrnr, 0, 1);
-$ist_admin = ($user['is_admin'] == 1);
+$ist_admin = ($user_aktiv >= 19 || ($user['is_admin'] ?? 0) == 1);
 
 if ($prefix === 'A') {
     // A-Anträge: Antragsteller oder Vorstand darf bearbeiten

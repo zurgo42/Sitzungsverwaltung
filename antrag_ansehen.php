@@ -79,7 +79,7 @@ if ($antrag['verk2']) {
 }
 
 $prefix = substr($antrnr, 0, 1);
-$ist_admin = ($user['is_admin'] == 1);
+$ist_admin = ((int)($user['aktiv'] ?? 0) >= 19 || ($user['is_admin'] ?? 0) == 1);
 
 // Berechtigungsprüfung
 if ($prefix === 'A') {
@@ -282,7 +282,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
             <?php endif; ?>
             <?php endif; ?>
 
-            <?php if ($antrag['pers'] && $antrag['pers'] !== 'keine'): ?>
+            <?php if ($antrag['pers'] && strlen($antrag['pers']) > 3): ?>
             <?php $pers_lang = strlen($antrag['pers']) > 250; ?>
             <?php if ($pers_lang): ?>
                 <div class="accordion" onclick="this.classList.toggle('active'); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
@@ -295,7 +295,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
             <?php endif; ?>
             <?php endif; ?>
 
-            <?php if ($antrag['sach'] && $antrag['sach'] !== 'keine'): ?>
+            <?php if ($antrag['sach'] && strlen($antrag['sach']) > 3): ?>
             <?php $sach_lang = strlen($antrag['sach']) > 250; ?>
             <?php if ($sach_lang): ?>
                 <div class="accordion" onclick="this.classList.toggle('active'); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">

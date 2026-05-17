@@ -547,6 +547,18 @@ foreach ($antraege as $a) {
             </div>
 
             <?php
+            // Wichtig-Hinweis anzeigen wenn gesetzt
+            if (!empty($antrag['wichtig']) && $antrag['bart'] === 'B') {
+                $wichtig_user_stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
+                $wichtig_user_stmt->execute([$antrag['wichtig']]);
+                $wichtig_kurzn = $wichtig_user_stmt->fetchColumn();
+                if ($wichtig_kurzn) {
+                    echo '<div class="info-box" style="margin-bottom: 20px; background: rgba(250, 170, 0, 0.15); border-color: #FAAA00;">';
+                    echo '<strong>ℹ️ Hinweis:</strong> Vorstandsabstimmung auf Anlass von <strong>' . htmlspecialchars($wichtig_kurzn) . '</strong>';
+                    echo '</div>';
+                }
+            }
+
             // Antrag anzeigen
             render_antrag_detail($pdo, $antrag);
 
