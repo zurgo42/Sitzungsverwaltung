@@ -73,7 +73,6 @@ $sql = "SELECT
     a.fintext,
     a.sach,
     a.pers,
-    a.anmerkungen,
     a.VName1, a.VName2, a.VName3, a.VName4, a.VName5, a.VName6,
     a.Votum1, a.Votum2, a.Votum3, a.Votum4, a.Votum5, a.Votum6,
     b.Vorname,
@@ -484,9 +483,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                     Begründung: <?= highlightWords2(h($b['begr']), $search) ?><br>
                 <?php endif; ?>
                 Abstimmung: <?= h($b['votum_text']) ?><br>
-                <?php if (!empty($b['anmerkungen'])): ?>
-                    Protokollnotiz/Anmerkung: <?= highlightWords2(h($b['anmerkungen']), $search) ?><br>
-                <?php endif; ?>
             </p>
             <?php endforeach; ?>
         </div>
@@ -569,9 +565,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
             <div style="margin-top: 10px; font-size: 12px; color: #495057; font-style: italic; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div>
                     <strong>Abstimmung:</strong> <?= h($b['votum_text']) ?>
-                    <?php if (!empty($b['anmerkungen'])): ?>
-                        | <strong>Protokollnotiz:</strong> <?= highlightWords2(h($b['anmerkungen']), $search) ?>
-                    <?php endif; ?>
                 </div>
                 <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                     <?php if (($user['aktiv'] == 3 || $user['aktiv'] > 9) && $isVTool): ?>
