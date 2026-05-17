@@ -133,9 +133,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
     // Original aus beschluesse-Tabelle laden (dort stehen die redaktionell bearbeiteten Texte)
     $orig_stmt = $pdo->prepare("SELECT * FROM beschluesse WHERE antrnr = ?");
     $orig_stmt->execute([$alt_antrnr]);
-    $orig = $orig_stmt->fetch();
+    $orig_beschluss = $orig_stmt->fetch();
 
-    if ($orig) {
+    // Zusätzlich aus antraege-Tabelle laden für Ressorts, Verantwortliche, wichtig/verf1/verf2
+    $orig_antrag_stmt = $pdo->prepare("SELECT * FROM antraege WHERE antrnr = ?");
+    $orig_antrag_stmt->execute([$alt_antrnr]);
+    $orig_antrag = $orig_antrag_stmt->fetch();
+
+    if ($orig_beschluss && $orig_antrag) {
         // Neue Antragsnummer generieren: A + YYMMDD + laufende Nummer
         $heute = date('ymd');
         $count_stmt = $pdo->prepare("SELECT COUNT(*) FROM antraege WHERE antrnr LIKE ?");
@@ -145,27 +150,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
 
         // Finanzielle Auswirkungen: Betrag aus fintext extrahieren
         $fin = 0;
-        if (!empty($orig['fintext']) && preg_match('/(\d+)\s*Euro/', $orig['fintext'], $matches)) {
+        if (!empty($orig_beschluss['fintext']) && preg_match('/(\d+)\s*Euro/', $orig_beschluss['fintext'], $matches)) {
             $fin = (int)$matches[1];
         }
 
-        // Duplikat erstellen (Felder die beschluesse nicht hat bleiben leer)
+        // Prüfen ob es ein Vorstandsbeschluss war (bart='B')
+        $wichtig = 0;
+        $verf1 = null;
+        $verf2 = null;
+        if ($orig_antrag['bart'] === 'B') {
+            // Vorstandsbeschluss: wichtig übernehmen
+            $wichtig = $orig_antrag['wichtig'] ?? 0;
+        } else {
+            // Verfügung oder Ressortbeschluss: verf1 und verf2 übernehmen
+            $verf1 = $orig_antrag['verf1'] ?? null;
+            $verf2 = $orig_antrag['verf2'] ?? null;
+        }
+
+        // Duplikat erstellen mit Daten aus beschluesse und antraege
         $insert_sql = "INSERT INTO antraege (
             antrnr, titel, beschluss, begr, fin, fintext, pers, sach,
-            antrst, int_ext, lzugriff
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            ressort1, ressort2, verant, antrst, int_ext, wichtig, verf1, verf2,
+            lzugriff
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
         $pdo->prepare($insert_sql)->execute([
             $neue_nr,
-            $orig['titel'],
-            $orig['beschluss'],
-            $orig['begr'] ?? '',
+            $orig_beschluss['titel'],
+            $orig_beschluss['beschluss'],
+            $orig_beschluss['begr'] ?? '',
             $fin,
-            $orig['fintext'] ?? '',
-            $orig['pers'] ?? '',
-            $orig['sach'] ?? '',
+            $orig_beschluss['fintext'] ?? '',
+            $orig_beschluss['pers'] ?? '',
+            $orig_beschluss['sach'] ?? '',
+            $orig_antrag['ressort1'] ?? null,
+            $orig_antrag['ressort2'] ?? null,
+            $orig_antrag['verant'] ?? null,
             $user['ID'], // Neuer Antragsteller = aktueller User
-            $orig['int_ext'] ?? 'e'
+            $orig_beschluss['int_ext'] ?? 'e',
+            $wichtig,
+            $verf1,
+            $verf2
         ]);
 
         header("Location: antrag_bearbeiten.php?antrnr=" . urlencode($neue_nr) . "&msg=dupliziert");
