@@ -287,36 +287,64 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     $prefix = substr($antrnr, 0, 1);
     if ($prefix !== 'A') throw new Exception("Nur Anträge im Editiermodus können finalisiert werden.");
 
-    // Verf1/Verf2 automatisch setzen
-    if ($antrag['bart'] === 'V') {
-        // Verfügung: Antragsteller ist verf1
-        $verf1 = $antrag['antrst'];
-        $update = $pdo->prepare("UPDATE antraege SET verf1 = ? WHERE antrnr = ?");
-        $update->execute([$verf1, $antrnr]);
-    } elseif ($antrag['bart'] === 'R') {
-        // Ressortbeschluss: Ressortvorstand + Finanzvorstand
-        $verf1 = $antrag['antrst']; // Vereinfacht: Antragsteller
-        // Finanzvorstand holen
-        $stmt_fvo = $pdo->query("SELECT ID FROM berechtigte WHERE Funktion IN ('FVo', 'FVv') ORDER BY Funktion LIMIT 1");
-        $fvo = $stmt_fvo->fetch();
-        $verf2 = $fvo['ID'] ?? 0;
+    // Abstimmende setzen je nach Beschlussart
+    $vname_fields = [];
 
-        $update = $pdo->prepare("UPDATE antraege SET verf1 = ?, verf2 = ? WHERE antrnr = ?");
-        $update->execute([$verf1, $verf2, $antrnr]);
+    if ($antrag['bart'] === 'V') {
+        // Verfügung: verf1 muss abstimmen
+        if (empty($antrag['verf1'])) {
+            throw new Exception("Verfügungsberechtigter muss angegeben werden.");
+        }
+        $vname_fields = ['VName1' => $antrag['verf1']];
+
+    } elseif ($antrag['bart'] === 'R') {
+        // Ressortbeschluss: verf1 und verf2 müssen abstimmen
+        if (empty($antrag['verf1']) || empty($antrag['verf2'])) {
+            throw new Exception("Beide Verfügungsberechtigte müssen angegeben werden.");
+        }
+        if ($antrag['verf1'] == $antrag['verf2']) {
+            throw new Exception("Die Verfügungsberechtigten dürfen nicht identisch sein.");
+        }
+        $vname_fields = [
+            'VName1' => $antrag['verf1'],
+            'VName2' => $antrag['verf2']
+        ];
+
+    } elseif ($antrag['bart'] === 'B') {
+        // Vorstandsbeschluss: alle Vorstandsmitglieder (aktiv >= 18)
+        $vorstand_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE aktiv >= 18 ORDER BY ID LIMIT 6");
+        $vorstand = $vorstand_stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        if (empty($vorstand)) {
+            throw new Exception("Keine Vorstandsmitglieder gefunden.");
+        }
+
+        for ($i = 0; $i < count($vorstand); $i++) {
+            $vname_fields['VName' . ($i + 1)] = $vorstand[$i];
+        }
     }
 
-    // Neue Nummer generieren
+    // Neue Nummer generieren: A → B (zur Abstimmung)
     $neue_nr = 'B' . substr($antrnr, 1);
 
-    // Bei Verfügung durch Antragsteller: direkt VS
-    if ($antrag['bart'] === 'V' && $verf1 == $antrag['antrst']) {
-        $neue_nr = 'VS' . date('ymd') . substr($antrnr, 7);
+    // VName-Felder in UPDATE-Statement aufbauen
+    $update_parts = ['antrnr = ?'];
+    $update_values = [$neue_nr];
+
+    foreach ($vname_fields as $field => $value) {
+        $update_parts[] = "$field = ?";
+        $update_values[] = $value;
     }
 
-    $update = $pdo->prepare("UPDATE antraege SET antrnr = ? WHERE antrnr = ?");
-    $update->execute([$neue_nr, $antrnr]);
+    $update_values[] = $antrnr; // WHERE-Bedingung
+
+    $sql = "UPDATE antraege SET " . implode(', ', $update_parts) . " WHERE antrnr = ?";
+    $update = $pdo->prepare($sql);
+    $update->execute($update_values);
 
     $_POST['neue_antrnr'] = $neue_nr;
+
+    // TODO: Email-Benachrichtigung an Abstimmende (später)
 }
 
 // Löschen-Funktion

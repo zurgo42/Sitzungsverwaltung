@@ -305,6 +305,7 @@ $antragsteller = $status_stmt->fetchAll();
     <div class="header">
         <h1>Offene Anträge</h1>
         <div class="actions">
+            <a href="abstimmungen.php" class="btn btn-secondary">🗳️ Abstimmungen</a>
             <a href="beschlussbuch.php" class="btn btn-secondary">Beschlussbuch</a>
             <a href="antrag_neu.php" class="btn">+ Neuer Antrag</a>
         </div>
