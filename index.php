@@ -828,11 +828,6 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             📊 Meinungsbild
         </a>
 
-        <!-- Anträge & Beschlüsse-Tab (immer sichtbar) -->
-        <a href="?tab=proposals" class="<?php echo $active_tab === 'proposals' ? 'active' : ''; ?>">
-            📋 Anträge
-        </a>
-
         <!-- Dokumente-Tab (optional, siehe config.php) -->
         <?php if (defined('ENABLE_DOCUMENTS_TAB') && ENABLE_DOCUMENTS_TAB): ?>
         <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
@@ -848,6 +843,13 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                 ⚙️ Admin
             </a>
         <?php endif; ?>
+
+        <!-- VERSUCHSWEISE: Anträge & Beschlüsse nach normalem Menu -->
+        <!-- Um zurückzusetzen: Diesen Block ausschneiden und vor "Dokumente-Tab" wieder einfügen -->
+        <!-- Anträge & Beschlüsse-Tab (immer sichtbar) -->
+        <a href="?tab=proposals" class="<?php echo $active_tab === 'proposals' ? 'active' : ''; ?>">
+            📋 Anträge/Beschlüsse
+        </a>
 
         <!-- Benachrichtigungs-Center -->
         <?php include 'notification_center.php'; ?>
