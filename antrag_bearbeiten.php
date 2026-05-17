@@ -395,6 +395,21 @@ $blockierung_grund = [];
 if (empty($antrag['ressort1'])) { $blockiert = true; $blockierung_grund[] = "Ressort fehlt"; }
 if (empty($antrag['verant']) || strlen($antrag['verant']) < 3) { $blockiert = true; $blockierung_grund[] = "Verantwortlicher fehlt"; }
 
+// Prüfung auf fehlende Verfügungsberechtigte je nach Beschlussart
+if ($antrag['bart'] === 'V' && empty($antrag['verf1'])) {
+    $blockiert = true;
+    $blockierung_grund[] = "Verfügungsberechtigter fehlt";
+}
+if ($antrag['bart'] === 'R') {
+    if (empty($antrag['verf1']) || empty($antrag['verf2'])) {
+        $blockiert = true;
+        $blockierung_grund[] = "Beide Verfügungsberechtigte müssen angegeben sein";
+    } elseif ($antrag['verf1'] == $antrag['verf2']) {
+        $blockiert = true;
+        $blockierung_grund[] = "Verfügungsberechtigte dürfen nicht identisch sein";
+    }
+}
+
 $kann_finalisieren = !$blockiert && $wartezeit_erfuellt && substr($antrnr, 0, 1) === 'A' &&
                      ($antrag['antrst'] == $user['ID'] || $user['aktiv'] >= 18);
 $kann_verwerfen = ($antrag['antrst'] == $user['ID'] || $user['aktiv'] >= 19 || $user['Funktion'] === 'GF');
@@ -586,8 +601,10 @@ if ($user['aktiv'] >= 19) {
 
                     <?php if ($antrag['bart'] === 'V' || $antrag['bart'] === 'R'): ?>
                         <div class="form-group">
-                            <label for="verf1">Abstimmung durch (1.)</label>
-                            <select id="verf1" name="verf1">
+                            <label for="verf1" style="<?= empty($antrag['verf1']) ? 'color: #d32f2f;' : '' ?>">
+                                Abstimmung durch (1.) <?= empty($antrag['verf1']) ? '<span class="required">*</span>' : '' ?>
+                            </label>
+                            <select id="verf1" name="verf1" style="<?= empty($antrag['verf1']) ? 'border-color: #d32f2f;' : '' ?>">
                                 <option value="">-- Bitte wählen --</option>
                                 <?php foreach ($abstimmende as $m): ?>
                                     <?php if (!str_starts_with($m['KurzN'], 'ASt ')): ?>
@@ -597,6 +614,11 @@ if ($user['aktiv'] >= 19) {
                                     <?php endif; ?>
                                 <?php endforeach; ?>
                             </select>
+                            <?php if (empty($antrag['verf1'])): ?>
+                                <div style="color: #d32f2f; font-size: 12px; margin-top: 4px;">
+                                    ⚠️ Erforderlich für "Verbindlich einstellen"
+                                </div>
+                            <?php endif; ?>
 
                             <?php
                             // Prüfen wer wichtig gesetzt hat
@@ -628,8 +650,10 @@ if ($user['aktiv'] >= 19) {
 
                         <?php if ($antrag['bart'] === 'R'): ?>
                         <div class="form-group">
-                            <label for="verf2">Abstimmung durch (2. - Vorstand)</label>
-                            <select id="verf2" name="verf2">
+                            <label for="verf2" style="<?= empty($antrag['verf2']) ? 'color: #d32f2f;' : '' ?>">
+                                Abstimmung durch (2. - Vorstand) <?= empty($antrag['verf2']) ? '<span class="required">*</span>' : '' ?>
+                            </label>
+                            <select id="verf2" name="verf2" style="<?= empty($antrag['verf2']) ? 'border-color: #d32f2f;' : '' ?>">
                                 <option value="">-- FVo/FVv --</option>
                                 <?php foreach ($verfuegungsber as $m): ?>
                                     <?php if (($m['Funktion'] === 'FVo' || $m['Funktion'] === 'FVv') && !str_starts_with($m['KurzN'], 'ASt ')): ?>
@@ -639,6 +663,16 @@ if ($user['aktiv'] >= 19) {
                                     <?php endif; ?>
                                 <?php endforeach; ?>
                             </select>
+                            <?php if (empty($antrag['verf2'])): ?>
+                                <div style="color: #d32f2f; font-size: 12px; margin-top: 4px;">
+                                    ⚠️ Erforderlich für "Verbindlich einstellen"
+                                </div>
+                            <?php endif; ?>
+                            <?php if (!empty($antrag['verf1']) && !empty($antrag['verf2']) && $antrag['verf1'] == $antrag['verf2']): ?>
+                                <div style="color: #d32f2f; font-size: 12px; margin-top: 4px;">
+                                    ⚠️ Die Verfügungsberechtigten dürfen nicht identisch sein!
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <?php else: ?>
                         <div class="form-group">
