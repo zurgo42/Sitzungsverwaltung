@@ -196,9 +196,8 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 
     // Wenn wichtig_escalate gesetzt ist (neu oder weiterhin)
     if (isset($post['wichtig_escalate']) && !isset($post['wichtig_reset'])) {
-        if ($user['aktiv'] >= 18) {
-            $wichtig = $user['ID'];
-        }
+        // Auch Antragsteller (aktiv < 18) darf Vorstandsbeschluss anfordern
+        $wichtig = $user['ID'];
     } elseif (!isset($post['wichtig_escalate']) && !isset($post['wichtig_reset'])) {
         // Checkbox nicht gesetzt und kein Reset -> wichtig löschen
         $wichtig = 0;
@@ -287,6 +286,9 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     $prefix = substr($antrnr, 0, 1);
     if ($prefix !== 'A') throw new Exception("Nur Anträge im Editiermodus können finalisiert werden.");
 
+    // DEBUG: Ausgabe von bart
+    error_log("DEBUG finalisiereAntrag: bart=" . $antrag['bart'] . ", wichtig=" . ($antrag['wichtig'] ?? '0') . ", fin=" . ($antrag['fin'] ?? '0') . ", verf1=" . ($antrag['verf1'] ?? 'leer') . ", verf2=" . ($antrag['verf2'] ?? 'leer'));
+
     // Abstimmende setzen je nach Beschlussart
     $vname_fields = [];
 
@@ -300,7 +302,7 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     } elseif ($antrag['bart'] === 'R') {
         // Ressortbeschluss: verf1 und verf2 müssen abstimmen
         if (empty($antrag['verf1']) || empty($antrag['verf2'])) {
-            throw new Exception("Beide Verfügungsberechtigte müssen angegeben werden.");
+            throw new Exception("Beide Verfügungsberechtigte müssen angegeben werden. (bart=" . $antrag['bart'] . ", verf1=" . ($antrag['verf1'] ?? 'leer') . ", verf2=" . ($antrag['verf2'] ?? 'leer') . ")");
         }
         if ($antrag['verf1'] == $antrag['verf2']) {
             throw new Exception("Die Verfügungsberechtigten dürfen nicht identisch sein.");
