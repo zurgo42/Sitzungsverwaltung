@@ -1,15 +1,7 @@
 <?php
 /**
- * antrag_ansehen.php - Read-Only Antragsansicht
- *
- * Zeigt alle Details eines Antrags in einer übersichtlichen,
- * nicht-editierbaren Ansicht.
- *
- * Verwendbar für:
- * - A-Anträge (während Bearbeitung)
- * - B-Anträge (während Abstimmung)
- * - VS-Anträge (Beschlussbuch)
- * - X/Z-Anträge (gelöschte/zurückgezogene)
+ * antrag_ansehen.php - Kompakte Read-Only Antragsansicht
+ * Zeigt ALLE Felder aus dem Bearbeitungsformular in kompakter Form
  */
 
 session_start();
@@ -33,313 +25,325 @@ $user_stmt->execute([$_SESSION['member_id']]);
 $user = $user_stmt->fetch();
 
 $antrnr = $_GET['antrnr'] ?? '';
-if (!$antrnr) {
-    die("Keine Antragsnummer angegeben.");
-}
+if (!$antrnr) die("Keine Antragsnummer angegeben.");
 
-// Antrag laden mit allen verknüpften Daten
+// Antrag laden
 $stmt = $pdo->prepare("
     SELECT a.*,
            b.Vorname, b.Name, b.KurzN as AntragstellerKurz,
-           r1.Ressort as ressort1_name,
-           r2.Ressort as ressort2_name
+           r1.Ressort as ressort1_name, r1.klartext as r1_klartext,
+           r2.Ressort as ressort2_name, r2.klartext as r2_klartext
     FROM antraege a
     LEFT JOIN berechtigte b ON a.antrst = b.ID
-    LEFT JOIN ressortliste r1 ON a.ressort1 = r1.ID
-    LEFT JOIN ressortliste r2 ON a.ressort2 = r2.ID
+    LEFT JOIN ressortliste r1 ON a.ressort1 = r1.ressort
+    LEFT JOIN ressortliste r2 ON a.ressort2 = r2.ressort
     WHERE a.antrnr = ?
 ");
 $stmt->execute([$antrnr]);
 $antrag = $stmt->fetch();
+if (!$antrag) die("Antrag nicht gefunden.");
 
-if (!$antrag) {
-    die("Antrag nicht gefunden.");
-}
-
-// Berechtigungen prüfen
+// Berechtigungen
 $kann_intern_sehen = ($user['aktiv'] > 17 || $user['Funktion'] === 'VA' || $user['is_admin'] == 1);
 if ($antrag['int_ext'] === 'i' && !$kann_intern_sehen) {
-    die("Keine Berechtigung, diesen Antrag anzusehen.");
+    die("Keine Berechtigung.");
 }
 
-// Verfügungsberechtigte laden
+// Verfügungsberechtigte
 $verf1_name = $verf2_name = '';
 if ($antrag['verf1']) {
-    $v_stmt = $pdo->prepare("SELECT Vorname, Name, KurzN FROM berechtigte WHERE ID = ?");
-    $v_stmt->execute([$antrag['verf1']]);
-    $v = $v_stmt->fetch();
-    $verf1_name = $v ? $v['Vorname'] . ' ' . $v['Name'] : '';
+    $v = $pdo->prepare("SELECT Vorname, Name, KurzN FROM berechtigte WHERE ID = ?")->execute([$antrag['verf1']]);
+    $v = $pdo->prepare("SELECT Vorname, Name, KurzN FROM berechtigte WHERE ID = ?");
+    $v->execute([$antrag['verf1']]);
+    $vd = $v->fetch();
+    $verf1_name = $vd ? $vd['KurzN'] : '';
 }
 if ($antrag['verf2']) {
-    $v_stmt = $pdo->prepare("SELECT Vorname, Name, KurzN FROM berechtigte WHERE ID = ?");
-    $v_stmt->execute([$antrag['verf2']]);
-    $v = $v_stmt->fetch();
-    $verf2_name = $v ? $v['Vorname'] . ' ' . $v['Name'] : '';
+    $v = $pdo->prepare("SELECT Vorname, Name, KurzN FROM berechtigte WHERE ID = ?");
+    $v->execute([$antrag['verf2']]);
+    $vd = $v->fetch();
+    $verf2_name = $vd ? $vd['KurzN'] : '';
 }
 
-// Kann bearbeiten?
+// Wartezeitverkürzer
+$verk1_name = $verk2_name = '';
+if ($antrag['verk1']) {
+    $v = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
+    $v->execute([$antrag['verk1']]);
+    $verk1_name = $v->fetchColumn() ?: '';
+}
+if ($antrag['verk2']) {
+    $v = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
+    $v->execute([$antrag['verk2']]);
+    $verk2_name = $v->fetchColumn() ?: '';
+}
+
 $prefix = substr($antrnr, 0, 1);
-$kann_bearbeiten = (
-    $prefix === 'A' &&
-    ($user['aktiv'] > 10) &&
-    ($antrag['antrst'] == $user['ID'] || $user['aktiv'] >= 18)
-);
+$kann_bearbeiten = ($prefix === 'A' && ($user['aktiv'] > 10) && ($antrag['antrst'] == $user['ID'] || $user['aktiv'] >= 18));
 
 $bart_text = ['V' => 'Verfügung', 'R' => 'Ressortbeschluss', 'B' => 'Vorstandsbeschluss'];
-$int_ext_text = ['e' => '🌐 Extern (alle Ms)', 'n' => '👥 Nicht öffentlich (Führung)', 'i' => '🔒 Intern (nur Vorstand)'];
-$sofort_text = [0 => 'Normal', 1 => '🔥 Eilig', 2 => '⚡ Sehr eilig'];
+$int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vorstand'];
 ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Antrag <?= htmlspecialchars($antrnr) ?> - Ansicht</title>
+    <title>Antrag <?= htmlspecialchars($antrnr) ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="antrag-styles.css">
-    <script>
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-        }
-        document.addEventListener('DOMContentLoaded', function() {
-            if (localStorage.getItem('darkMode') === 'true') {
-                document.body.classList.add('dark-mode');
-            }
-        });
-    </script>
     <style>
-        .view-section {
-            background: var(--bg-primary);
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-        }
-        .view-row {
-            display: grid;
-            grid-template-columns: 180px 1fr;
-            gap: 12px;
-            margin-bottom: 12px;
-            font-size: 14px;
-        }
-        .view-label {
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-        .view-value {
-            color: var(--text-primary);
-        }
-        .view-text-block {
-            background: var(--bg-secondary);
-            padding: 12px;
-            border-radius: 4px;
-            border-left: 4px solid var(--primary);
-            margin-top: 8px;
-            white-space: pre-wrap;
+        body { font-size: 13px; line-height: 1.4; }
+        .compact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 15px; margin-bottom: 15px; }
+        .compact-row { display: flex; gap: 6px; margin-bottom: 6px; font-size: 12px; }
+        .compact-label { font-weight: 600; color: var(--text-secondary); min-width: 100px; flex-shrink: 0; }
+        .compact-value { color: var(--text-primary); }
+        .section-compact { background: var(--bg-primary); padding: 12px; margin-bottom: 12px; border-radius: 6px; border: 1px solid var(--border-color); }
+        .section-title { font-weight: 700; font-size: 14px; margin-bottom: 10px; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; }
+        .text-box { background: var(--bg-secondary); padding: 8px; border-radius: 4px; border-left: 3px solid var(--primary); font-size: 12px; margin-top: 6px; }
+        .accordion { cursor: pointer; background: var(--bg-secondary); padding: 8px; border-radius: 4px; margin: 6px 0; font-weight: 600; user-select: none; }
+        .accordion:hover { background: var(--hover-bg); }
+        .accordion::before { content: '▶ '; font-size: 10px; margin-right: 6px; }
+        .accordion.active::before { content: '▼ '; }
+        .acc-content { display: none; padding: 8px; background: var(--bg-secondary); border-radius: 4px; margin-bottom: 6px; font-size: 12px; white-space: pre-wrap; }
+        @media (max-width: 768px) {
+            .compact-grid { grid-template-columns: 1fr; gap: 6px; }
+            .compact-label { min-width: 80px; }
         }
     </style>
 </head>
 <body>
-    <button onclick="toggleDarkMode()" class="btn btn-secondary" style="float: right; margin-bottom: 10px;">
-        🌓 Dark Mode
-    </button>
-
-    <div class="container">
-        <a href="antragsliste.php" class="back-link">← Zurück zur Liste</a>
-
-        <div class="header">
-            <h1>Antrag <?= htmlspecialchars($antrnr) ?></h1>
-            <div class="actions">
+    <div class="container" style="max-width: 1400px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h1 style="margin: 0; font-size: 20px;">Antrag <?= htmlspecialchars($antrnr) ?></h1>
+            <div style="display: flex; gap: 8px;">
                 <?php if ($kann_bearbeiten): ?>
-                    <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($antrnr) ?>" class="btn btn-primary">✏️ Bearbeiten</a>
+                    <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($antrnr) ?>" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">✏️ Bearbeiten</a>
                 <?php endif; ?>
                 <?php if ($prefix === 'B'): ?>
-                    <a href="abstimmungen.php?antrnr=<?= urlencode($antrnr) ?>" class="btn btn-secondary">🗳️ Zur Abstimmung</a>
+                    <a href="abstimmungen.php?antrnr=<?= urlencode($antrnr) ?>" class="btn btn-warning" style="padding: 6px 12px; font-size: 12px;">🗳️ Abstimmen</a>
                 <?php endif; ?>
+                <a href="antragsliste.php" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">← Liste</a>
             </div>
         </div>
 
-        <!-- Sektion 1: Basisdaten -->
-        <div class="view-section section-gray-1">
-            <div class="section-header">Basisdaten</div>
-
-            <div class="view-row">
-                <div class="view-label">Antragsnummer:</div>
-                <div class="view-value"><strong><?= htmlspecialchars($antrnr) ?></strong></div>
-            </div>
-            <div class="view-row">
-                <div class="view-label">Antragsteller:</div>
-                <div class="view-value"><?= htmlspecialchars($antrag['Vorname'] . ' ' . $antrag['Name']) ?> (<?= htmlspecialchars($antrag['AntragstellerKurz']) ?>)</div>
-            </div>
-            <div class="view-row">
-                <div class="view-label">Beschlussart:</div>
-                <div class="view-value"><?= $bart_text[$antrag['bart']] ?? $antrag['bart'] ?></div>
-            </div>
-            <?php if ($antrag['verf1']): ?>
-            <div class="view-row">
-                <div class="view-label">Abstimmung durch:</div>
-                <div class="view-value">
-                    <?= htmlspecialchars($verf1_name) ?>
-                    <?php if ($verf2_name): ?>
-                        + <?= htmlspecialchars($verf2_name) ?>
-                    <?php endif; ?>
+        <!-- BASISDATEN -->
+        <div class="section-compact">
+            <div class="section-title">Basisdaten</div>
+            <div class="compact-grid">
+                <div class="compact-row">
+                    <div class="compact-label">Antragsteller:</div>
+                    <div class="compact-value"><?= htmlspecialchars($antrag['Name']) ?> (<?= htmlspecialchars($antrag['AntragstellerKurz']) ?>)</div>
                 </div>
-            </div>
-            <?php endif; ?>
-            <div class="view-row">
-                <div class="view-label">Ressort:</div>
-                <div class="view-value">
-                    <?= htmlspecialchars($antrag['ressort1_name'] ?? '') ?>
-                    <?php if ($antrag['ressort2_name']): ?>
-                        + <?= htmlspecialchars($antrag['ressort2_name']) ?>
-                    <?php endif; ?>
+                <div class="compact-row">
+                    <div class="compact-label">Beschlussart:</div>
+                    <div class="compact-value"><strong><?= $bart_text[$antrag['bart']] ?? $antrag['bart'] ?></strong></div>
                 </div>
-            </div>
-            <div class="view-row">
-                <div class="view-label">Verantwortlich:</div>
-                <div class="view-value"><?= htmlspecialchars($antrag['verant'] ?? '') ?></div>
-            </div>
-            <div class="view-row">
-                <div class="view-label">Sichtbarkeit:</div>
-                <div class="view-value"><?= $int_ext_text[$antrag['int_ext']] ?? 'Extern' ?></div>
-            </div>
-            <div class="view-row">
-                <div class="view-label">Verein/Stiftung:</div>
-                <div class="view-value"><?= $antrag['verein'] === 'S' ? 'Stiftung' : 'Verein' ?></div>
-            </div>
-            <?php if ($antrag['sofort']): ?>
-            <div class="view-row">
-                <div class="view-label">Priorität:</div>
-                <div class="view-value"><?= $sofort_text[$antrag['sofort']] ?? 'Normal' ?></div>
-            </div>
-            <?php endif; ?>
-            <?php if ($antrag['praesenz']): ?>
-            <div class="view-row">
-                <div class="view-label">Abstimmungsform:</div>
-                <div class="view-value"><?= $antrag['praesenz'] === 'praesenz' ? 'Präsenzsitzung' : 'Online' ?></div>
-            </div>
-            <?php endif; ?>
-            <?php if ($antrag['thread']): ?>
-            <div class="view-row">
-                <div class="view-label">Forum-Thread:</div>
-                <div class="view-value">
-                    <a href="https://vorstand.mensa.de/forum/index.php?id=<?= (int)$antrag['thread'] ?>" target="forum" style="color: var(--primary);">
-                        → Thread #<?= (int)$antrag['thread'] ?> öffnen
-                    </a>
+                <div class="compact-row">
+                    <div class="compact-label">Ressort:</div>
+                    <div class="compact-value"><?= htmlspecialchars($antrag['r1_klartext'] ?? $antrag['ressort1_name'] ?? '') ?><?= $antrag['ressort2_name'] ? ' + ' . htmlspecialchars($antrag['r2_klartext'] ?? $antrag['ressort2_name']) : '' ?></div>
                 </div>
-            </div>
-            <?php endif; ?>
-            <div class="view-row">
-                <div class="view-label">Letzter Zugriff:</div>
-                <div class="view-value"><?= $antrag['lzugriff'] ? date('d.m.Y H:i', strtotime($antrag['lzugriff'])) : '-' ?></div>
+                <div class="compact-row">
+                    <div class="compact-label">Verantwortlich:</div>
+                    <div class="compact-value"><?= htmlspecialchars($antrag['verant'] ?? '') ?></div>
+                </div>
+                <?php if ($verf1_name): ?>
+                <div class="compact-row">
+                    <div class="compact-label">Abstimmend:</div>
+                    <div class="compact-value"><?= htmlspecialchars($verf1_name) ?><?= $verf2_name ? ' + ' . htmlspecialchars($verf2_name) : '' ?></div>
+                </div>
+                <?php endif; ?>
+                <div class="compact-row">
+                    <div class="compact-label">Sichtbarkeit:</div>
+                    <div class="compact-value"><?= $int_ext_text[$antrag['int_ext']] ?? 'Extern' ?></div>
+                </div>
+                <div class="compact-row">
+                    <div class="compact-label">Verein/Stiftung:</div>
+                    <div class="compact-value"><?= $antrag['verein'] === 'S' ? 'Stiftung' : 'Verein' ?></div>
+                </div>
+                <?php if ($antrag['praesenz']): ?>
+                <div class="compact-row">
+                    <div class="compact-label">Abstimmungsform:</div>
+                    <div class="compact-value"><?= $antrag['praesenz'] === 'praesenz' ? 'Präsenzsitzung' : 'Online' ?></div>
+                </div>
+                <?php endif; ?>
+                <?php if ($antrag['thread']): ?>
+                <div class="compact-row">
+                    <div class="compact-label">Forum:</div>
+                    <div class="compact-value"><a href="https://vorstand.mensa.de/forum/index.php?id=<?= (int)$antrag['thread'] ?>" target="forum" style="color: var(--primary);">→ Thread #<?= (int)$antrag['thread'] ?></a></div>
+                </div>
+                <?php endif; ?>
+                <div class="compact-row">
+                    <div class="compact-label">Letzte Änderung:</div>
+                    <div class="compact-value"><?= $antrag['lzugriff'] ? date('d.m.Y H:i', strtotime($antrag['lzugriff'])) : '-' ?></div>
+                </div>
             </div>
         </div>
 
-        <!-- Sektion 2: Antrag -->
-        <div class="view-section section-gray-2">
-            <div class="section-header">Antrag</div>
-
-            <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 600;">Titel:</h3>
-            <div style="font-size: 16px; font-weight: 600; margin-bottom: 15px;">
-                <?= nl2br(htmlspecialchars($antrag['titel'])) ?>
-            </div>
+        <!-- ANTRAG -->
+        <div class="section-compact">
+            <div class="section-title">Antrag</div>
+            <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px;"><?= nl2br(htmlspecialchars($antrag['titel'])) ?></div>
 
             <?php if ($antrag['beschluss']): ?>
-            <h3 style="margin: 15px 0 8px 0; font-size: 15px; font-weight: 600;">Wortlaut des Beschlusses:</h3>
-            <div class="view-text-block">
+            <div style="font-weight: 600; font-size: 11px; color: #666; margin-top: 10px; margin-bottom: 4px;">WORTLAUT DES BESCHLUSSES:</div>
+            <div class="text-box" style="border-left-color: var(--primary);">
                 <?= nl2br(htmlspecialchars($antrag['beschluss'])) ?>
             </div>
             <?php endif; ?>
 
             <?php if ($antrag['begr']): ?>
-            <h3 style="margin: 15px 0 8px 0; font-size: 15px; font-weight: 600;">Begründung:</h3>
-            <div class="view-text-block" style="border-left-color: var(--success);">
-                <?= nl2br(htmlspecialchars($antrag['begr'])) ?>
-            </div>
+            <?php $begr_lang = strlen($antrag['begr']) > 300; ?>
+            <?php if ($begr_lang): ?>
+                <div class="accordion" onclick="this.classList.toggle('active'); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+                    Begründung anzeigen
+                </div>
+                <div class="acc-content"><?= nl2br(htmlspecialchars($antrag['begr'])) ?></div>
+            <?php else: ?>
+                <div style="font-weight: 600; font-size: 11px; color: #666; margin-top: 10px; margin-bottom: 4px;">BEGRÜNDUNG:</div>
+                <div class="text-box" style="border-left-color: var(--success);">
+                    <?= nl2br(htmlspecialchars($antrag['begr'])) ?>
+                </div>
+            <?php endif; ?>
             <?php endif; ?>
         </div>
 
-        <!-- Sektion 3: Auswirkungen -->
-        <div class="view-section section-gray-3">
-            <div class="section-header">Auswirkungen</div>
+        <!-- AUSWIRKUNGEN -->
+        <div class="section-compact">
+            <div class="section-title">Auswirkungen</div>
 
             <?php if ($antrag['fin'] > 0): ?>
-            <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 600;">Finanzielle Auswirkungen:</h3>
-            <div style="font-size: 22px; font-weight: 700; color: var(--danger); margin-bottom: 8px;">
+            <div style="font-size: 18px; font-weight: 700; color: var(--danger); margin-bottom: 6px;">
                 <?= number_format($antrag['fin'], 0, ',', '.') ?> €
             </div>
+            <?php endif; ?>
+
             <?php if ($antrag['fintext']): ?>
-            <div class="view-text-block" style="border-left-color: var(--danger);">
-                <?= nl2br(htmlspecialchars($antrag['fintext'])) ?>
-            </div>
+            <?php $fintext_lang = strlen($antrag['fintext']) > 250; ?>
+            <?php if ($fintext_lang): ?>
+                <div class="accordion" onclick="this.classList.toggle('active'); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+                    Finanzielle Details anzeigen
+                </div>
+                <div class="acc-content"><?= nl2br(htmlspecialchars($antrag['fintext'])) ?></div>
+            <?php else: ?>
+                <div style="font-weight: 600; font-size: 11px; color: #666; margin-bottom: 4px;">FINANZIELLE DETAILS:</div>
+                <div class="text-box" style="border-left-color: var(--danger);">
+                    <?= nl2br(htmlspecialchars($antrag['fintext'])) ?>
+                </div>
             <?php endif; ?>
             <?php endif; ?>
 
             <?php if ($antrag['pers'] && $antrag['pers'] !== 'keine'): ?>
-            <h3 style="margin: 15px 0 8px 0; font-size: 15px; font-weight: 600;">Personelle Auswirkungen:</h3>
-            <div class="view-text-block">
-                <?= nl2br(htmlspecialchars($antrag['pers'])) ?>
-            </div>
+            <?php $pers_lang = strlen($antrag['pers']) > 250; ?>
+            <?php if ($pers_lang): ?>
+                <div class="accordion" onclick="this.classList.toggle('active'); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+                    Personelle Auswirkungen anzeigen
+                </div>
+                <div class="acc-content"><?= nl2br(htmlspecialchars($antrag['pers'])) ?></div>
+            <?php else: ?>
+                <div style="font-weight: 600; font-size: 11px; color: #666; margin-bottom: 4px; margin-top: 8px;">PERSONELLE AUSWIRKUNGEN:</div>
+                <div class="text-box"><?= nl2br(htmlspecialchars($antrag['pers'])) ?></div>
+            <?php endif; ?>
             <?php endif; ?>
 
             <?php if ($antrag['sach'] && $antrag['sach'] !== 'keine'): ?>
-            <h3 style="margin: 15px 0 8px 0; font-size: 15px; font-weight: 600;">Sachliche Auswirkungen:</h3>
-            <div class="view-text-block">
-                <?= nl2br(htmlspecialchars($antrag['sach'])) ?>
-            </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- Sektion 4: Angebote/Unterlagen -->
-        <?php
-        $has_files = false;
-        for ($i = 1; $i <= 4; $i++) {
-            if (!empty($antrag["file$i"])) {
-                $has_files = true;
-                break;
-            }
-        }
-        if ($has_files):
-        ?>
-        <div class="view-section section-gray-4">
-            <div class="section-header">Angebote / Unterlagen</div>
-
-            <?php for ($i = 1; $i <= 4; $i++): ?>
-                <?php if (!empty($antrag["file$i"])): ?>
-                <div style="margin-bottom: 10px;">
-                    <a href="<?= htmlspecialchars($antrag["file$i"]) ?>" target="_blank"
-                       style="color: var(--primary); font-weight: 600; text-decoration: none;">
-                        📎 <?= basename($antrag["file$i"]) ?>
-                    </a>
-                    <?php if (!empty($antrag["filetext$i"])): ?>
-                        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 3px; margin-left: 20px;">
-                            <?= htmlspecialchars($antrag["filetext$i"]) ?>
-                        </div>
-                    <?php endif; ?>
+            <?php $sach_lang = strlen($antrag['sach']) > 250; ?>
+            <?php if ($sach_lang): ?>
+                <div class="accordion" onclick="this.classList.toggle('active'); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+                    Sachliche Auswirkungen anzeigen
                 </div>
-                <?php endif; ?>
-            <?php endfor; ?>
-        </div>
-        <?php endif; ?>
-
-        <!-- Sektion 5: Hinweise/Protokoll -->
-        <?php if ($antrag['hinweis']): ?>
-        <div class="view-section section-gray-5">
-            <div class="section-header">Hinweise / Protokoll</div>
-            <div class="view-text-block" style="border-left-color: var(--warning); background: rgba(250, 170, 0, 0.1);">
-                <?= nl2br(htmlspecialchars($antrag['hinweis'])) ?>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <!-- Zurück-Button -->
-        <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-color);">
-            <a href="antragsliste.php" class="btn btn-secondary">← Zurück zur Liste</a>
-            <?php if ($kann_bearbeiten): ?>
-                <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($antrnr) ?>" class="btn btn-primary">✏️ Bearbeiten</a>
+                <div class="acc-content"><?= nl2br(htmlspecialchars($antrag['sach'])) ?></div>
+            <?php else: ?>
+                <div style="font-weight: 600; font-size: 11px; color: #666; margin-bottom: 4px; margin-top: 8px;">SACHLICHE AUSWIRKUNGEN:</div>
+                <div class="text-box" style="border-left-color: var(--success);">
+                    <?= nl2br(htmlspecialchars($antrag['sach'])) ?>
+                </div>
+            <?php endif; ?>
             <?php endif; ?>
         </div>
+
+        <!-- UNTERLAGEN + FREIGABEN (2-spaltig auf Desktop) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px;">
+
+            <!-- UNTERLAGEN -->
+            <?php
+            $has_files = false;
+            for ($i = 1; $i <= 4; $i++) {
+                if (!empty($antrag["file$i"])) {
+                    $has_files = true;
+                    break;
+                }
+            }
+            if ($has_files):
+            ?>
+            <div class="section-compact">
+                <div class="section-title">Unterlagen</div>
+                <?php for ($i = 1; $i <= 4; $i++): ?>
+                    <?php if (!empty($antrag["file$i"])): ?>
+                    <div style="margin-bottom: 6px;">
+                        <a href="<?= htmlspecialchars($antrag["file$i"]) ?>" target="_blank" style="color: var(--primary); font-weight: 600; font-size: 12px; text-decoration: none;">
+                            📎 <?= basename($antrag["file$i"]) ?>
+                        </a>
+                        <?php if (!empty($antrag["filetext$i"])): ?>
+                            <div style="font-size: 11px; color: #666; margin-left: 15px;"><?= htmlspecialchars($antrag["filetext$i"]) ?></div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                <?php endfor; ?>
+            </div>
+            <?php endif; ?>
+
+            <!-- VEREINFACHTE FREIGABE -->
+            <?php if ($antrag['sofort'] || $antrag['zufin'] || $antrag['zbem']): ?>
+            <div class="section-compact">
+                <div class="section-title">Vereinfachte Freigabe</div>
+                <?php if ($antrag['sofort'] == 1): ?>
+                    <div style="font-size: 12px; margin-bottom: 4px;">✓ Wenn Rechnungsbetrag = Angebot → sofort überweisen</div>
+                <?php elseif ($antrag['sofort'] == 2): ?>
+                    <div style="font-size: 12px; margin-bottom: 4px;">✓ Nach Vorprüfung durch <strong><?= htmlspecialchars($antrag['durch'] ?? '') ?></strong> überweisen</div>
+                <?php endif; ?>
+                <?php if ($antrag['vorher']): ?>
+                    <div style="font-size: 12px; color: #2e7d32; margin-bottom: 4px;">✓ Zustimmung Finanzvorstand liegt vor</div>
+                <?php endif; ?>
+                <?php if ($antrag['zufin']): ?>
+                    <div style="font-size: 12px; color: var(--warning); margin-bottom: 4px;">⚠️ Freigabe durch GF zusätzlich erforderlich</div>
+                <?php endif; ?>
+                <?php if ($antrag['zbem']): ?>
+                    <div style="font-size: 11px; color: #666; margin-top: 6px; padding: 6px; background: var(--bg-secondary); border-radius: 4px;">
+                        <strong>Bemerkung Finanzreferat:</strong> <?= htmlspecialchars($antrag['zbem']) ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
+            <!-- WARTEZEITVERKÜRZUNG -->
+            <?php if ($antrag['verk1'] || $antrag['verk2']): ?>
+            <div class="section-compact">
+                <div class="section-title">Wartezeitverkürzung</div>
+                <div style="font-size: 12px; color: #2e7d32;">
+                    ✓ Zustimmung zur Verkürzung: <?= htmlspecialchars($verk1_name) ?><?= $verk2_name ? ', ' . htmlspecialchars($verk2_name) : '' ?>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- HINWEISE -->
+        <?php if ($antrag['hinweis']): ?>
+        <div class="section-compact">
+            <div class="section-title">Hinweise / Protokoll</div>
+            <?php $hinweis_lang = strlen($antrag['hinweis']) > 400; ?>
+            <?php if ($hinweis_lang): ?>
+                <div class="accordion" onclick="this.classList.toggle('active'); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
+                    Hinweise anzeigen
+                </div>
+                <div class="acc-content"><?= nl2br(htmlspecialchars($antrag['hinweis'])) ?></div>
+            <?php else: ?>
+                <div class="text-box" style="border-left-color: var(--warning); background: rgba(250, 170, 0, 0.1);">
+                    <?= nl2br(htmlspecialchars($antrag['hinweis'])) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
     </div>
 </body>
 </html>
