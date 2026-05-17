@@ -147,9 +147,40 @@ function render_user_notifications($pdo, $member_id) {
         ];
     }
 
-    // 5. AUSSTEHENDE ABSTIMMUNGEN (PROPOSALS)
-    // DEAKTIVIERT: Alte svbproposals-Tabellen wurden entfernt
-    // Wir arbeiten jetzt direkt mit antraege/beschluesse
+    // 5. AUSSTEHENDE ABSTIMMUNGEN (ANTRÄGE)
+    // Prüfe offene Abstimmungen für aktuellen User in antraege-Tabelle
+    $pending_stmt = $pdo->query("SELECT * FROM antraege WHERE antrnr LIKE 'B%'");
+    $b_antraege = $pending_stmt->fetchAll();
+    $pending_votes = [];
+    foreach ($b_antraege as $a) {
+        for ($i = 1; $i <= 6; $i++) {
+            if ($a["VName$i"] == $member_id && empty($a["Votum$i"])) {
+                $pending_votes[] = $a;
+                break;
+            }
+        }
+    }
+
+    if (!empty($pending_votes)) {
+        $vote_items = [];
+        foreach ($pending_votes as $pv) {
+            $antrnr = htmlspecialchars($pv['antrnr']);
+            $titel = htmlspecialchars(mb_substr($pv['titel'], 0, 40));
+            if (mb_strlen($pv['titel']) > 40) $titel .= '...';
+            $vote_items[] = '<a href="abstimmungen.php?antrnr=' . urlencode($pv['antrnr']) . '" style="display: inline-block; background: var(--warning); color: #000; padding: 6px 10px; border-radius: 4px; text-decoration: none; font-weight: 600; font-size: 12px; margin-right: 5px; margin-bottom: 5px;">→ ' . $antrnr . ': ' . $titel . '</a>';
+        }
+
+        $notifications[] = [
+            'type' => 'proposals_voting',
+            'icon' => '🗳️',
+            'text' => 'Sie haben <strong>' . count($pending_votes) . '</strong> offene Abstimmung' . (count($pending_votes) > 1 ? 'en' : '') . ':<br><div style="margin-top: 8px;">' . implode('', $vote_items) . '</div>',
+            'link' => 'abstimmungen.php',
+            'link_text' => '→ Alle Abstimmungen',
+            'button' => true
+        ];
+    }
+
+    // Alte svbproposals-Code deaktiviert
     /*
     require_once __DIR__ . '/proposals_functions.php';
     require_once __DIR__ . '/adapters/ProposalPermissionAdapter.php';

@@ -90,50 +90,9 @@ $antragsteller_stmt = $pdo->query("SELECT DISTINCT a.antrst, b.Vorname, b.Name, 
                                    WHERE a.antrnr NOT LIKE 'VS%'
                                    ORDER BY b.Name");
 $antragsteller = $antragsteller_stmt->fetchAll();
-
-// Prüfe offene Abstimmungen für aktuellen User
-$pending_votes = [];
-$pending_stmt = $pdo->query("SELECT * FROM antraege WHERE antrnr LIKE 'B%'");
-$b_antraege = $pending_stmt->fetchAll();
-foreach ($b_antraege as $a) {
-    for ($i = 1; $i <= 6; $i++) {
-        if ($a["VName$i"] == $current_user['member_id'] && empty($a["Votum$i"])) {
-            $pending_votes[] = $a;
-            break;
-        }
-    }
-}
 ?>
 
 <style>
-    .proposals-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-    .proposals-actions {
-        display: flex;
-        gap: 10px;
-    }
-    .proposals-actions .btn {
-        padding: 10px 20px;
-        background: #0066cc;
-        color: white;
-        text-decoration: none;
-        border-radius: 4px;
-        font-size: 14px;
-        display: inline-block;
-    }
-    .proposals-actions .btn:hover {
-        background: #0052a3;
-    }
-    .proposals-actions .btn-secondary {
-        background: #666;
-    }
-    .proposals-actions .btn-secondary:hover {
-        background: #555;
-    }
     .proposals-filters {
         background: white;
         padding: 15px 20px;
@@ -230,40 +189,18 @@ foreach ($b_antraege as $a) {
     }
 </style>
 
-<div class="proposals-header">
-    <h2>Offene Anträge</h2>
-    <div class="proposals-actions">
-        <a href="abstimmungen.php" class="btn btn-secondary">🗳️ Abstimmungen<?php if (!empty($pending_votes)): ?> <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 5px;"><?= count($pending_votes) ?></span><?php endif; ?></a>
-        <a href="beschlussbuch.php" class="btn btn-secondary">📚 Beschlussbuch</a>
-        <a href="antrag_neu.php" class="btn">+ Neuer Antrag</a>
-    </div>
-</div>
+<!-- BENACHRICHTIGUNGEN -->
+<?php
+require_once 'module_notifications.php';
+render_user_notifications($pdo, $current_user['member_id']);
+?>
 
-<!-- Infokasten -->
-<div class="info-box" style="background: #fff3cd; border-left-color: var(--warning); color: #856404;">
-    <?php if (!empty($pending_votes)): ?>
-        <div style="display: flex; align-items: start; gap: 12px;">
-            <div style="font-size: 24px;">⚠️</div>
-            <div style="flex: 1;">
-                <div style="font-weight: 600; font-size: 16px; margin-bottom: 8px;">
-                    Sie haben <?= count($pending_votes) ?> offene Abstimmung<?= count($pending_votes) > 1 ? 'en' : '' ?>!
-                </div>
-                <div style="font-size: 14px; margin-bottom: 10px;">
-                    Bitte stimmen Sie über folgende Anträge ab:
-                </div>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                    <?php foreach ($pending_votes as $pv): ?>
-                        <a href="abstimmungen.php?antrnr=<?= urlencode($pv['antrnr']) ?>"
-                           style="display: inline-block; background: var(--warning); color: #000; padding: 8px 12px; border-radius: 4px; text-decoration: none; font-weight: 600; font-size: 13px;">
-                            → <?= htmlspecialchars($pv['antrnr']) ?>: <?= htmlspecialchars(mb_substr($pv['titel'], 0, 50)) ?><?= mb_strlen($pv['titel']) > 50 ? '...' : '' ?>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
-    <?php else: ?>
-        ℹ️ Keine ausstehenden Abstimmungen. Hier finden Sie alle offenen Anträge.
-    <?php endif; ?>
+<h2>📋 Anträge/Beschlüsse verwalten</h2>
+
+<div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <a href="abstimmungen.php" style="padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">🗳️ Abstimmungen</a>
+    <a href="beschlussbuch.php" style="padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">📚 Beschlussbuch</a>
+    <a href="antrag_neu.php" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">+ Neuer Antrag</a>
 </div>
 
 <form method="GET" class="proposals-filters">
