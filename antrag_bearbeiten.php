@@ -189,27 +189,37 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     // Wichtig-Flag Logik - NUR bei action=save ändern, nicht bei finalize
     $wichtig = $antrag['wichtig'] ?? 0; // Aktuellen Wert beibehalten
 
+    // DEBUG
+    error_log("DEBUG speichereAntrag START: action=" . ($post['action'] ?? 'none') . ", wichtig_escalate=" . (isset($post['wichtig_escalate']) ? 'JA' : 'NEIN') . ", wichtig_reset=" . (isset($post['wichtig_reset']) ? 'JA' : 'NEIN') . ", wichtig_alt=" . $wichtig);
+
     // Nur wenn wirklich gespeichert wird (nicht beim Finalisieren)
     if (isset($post['action']) && $post['action'] === 'save') {
         // Wenn wichtig_reset gesetzt ist (Antragsteller nimmt zurück)
         if (isset($post['wichtig_reset']) && $antrag['wichtig'] == $antrag['antrst']) {
             $wichtig = 0;
+            error_log("DEBUG: wichtig auf 0 gesetzt (reset)");
         }
         // Wenn wichtig_escalate gesetzt ist (neu oder weiterhin)
         elseif (isset($post['wichtig_escalate']) && !isset($post['wichtig_reset'])) {
             // Auch Antragsteller (aktiv < 18) darf Vorstandsbeschluss anfordern
             $wichtig = $user['ID'];
+            error_log("DEBUG: wichtig auf " . $user['ID'] . " gesetzt (escalate)");
         } elseif (!isset($post['wichtig_escalate']) && !isset($post['wichtig_reset'])) {
             // Checkbox nicht gesetzt und kein Reset -> wichtig löschen
             $wichtig = 0;
+            error_log("DEBUG: wichtig auf 0 gesetzt (keine checkbox)");
         }
+    } else {
+        error_log("DEBUG: action ist nicht 'save', wichtig bleibt bei " . $wichtig);
     }
 
     // bart berechnen - aber wichtig hat Vorrang
     if ($wichtig > 0) {
         $bart = 'B'; // Immer Vorstandsbeschluss wenn wichtig gesetzt
+        error_log("DEBUG: bart='B' (wichtig=" . $wichtig . ")");
     } else {
         $bart = ($monatssumme + $fin) > 600 || $fin >= 600 ? ($fin <= 3000 ? 'R' : 'B') : 'V';
+        error_log("DEBUG: bart='" . $bart . "' (wichtig=0, fin=" . $fin . ", monatssumme=" . $monatssumme . ")");
     }
 
     // sofort-Wert
