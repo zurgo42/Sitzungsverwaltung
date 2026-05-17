@@ -31,12 +31,12 @@ if (!$antrnr) die("Keine Antragsnummer angegeben.");
 $stmt = $pdo->prepare("
     SELECT a.*,
            b.Vorname, b.Name, b.KurzN as AntragstellerKurz,
-           r1.Ressort as ressort1_name, r1.klartext as r1_klartext,
-           r2.Ressort as ressort2_name, r2.klartext as r2_klartext
+           r1.Ressort as ressort1_name,
+           r2.Ressort as ressort2_name
     FROM antraege a
     LEFT JOIN berechtigte b ON a.antrst = b.ID
-    LEFT JOIN ressortliste r1 ON a.ressort1 = r1.ressort
-    LEFT JOIN ressortliste r2 ON a.ressort2 = r2.ressort
+    LEFT JOIN ressortliste r1 ON a.ressort1 = r1.ID
+    LEFT JOIN ressortliste r2 ON a.ressort2 = r2.ID
     WHERE a.antrnr = ?
 ");
 $stmt->execute([$antrnr]);
@@ -141,7 +141,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                 </div>
                 <div class="compact-row">
                     <div class="compact-label">Ressort:</div>
-                    <div class="compact-value"><?= htmlspecialchars($antrag['r1_klartext'] ?? $antrag['ressort1_name'] ?? '') ?><?= $antrag['ressort2_name'] ? ' + ' . htmlspecialchars($antrag['r2_klartext'] ?? $antrag['ressort2_name']) : '' ?></div>
+                    <div class="compact-value"><?= htmlspecialchars($antrag['ressort1_name'] ?? '') ?><?= $antrag['ressort2_name'] ? ' + ' . htmlspecialchars($antrag['ressort2_name']) : '' ?></div>
                 </div>
                 <div class="compact-row">
                     <div class="compact-label">Verantwortlich:</div>
