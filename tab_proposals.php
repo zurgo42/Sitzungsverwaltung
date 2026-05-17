@@ -239,30 +239,32 @@ foreach ($b_antraege as $a) {
     </div>
 </div>
 
-<?php if (!empty($pending_votes)): ?>
-    <!-- Hinweis auf offene Abstimmungen -->
-    <div style="background: rgba(250, 170, 0, 0.15); border: 2px solid #FAAA00; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(250, 170, 0, 0.3);">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <div style="font-size: 32px;">⚠️</div>
+<!-- Infokasten -->
+<div class="info-box" style="background: #fff3cd; border-left-color: var(--warning); color: #856404;">
+    <?php if (!empty($pending_votes)): ?>
+        <div style="display: flex; align-items: start; gap: 12px;">
+            <div style="font-size: 24px;">⚠️</div>
             <div style="flex: 1;">
-                <div style="font-weight: 600; font-size: 18px; margin-bottom: 5px; color: #000;">
+                <div style="font-weight: 600; font-size: 16px; margin-bottom: 8px;">
                     Sie haben <?= count($pending_votes) ?> offene Abstimmung<?= count($pending_votes) > 1 ? 'en' : '' ?>!
                 </div>
-                <div style="font-size: 14px; color: #666; margin-bottom: 12px;">
+                <div style="font-size: 14px; margin-bottom: 10px;">
                     Bitte stimmen Sie über folgende Anträge ab:
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                     <?php foreach ($pending_votes as $pv): ?>
                         <a href="abstimmungen.php?antrnr=<?= urlencode($pv['antrnr']) ?>"
-                           style="display: inline-block; background: #FAAA00; color: #000; padding: 10px 16px; border-radius: 4px; text-decoration: none; font-weight: 600; font-size: 13px; transition: background 0.2s;">
+                           style="display: inline-block; background: var(--warning); color: #000; padding: 8px 12px; border-radius: 4px; text-decoration: none; font-weight: 600; font-size: 13px;">
                             → <?= htmlspecialchars($pv['antrnr']) ?>: <?= htmlspecialchars(mb_substr($pv['titel'], 0, 50)) ?><?= mb_strlen($pv['titel']) > 50 ? '...' : '' ?>
                         </a>
                     <?php endforeach; ?>
                 </div>
             </div>
         </div>
-    </div>
-<?php endif; ?>
+    <?php else: ?>
+        ℹ️ Keine ausstehenden Abstimmungen. Hier finden Sie alle offenen Anträge.
+    <?php endif; ?>
+</div>
 
 <form method="GET" class="proposals-filters">
     <input type="hidden" name="tab" value="proposals">
