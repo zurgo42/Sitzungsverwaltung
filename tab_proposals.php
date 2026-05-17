@@ -4,9 +4,15 @@
  * Eingebunden in index.php für konsistente Darstellung
  */
 
+// Berechtigte-Daten für aktiv-Wert laden
+$user_berecht_stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
+$user_berecht_stmt->execute([$current_user['member_id']]);
+$user_berecht = $user_berecht_stmt->fetch();
+$user_aktiv = $user_berecht['aktiv'] ?? 0;
+
 // Berechtigungen prüfen
-$kann_intern_sehen = ($current_user['aktiv'] > 17 || $current_user['role'] === 'VA' || $current_user['is_admin'] == 1);
-$ist_admin = ($current_user['aktiv'] >= 19 || $current_user['is_admin'] == 1);
+$kann_intern_sehen = ($user_aktiv > 17 || $user_berecht['Funktion'] === 'VA' || ($current_user['is_admin'] ?? 0) == 1);
+$ist_admin = ($user_aktiv >= 19 || ($current_user['is_admin'] ?? 0) == 1);
 
 // POST-Verarbeitung für permanentes Löschen
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_permanent']) && $ist_admin) {
@@ -134,25 +140,35 @@ foreach ($b_antraege as $a) {
         margin-bottom: 20px;
         border-radius: 8px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        display: flex;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
+        align-items: end;
     }
     .proposals-filters select,
     .proposals-filters input[type="text"] {
-        padding: 8px 12px;
+        padding: 8px 10px;
         border: 1px solid #ddd;
         border-radius: 4px;
-        font-size: 14px;
+        font-size: 13px;
+        width: 100%;
     }
-    .proposals-filters button {
-        padding: 8px 16px;
+    .proposals-filters button,
+    .proposals-filters a {
+        padding: 8px 12px;
         background: #0066cc;
         color: white;
         border: none;
         border-radius: 4px;
         cursor: pointer;
+        font-size: 13px;
+        text-align: center;
+        white-space: nowrap;
+    }
+    .proposals-filters .filter-actions {
+        display: flex;
+        gap: 8px;
+        grid-column: span 2;
     }
     .proposals-count {
         background: white;
@@ -250,6 +266,7 @@ foreach ($b_antraege as $a) {
 
 <form method="GET" class="proposals-filters">
     <input type="hidden" name="tab" value="proposals">
+
     <select name="status">
         <option value="all">Alle Antragsteller</option>
         <?php foreach ($antragsteller as $ast): ?>
@@ -274,14 +291,15 @@ foreach ($b_antraege as $a) {
 
     <input type="text" name="search" placeholder="Suche..." value="<?= htmlspecialchars($search) ?>">
 
-    <button type="submit">Filtern</button>
-    <a href="?tab=proposals" style="padding: 8px 16px; color: #666; text-decoration: none;">Zurücksetzen</a>
-
-    <?php if ($ist_admin): ?>
-        <a href="?tab=proposals&show_deleted=1" style="padding: 8px 16px; color: <?= $show_deleted ? '#dc3545' : '#666' ?>; text-decoration: none; font-weight: <?= $show_deleted ? '600' : 'normal' ?>;">
-            <?= $show_deleted ? '✓' : '' ?> Gelöschte anzeigen
-        </a>
-    <?php endif; ?>
+    <div class="filter-actions">
+        <button type="submit">Filtern</button>
+        <a href="?tab=proposals" style="padding: 8px 12px; background: #666; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">Zurücksetzen</a>
+        <?php if ($ist_admin): ?>
+            <a href="?tab=proposals&show_deleted=1" style="padding: 8px 12px; background: <?= $show_deleted ? '#dc3545' : '#666' ?>; color: white; text-decoration: none; border-radius: 4px; font-weight: <?= $show_deleted ? '600' : 'normal' ?>; display: inline-block;">
+                <?= $show_deleted ? '✓ ' : '' ?>Gelöschte
+            </a>
+        <?php endif; ?>
+    </div>
 </form>
 
 <div class="proposals-count">
