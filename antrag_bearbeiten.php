@@ -1087,6 +1087,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Auto-expand textareas based on content
+function autoExpandTextarea(textarea) {
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    // Set height to scrollHeight + some padding
+    const newHeight = Math.max(50, textarea.scrollHeight);
+    textarea.style.height = newHeight + 'px';
+}
+
+// Apply auto-expand to all textareas
+document.addEventListener('DOMContentLoaded', function() {
+    const textareas = document.querySelectorAll('textarea');
+
+    textareas.forEach(function(textarea) {
+        // Set initial height based on content
+        autoExpandTextarea(textarea);
+
+        // Add input event listener for dynamic expansion
+        textarea.addEventListener('input', function() {
+            autoExpandTextarea(this);
+        });
+
+        // Remove fixed height constraints for auto-expansion (except beschluss which should stay compact)
+        if (textarea.id !== 'beschluss' && textarea.id !== 'neuerhinweis') {
+            textarea.style.maxHeight = 'none';
+            textarea.style.minHeight = '50px';
+        }
+    });
+});
 </script>
 </body>
 </html>
