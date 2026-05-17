@@ -559,8 +559,18 @@ foreach ($antraege as $a) {
                 }
             }
 
-            // Antrag anzeigen
-            render_antrag_detail($pdo, $antrag);
+            // Antrag anzeigen - Einbettung der vollständigen Antragsansicht
+            echo '<div style="border: 2px solid #0066cc; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">';
+            echo '<iframe src="antrag_ansehen.php?antrnr=' . urlencode($antrag['antrnr']) . '" style="width: 100%; border: none; min-height: 800px;" id="antrag_frame"></iframe>';
+            echo '</div>';
+            echo '<script>
+                // Iframe-Höhe automatisch anpassen
+                window.addEventListener("message", function(e) {
+                    if (e.data.height) {
+                        document.getElementById("antrag_frame").style.height = e.data.height + "px";
+                    }
+                });
+            </script>';
 
             // Prüfen ob User abstimmberechtigt ist
             $user_position = 0;
