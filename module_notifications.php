@@ -30,52 +30,34 @@ function render_user_notifications($pdo, $member_id) {
 
     $notifications = [];
 
-    // 1. ABWESENHEITEN PRÜFEN
-    // Nutzt Adapter-kompatible Funktion statt direktem JOIN auf svmembers
-    $all_absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
-
-    // is_current Flag hinzufügen
-    foreach ($all_absences as &$abs) {
-        $abs['is_current'] = (strtotime('today') >= strtotime($abs['start_date']) &&
-                              strtotime('today') <= strtotime($abs['end_date'])) ? 1 : 0;
+    // 1. AUSSTEHENDE ABSTIMMUNGEN (ANTRÄGE) - GANZ OBEN
+    // Prüfe offene Abstimmungen für aktuellen User in antraege-Tabelle
+    $pending_stmt = $pdo->query("SELECT * FROM antraege WHERE antrnr LIKE 'B%'");
+    $b_antraege = $pending_stmt->fetchAll();
+    $pending_votes = [];
+    foreach ($b_antraege as $a) {
+        for ($i = 1; $i <= 6; $i++) {
+            if ($a["VName$i"] == $member_id && empty($a["Votum$i"])) {
+                $pending_votes[] = $a;
+                break;
+            }
+        }
     }
 
-    if (!empty($all_absences)) {
-        $absence_items = [];
-        foreach ($all_absences as $abs) {
-            // Zeitraum (strong) + Doppelpunkt
-            $dates = '<strong>' . date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date'])) . ':</strong>';
-
-            // Vorname + erster Buchstabe Nachname mit Punkt
-            $first_name = htmlspecialchars($abs['first_name']);
-            $last_initial = strtoupper(substr($abs['last_name'], 0, 1)) . '.';
-            $name = $first_name . ' ' . $last_initial;
-
-            // Vertretung (falls vorhanden)
-            $vertr = '';
-            if ($abs['substitute_member_id']) {
-                $sub_first = htmlspecialchars($abs['sub_first_name']);
-                $sub_initial = strtoupper(substr($abs['sub_last_name'], 0, 1)) . '.';
-                $vertr = ' Vertr.: ' . $sub_first . ' ' . $sub_initial;
-            }
-
-            $text = $dates . ' ' . $name . $vertr;
-
-            // Aktuelle Abwesenheiten in rot
-            if ($abs['is_current']) {
-                $absence_items[] = '<span style="color: #d32f2f;">' . $text . '</span>';
-            } else {
-                $absence_items[] = $text;
-            }
+    if (!empty($pending_votes)) {
+        $vote_items = [];
+        foreach ($pending_votes as $pv) {
+            $antrnr = htmlspecialchars($pv['antrnr']);
+            $titel = htmlspecialchars(mb_substr($pv['titel'], 0, 40));
+            if (mb_strlen($pv['titel']) > 40) $titel .= '...';
+            $vote_items[] = '<a href="abstimmungen.php?antrnr=' . urlencode($pv['antrnr']) . '" style="display: inline-block; background: var(--warning); color: #000; padding: 6px 10px; border-radius: 4px; text-decoration: none; font-weight: 600; font-size: 12px; margin-right: 5px; margin-bottom: 5px;">→ ' . $antrnr . ': ' . $titel . '</a>';
         }
 
         $notifications[] = [
-            'type' => 'absences',
-            'icon' => '🏖️',
-            'text' => implode(' <span style="color: #ffc107; font-weight: 900; font-size: 18px;">•</span> ', $absence_items),
-            'link' => '?tab=vertretung',
-            'link_text' => 'Details',
-            'button' => true
+            'type' => 'proposals_voting',
+            'icon' => '🗳️',
+            'text' => 'Du hast <strong>' . count($pending_votes) . '</strong> offene Abstimmung' . (count($pending_votes) > 1 ? 'en' : '') . ': ' . implode('', $vote_items),
+            'link' => null
         ];
     }
 
@@ -147,40 +129,8 @@ function render_user_notifications($pdo, $member_id) {
         ];
     }
 
-    // 5. AUSSTEHENDE ABSTIMMUNGEN (ANTRÄGE)
-    // Prüfe offene Abstimmungen für aktuellen User in antraege-Tabelle
-    $pending_stmt = $pdo->query("SELECT * FROM antraege WHERE antrnr LIKE 'B%'");
-    $b_antraege = $pending_stmt->fetchAll();
-    $pending_votes = [];
-    foreach ($b_antraege as $a) {
-        for ($i = 1; $i <= 6; $i++) {
-            if ($a["VName$i"] == $member_id && empty($a["Votum$i"])) {
-                $pending_votes[] = $a;
-                break;
-            }
-        }
-    }
-
-    if (!empty($pending_votes)) {
-        $vote_items = [];
-        foreach ($pending_votes as $pv) {
-            $antrnr = htmlspecialchars($pv['antrnr']);
-            $titel = htmlspecialchars(mb_substr($pv['titel'], 0, 40));
-            if (mb_strlen($pv['titel']) > 40) $titel .= '...';
-            $vote_items[] = '<a href="abstimmungen.php?antrnr=' . urlencode($pv['antrnr']) . '" style="display: inline-block; background: var(--warning); color: #000; padding: 6px 10px; border-radius: 4px; text-decoration: none; font-weight: 600; font-size: 12px; margin-right: 5px; margin-bottom: 5px;">→ ' . $antrnr . ': ' . $titel . '</a>';
-        }
-
-        $notifications[] = [
-            'type' => 'proposals_voting',
-            'icon' => '🗳️',
-            'text' => 'Sie haben <strong>' . count($pending_votes) . '</strong> offene Abstimmung' . (count($pending_votes) > 1 ? 'en' : '') . ':<br><div style="margin-top: 8px;">' . implode('', $vote_items) . '</div>',
-            'link' => 'abstimmungen.php',
-            'link_text' => '→ Alle Abstimmungen',
-            'button' => true
-        ];
-    }
-
-    // Alte svbproposals-Code deaktiviert
+    // 5. ALTE PROPOSALS-ABSTIMMUNGEN (DEAKTIVIERT)
+    // Jetzt in Sektion 1 (ganz oben) implementiert
     /*
     require_once __DIR__ . '/proposals_functions.php';
     require_once __DIR__ . '/adapters/ProposalPermissionAdapter.php';
@@ -346,6 +296,54 @@ function render_user_notifications($pdo, $member_id) {
             'icon' => '📋',
             'text' => '<strong class="kommende-termine-label">Kommende Termine:</strong><span class="kommende-termine-break"></span> ' . implode(' ', $items),
             'link' => null
+        ];
+    }
+
+    // 9. ABWESENHEITEN (AM ENDE, NACH TERMINEN)
+    $all_absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
+
+    // is_current Flag hinzufügen
+    foreach ($all_absences as &$abs) {
+        $abs['is_current'] = (strtotime('today') >= strtotime($abs['start_date']) &&
+                              strtotime('today') <= strtotime($abs['end_date'])) ? 1 : 0;
+    }
+
+    if (!empty($all_absences)) {
+        $absence_items = [];
+        foreach ($all_absences as $abs) {
+            // Zeitraum (strong) + Doppelpunkt
+            $dates = '<strong>' . date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date'])) . ':</strong>';
+
+            // Vorname + erster Buchstabe Nachname mit Punkt
+            $first_name = htmlspecialchars($abs['first_name']);
+            $last_initial = strtoupper(substr($abs['last_name'], 0, 1)) . '.';
+            $name = $first_name . ' ' . $last_initial;
+
+            // Vertretung (falls vorhanden)
+            $vertr = '';
+            if ($abs['substitute_member_id']) {
+                $sub_first = htmlspecialchars($abs['sub_first_name']);
+                $sub_initial = strtoupper(substr($abs['sub_last_name'], 0, 1)) . '.';
+                $vertr = ' Vertr.: ' . $sub_first . ' ' . $sub_initial;
+            }
+
+            $text = $dates . ' ' . $name . $vertr;
+
+            // Aktuelle Abwesenheiten in rot
+            if ($abs['is_current']) {
+                $absence_items[] = '<span style="color: #d32f2f;">' . $text . '</span>';
+            } else {
+                $absence_items[] = $text;
+            }
+        }
+
+        $notifications[] = [
+            'type' => 'absences',
+            'icon' => '🏖️',
+            'text' => implode(' <span style="color: #ffc107; font-weight: 900; font-size: 18px;">•</span> ', $absence_items),
+            'link' => '?tab=vertretung',
+            'link_text' => 'Details',
+            'button' => true
         ];
     }
 

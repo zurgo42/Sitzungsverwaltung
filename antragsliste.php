@@ -473,8 +473,7 @@ foreach ($b_antraege as $a) {
                             <td><?= $a['lzugriff'] ? date('d.m.Y H:i', strtotime($a['lzugriff'])) : '-' ?></td>
                             <td style="white-space: nowrap;">
                                 <a href="antrag_ansehen.php?antrnr=<?= urlencode($a['antrnr']) ?>"
-                                   class="btn btn-secondary"
-                                   style="padding: 6px 12px; font-size: 13px; display: inline-block;">
+                                   style="padding: 6px 12px; font-size: 13px; display: inline-block; background: #e9ecef; color: #495057; text-decoration: none; border-radius: 4px; border: 1px solid #dee2e6;">
                                     👁️ Ansehen
                                 </a>
                                 <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($a['antrnr']) ?>"

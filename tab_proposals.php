@@ -187,6 +187,37 @@ $antragsteller = $antragsteller_stmt->fetchAll();
         font-size: 11px;
         margin-top: 4px;
     }
+
+    /* Dark Mode Anpassungen */
+    body.dark-mode .proposals-filters {
+        background: #2d2d2d;
+        border-color: #444;
+    }
+    body.dark-mode .proposals-filters select,
+    body.dark-mode .proposals-filters input[type="text"] {
+        background: #1a1a1a;
+        color: #e0e0e0;
+        border-color: #444;
+    }
+    body.dark-mode .proposals-count {
+        background: #2d2d2d;
+        color: #e0e0e0;
+    }
+    body.dark-mode .proposals-table-container {
+        background: #2d2d2d;
+    }
+    body.dark-mode .proposals-table-container th {
+        background: #1a1a1a;
+        color: #e0e0e0;
+        border-color: #444;
+    }
+    body.dark-mode .proposals-table-container td {
+        border-color: #444;
+        color: #e0e0e0;
+    }
+    body.dark-mode .proposals-table-container tr:hover {
+        background: #333;
+    }
 </style>
 
 <!-- BENACHRICHTIGUNGEN -->
@@ -195,13 +226,16 @@ require_once 'module_notifications.php';
 render_user_notifications($pdo, $current_user['member_id']);
 ?>
 
-<h2>📋 Anträge/Beschlüsse verwalten</h2>
-
-<div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-    <a href="abstimmungen.php" style="padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">🗳️ Abstimmungen</a>
-    <a href="beschlussbuch.php" style="padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">📚 Beschlussbuch</a>
-    <a href="antrag_neu.php" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">+ Neuer Antrag</a>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2 style="margin: 0;">📋 Anträge/Beschlüsse verwalten</h2>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="abstimmungen.php" style="padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">🗳️ Abstimmungen</a>
+        <a href="beschlussbuch.php" style="padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">📚 Beschlussbuch</a>
+        <a href="antrag_neu.php" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">+ Neuer Antrag</a>
+    </div>
 </div>
+
+<h3 style="margin-top: 0; margin-bottom: 15px; font-size: 18px; color: #333;">Offene Anträge</h3>
 
 <form method="GET" class="proposals-filters">
     <input type="hidden" name="tab" value="proposals">
@@ -302,8 +336,7 @@ render_user_notifications($pdo, $current_user['member_id']);
                         <td><?= $a['lzugriff'] ? date('d.m.Y H:i', strtotime($a['lzugriff'])) : '-' ?></td>
                         <td style="white-space: nowrap;">
                             <a href="antrag_ansehen.php?antrnr=<?= urlencode($a['antrnr']) ?>"
-                               class="btn btn-secondary"
-                               style="padding: 6px 12px; font-size: 13px; display: inline-block;">
+                               style="padding: 6px 12px; font-size: 13px; display: inline-block; background: #e9ecef; color: #495057; text-decoration: none; border-radius: 4px; border: 1px solid #dee2e6;">
                                 👁️ Ansehen
                             </a>
                             <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($a['antrnr']) ?>"
