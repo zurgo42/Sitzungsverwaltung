@@ -893,9 +893,9 @@ if ($user['aktiv'] >= 19) {
                     <div style="background: #e8f5e9; padding: 10px; margin-bottom: 12px; border-radius: 4px; border-left: 3px solid #4caf50;">
                         <div style="font-size: 12px; color: #2e7d32;">
                             <?php if ($antrag['verk1'] && $antrag['verk2']): ?>
-                                ✓ Zustimmung durch <?= htmlspecialchars($verk1_name) ?> und <?= htmlspecialchars($verk2_name) ?> liegt vor
+                                ✓ Zustimmung zur Verkürzung der Wartezeit liegt vor von <?= htmlspecialchars($verk1_name) ?> und <?= htmlspecialchars($verk2_name) ?>
                             <?php elseif ($antrag['verk1']): ?>
-                                ✓ Zustimmung durch <?= htmlspecialchars($verk1_name) ?> liegt vor
+                                ✓ Zustimmung zur Verkürzung der Wartezeit liegt vor von <?= htmlspecialchars($verk1_name) ?>
                             <?php endif; ?>
                         </div>
                     </div>
