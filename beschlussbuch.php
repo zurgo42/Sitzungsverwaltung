@@ -50,11 +50,10 @@ $kann_duplizieren = ($user['aktiv'] >= 9);
 $filter_von = $_POST['von'] ?? ($_GET['von'] ?? date('Y-01-01'));
 $filter_bis = $_POST['bis'] ?? ($_GET['bis'] ?? date('Y-12-31'));
 $filter_ressort = $_POST['ressort'] ?? ($_GET['ressort'] ?? '');
-$filter_sichtbarkeit = $_POST['sichtbarkeit'] ?? ($_GET['sichtbarkeit'] ?? '');
 $search = $_POST['stichwort'] ?? ($_GET['search'] ?? '');
 $sortierung = $_POST['sort'] ?? ($_GET['sort'] ?? 'desc'); // desc = neueste zuerst
 $view_mode = $_POST['view_mode'] ?? ($_GET['view_mode'] ?? 'table');
-$limit = (int)($_POST['limit'] ?? ($_GET['limit'] ?? 50));
+$limit = (int)($_POST['limit'] ?? ($_GET['limit'] ?? 25));
 
 // SQL für VS-Anträge mit allen Details
 $sql = "SELECT
@@ -85,20 +84,9 @@ LEFT JOIN ressortliste r1 ON a.ressort1 = r1.ID
 LEFT JOIN ressortliste r2 ON a.ressort2 = r2.ID
 WHERE a.antrnr LIKE 'VS%'";
 
-// Sichtbarkeits-Filter für nicht-berechtigte User
+// Sichtbarkeits-Filter für nicht-berechtigte User (nur Berechtigungsprüfung, kein Filter)
 if (!$kann_intern_sehen) {
     $sql .= " AND (a.int_ext IS NULL OR a.int_ext != 'i')";
-}
-
-// Weitere Filterung
-if ($filter_sichtbarkeit) {
-    if ($filter_sichtbarkeit === 'intern' && $kann_intern_sehen) {
-        $sql .= " AND a.int_ext = 'i'";
-    } elseif ($filter_sichtbarkeit === 'nicht_oeffentlich') {
-        $sql .= " AND a.int_ext = 'n'";
-    } elseif ($filter_sichtbarkeit === 'extern') {
-        $sql .= " AND (a.int_ext = 'e' OR a.int_ext IS NULL)";
-    }
 }
 
 $params = [];
@@ -143,20 +131,51 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $beschluesse = $stmt->fetchAll();
 
-// Votum-Zusammenfassung berechnen
+// Votum-Zusammenfassung mit Namen berechnen
 foreach ($beschluesse as &$b) {
-    $ja = 0;
-    $nein = 0;
-    $enthaltung = 0;
+    $ja_namen = [];
+    $nein_namen = [];
+    $enthaltung_namen = [];
+    $kein_votum_namen = [];
+
     for ($i = 1; $i <= 6; $i++) {
-        if (!empty($b["Votum$i"])) {
-            if ($b["Votum$i"] == 1) $ja++;
-            elseif ($b["Votum$i"] == 2) $nein++;
-            elseif ($b["Votum$i"] == 3) $enthaltung++;
+        if (!empty($b["VName$i"])) {
+            // Namen der Abstimmenden holen
+            $voter_stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
+            $voter_stmt->execute([$b["VName$i"]]);
+            $voter_name = $voter_stmt->fetchColumn();
+
+            if ($voter_name) {
+                if (empty($b["Votum$i"])) {
+                    $kein_votum_namen[] = $voter_name;
+                } elseif ($b["Votum$i"] == 1) {
+                    $ja_namen[] = $voter_name;
+                } elseif ($b["Votum$i"] == 2) {
+                    $nein_namen[] = $voter_name;
+                } elseif ($b["Votum$i"] == 3) {
+                    $enthaltung_namen[] = $voter_name;
+                }
+            }
         }
     }
-    if ($ja > 0 || $nein > 0 || $enthaltung > 0) {
-        $b['votum_text'] = "$ja Ja, $nein Nein, $enthaltung Enthaltung";
+
+    // Votum-Text zusammenstellen
+    $parts = [];
+    if (!empty($ja_namen)) {
+        $parts[] = "Ja: " . implode(", ", $ja_namen);
+    }
+    if (!empty($nein_namen)) {
+        $parts[] = "Nein: " . implode(", ", $nein_namen);
+    }
+    if (!empty($enthaltung_namen)) {
+        $parts[] = "Enthaltung: " . implode(", ", $enthaltung_namen);
+    }
+    if (!empty($kein_votum_namen)) {
+        $parts[] = "Kein Votum: " . implode(", ", $kein_votum_namen);
+    }
+
+    if (!empty($parts)) {
+        $b['votum_text'] = implode(" | ", $parts);
     } else {
         $b['votum_text'] = 'Einstimmig';
     }
@@ -361,14 +380,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
         🌓 Dark Mode
     </button>
 
-    <a href="antragsliste.php" class="back-link">← Zurück zu Anträgen</a>
+    <?php
+    // Dynamischer Zurück-Link zur aufrufenden Seite
+    $referer = $_SERVER['HTTP_REFERER'] ?? 'antragsliste.php';
+    // Sicherstellen, dass der Referer zur gleichen Domain gehört
+    if (parse_url($referer, PHP_URL_HOST) !== $_SERVER['HTTP_HOST']) {
+        $referer = 'antragsliste.php';
+    }
+    ?>
+    <a href="<?= h($referer) ?>" class="back-link">← Zurück</a>
 
     <div class="header">
         <h1>📚 Beschlussbuch</h1>
-        <div class="actions">
-            <a href="antragsliste.php" class="btn btn-secondary">📝 Anträge</a>
-            <a href="abstimmungen.php" class="btn btn-secondary">🗳️ Abstimmungen</a>
-        </div>
     </div>
 
     <form method="POST" class="filters">
@@ -389,17 +412,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                         <?= h($r['Ressort']) ?>
                     </option>
                 <?php endforeach; ?>
-            </select>
-        </div>
-        <div>
-            <div class="filter-label">Sichtbarkeit:</div>
-            <select name="sichtbarkeit">
-                <option value="">Alle</option>
-                <option value="extern" <?= $filter_sichtbarkeit === 'extern' ? 'selected' : '' ?>>Extern</option>
-                <option value="nicht_oeffentlich" <?= $filter_sichtbarkeit === 'nicht_oeffentlich' ? 'selected' : '' ?>>Nicht öffentlich</option>
-                <?php if ($kann_intern_sehen): ?>
-                    <option value="intern" <?= $filter_sichtbarkeit === 'intern' ? 'selected' : '' ?>>Intern (Vorstand)</option>
-                <?php endif; ?>
             </select>
         </div>
         <div>
@@ -509,9 +521,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                         <a href="antrag_ansehen.php?antrnr=<?= h($b['antrnr']) ?>" style="color:inherit; text-decoration:none;"><?= h($b['antrnr']) ?></a>
                     </span>
                     <span style="background: #d1ecf1; color: #0c5460; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 5px;"><?= h($ressort_text) ?></span>
-                    <?php if ($b['fin'] > 0): ?>
-                        <span style="background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 5px;">💰 <?= number_format($b['fin'], 0, ',', '.') ?> €</span>
-                    <?php endif; ?>
                 </div>
                 <div style="text-align: right">
                     <small style="color: #6c757d;"><?= $datum_anzeige ?></small>
@@ -532,12 +541,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                 <?= highlightWords2(nl2br(h($b['beschluss'])), $search) ?>
             </div>
 
-            <?php if (!empty($b['fintext']) || !empty($b['sach']) || !empty($b['pers'])): ?>
+            <?php if (!empty($b['fintext']) || $b['fin'] > 0 || !empty($b['sach']) || !empty($b['pers'])): ?>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 15px;">
-                <?php if ($b['fintext']): ?>
+                <?php if ($b['fintext'] || $b['fin'] > 0): ?>
                 <div style="font-size: 12px; background: #f8f9fa; padding: 8px; border-radius: 4px; border-left: 3px solid #007bff;">
                     <strong style="font-size: 10px; color: #6c757d; text-transform: uppercase; display: block;">Finanziell</strong>
-                    <?= highlightWords2(h($b['fintext']), $search) ?>
+                    <?php if ($b['fin'] > 0): ?>
+                        <div style="font-weight: 600; color: #856404; margin-bottom: 4px;">💰 <?= number_format($b['fin'], 0, ',', '.') ?> €</div>
+                    <?php endif; ?>
+                    <?php if ($b['fintext']): ?>
+                        <?= highlightWords2(h($b['fintext']), $search) ?>
+                    <?php endif; ?>
                 </div>
                 <?php endif; ?>
                 <?php if ($b['sach']): ?>
