@@ -409,11 +409,14 @@ $current_meeting_id = isset($_GET['meeting_id']) ? intval($_GET['meeting_id']) :
 // ============================================
 // REDIRECT: PROPOSALS TAB
 // ============================================
-// Anträge & Beschlüsse werden in separater antragsliste.php verwaltet
+// Anträge & Beschlüsse werden nun direkt in index.php eingebunden (tab_proposals.php)
+// Redirect deaktiviert für einheitliche Darstellung
+/*
 if ($active_tab === 'proposals') {
     header('Location: antragsliste.php');
     exit;
 }
+*/
 
 // ============================================
 // DEMO-MODUS: DYNAMISCHE DATUMSANPASSUNG
@@ -885,9 +888,8 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                 break;
 
             case 'proposals':
-                // Anträge & Beschlüsse - wird bereits am Anfang zu antragsliste.php weitergeleitet
-                // Dieser case sollte nie erreicht werden
-                echo '<div class="error-message">Fehler: Weiterleitung zu Anträgen fehlgeschlagen.</div>';
+                // Anträge & Beschlüsse - direkt eingebunden für einheitliche Darstellung
+                include 'tab_proposals.php';
                 break;
 
             case 'todos':
