@@ -872,7 +872,7 @@ if ($user['aktiv'] >= 19) {
                 <?php if ($kann_verwerfen && substr($antrnr, 0, 1) === 'A'): ?>
                     <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107; margin-bottom: 12px;">
                         <strong>Nur für Vorstand, GF und Antragsteller:</strong>
-                        Wenn der Antrag obsolet ist und nicht mehr benötigt wird, kannst du ihn löschen - das ist nicht mehr rückholbar!
+                        Wenn der Antrag obsolet ist und nicht mehr benötigt wird, kannst du ihn löschen.
                     </div>
                 <?php endif; ?>
 
