@@ -122,6 +122,19 @@ $status_stmt = $pdo->query("
     ORDER BY b.Name, b.Vorname
 ");
 $antragsteller = $status_stmt->fetchAll();
+
+// Prüfen ob User offene Abstimmungen hat
+$pending_votes = [];
+$pending_stmt = $pdo->query("SELECT * FROM antraege WHERE antrnr LIKE 'B%'");
+$b_antraege = $pending_stmt->fetchAll();
+foreach ($b_antraege as $a) {
+    for ($i = 1; $i <= 6; $i++) {
+        if ($a["VName$i"] == $user['ID'] && empty($a["Votum$i"])) {
+            $pending_votes[] = $a;
+            break;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -326,11 +339,36 @@ $antragsteller = $status_stmt->fetchAll();
     <div class="header">
         <h1>Offene Anträge</h1>
         <div class="actions">
-            <a href="abstimmungen.php" class="btn btn-secondary">🗳️ Abstimmungen</a>
+            <a href="abstimmungen.php" class="btn btn-secondary">🗳️ Abstimmungen<?php if (!empty($pending_votes)): ?> <span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 5px;"><?= count($pending_votes) ?></span><?php endif; ?></a>
             <a href="beschlussbuch.php" class="btn btn-secondary">Beschlussbuch</a>
             <a href="antrag_neu.php" class="btn">+ Neuer Antrag</a>
         </div>
     </div>
+
+    <?php if (!empty($pending_votes)): ?>
+        <!-- Hinweis auf offene Abstimmungen -->
+        <div style="background: rgba(250, 170, 0, 0.15); border: 2px solid #FAAA00; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(250, 170, 0, 0.3);">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="font-size: 32px;">⚠️</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 18px; margin-bottom: 5px; color: #000;">
+                        Sie haben <?= count($pending_votes) ?> offene Abstimmung<?= count($pending_votes) > 1 ? 'en' : '' ?>!
+                    </div>
+                    <div style="font-size: 14px; color: #666; margin-bottom: 12px;">
+                        Bitte stimmen Sie über folgende Anträge ab:
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <?php foreach ($pending_votes as $pv): ?>
+                            <a href="abstimmungen.php?antrnr=<?= urlencode($pv['antrnr']) ?>"
+                               style="display: inline-block; background: #FAAA00; color: #000; padding: 10px 16px; border-radius: 4px; text-decoration: none; font-weight: 600; font-size: 13px; transition: background 0.2s;">
+                                → <?= htmlspecialchars($pv['antrnr']) ?>: <?= htmlspecialchars(mb_substr($pv['titel'], 0, 50)) ?><?= mb_strlen($pv['titel']) > 50 ? '...' : '' ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <form method="GET" class="filters">
         <select name="status">
