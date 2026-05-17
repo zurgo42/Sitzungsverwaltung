@@ -129,6 +129,22 @@ $antragsteller = $status_stmt->fetchAll();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Offene Anträge</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="antrag-styles.css">
+    <script>
+        // Dark Mode Toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        // Dark Mode beim Laden wiederherstellen
+        document.addEventListener('DOMContentLoaded', function() {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+        });
+    </script>
     <style>
         * {
             margin: 0;
@@ -300,6 +316,11 @@ $antragsteller = $status_stmt->fetchAll();
     </style>
 </head>
 <body>
+    <!-- Dark Mode Toggle -->
+    <button onclick="toggleDarkMode()" class="btn btn-secondary" style="float: right; margin-bottom: 10px;">
+        🌓 Dark Mode
+    </button>
+
     <a href="index.php" class="back-link">← Zurück zur Übersicht</a>
 
     <div class="header">

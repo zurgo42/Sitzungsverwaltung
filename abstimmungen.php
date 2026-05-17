@@ -352,39 +352,30 @@ $antraege = $antraege_stmt->fetchAll();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abstimmungen</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .header { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        h1 { font-size: 24px; color: #333; margin-bottom: 10px; }
-        .back-link { display: inline-block; margin-bottom: 20px; color: #0066cc; text-decoration: none; }
-        .alert { padding: 15px; border-radius: 4px; margin-bottom: 20px; }
-        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .antraege-liste { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; color: #333; border-bottom: 2px solid #dee2e6; }
-        td { padding: 12px; border-bottom: 1px solid #dee2e6; }
-        tr:hover { background: #f8f9fa; }
-        .badge { display: inline-block; padding: 4px 8px; font-size: 11px; border-radius: 12px; font-weight: 500; margin-left: 5px; }
-        .badge-pending { background: #fff3cd; color: #856404; }
-        .badge-urgent { background: #f8d7da; color: #721c24; }
-        .btn { padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; border: none; cursor: pointer; display: inline-block; }
-        .btn:hover { background: #0052a3; }
-        .btn-secondary { background: #666; }
-        .btn-danger { background: #dc3545; }
-        .votum-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .votum-options { display: flex; flex-direction: column; gap: 10px; margin: 15px 0; }
-        .votum-options label { display: flex; align-items: center; gap: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; cursor: pointer; }
-        .votum-options label:hover { background: #e9ecef; }
-        .votum-options input[type="radio"] { width: 20px; height: 20px; }
-        textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 14px; }
-        .status-box { background: #e8f5e9; padding: 15px; border-radius: 4px; border-left: 4px solid #4caf50; margin-top: 15px; }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="antrag-styles.css">
+    <script>
+        // Dark Mode Toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        // Dark Mode beim Laden wiederherstellen
+        document.addEventListener('DOMContentLoaded', function() {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+        });
+    </script>
 </head>
 <body>
     <div class="container">
+        <!-- Dark Mode Toggle -->
+        <button onclick="toggleDarkMode()" class="btn btn-secondary" style="float: right; margin-bottom: 10px;">
+            🌓 Dark Mode
+        </button>
+
         <a href="index.php" class="back-link">← Zurück zur Übersicht</a>
 
         <?php if (isset($_GET['msg'])): ?>
