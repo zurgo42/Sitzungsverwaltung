@@ -186,21 +186,23 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         throw new Exception("Monatliche Verfügungsgrenze von 2000€ überschritten! Aktuelle Summe: " . number_format($monatssumme, 2) . "€");
     }
 
-    // Wichtig-Flag Logik
+    // Wichtig-Flag Logik - NUR bei action=save ändern, nicht bei finalize
     $wichtig = $antrag['wichtig'] ?? 0; // Aktuellen Wert beibehalten
 
-    // Wenn wichtig_reset gesetzt ist (Antragsteller nimmt zurück)
-    if (isset($post['wichtig_reset']) && $antrag['wichtig'] == $antrag['antrst']) {
-        $wichtig = 0;
-    }
-
-    // Wenn wichtig_escalate gesetzt ist (neu oder weiterhin)
-    if (isset($post['wichtig_escalate']) && !isset($post['wichtig_reset'])) {
-        // Auch Antragsteller (aktiv < 18) darf Vorstandsbeschluss anfordern
-        $wichtig = $user['ID'];
-    } elseif (!isset($post['wichtig_escalate']) && !isset($post['wichtig_reset'])) {
-        // Checkbox nicht gesetzt und kein Reset -> wichtig löschen
-        $wichtig = 0;
+    // Nur wenn wirklich gespeichert wird (nicht beim Finalisieren)
+    if (isset($post['action']) && $post['action'] === 'save') {
+        // Wenn wichtig_reset gesetzt ist (Antragsteller nimmt zurück)
+        if (isset($post['wichtig_reset']) && $antrag['wichtig'] == $antrag['antrst']) {
+            $wichtig = 0;
+        }
+        // Wenn wichtig_escalate gesetzt ist (neu oder weiterhin)
+        elseif (isset($post['wichtig_escalate']) && !isset($post['wichtig_reset'])) {
+            // Auch Antragsteller (aktiv < 18) darf Vorstandsbeschluss anfordern
+            $wichtig = $user['ID'];
+        } elseif (!isset($post['wichtig_escalate']) && !isset($post['wichtig_reset'])) {
+            // Checkbox nicht gesetzt und kein Reset -> wichtig löschen
+            $wichtig = 0;
+        }
     }
 
     // bart berechnen - aber wichtig hat Vorrang
@@ -273,7 +275,10 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 
 // Finalisieren-Funktion
 function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
-    speichereAntrag($pdo, $antrnr, $post, $antrag, $user);
+    // Speichern mit action=save, damit wichtig-Flag korrekt verarbeitet wird
+    $post_save = $post;
+    $post_save['action'] = 'save';
+    speichereAntrag($pdo, $antrnr, $post_save, $antrag, $user);
 
     // Antrag neu laden
     $stmt = $pdo->prepare("SELECT * FROM antraege WHERE antrnr = ?");
