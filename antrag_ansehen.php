@@ -94,7 +94,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
     <link rel="stylesheet" href="antrag-styles.css">
     <style>
         body { font-size: 13px; line-height: 1.4; }
-        .compact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 15px; margin-bottom: 15px; }
+        .compact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 15px; margin-bottom: 15px; }
         .compact-row { display: flex; gap: 6px; margin-bottom: 6px; font-size: 12px; }
         .compact-label { font-weight: 600; color: var(--text-secondary); min-width: 100px; flex-shrink: 0; }
         .compact-value { color: var(--text-primary); }
@@ -106,9 +106,14 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         .accordion::before { content: '▶ '; font-size: 10px; margin-right: 6px; }
         .accordion.active::before { content: '▼ '; }
         .acc-content { display: none; padding: 8px; background: var(--bg-secondary); border-radius: 4px; margin-bottom: 6px; font-size: 12px; white-space: pre-wrap; }
+        .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 1024px) {
+            .compact-grid { grid-template-columns: repeat(2, 1fr); }
+        }
         @media (max-width: 768px) {
             .compact-grid { grid-template-columns: 1fr; gap: 6px; }
             .compact-label { min-width: 80px; }
+            .grid-2col { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -263,7 +268,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         </div>
 
         <!-- UNTERLAGEN + FREIGABEN (2-spaltig auf Desktop) -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px;">
+        <div class="grid-2col">
 
             <!-- UNTERLAGEN -->
             <?php
