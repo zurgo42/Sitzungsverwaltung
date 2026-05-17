@@ -1,0 +1,499 @@
+/* ==============================================
+   ANTRAGSVERWALTUNG - ZUSÄTZLICHE STYLES
+   Basiert auf style.css - CI-konform
+   ============================================== */
+
+/* Importiert die Basis-Farbvariablen aus style.css */
+
+/* ==============================================
+   ANTRAGSFORMULAR
+   ============================================== */
+
+.form-container {
+    background: var(--bg-primary);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-color);
+    border-left: 1px solid var(--primary);
+    border-right: 1px solid var(--primary);
+}
+
+.form-section {
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+/* Farbige Abschnitte mit dezenten Tönen */
+.section-gray-1 { background: var(--primary-lighter); }
+.section-gray-2 { background: rgba(250, 170, 0, 0.08); } /* Gelb-Ton */
+.section-gray-3 { background: rgba(76, 175, 80, 0.08); } /* Grün-Ton */
+.section-gray-4 { background: rgba(142, 202, 246, 0.15); } /* Hellblau */
+.section-gray-5 { background: var(--bg-secondary); }
+.section-gray-6 { background: var(--neutral); }
+
+body.dark-mode .section-gray-1 { background: rgba(0, 85, 150, 0.2); }
+body.dark-mode .section-gray-2 { background: rgba(250, 170, 0, 0.15); }
+body.dark-mode .section-gray-3 { background: rgba(76, 175, 80, 0.15); }
+body.dark-mode .section-gray-4 { background: rgba(142, 202, 246, 0.1); }
+body.dark-mode .section-gray-5 { background: var(--bg-tertiary); }
+body.dark-mode .section-gray-6 { background: var(--bg-secondary); }
+
+.section-header {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 8px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-row.two-col {
+    grid-template-columns: 1fr 1fr;
+}
+
+.form-row.full {
+    grid-template-columns: 1fr;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+/* Warnungen in Orange statt Rot */
+.form-group label.warning {
+    color: var(--warning);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-lighter);
+}
+
+/* Warnungs-Border in Orange */
+.form-group input.warning-border,
+.form-group select.warning-border {
+    border-color: var(--warning);
+    border-width: 2px;
+}
+
+.form-group .field-warning {
+    color: var(--warning);
+    font-size: 12px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.form-group .read-only {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+}
+
+.required {
+    color: var(--warning);
+    font-weight: bold;
+}
+
+.checkbox-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-inline input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.checkbox-inline label {
+    margin: 0;
+    cursor: pointer;
+}
+
+/* ==============================================
+   BUTTONS
+   ============================================== */
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--dunkelblau);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 85, 150, 0.3);
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-success:hover {
+    background: #388e3c;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #b71c1c;
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: var(--text-primary);
+}
+
+.btn-warning:hover {
+    background: var(--accent-light);
+}
+
+.btn-secondary {
+    background: var(--neutral-dark);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #3a3a3a;
+}
+
+.btn:disabled {
+    background: var(--neutral);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 2px solid var(--border-color);
+}
+
+/* ==============================================
+   ALERTS & INFO BOXES
+   ============================================== */
+
+.alert {
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    border-left: 4px solid;
+}
+
+.alert-success {
+    background: rgba(76, 175, 80, 0.1);
+    border-color: var(--success);
+    color: var(--success);
+}
+
+body.dark-mode .alert-success {
+    background: rgba(76, 175, 80, 0.2);
+}
+
+.alert-error {
+    background: rgba(211, 47, 47, 0.1);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+body.dark-mode .alert-error {
+    background: rgba(211, 47, 47, 0.2);
+}
+
+.alert-warning {
+    background: rgba(250, 170, 0, 0.1);
+    border-color: var(--warning);
+    color: var(--warning);
+}
+
+body.dark-mode .alert-warning {
+    background: rgba(250, 170, 0, 0.2);
+}
+
+.alert-info {
+    background: var(--primary-lighter);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+body.dark-mode .alert-info {
+    background: rgba(142, 202, 246, 0.15);
+}
+
+.info-box {
+    background: var(--primary-lighter);
+    border-left: 4px solid var(--primary);
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    color: var(--primary);
+    font-size: 14px;
+}
+
+body.dark-mode .info-box {
+    background: rgba(142, 202, 246, 0.15);
+}
+
+.hint-box {
+    background: rgba(250, 170, 0, 0.1);
+    border-left: 4px solid var(--warning);
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+body.dark-mode .hint-box {
+    background: rgba(250, 170, 0, 0.15);
+}
+
+/* ==============================================
+   BADGES
+   ============================================== */
+
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge-primary {
+    background: var(--primary-lighter);
+    color: var(--primary);
+}
+
+.badge-warning {
+    background: rgba(250, 170, 0, 0.2);
+    color: var(--warning);
+}
+
+.badge-success {
+    background: rgba(76, 175, 80, 0.2);
+    color: var(--success);
+}
+
+.badge-danger {
+    background: rgba(211, 47, 47, 0.2);
+    color: var(--danger);
+}
+
+.badge-pending {
+    background: rgba(250, 170, 0, 0.2);
+    color: var(--warning);
+}
+
+.badge-urgent {
+    background: rgba(211, 47, 47, 0.2);
+    color: var(--danger);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* ==============================================
+   ABSTIMMUNGEN
+   ============================================== */
+
+.votum-box {
+    background: var(--bg-primary);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-color);
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.votum-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.votum-options label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.votum-options label:hover {
+    background: var(--hover-bg);
+    border-color: var(--primary);
+}
+
+.votum-options input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.status-box {
+    background: rgba(76, 175, 80, 0.1);
+    padding: 15px;
+    border-radius: 4px;
+    border-left: 4px solid var(--success);
+    margin-top: 15px;
+}
+
+/* ==============================================
+   TABLES
+   ============================================== */
+
+.antraege-liste {
+    background: var(--bg-primary);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-color);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: var(--bg-secondary);
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--primary);
+    font-size: 14px;
+}
+
+td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+tr:hover {
+    background: var(--hover-bg);
+}
+
+.deleted-row {
+    background: rgba(211, 47, 47, 0.1) !important;
+    opacity: 0.7;
+}
+
+body.dark-mode .deleted-row {
+    background: rgba(211, 47, 47, 0.15) !important;
+}
+
+/* ==============================================
+   RESPONSIVE
+   ============================================== */
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .form-container {
+        padding: 15px;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* ==============================================
+   DARK MODE SPECIFIC ADJUSTMENTS
+   ============================================== */
+
+body.dark-mode .form-section {
+    border-color: var(--border-color);
+}
+
+body.dark-mode .section-header {
+    color: var(--primary-light);
+    border-bottom-color: var(--primary-light);
+}
+
+body.dark-mode .votum-box {
+    border-color: var(--card-border);
+}
+
+body.dark-mode th {
+    background: var(--bg-tertiary);
+    border-bottom-color: var(--card-border);
+}

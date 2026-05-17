@@ -456,70 +456,31 @@ if ($user['aktiv'] >= 19) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Antrag: <?= htmlspecialchars($antrag['antrnr']) ?></title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; padding: 15px; font-size: 14px; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .header { background: white; padding: 12px 15px; margin-bottom: 15px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
-        h1 { font-size: 18px; color: #333; }
-        .antrnr { color: #666; font-size: 13px; margin-left: 10px; }
-        .status-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: 8px; }
-        .status-editing { background: #fff3cd; color: #856404; }
-        .status-voting { background: #cce5ff; color: #004085; }
-        .status-finalized { background: #d4edda; color: #155724; }
-        .form-container { background: white; padding: 15px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 10px; }
-        .form-row.two-col { grid-template-columns: 1fr 1fr; }
-        .form-row.full { grid-template-columns: 1fr; }
-        .form-group { margin-bottom: 10px; }
-        label { display: block; font-weight: 600; margin-bottom: 3px; color: #333; font-size: 13px; }
-        .required { color: #d32f2f; }
-        input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; font-family: inherit; }
-        textarea { min-height: 60px; resize: vertical; }
-        textarea.large { min-height: 80px; }
-        .read-only { background: #f8f9fa; color: #666; }
-        .actions { display: flex; gap: 8px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; flex-wrap: wrap; }
-        .btn { padding: 8px 16px; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block; font-weight: 600; }
-        .btn-primary { background: #0066cc; color: white; }
-        .btn-primary:hover { background: #0052a3; }
-        .btn-success { background: #28a745; color: white; }
-        .btn-success:hover { background: #218838; }
-        .btn-danger { background: #dc3545; color: white; }
-        .btn-danger:hover { background: #c82333; }
-        .btn-warning { background: #ffc107; color: #000; }
-        .btn-warning:hover { background: #e0a800; }
-        .btn-secondary { background: #666; color: white; }
-        .btn-secondary:hover { background: #555; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
-        .alert { padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; font-size: 13px; }
-        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-        .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
-        .info-box { background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #0066cc; margin-bottom: 12px; font-size: 13px; }
-        .section-title { font-size: 14px; font-weight: 700; color: #0066cc; margin: 15px 0 8px 0; padding-bottom: 4px; border-bottom: 2px solid #0066cc; }
-        .back-link { display: inline-block; margin-bottom: 12px; color: #0066cc; text-decoration: none; font-size: 13px; }
-        .file-item { background: #f8f9fa; padding: 8px; border-radius: 4px; margin-bottom: 8px; }
-        .checkbox-inline { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-        .checkbox-inline input[type="checkbox"] { width: auto; }
-        .help-text { font-size: 11px; color: #666; margin-top: 2px; }
-        .hint-box { background: #fffbea; padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 12px; font-style: italic; white-space: pre-wrap; }
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="antrag-styles.css">
+    <script>
+        // Dark Mode Toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
 
-        /* Neue Section-Styles mit deutlich unterscheidbaren Grautönen */
-        .form-section { padding: 15px; margin-bottom: 12px; border-radius: 6px; }
-        .section-header { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid #666; }
-        .section-gray-1 { background: #e8eaf0; } /* Bläuliches Grau */
-        .section-gray-2 { background: #f0e8e8; } /* Rötliches Grau */
-        .section-gray-3 { background: #e8f0e8; } /* Grünliches Grau */
-        .section-gray-4 { background: #f0f0e0; } /* Gelbliches Grau */
-        .section-gray-5 { background: #e0e8f0; } /* Helles Blaugrau */
-        .section-gray-6 { background: #d8d8d8; } /* Neutrales Grau */
-        .compact-box { padding: 10px; }
-    </style>
+        // Dark Mode beim Laden wiederherstellen
+        document.addEventListener('DOMContentLoaded', function() {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+        });
+    </script>
 </head>
 <body>
     <div class="container">
         <a href="antragsliste.php" class="back-link">← Zurück zur Antragsliste</a>
+
+        <!-- Dark Mode Toggle -->
+        <button onclick="toggleDarkMode()" class="btn btn-secondary" style="float: right; margin-bottom: 10px;">
+            🌓 Dark Mode
+        </button>
 
         <div class="header">
             <div>
@@ -603,10 +564,10 @@ if ($user['aktiv'] >= 19) {
 
                     <?php if ($antrag['bart'] === 'V' || $antrag['bart'] === 'R'): ?>
                         <div class="form-group">
-                            <label for="verf1" style="<?= empty($antrag['verf1']) ? 'color: #d32f2f;' : '' ?>">
+                            <label for="verf1" class="<?= empty($antrag['verf1']) ? 'warning' : '' ?>">
                                 Abstimmung durch (1.) <?= empty($antrag['verf1']) ? '<span class="required">*</span>' : '' ?>
                             </label>
-                            <select id="verf1" name="verf1" style="<?= empty($antrag['verf1']) ? 'border-color: #d32f2f;' : '' ?>">
+                            <select id="verf1" name="verf1" class="<?= empty($antrag['verf1']) ? 'warning-border' : '' ?>">
                                 <option value="">-- Bitte wählen --</option>
                                 <?php foreach ($abstimmende as $m): ?>
                                     <?php if (!str_starts_with($m['KurzN'], 'ASt ')): ?>
@@ -617,7 +578,7 @@ if ($user['aktiv'] >= 19) {
                                 <?php endforeach; ?>
                             </select>
                             <?php if (empty($antrag['verf1'])): ?>
-                                <div style="color: #d32f2f; font-size: 12px; margin-top: 4px;">
+                                <div class="field-warning">
                                     ⚠️ Erforderlich für "Verbindlich einstellen"
                                 </div>
                             <?php endif; ?>
@@ -652,10 +613,10 @@ if ($user['aktiv'] >= 19) {
 
                         <?php if ($antrag['bart'] === 'R'): ?>
                         <div class="form-group">
-                            <label for="verf2" style="<?= empty($antrag['verf2']) ? 'color: #d32f2f;' : '' ?>">
+                            <label for="verf2" class="<?= empty($antrag['verf2']) ? 'warning' : '' ?>">
                                 Abstimmung durch (2. - Vorstand) <?= empty($antrag['verf2']) ? '<span class="required">*</span>' : '' ?>
                             </label>
-                            <select id="verf2" name="verf2" style="<?= empty($antrag['verf2']) ? 'border-color: #d32f2f;' : '' ?>">
+                            <select id="verf2" name="verf2" class="<?= empty($antrag['verf2']) ? 'warning-border' : '' ?>">
                                 <option value="">-- FVo/FVv --</option>
                                 <?php foreach ($verfuegungsber as $m): ?>
                                     <?php if (($m['Funktion'] === 'FVo' || $m['Funktion'] === 'FVv') && !str_starts_with($m['KurzN'], 'ASt ')): ?>
@@ -666,12 +627,12 @@ if ($user['aktiv'] >= 19) {
                                 <?php endforeach; ?>
                             </select>
                             <?php if (empty($antrag['verf2'])): ?>
-                                <div style="color: #d32f2f; font-size: 12px; margin-top: 4px;">
+                                <div class="field-warning">
                                     ⚠️ Erforderlich für "Verbindlich einstellen"
                                 </div>
                             <?php endif; ?>
                             <?php if (!empty($antrag['verf1']) && !empty($antrag['verf2']) && $antrag['verf1'] == $antrag['verf2']): ?>
-                                <div style="color: #d32f2f; font-size: 12px; margin-top: 4px;">
+                                <div class="field-warning">
                                     ⚠️ Die Verfügungsberechtigten dürfen nicht identisch sein!
                                 </div>
                             <?php endif; ?>
@@ -861,7 +822,7 @@ if ($user['aktiv'] >= 19) {
                 <div id="finanz_freigabe_box" style="<?= !$sofort_aktiv ? 'display: none;' : '' ?> margin-top: 8px; padding: 8px; background: #fff8dc; border-left: 3px solid #ffa500; border-radius: 4px;">
 
                     <?php if (!$vorher_erteilt): ?>
-                        <div style="font-size: 12px; color: #d32f2f; font-weight: 600; margin-bottom: 6px;">
+                        <div style="font-size: 12px; color: var(--warning); font-weight: 600; margin-bottom: 6px;">
                             ⚠️ Zustimmung durch Finanzvorstand (FVo bzw. FVv) erforderlich
                         </div>
                     <?php endif; ?>
@@ -966,10 +927,10 @@ if ($user['aktiv'] >= 19) {
                 <?php endif; ?>
 
                 <?php if ($wartezeit === 'erfüllt' && ($antrag['bart'] === 'V' || $antrag['bart'] === 'R')): ?>
-                    <div style="background: #d4edda; color: #155724; padding: 10px; margin-bottom: 12px; border-radius: 4px; border: 1px solid #c3e6cb;">
+                    <div class="status-box">
                         Die Wartezeit ist erfüllt; du kannst den Antrag zur Abstimmung stellen.
                         <?php if (($antrag['verf1'] ?? '') == $antrag['antrst']): ?>
-                            <span style="color: #d32f2f; font-weight: 600;">Bitte nicht vergessen, dort dann abzustimmen!</span>
+                            <span style="color: var(--warning); font-weight: 600;">⚠️ Bitte nicht vergessen, dort dann abzustimmen!</span>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
