@@ -826,10 +826,10 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         </a>
         <?php endif; ?>
 
-        <!-- MV-Beschlüsse (kommt als nächstes) -->
-        <!-- <a href="?tab=mv_beschluesse" class="<?php echo $active_tab === 'mv_beschluesse' ? 'active' : ''; ?>">
+        <!-- MV-Beschlüsse -->
+        <a href="?tab=mv_beschluesse" class="<?php echo $active_tab === 'mv_beschluesse' ? 'active' : ''; ?>">
             📜 MV-Beschlüsse
-        </a> -->
+        </a>
 
         <!-- Textbearbeitung-Tab (nur für Vorstand/GF/Assistenz/Führungsteam, NICHT für Mitglied) -->
         <?php
@@ -895,6 +895,11 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             case 'proposals':
                 // Anträge & Beschlüsse - direkt eingebunden für einheitliche Darstellung
                 include 'tab_proposals.php';
+                break;
+
+            case 'mv_beschluesse':
+                // MV-Beschlüsse anzeigen
+                include 'tab_mv_beschluesse.php';
                 break;
 
             case 'todos':
