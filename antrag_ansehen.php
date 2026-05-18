@@ -101,6 +101,20 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
     <title>Antrag <?= htmlspecialchars($antrnr) ?></title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="antrag-styles.css">
+    <script>
+        // Dark Mode automatisch von index.php übernehmen
+        (function() {
+            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
+            if (hasCookie && document.cookie.includes('darkMode=enabled')) {
+                document.body.classList.add('dark-mode');
+            } else if (!hasCookie) {
+                const savedDarkMode = localStorage.getItem('darkMode');
+                if (savedDarkMode === 'enabled') {
+                    document.body.classList.add('dark-mode');
+                }
+            }
+        })();
+    </script>
     <style>
         body { font-size: 13px; line-height: 1.4; }
         .compact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 15px; margin-bottom: 15px; }

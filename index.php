@@ -777,9 +777,11 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
     
     <!-- NAVIGATION / TABS -->
     <div class="navigation">
-        <!-- Termine-Tab (immer sichtbar) -->
-        <a href="?tab=termine" class="<?php echo $active_tab === 'termine' ? 'active' : ''; ?>">
-            📆 Termine
+        <!-- 1. ZEILE -->
+
+        <!-- Anträge & Beschlüsse-Tab (immer sichtbar) -->
+        <a href="?tab=proposals" class="<?php echo $active_tab === 'proposals' ? 'active' : ''; ?>">
+            📋 Anträge/Beschlüsse
         </a>
 
         <!-- Sitzungen-Tab (immer sichtbar) -->
@@ -795,6 +797,40 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             </a>
         <?php endif; ?>
 
+        <!-- Protokolle-Tab (immer sichtbar) -->
+        <a href="?tab=protokolle" class="<?php echo $active_tab === 'protokolle' ? 'active' : ''; ?>">
+            📋 Protokolle
+        </a>
+
+        <!-- Termin finden-Tab (immer sichtbar) -->
+        <a href="?tab=termine" class="<?php echo $active_tab === 'termine' ? 'active' : ''; ?>">
+            📆 Termin finden
+        </a>
+
+        <!-- ToDo/Erledigen-Tab (immer sichtbar) -->
+        <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
+            ✅ ToDo/Erledigen
+        </a>
+
+        <!-- Meinungsbild-Tab (immer sichtbar) -->
+        <a href="?tab=opinion" class="<?php echo $active_tab === 'opinion' ? 'active' : ''; ?>">
+            📊 Meinungsbild
+        </a>
+
+        <!-- 2. ZEILE -->
+
+        <!-- Dokumente-Tab (optional, siehe config.php) -->
+        <?php if (defined('ENABLE_DOCUMENTS_TAB') && ENABLE_DOCUMENTS_TAB): ?>
+        <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
+            📁 Dokumente
+        </a>
+        <?php endif; ?>
+
+        <!-- MV-Beschlüsse (kommt als nächstes) -->
+        <!-- <a href="?tab=mv_beschluesse" class="<?php echo $active_tab === 'mv_beschluesse' ? 'active' : ''; ?>">
+            📜 MV-Beschlüsse
+        </a> -->
+
         <!-- Textbearbeitung-Tab (nur für Vorstand/GF/Assistenz/Führungsteam, NICHT für Mitglied) -->
         <?php
         // Prüfen ob User Zugriff hat (Mitglieder niemals)
@@ -809,16 +845,6 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         </a>
         <?php endif; ?>
 
-        <!-- Protokolle-Tab (immer sichtbar) -->
-        <a href="?tab=protokolle" class="<?php echo $active_tab === 'protokolle' ? 'active' : ''; ?>">
-            📋 Protokolle
-        </a>
-
-        <!-- Erledigen-Tab (immer sichtbar) -->
-        <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
-            ✅ Erledigen
-        </a>
-
         <!-- Abwesenheiten-Tab (nur für Leadership) -->
         <?php if (in_array(strtolower($current_user['role']), ['vorstand', 'gf', 'assistenz', 'führungsteam'])): ?>
         <a href="?tab=vertretung" class="<?php echo $active_tab === 'vertretung' ? 'active' : ''; ?>">
@@ -826,36 +852,15 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         </a>
         <?php endif; ?>
 
-        <!-- Meinungsbild-Tab (immer sichtbar) -->
-        <a href="?tab=opinion" class="<?php echo $active_tab === 'opinion' ? 'active' : ''; ?>">
-            📊 Meinungsbild
-        </a>
+        <!-- Benachrichtigungs-Center -->
+        <?php include 'notification_center.php'; ?>
 
-        <!-- Dokumente-Tab (optional, siehe config.php) -->
-        <?php if (defined('ENABLE_DOCUMENTS_TAB') && ENABLE_DOCUMENTS_TAB): ?>
-        <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
-            📁 Dokumente
-        </a>
-        <?php endif; ?>
-
-        <!-- Admin-Tab (nur für Vorstand und GF sichtbar) -->
-        <?php //if (in_array($current_user['role'], ['vorstand', 'gf'])):
-		if ($current_user['is_admin']):
-		?>
+        <!-- Admin-Tab (nur für Admins sichtbar) -->
+        <?php if ($current_user['is_admin']): ?>
             <a href="?tab=admin" class="<?php echo $active_tab === 'admin' ? 'active' : ''; ?>">
                 ⚙️ Admin
             </a>
         <?php endif; ?>
-
-        <!-- VERSUCHSWEISE: Anträge & Beschlüsse nach normalem Menu -->
-        <!-- Um zurückzusetzen: Diesen Block ausschneiden und vor "Dokumente-Tab" wieder einfügen -->
-        <!-- Anträge & Beschlüsse-Tab (immer sichtbar) -->
-        <a href="?tab=proposals" class="<?php echo $active_tab === 'proposals' ? 'active' : ''; ?>">
-            📋 Anträge/Beschlüsse
-        </a>
-
-        <!-- Benachrichtigungs-Center -->
-        <?php include 'notification_center.php'; ?>
     </div>
     
     <!-- HAUPTINHALT / CONTENT -->

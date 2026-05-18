@@ -497,28 +497,23 @@ if ($user['aktiv'] >= 19) {
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="antrag-styles.css">
     <script>
-        // Dark Mode Toggle
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-        }
-
-        // Dark Mode beim Laden wiederherstellen
-        document.addEventListener('DOMContentLoaded', function() {
-            if (localStorage.getItem('darkMode') === 'true') {
+        // Dark Mode automatisch von index.php übernehmen
+        (function() {
+            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
+            if (hasCookie && document.cookie.includes('darkMode=enabled')) {
                 document.body.classList.add('dark-mode');
+            } else if (!hasCookie) {
+                const savedDarkMode = localStorage.getItem('darkMode');
+                if (savedDarkMode === 'enabled') {
+                    document.body.classList.add('dark-mode');
+                }
             }
-        });
+        })();
     </script>
 </head>
 <body>
     <div class="container">
-        <a href="antragsliste.php" class="back-link">← Zurück zur Antragsliste</a>
-
-        <!-- Dark Mode Toggle -->
-        <button onclick="toggleDarkMode()" class="btn btn-secondary" style="float: right; margin-bottom: 10px;">
-            🌓 Dark Mode
-        </button>
+        <a href="index.php?tab=proposals" class="back-link">← Zurück zur Antragsliste</a>
 
         <div class="header">
             <div>

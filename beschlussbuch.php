@@ -329,12 +329,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
             color: #0066cc;
             text-decoration: none;
         }
+
+        /* Dark Mode */
+        body.dark-mode {
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        body.dark-mode .header {
+            background: #2d2d2d;
+            border-color: #444;
+        }
+        body.dark-mode h1 {
+            color: #e0e0e0;
+        }
+        body.dark-mode .filters {
+            background: #2d2d2d;
+            border-color: #444;
+        }
+        body.dark-mode .filters input,
+        body.dark-mode .filters select {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+        body.dark-mode .filter-label {
+            color: #e0e0e0;
+        }
+        body.dark-mode .count {
+            background: #2d2d2d;
+            color: #e0e0e0;
+        }
+        body.dark-mode .table-container {
+            background: #2d2d2d;
+        }
+        body.dark-mode th {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+        body.dark-mode td {
+            border-color: #444;
+            color: #e0e0e0;
+        }
+        body.dark-mode tr:hover {
+            background: #333;
+        }
+        body.dark-mode .back-link {
+            color: #64b5f6;
+        }
     </style>
 </head>
 <body>
-    <button onclick="toggleDarkMode()" class="btn btn-secondary" style="float: right; margin-bottom: 10px;">
-        🌓 Dark Mode
-    </button>
+    <!-- Dark Mode wird automatisch von index.php übernommen -->
+    <script>
+        // Dark Mode Status von index.php übernehmen
+        if (document.cookie.includes('darkMode=enabled')) {
+            document.body.classList.add('dark-mode');
+        }
+    </script>
 
     <?php
     // Dynamischer Zurück-Link zur aufrufenden Seite

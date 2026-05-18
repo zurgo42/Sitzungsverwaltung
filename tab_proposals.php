@@ -187,6 +187,12 @@ $antragsteller = $antragsteller_stmt->fetchAll();
         font-size: 11px;
         margin-top: 4px;
     }
+    .proposals-main-heading {
+        color: #333;
+    }
+    .proposals-sub-heading {
+        color: #333;
+    }
 
     /* Dark Mode Anpassungen */
     body.dark-mode .proposals-filters {
@@ -198,6 +204,16 @@ $antragsteller = $antragsteller_stmt->fetchAll();
         background: #1a1a1a;
         color: #e0e0e0;
         border-color: #444;
+    }
+    body.dark-mode .proposals-filters button,
+    body.dark-mode .proposals-filters a {
+        background: #0066cc !important;
+        color: white !important;
+        border: 1px solid #0066cc !important;
+    }
+    body.dark-mode .proposals-filters button:hover,
+    body.dark-mode .proposals-filters a:hover {
+        background: #0052a3 !important;
     }
     body.dark-mode .proposals-count {
         background: #2d2d2d;
@@ -224,6 +240,10 @@ $antragsteller = $antragsteller_stmt->fetchAll();
     body.dark-mode .visibility-hint {
         color: #e0e0e0 !important;
     }
+    body.dark-mode .proposals-main-heading,
+    body.dark-mode .proposals-sub-heading {
+        color: #e0e0e0 !important;
+    }
 </style>
 
 <!-- BENACHRICHTIGUNGEN -->
@@ -233,7 +253,7 @@ render_user_notifications($pdo, $current_user['member_id']);
 ?>
 
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-    <h2 style="margin: 0;">📋 Anträge/Beschlüsse verwalten</h2>
+    <h2 style="margin: 0;" class="proposals-main-heading">📋 Anträge/Beschlüsse verwalten</h2>
     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
         <a href="abstimmungen.php" style="padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">🗳️ Abstimmungen</a>
         <a href="beschlussbuch.php" style="padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">📚 Beschlussbuch</a>
@@ -241,7 +261,7 @@ render_user_notifications($pdo, $current_user['member_id']);
     </div>
 </div>
 
-<h3 style="margin-top: 0; margin-bottom: 15px; font-size: 18px; color: #333;">Offene Anträge</h3>
+<h3 style="margin-top: 0; margin-bottom: 15px; font-size: 18px;" class="proposals-sub-heading">Offene Anträge</h3>
 
 <form method="GET" class="proposals-filters">
     <input type="hidden" name="tab" value="proposals">
