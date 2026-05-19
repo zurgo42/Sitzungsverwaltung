@@ -545,7 +545,7 @@ if (isset($_POST['add_ressort'])) {
     } else {
         try {
             // Prüfen ob Ressort bereits existiert
-            $check_stmt = $pdo->prepare("SELECT ID FROM ressortliste WHERE Ressort = ?");
+            $check_stmt = $pdo->prepare("SELECT ID FROM svressorts WHERE Ressort = ?");
             $check_stmt->execute([$ressort_name]);
 
             if ($check_stmt->fetch()) {
@@ -553,7 +553,7 @@ if (isset($_POST['add_ressort'])) {
             } else {
                 // Ressort hinzufügen
                 $stmt = $pdo->prepare("
-                    INSERT INTO ressortliste (Ressort, Reihenfolge, aktiv, created_at)
+                    INSERT INTO svressorts (Ressort, Reihenfolge, aktiv, created_at)
                     VALUES (?, ?, ?, NOW())
                 ");
                 $stmt->execute([$ressort_name, $reihenfolge, $aktiv]);
@@ -604,7 +604,7 @@ if (isset($_POST['edit_ressort'])) {
     } else {
         try {
             // Alte Daten für Log abrufen
-            $stmt = $pdo->prepare("SELECT * FROM ressortliste WHERE ID = ?");
+            $stmt = $pdo->prepare("SELECT * FROM svressorts WHERE ID = ?");
             $stmt->execute([$ressort_id]);
             $old_ressort = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -612,7 +612,7 @@ if (isset($_POST['edit_ressort'])) {
                 $error_message = "Ressort nicht gefunden.";
             } else {
                 // Prüfen ob Name bereits von anderem Ressort verwendet wird
-                $check_stmt = $pdo->prepare("SELECT ID FROM ressortliste WHERE Ressort = ? AND ID != ?");
+                $check_stmt = $pdo->prepare("SELECT ID FROM svressorts WHERE Ressort = ? AND ID != ?");
                 $check_stmt->execute([$ressort_name, $ressort_id]);
 
                 if ($check_stmt->fetch()) {
@@ -620,7 +620,7 @@ if (isset($_POST['edit_ressort'])) {
                 } else {
                     // Ressort aktualisieren
                     $stmt = $pdo->prepare("
-                        UPDATE ressortliste
+                        UPDATE svressorts
                         SET Ressort = ?, Reihenfolge = ?, aktiv = ?, updated_at = NOW()
                         WHERE ID = ?
                     ");
@@ -667,7 +667,7 @@ if (isset($_POST['delete_ressort'])) {
     } else {
         try {
             // Alte Daten für Log abrufen
-            $stmt = $pdo->prepare("SELECT * FROM ressortliste WHERE ID = ?");
+            $stmt = $pdo->prepare("SELECT * FROM svressorts WHERE ID = ?");
             $stmt->execute([$ressort_id]);
             $old_ressort = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -686,7 +686,7 @@ if (isset($_POST['delete_ressort'])) {
                     $error_message = "Ressort wird noch in {$usage_count} Antrag/Anträgen verwendet und kann nicht gelöscht werden. Bitte setze es stattdessen auf 'Inaktiv'.";
                 } else {
                     // Ressort löschen
-                    $stmt = $pdo->prepare("DELETE FROM ressortliste WHERE ID = ?");
+                    $stmt = $pdo->prepare("DELETE FROM svressorts WHERE ID = ?");
                     $stmt->execute([$ressort_id]);
 
                     // Admin-Log

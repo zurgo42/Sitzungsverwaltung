@@ -43,12 +43,12 @@ function render_antrag_detail($pdo, $antrag) {
     // Ressorts laden
     $ressort1_name = $ressort2_name = '';
     if ($antrag['ressort1']) {
-        $res_stmt = $pdo->prepare("SELECT Ressort FROM ressortliste WHERE ID = ?");
+        $res_stmt = $pdo->prepare("SELECT Ressort FROM svressorts WHERE ID = ?");
         $res_stmt->execute([$antrag['ressort1']]);
         $ressort1_name = $res_stmt->fetchColumn() ?: '';
     }
     if ($antrag['ressort2']) {
-        $res_stmt = $pdo->prepare("SELECT Ressort FROM ressortliste WHERE ID = ?");
+        $res_stmt = $pdo->prepare("SELECT Ressort FROM svressorts WHERE ID = ?");
         $res_stmt->execute([$antrag['ressort2']]);
         $ressort2_name = $res_stmt->fetchColumn() ?: '';
     }

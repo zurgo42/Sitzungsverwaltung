@@ -106,8 +106,19 @@ require_once 'process_admin.php';
     <?php echo $stats['active']; ?> aktiv, 
     <?php echo $stats['ended']; ?> beendet, 
     <?php echo $stats['archived']; ?> archiviert) • 
-    <?php echo count($members); ?> Mitglieder • 
+    <?php echo count($members); ?> Mitglieder •
     <?php echo count($open_todos); ?> offene ToDos
+</div>
+
+<!-- Hinweis auf Grundkonfiguration -->
+<div style="margin-bottom: 30px; padding: 15px 20px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <strong style="color: #856404;">⚙️ Grundkonfiguration:</strong>
+        <span style="color: #856404;"> Ressorts, Antragstypen und weitere grundlegende Einstellungen</span>
+    </div>
+    <a href="?tab=admin_init" style="padding: 8px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 4px; font-weight: 600; white-space: nowrap;">
+        Zur Initialisierung →
+    </a>
 </div>
 
 <!-- Meeting-Verwaltung -->
@@ -634,173 +645,6 @@ require_once 'process_admin.php';
     </div>
     </div> <!-- End admin-section-content -->
 </div>
-
-<!-- Ressort-Verwaltung -->
-<div id="admin-ressorts" class="admin-section">
-    <h3 class="admin-section-header" onclick="toggleSection(this)">📁 Ressort-Verwaltung</h3>
-
-    <div class="admin-section-content">
-        <?php if (isset($_GET['msg']) && $_GET['msg'] === 'ressort_added'): ?>
-            <div class="message">✅ Ressort erfolgreich hinzugefügt!</div>
-        <?php endif; ?>
-        <?php if (isset($_GET['msg']) && $_GET['msg'] === 'ressort_updated'): ?>
-            <div class="message">✅ Ressort erfolgreich aktualisiert!</div>
-        <?php endif; ?>
-        <?php if (isset($_GET['msg']) && $_GET['msg'] === 'ressort_deleted'): ?>
-            <div class="message">✅ Ressort erfolgreich gelöscht!</div>
-        <?php endif; ?>
-
-        <p style="margin-bottom: 20px; color: #666; font-size: 13px;">
-            Hier können Ressorts/Bereiche für das Antragssystem verwaltet werden.
-            Die Reihenfolge bestimmt die Sortierung in Dropdown-Menüs.
-        </p>
-
-        <!-- Neue Ressort hinzufügen -->
-        <details style="margin-bottom: 20px; border: 1px solid #ddd; border-radius: 4px; padding: 10px;">
-            <summary style="cursor: pointer; font-weight: 600; color: #2196f3;">➕ Neues Ressort hinzufügen</summary>
-            <form method="POST" action="?tab=admin" style="margin-top: 15px;">
-                <input type="hidden" name="add_ressort" value="1">
-
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ressort-Name:</label>
-                    <input type="text" name="ressort_name" required
-                           placeholder="z.B. Finanzen, Marketing, IT"
-                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                </div>
-
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Reihenfolge:</label>
-                    <input type="number" name="reihenfolge" value="100" min="1" max="999"
-                           style="width: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <small style="color: #666; display: block; margin-top: 5px;">
-                        Kleinere Zahlen erscheinen weiter oben in der Liste
-                    </small>
-                </div>
-
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">
-                        <input type="checkbox" name="aktiv" value="1" checked> Aktiv
-                    </label>
-                    <small style="color: #666; display: block; margin-top: 5px;">
-                        Inaktive Ressorts werden nicht mehr in Dropdowns angezeigt
-                    </small>
-                </div>
-
-                <button type="submit" class="btn-primary">Ressort hinzufügen</button>
-            </form>
-        </details>
-
-        <!-- Ressort-Liste -->
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 60px;">ID</th>
-                    <th style="width: 80px;">Reihenf.</th>
-                    <th>Ressort-Name</th>
-                    <th style="width: 80px;">Status</th>
-                    <th style="width: 150px;">Aktionen</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                // Ressorts laden
-                $ressorts_stmt = $pdo->query("SELECT * FROM ressortliste ORDER BY Reihenfolge, ID");
-                $all_ressorts = $ressorts_stmt->fetchAll();
-
-                if (empty($all_ressorts)):
-                ?>
-                    <tr>
-                        <td colspan="5" style="text-align: center; padding: 30px; color: #999;">
-                            Noch keine Ressorts vorhanden
-                        </td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($all_ressorts as $ressort): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($ressort['ID']); ?></td>
-                            <td><?php echo htmlspecialchars($ressort['Reihenfolge']); ?></td>
-                            <td style="font-weight: 600;">
-                                <?php echo htmlspecialchars($ressort['Ressort']); ?>
-                            </td>
-                            <td>
-                                <?php if (($ressort['aktiv'] ?? 1) == 1): ?>
-                                    <span style="color: #28a745; font-weight: 600;">✓ Aktiv</span>
-                                <?php else: ?>
-                                    <span style="color: #999;">⊗ Inaktiv</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <button type="button"
-                                        onclick="openEditRessortModal(<?php echo htmlspecialchars(json_encode($ressort)); ?>)"
-                                        class="btn-secondary"
-                                        style="padding: 4px 10px; font-size: 12px; margin-right: 5px;">
-                                    ✏️ Bearbeiten
-                                </button>
-                                <form method="POST" action="?tab=admin" style="display: inline-block;"
-                                      onsubmit="return confirm('Ressort wirklich löschen? Achtung: Bestehende Anträge mit diesem Ressort werden nicht automatisch geändert!');">
-                                    <input type="hidden" name="delete_ressort" value="1">
-                                    <input type="hidden" name="ressort_id" value="<?php echo $ressort['ID']; ?>">
-                                    <button type="submit" class="btn-danger"
-                                            style="padding: 4px 10px; font-size: 12px; background: #dc3545;">
-                                        🗑️ Löschen
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div> <!-- End admin-section-content -->
-</div>
-
-<!-- Bearbeitungs-Modal für Ressorts -->
-<div id="editRessortModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
-    <div style="background: white; border-radius: 8px; padding: 30px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
-        <h3 style="margin-top: 0;">✏️ Ressort bearbeiten</h3>
-        <form method="POST" action="?tab=admin" id="editRessortForm">
-            <input type="hidden" name="edit_ressort" value="1">
-            <input type="hidden" name="ressort_id" id="edit_ressort_id">
-
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ressort-Name:</label>
-                <input type="text" name="ressort_name" id="edit_ressort_name" required
-                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-            </div>
-
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Reihenfolge:</label>
-                <input type="number" name="reihenfolge" id="edit_reihenfolge" min="1" max="999"
-                       style="width: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-            </div>
-
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 600;">
-                    <input type="checkbox" name="aktiv" id="edit_aktiv" value="1"> Aktiv
-                </label>
-            </div>
-
-            <div style="display: flex; gap: 10px;">
-                <button type="submit" class="btn-primary">Speichern</button>
-                <button type="button" onclick="closeEditRessortModal()" class="btn-secondary">Abbrechen</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-function openEditRessortModal(ressort) {
-    document.getElementById('edit_ressort_id').value = ressort.ID;
-    document.getElementById('edit_ressort_name').value = ressort.Ressort;
-    document.getElementById('edit_reihenfolge').value = ressort.Reihenfolge;
-    document.getElementById('edit_aktiv').checked = (ressort.aktiv == 1);
-    document.getElementById('editRessortModal').style.display = 'flex';
-}
-
-function closeEditRessortModal() {
-    document.getElementById('editRessortModal').style.display = 'none';
-}
-</script>
 
 <!-- Abwesenheiten-Verwaltung -->
 <div id="admin-absences" class="admin-section">

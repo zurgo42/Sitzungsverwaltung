@@ -942,7 +942,19 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                     echo '</div>';
                 }
                 break;
-            
+
+            case 'admin_init':
+                // Grundkonfiguration / Initialisierung (nur für Admins mit Bestätigung)
+                if ($current_user['is_admin']) {
+                    include 'tab_admin_init.php';
+                } else {
+                    echo '<div style="max-width: 600px; margin: 40px auto; padding: 30px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
+                    echo '<h3 style="color: #856404; margin: 0 0 12px 0; font-size: 18px;">🔒 Zugriff nicht möglich</h3>';
+                    echo '<p style="color: #856404; margin: 0; line-height: 1.6;">Dieser Bereich ist nur für Administratoren zugänglich.</p>';
+                    echo '</div>';
+                }
+                break;
+
             default:
                 // Fallback: Bei unbekanntem Tab wird Sitzungen angezeigt
                 include 'tab_meetings.php';

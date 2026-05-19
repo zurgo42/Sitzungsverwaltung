@@ -35,8 +35,8 @@ $stmt = $pdo->prepare("
            r2.Ressort as ressort2_name
     FROM antraege a
     LEFT JOIN berechtigte b ON a.antrst = b.ID
-    LEFT JOIN ressortliste r1 ON a.ressort1 = r1.ID
-    LEFT JOIN ressortliste r2 ON a.ressort2 = r2.ID
+    LEFT JOIN svressorts r1 ON a.ressort1 = r1.ID
+    LEFT JOIN svressorts r2 ON a.ressort2 = r2.ID
     WHERE a.antrnr = ?
 ");
 $stmt->execute([$antrnr]);
