@@ -523,6 +523,196 @@ if (isset($_POST['delete_member'])) {
 }
 
 // ============================================
+// 2A. RESSORT-VERWALTUNG
+// ============================================
+
+/**
+ * Neues Ressort hinzufügen
+ *
+ * POST-Parameter:
+ * - add_ressort: 1
+ * - ressort_name: String (required)
+ * - reihenfolge: Int
+ * - aktiv: 1 oder nicht gesetzt
+ */
+if (isset($_POST['add_ressort'])) {
+    $ressort_name = trim($_POST['ressort_name'] ?? '');
+    $reihenfolge = intval($_POST['reihenfolge'] ?? 100);
+    $aktiv = isset($_POST['aktiv']) ? 1 : 0;
+
+    if (empty($ressort_name)) {
+        $error_message = "Ressort-Name darf nicht leer sein.";
+    } else {
+        try {
+            // Prüfen ob Ressort bereits existiert
+            $check_stmt = $pdo->prepare("SELECT ID FROM ressortliste WHERE Ressort = ?");
+            $check_stmt->execute([$ressort_name]);
+
+            if ($check_stmt->fetch()) {
+                $error_message = "Ein Ressort mit diesem Namen existiert bereits.";
+            } else {
+                // Ressort hinzufügen
+                $stmt = $pdo->prepare("
+                    INSERT INTO ressortliste (Ressort, Reihenfolge, aktiv, created_at)
+                    VALUES (?, ?, ?, NOW())
+                ");
+                $stmt->execute([$ressort_name, $reihenfolge, $aktiv]);
+                $new_id = $pdo->lastInsertId();
+
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'ressort_add',
+                    "Ressort hinzugefügt: " . $ressort_name,
+                    'ressort',
+                    $new_id,
+                    null,
+                    ['Ressort' => $ressort_name, 'Reihenfolge' => $reihenfolge, 'aktiv' => $aktiv]
+                );
+
+                header('Location: ?tab=admin&msg=ressort_added');
+                exit;
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Ressort-Hinzufügen: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Hinzufügen: " . $e->getMessage();
+        }
+    }
+}
+
+/**
+ * Ressort bearbeiten
+ *
+ * POST-Parameter:
+ * - edit_ressort: 1
+ * - ressort_id: Int (required)
+ * - ressort_name: String (required)
+ * - reihenfolge: Int
+ * - aktiv: 1 oder nicht gesetzt
+ */
+if (isset($_POST['edit_ressort'])) {
+    $ressort_id = intval($_POST['ressort_id'] ?? 0);
+    $ressort_name = trim($_POST['ressort_name'] ?? '');
+    $reihenfolge = intval($_POST['reihenfolge'] ?? 100);
+    $aktiv = isset($_POST['aktiv']) ? 1 : 0;
+
+    if (!$ressort_id) {
+        $error_message = "Ungültige Ressort-ID.";
+    } elseif (empty($ressort_name)) {
+        $error_message = "Ressort-Name darf nicht leer sein.";
+    } else {
+        try {
+            // Alte Daten für Log abrufen
+            $stmt = $pdo->prepare("SELECT * FROM ressortliste WHERE ID = ?");
+            $stmt->execute([$ressort_id]);
+            $old_ressort = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$old_ressort) {
+                $error_message = "Ressort nicht gefunden.";
+            } else {
+                // Prüfen ob Name bereits von anderem Ressort verwendet wird
+                $check_stmt = $pdo->prepare("SELECT ID FROM ressortliste WHERE Ressort = ? AND ID != ?");
+                $check_stmt->execute([$ressort_name, $ressort_id]);
+
+                if ($check_stmt->fetch()) {
+                    $error_message = "Ein anderes Ressort mit diesem Namen existiert bereits.";
+                } else {
+                    // Ressort aktualisieren
+                    $stmt = $pdo->prepare("
+                        UPDATE ressortliste
+                        SET Ressort = ?, Reihenfolge = ?, aktiv = ?, updated_at = NOW()
+                        WHERE ID = ?
+                    ");
+                    $stmt->execute([$ressort_name, $reihenfolge, $aktiv, $ressort_id]);
+
+                    // Admin-Log
+                    log_admin_action(
+                        $pdo,
+                        $current_user['member_id'],
+                        'ressort_edit',
+                        "Ressort bearbeitet: " . $ressort_name,
+                        'ressort',
+                        $ressort_id,
+                        ['Ressort' => $old_ressort['Ressort'], 'Reihenfolge' => $old_ressort['Reihenfolge'], 'aktiv' => $old_ressort['aktiv'] ?? 1],
+                        ['Ressort' => $ressort_name, 'Reihenfolge' => $reihenfolge, 'aktiv' => $aktiv]
+                    );
+
+                    header('Location: ?tab=admin&msg=ressort_updated');
+                    exit;
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Ressort-Bearbeiten: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Bearbeiten: " . $e->getMessage();
+        }
+    }
+}
+
+/**
+ * Ressort löschen
+ *
+ * POST-Parameter:
+ * - delete_ressort: 1
+ * - ressort_id: Int (required)
+ *
+ * WICHTIG: Löscht nur das Ressort, nicht die zugeordneten Anträge
+ * Bestehende Anträge behalten ihre ressort1/ressort2 IDs
+ */
+if (isset($_POST['delete_ressort'])) {
+    $ressort_id = intval($_POST['ressort_id'] ?? 0);
+
+    if (!$ressort_id) {
+        $error_message = "Ungültige Ressort-ID.";
+    } else {
+        try {
+            // Alte Daten für Log abrufen
+            $stmt = $pdo->prepare("SELECT * FROM ressortliste WHERE ID = ?");
+            $stmt->execute([$ressort_id]);
+            $old_ressort = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$old_ressort) {
+                $error_message = "Ressort nicht gefunden.";
+            } else {
+                // Prüfen ob Ressort in Anträgen verwendet wird
+                $usage_stmt = $pdo->prepare("
+                    SELECT COUNT(*) FROM antraege
+                    WHERE ressort1 = ? OR ressort2 = ?
+                ");
+                $usage_stmt->execute([$ressort_id, $ressort_id]);
+                $usage_count = $usage_stmt->fetchColumn();
+
+                if ($usage_count > 0) {
+                    $error_message = "Ressort wird noch in {$usage_count} Antrag/Anträgen verwendet und kann nicht gelöscht werden. Bitte setze es stattdessen auf 'Inaktiv'.";
+                } else {
+                    // Ressort löschen
+                    $stmt = $pdo->prepare("DELETE FROM ressortliste WHERE ID = ?");
+                    $stmt->execute([$ressort_id]);
+
+                    // Admin-Log
+                    log_admin_action(
+                        $pdo,
+                        $current_user['member_id'],
+                        'ressort_delete',
+                        "Ressort gelöscht: " . $old_ressort['Ressort'],
+                        'ressort',
+                        $ressort_id,
+                        ['Ressort' => $old_ressort['Ressort'], 'Reihenfolge' => $old_ressort['Reihenfolge']],
+                        null
+                    );
+
+                    header('Location: ?tab=admin&msg=ressort_deleted');
+                    exit;
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Ressort-Löschen: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Löschen: " . $e->getMessage();
+        }
+    }
+}
+
+// ============================================
 // 3. TODO-VERWALTUNG
 // ============================================
 
