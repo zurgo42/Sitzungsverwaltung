@@ -11,7 +11,6 @@ require_once 'module_notifications.php';
  */
 
 // Logik einbinden
-require_once 'process_admin.php';
 ?>
 
 <style>

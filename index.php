@@ -468,8 +468,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'todos') {
 }
 
 // PROCESS ADMIN
-// Wird bei POST-Requests auf dem Admin-Tab eingebunden
-// Dies geschieht bereits in der Presentation-Datei (tab_admin.php)
+// Wird für Admin-Tab und Admin-Init-Tab geladen
+// WICHTIG: Muss VOR HTML-Output geladen werden wegen header() Redirects
+if ($active_tab === 'admin' || $active_tab === 'admin_init') {
+    require_once 'process_admin.php';
+}
 
 // ============================================
 // DISPLAY-MODUS ERKENNUNG
@@ -930,8 +933,7 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             case 'admin':
                 // Admin-Panel anzeigen (nur für berechtigte Benutzer)
                 if ($current_user['is_admin']) {
-                    // process_admin.php verarbeitet Admin-Aktionen
-                    include 'process_admin.php';
+                    // process_admin.php wurde bereits VOR HTML-Output geladen
                     // tab_admin.php zeigt das Admin-Panel an
                     include 'tab_admin.php';
                 } else {

@@ -24,6 +24,34 @@ $success_message = '';
 $error_message = '';
 
 // ============================================
+// INITIALISIERUNGS-BEREICH: Session-Handling
+// ============================================
+
+// Bestätigung setzen
+if (isset($_POST['confirm_init_access'])) {
+    $_SESSION['init_confirmed'] = true;
+    $_SESSION['init_confirmed_at'] = time();
+    header('Location: ?tab=admin_init');
+    exit;
+}
+
+// Bestätigung zurücksetzen (nach 30 Minuten automatisch)
+$init_confirmed = isset($_SESSION['init_confirmed']) && $_SESSION['init_confirmed'] === true;
+if ($init_confirmed && (time() - ($_SESSION['init_confirmed_at'] ?? 0)) > 1800) {
+    unset($_SESSION['init_confirmed']);
+    unset($_SESSION['init_confirmed_at']);
+    $init_confirmed = false;
+}
+
+// Manuelle Abmeldung
+if (isset($_GET['reset_init'])) {
+    unset($_SESSION['init_confirmed']);
+    unset($_SESSION['init_confirmed_at']);
+    header('Location: ?tab=admin');
+    exit;
+}
+
+// ============================================
 // HILFSFUNKTIONEN
 // ============================================
 
