@@ -15,12 +15,14 @@ CREATE TABLE IF NOT EXISTS svressorts (
 COMMENT='Ressorts für das Antragssystem (sv-intern)';
 
 -- Daten von ressortliste kopieren (falls vorhanden und svressorts leer)
+-- Adapter-Tabelle hat nur: ID, Ressort, Reihenfolge
 INSERT IGNORE INTO svressorts (ID, Ressort, Reihenfolge, aktiv, created_at)
 SELECT
     ID,
     Ressort,
     COALESCE(Reihenfolge, 100) as Reihenfolge,
-    COALESCE(aktiv, 1) as aktiv,
-    COALESCE(created_at, NOW()) as created_at
+    1 as aktiv,  -- Standard: alle aktiv
+    NOW() as created_at
 FROM ressortliste
 WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'ressortliste');
+
