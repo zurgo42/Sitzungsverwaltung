@@ -151,6 +151,8 @@ body.dark-mode .init-danger-list {
             <div class="message">✅ Ressort erfolgreich aktualisiert!</div>
         <?php elseif ($_GET['msg'] === 'ressort_deleted'): ?>
             <div class="message">✅ Ressort erfolgreich gelöscht!</div>
+        <?php elseif ($_GET['msg'] === 'terminology_saved'): ?>
+            <div class="message">✅ Terminologie erfolgreich gespeichert!</div>
         <?php endif; ?>
     <?php endif; ?>
 
@@ -334,10 +336,182 @@ body.dark-mode .init-danger-list {
     }
     </script>
 
-    <!-- PLATZHALTER FÜR WEITERE INITIALISIERUNGS-BEREICHE -->
+    <!-- 2. TERMINOLOGIE-KONFIGURATION -->
+    <div class="admin-section">
+        <h3 class="admin-section-header init-section-header" onclick="toggleSection(this)">
+            📝 Terminologie / Begriffe
+        </h3>
+
+        <div class="admin-section-content collapsed">
+            <p style="margin-bottom: 20px; color: #666; font-size: 13px;">
+                Passe die verwendeten Begriffe an deine Organisation an.
+                Diese Begriffe erscheinen im gesamten Antragssystem.
+            </p>
+
+            <?php
+            // Config laden
+            $config_stmt = $pdo->query("SELECT * FROM svconfig WHERE category = 'terminology' ORDER BY config_key");
+            $configs = $config_stmt->fetchAll();
+            ?>
+
+            <form method="POST" action="?tab=admin_init">
+                <input type="hidden" name="save_terminology" value="1">
+
+                <table style="width: 100%; max-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; width: 40%;">Begriff</th>
+                            <th style="text-align: left; width: 40%;">Aktuelle Bezeichnung</th>
+                            <th style="text-align: left; width: 20%;">Beschreibung</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($configs as $cfg): ?>
+                            <tr>
+                                <td style="padding: 10px 5px; font-weight: 600;">
+                                    <?php
+                                    $label = str_replace(['term_', '_'], ['', ' '], $cfg['config_key']);
+                                    echo ucfirst($label);
+                                    ?>
+                                </td>
+                                <td style="padding: 10px 5px;">
+                                    <input type="text"
+                                           name="config[<?php echo $cfg['config_key']; ?>]"
+                                           value="<?php echo htmlspecialchars($cfg['config_value']); ?>"
+                                           style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                </td>
+                                <td style="padding: 10px 5px; font-size: 11px; color: #666;">
+                                    <?php echo htmlspecialchars($cfg['description']); ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn-primary">Terminologie speichern</button>
+                    <span style="margin-left: 15px; color: #dc3545; font-size: 12px;">
+                        ⚠️ Änderungen wirken sich auf das gesamte System aus
+                    </span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. BERECHTIGUNGSSTUFEN / AKTIV-LEVEL -->
+    <div class="admin-section">
+        <h3 class="admin-section-header init-section-header" onclick="toggleSection(this)">
+            🔐 Berechtigungsstufen (aktiv-Level)
+        </h3>
+
+        <div class="admin-section-content collapsed">
+            <p style="margin-bottom: 20px; color: #666; font-size: 13px;">
+                Definition der Berechtigungsstufen (aktiv = 0-19) für das Antragssystem.
+                Diese Stufen steuern, wer welche Aktionen durchführen darf.
+            </p>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px;">Standard-Level (Mensa-Konzept):</h4>
+                <table style="width: 100%; font-size: 13px;">
+                    <tr>
+                        <td style="padding: 5px; width: 80px; font-weight: 600;">0</td>
+                        <td style="padding: 5px;">Inaktiv / kein Zugriff</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px; font-weight: 600;">1-9</td>
+                        <td style="padding: 5px;">Gast / nur Leserechte</td>
+                    </tr>
+                    <tr style="background: #e8f5e9;">
+                        <td style="padding: 5px; font-weight: 600;">10</td>
+                        <td style="padding: 5px;"><strong>Mitglied</strong> - kann Anträge stellen</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px; font-weight: 600;">11-13</td>
+                        <td style="padding: 5px;">Erweiterte Mitglieder-Rechte</td>
+                    </tr>
+                    <tr style="background: #fff3e0;">
+                        <td style="padding: 5px; font-weight: 600;">14-17</td>
+                        <td style="padding: 5px;"><strong>Ressortleiter</strong> - kann über Ressort-Anträge abstimmen</td>
+                    </tr>
+                    <tr style="background: #e3f2fd;">
+                        <td style="padding: 5px; font-weight: 600;">18</td>
+                        <td style="padding: 5px;"><strong>Vorstand</strong> - kann über Vorstands-Anträge abstimmen</td>
+                    </tr>
+                    <tr style="background: #fce4ec;">
+                        <td style="padding: 5px; font-weight: 600;">19</td>
+                        <td style="padding: 5px;"><strong>Admin</strong> - volle Rechte, kann System konfigurieren</td>
+                    </tr>
+                </table>
+
+                <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">
+                    💡 Diese Stufen können in svmembers bei jedem Mitglied individuell gesetzt werden.
+                </p>
+            </div>
+
+            <p style="font-size: 12px; color: #999;">
+                Die Berechtigungsstufen sind aktuell fest kodiert. Eine Konfiguration der Level-Bedeutungen
+                folgt in einem späteren Schritt.
+            </p>
+        </div>
+    </div>
+
+    <!-- 4. SPEZIALFUNKTIONEN -->
+    <div class="admin-section">
+        <h3 class="admin-section-header init-section-header" onclick="toggleSection(this)">
+            👥 Spezialfunktionen
+        </h3>
+
+        <div class="admin-section-content collapsed">
+            <p style="margin-bottom: 20px; color: #666; font-size: 13px;">
+                Spezielle Funktionen für die Antragssteuerung.
+                Einige Kürzel sind fest vorgegeben, da sie interne Logik steuern.
+            </p>
+
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #856404;">Vordefinierte Funktionen (nicht änderbar):</h4>
+                <table style="width: 100%; font-size: 13px;">
+                    <tr>
+                        <td style="padding: 5px; width: 80px; font-weight: 600; color: #856404;">FVo</td>
+                        <td style="padding: 5px; color: #856404;">Finanzvorstand - steuert Finanz-Abstimmungen</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px; font-weight: 600; color: #856404;">FVv</td>
+                        <td style="padding: 5px; color: #856404;">Finanzvorstand-Stellvertreter</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px; font-weight: 600; color: #856404;">VA</td>
+                        <td style="padding: 5px; color: #856404;">Vorsitzende/r - höchste Berechtigungsstufe</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px; font-weight: 600; color: #856404;">Vo</td>
+                        <td style="padding: 5px; color: #856404;">Vorstand - Vorstands-Abstimmungen</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div style="background: #e8f5e9; border-left: 4px solid #28a745; padding: 15px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px;">Weitere Funktionen (frei definierbar):</h4>
+                <p style="margin: 0; font-size: 13px;">
+                    Zusätzliche Funktionen können frei in svmembers eingetragen werden.
+                    Beispiele: "RL" (Ressortleiter), "Ass" (Assistenz), "StV" (Stellvertreter), etc.
+                </p>
+                <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">
+                    Diese haben (noch) keine automatische Steuerungsfunktion,
+                    dienen aber der Dokumentation und können später für Rechteprüfungen verwendet werden.
+                </p>
+            </div>
+
+            <p style="margin-top: 20px; font-size: 12px; color: #999;">
+                Die Funktionen werden direkt in der Mitgliederverwaltung (svmembers) zugewiesen.
+            </p>
+        </div>
+    </div>
+
+    <!-- PLATZHALTER FÜR WEITERE BEREICHE -->
     <!-- Hier werden später weitere Konfigurationsbereiche hinzugefügt:
          - Antragstypen (V, R, B)
          - Workflow-Status (A, B, VS, X, Z)
+         - Abstimmungsregeln
          - etc.
     -->
 

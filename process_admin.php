@@ -741,6 +741,74 @@ if (isset($_POST['delete_ressort'])) {
 }
 
 // ============================================
+// 2B. TERMINOLOGIE-KONFIGURATION
+// ============================================
+
+/**
+ * Terminologie speichern
+ *
+ * POST-Parameter:
+ * - save_terminology: 1
+ * - config: Array mit config_key => config_value
+ */
+if (isset($_POST['save_terminology'])) {
+    $configs = $_POST['config'] ?? [];
+
+    if (empty($configs)) {
+        $error_message = "Keine Konfigurationswerte übermittelt.";
+    } else {
+        try {
+            $updated_count = 0;
+            $old_values = [];
+            $new_values = [];
+
+            foreach ($configs as $key => $value) {
+                // Alten Wert für Log abrufen
+                $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                $stmt->execute([$key]);
+                $old_value = $stmt->fetchColumn();
+
+                if ($old_value !== $value) {
+                    // Wert aktualisieren
+                    $update_stmt = $pdo->prepare("
+                        UPDATE svconfig
+                        SET config_value = ?, updated_by = ?, updated_at = NOW()
+                        WHERE config_key = ?
+                    ");
+                    $update_stmt->execute([$value, $current_user['member_id'], $key]);
+
+                    $old_values[$key] = $old_value;
+                    $new_values[$key] = $value;
+                    $updated_count++;
+                }
+            }
+
+            if ($updated_count > 0) {
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'terminology_update',
+                    "Terminologie aktualisiert: $updated_count Begriffe geändert",
+                    'config',
+                    null,
+                    $old_values,
+                    $new_values
+                );
+
+                header('Location: ?tab=admin_init&msg=terminology_saved');
+                exit;
+            } else {
+                $success_message = "Keine Änderungen vorgenommen.";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Terminologie-Speichern: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Speichern: " . $e->getMessage();
+        }
+    }
+}
+
+// ============================================
 // 3. TODO-VERWALTUNG
 // ============================================
 
