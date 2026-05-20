@@ -6,6 +6,7 @@
 
 // Module laden
 require_once 'module_todos.php';
+require_once 'module_voting.php';
 require_once 'module_agenda_overview.php';
 
 if (empty($agenda_items)) {
