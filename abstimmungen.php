@@ -9,6 +9,7 @@
 session_start();
 require_once 'session_config.php';
 require_once 'config.php';
+require_once 'includes/voting_helper.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php');
@@ -394,28 +395,37 @@ function auswerten_abstimmung($pdo, $antrnr) {
         return; // Noch nicht alle haben abgestimmt
     }
 
-    // Auswertung je nach Beschlussart
-    if ($antrag['bart'] === 'V') {
-        // Verfügung: Ja = angenommen
+    // Auswertung nach Abstimmungsregel
+    $regel = $antrag['abstimmregel'] ?? 'einfach';
+
+    // LEGACY: Alte Auswertungslogik für spezielle Fälle (V und R)
+    // Diese wird beibehalten für bestehende Anträge ohne abstimmregel
+    if ($antrag['bart'] === 'V' && (!isset($antrag['abstimmregel']) || $regel === 'einfach')) {
+        // Verfügung (Legacy): Einstimmig erforderlich
         if ($ja > 0 && $nein == 0) {
             beschluss_annehmen($pdo, $antrnr, $antrag);
         } else {
             beschluss_ablehnen($pdo, $antrnr);
         }
-    } elseif ($antrag['bart'] === 'R') {
-        // Ressortbeschluss: Beide müssen Ja stimmen
+    } elseif ($antrag['bart'] === 'R' && (!isset($antrag['abstimmregel']) || $regel === 'einfach')) {
+        // Ressortbeschluss (Legacy): Beide müssen Ja stimmen
         if ($ja == 2 && $nein == 0) {
             beschluss_annehmen($pdo, $antrnr, $antrag);
         } else {
             beschluss_ablehnen($pdo, $antrnr);
         }
-    } elseif ($antrag['bart'] === 'B') {
-        // Vorstandsbeschluss: Mehr Ja als Nein = angenommen
-        if ($ja > $nein) {
+    } else {
+        // NEUE LOGIK: Abstimmungsregel anwenden
+        $ergebnis = pruefe_abstimmungsergebnis($regel, $ja, $nein, $enthaltung, $abstimmende);
+
+        if ($ergebnis['erfolg']) {
             beschluss_annehmen($pdo, $antrnr, $antrag);
         } else {
             beschluss_ablehnen($pdo, $antrnr);
         }
+
+        // Ergebnis loggen für Debugging
+        error_log("Abstimmung {$antrnr}: Regel={$regel}, Ja={$ja}, Nein={$nein}, Enthaltung={$enthaltung}, Ergebnis=" . ($ergebnis['erfolg'] ? 'ANGENOMMEN' : 'ABGELEHNT'));
     }
 }
 

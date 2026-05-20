@@ -8,6 +8,7 @@ session_start();
 require_once 'session_config.php';
 require_once 'config.php';
 require_once 'includes/antragstypen_helper.php';
+require_once 'includes/voting_helper.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php');
@@ -23,6 +24,9 @@ $pdo = new PDO(
 
 // Antragstypen-Config laden
 $bart_config = lade_antragstypen_config($pdo);
+
+// Voting-Config laden
+$voting_config = lade_voting_config($pdo);
 
 $user_stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
 $user_stmt->execute([$_SESSION['member_id']]);
@@ -177,6 +181,19 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                 <div class="compact-row">
                     <div class="compact-label">Beschlussart:</div>
                     <div class="compact-value"><strong><?= $bart_text[$antrag['bart']] ?? $antrag['bart'] ?></strong></div>
+                </div>
+                <div class="compact-row">
+                    <div class="compact-label">Abstimmungsregel:</div>
+                    <div class="compact-value">
+                        <?php
+                        $regel = $antrag['abstimmregel'] ?? 'einfach';
+                        $all_rules = get_voting_rules($voting_config);
+                        echo htmlspecialchars($all_rules[$regel]['label'] ?? $regel);
+                        ?>
+                        <small style="color: #666; font-size: 11px; display: block;">
+                            <?= htmlspecialchars($all_rules[$regel]['desc'] ?? '') ?>
+                        </small>
+                    </div>
                 </div>
                 <div class="compact-row">
                     <div class="compact-label">Ressort:</div>

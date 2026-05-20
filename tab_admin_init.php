@@ -157,6 +157,8 @@ body.dark-mode .init-danger-list {
             <div class="message">✅ aktiv-Level erfolgreich gespeichert!</div>
         <?php elseif ($_GET['msg'] === 'antragstypen_saved'): ?>
             <div class="message">✅ Antragstypen erfolgreich gespeichert!</div>
+        <?php elseif ($_GET['msg'] === 'voting_rules_saved'): ?>
+            <div class="message">✅ Abstimmungsregeln erfolgreich gespeichert!</div>
         <?php endif; ?>
     <?php endif; ?>
 
@@ -721,10 +723,125 @@ body.dark-mode .init-danger-list {
         </div>
     </div>
 
+    <!-- 6. ABSTIMMUNGSREGELN -->
+    <div class="admin-section">
+        <h3 class="admin-section-header init-section-header" onclick="toggleSection(this)">
+            🗳️ Abstimmungsregeln
+        </h3>
+
+        <div class="admin-section-content collapsed">
+            <p style="margin-bottom: 20px; color: #666; font-size: 13px;">
+                Konfiguration der verfügbaren Abstimmungsregeln für Anträge.<br>
+                Jeder Antrag kann individuell eine Regel zugewiesen bekommen (nur durch Admins).
+            </p>
+
+            <?php
+            // Voting-Config laden
+            $voting_stmt = $pdo->query("
+                SELECT * FROM svconfig
+                WHERE category = 'voting'
+                ORDER BY config_key
+            ");
+            $voting_cfgs = $voting_stmt->fetchAll();
+
+            $voting_data = [];
+            foreach ($voting_cfgs as $cfg) {
+                $voting_data[$cfg['config_key']] = $cfg['config_value'];
+            }
+            ?>
+
+            <form method="POST" action="?tab=admin_init">
+                <input type="hidden" name="save_voting_rules" value="1">
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 4px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 15px 0; font-size: 14px;">Standard-Regel</h4>
+                    <select name="voting[default_rule]" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <?php
+                        $current_default = $voting_data['voting_default_rule'] ?? 'einfach';
+                        $rule_keys = ['einfach', 'absolut', 'mehrheit_stimmber', 'zweidrittel', 'einstimmig'];
+                        foreach ($rule_keys as $key):
+                            $label = $voting_data["voting_rule_{$key}_label"] ?? $key;
+                        ?>
+                            <option value="<?= $key ?>" <?= $current_default === $key ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($label) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="display: block; margin-top: 5px; color: #666;">
+                        Diese Regel wird für neue Anträge vorausgewählt
+                    </small>
+                </div>
+
+                <h4 style="margin: 20px 0 10px 0; font-size: 14px;">Verfügbare Regeln</h4>
+                <p style="font-size: 12px; color: #666; margin-bottom: 15px;">
+                    Nur aktivierte Regeln stehen zur Auswahl. Bezeichnungen und Beschreibungen können angepasst werden.
+                </p>
+
+                <?php
+                $rules = [
+                    'einfach' => ['name' => 'Einfache Mehrheit', 'default_desc' => 'Mehr Ja als Nein (Enthaltungen zählen nicht)'],
+                    'absolut' => ['name' => 'Absolute Mehrheit', 'default_desc' => 'Mehr Ja als Nein+Enthaltung'],
+                    'mehrheit_stimmber' => ['name' => 'Mehrheit der Stimmberechtigten', 'default_desc' => 'Mehr als 50% aller Stimmberechtigten stimmen Ja'],
+                    'zweidrittel' => ['name' => '2/3-Mehrheit', 'default_desc' => 'Ja-Stimmen >= 2 × Nein-Stimmen'],
+                    'einstimmig' => ['name' => 'Einstimmigkeit', 'default_desc' => 'Alle Abstimmenden müssen Ja stimmen']
+                ];
+
+                foreach ($rules as $key => $rule):
+                    $enabled = ($voting_data["voting_enable_{$key}"] ?? '1') == '1';
+                    $label = $voting_data["voting_rule_{$key}_label"] ?? $rule['name'];
+                    $desc = $voting_data["voting_rule_{$key}_desc"] ?? $rule['default_desc'];
+                ?>
+                    <div style="background: white; border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin-bottom: 15px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                            <h5 style="margin: 0; font-size: 14px;"><?= htmlspecialchars($rule['name']) ?></h5>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" name="voting[enable_<?= $key ?>]" value="1"
+                                       <?= $enabled ? 'checked' : '' ?>>
+                                <span style="font-weight: 600; color: <?= $enabled ? '#28a745' : '#999' ?>;">
+                                    <?= $enabled ? '✓ Aktiviert' : '⊗ Deaktiviert' ?>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600;">Bezeichnung:</label>
+                            <input type="text" name="voting[rule_<?= $key ?>_label]"
+                                   value="<?= htmlspecialchars($label) ?>"
+                                   style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600;">Beschreibung:</label>
+                            <input type="text" name="voting[rule_<?= $key ?>_desc]"
+                                   value="<?= htmlspecialchars($desc) ?>"
+                                   style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn-primary">Abstimmungsregeln speichern</button>
+                    <span style="margin-left: 15px; color: #dc3545; font-size: 12px;">
+                        ⚠️ Änderungen wirken sich auf zukünftige Abstimmungen aus
+                    </span>
+                </div>
+            </form>
+
+            <div style="background: #e8f5e9; border-left: 4px solid #28a745; padding: 15px; margin-top: 20px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px;">Hinweise</h4>
+                <ul style="margin: 0; padding-left: 20px; font-size: 13px;">
+                    <li>Die Abstimmungsregel wird pro Antrag festgelegt (nur durch Admins)</li>
+                    <li>Bestehende Anträge behalten ihre Regel</li>
+                    <li>Die Auswertung erfolgt automatisch nach der gewählten Regel</li>
+                    <li>Bei alten Anträgen ohne Regel wird die Legacy-Logik verwendet</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <!-- PLATZHALTER FÜR WEITERE BEREICHE -->
     <!-- Hier werden später weitere Konfigurationsbereiche hinzugefügt:
-         - Workflow-Status (A, B, VS, X, Z)
-         - Abstimmungsregeln
+         - Workflow-Status (A, B, VS, X, Z) - NICHT konfigurierbar
          - etc.
     -->
 

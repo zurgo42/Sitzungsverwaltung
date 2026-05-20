@@ -30,6 +30,7 @@ require_once 'config_adapter.php';            // Konfiguration für Mitgliederqu
 require_once 'member_functions.php';          // Prozedurale Wrapper-Funktionen für Mitglieder
 require_once 'functions.php';                 // Wiederverwendbare Funktionen
 require_once 'includes/antragstypen_helper.php'; // Antragstypen-Konfiguration
+require_once 'includes/voting_helper.php';    // Abstimmungsregeln
 
 // ============================================
 // GLOBALES MEMBERS-ARRAY (für SSO und Standard-Modus)
@@ -47,6 +48,11 @@ foreach ($GLOBALS['all_members'] as $member) {
 // ============================================
 // Einmal laden und global verfügbar machen
 $GLOBALS['bart_config'] = lade_antragstypen_config($pdo);
+
+// ============================================
+// ABSTIMMUNGSREGELN-KONFIGURATION
+// ============================================
+$GLOBALS['voting_config'] = lade_voting_config($pdo);
 
 /**
  * Hilfsfunktion: Holt Member-Daten nach ID aus dem globalen Array

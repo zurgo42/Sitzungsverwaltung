@@ -8,6 +8,7 @@ session_start();
 require_once 'session_config.php';
 require_once 'config.php';
 require_once 'includes/antragstypen_helper.php';
+require_once 'includes/voting_helper.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php');
@@ -23,6 +24,9 @@ $pdo = new PDO(
 
 // Antragstypen-Config laden
 $bart_config = lade_antragstypen_config($pdo);
+
+// Voting-Config laden
+$voting_config = lade_voting_config($pdo);
 
 // Hilfsfunktionen
 function getUserData($pdo, $member_id) {
@@ -302,6 +306,12 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         }
     }
 
+    // Abstimmungsregel (nur Admin kann ändern)
+    $abstimmregel = $antrag['abstimmregel'] ?? 'einfach';
+    if ($user['aktiv'] >= 19 && isset($post['abstimmregel'])) {
+        $abstimmregel = $post['abstimmregel'];
+    }
+
     $update = $pdo->prepare("
         UPDATE antraege SET
             antrst = ?, titel = ?, beschluss = ?, begr = ?, pers = ?, sach = ?,
@@ -312,6 +322,7 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
             filetext1 = ?, filetext2 = ?, filetext3 = ?, filetext4 = ?,
             sofort = ?, durch = ?, zufin = ?, zbem = ?,
             praesenz = ?, verf1 = ?, verf2 = ?, vorher = ?,
+            abstimmregel = ?,
             lzugriff = NOW()
         WHERE antrnr = ?
     ");
@@ -329,6 +340,7 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         isset($post['zufin']) ? 1 : 0, $post['zbem'] ?? null,
         $post['praesenz'] ?? null, $post['verf1'] ?? null, $post['verf2'] ?? null,
         isset($post['vorher']) ? 1 : 0,
+        $abstimmregel,
         $antrnr
     ]);
 }
@@ -786,6 +798,50 @@ if ($user['aktiv'] >= 19) {
                         <?php endif; ?>
                     </div>
                 </div>
+
+                <!-- Zeile 6: Abstimmungsregel (nur für Admins änderbar) -->
+                <?php if ($user['aktiv'] >= 19): ?>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="abstimmregel">Abstimmungsregel</label>
+                            <select id="abstimmregel" name="abstimmregel" style="width: 100%;">
+                                <?php
+                                $enabled_rules = get_enabled_voting_rules($voting_config);
+                                $current_regel = $antrag['abstimmregel'] ?? get_default_voting_rule($voting_config);
+                                foreach ($enabled_rules as $key => $rule):
+                                ?>
+                                    <option value="<?= htmlspecialchars($key) ?>"
+                                            <?= $current_regel === $key ? 'selected' : '' ?>
+                                            title="<?= htmlspecialchars($rule['desc']) ?>">
+                                        <?= htmlspecialchars($rule['label']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small style="display: block; margin-top: 5px; color: #666; font-size: 11px;">
+                                <?= get_voting_rule_description($current_regel, $voting_config) ?>
+                            </small>
+                        </div>
+                        <div class="form-group"></div>
+                        <div class="form-group"></div>
+                    </div>
+                <?php else: ?>
+                    <!-- Abstimmungsregel anzeigen (nicht änderbar) -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Abstimmungsregel</label>
+                            <input type="text" value="<?php
+                                $current_regel = $antrag['abstimmregel'] ?? 'einfach';
+                                $all_rules = get_voting_rules($voting_config);
+                                echo htmlspecialchars($all_rules[$current_regel]['label'] ?? $current_regel);
+                            ?>" class="read-only" readonly>
+                            <small style="display: block; margin-top: 5px; color: #666; font-size: 11px;">
+                                <?= get_voting_rule_description($current_regel, $voting_config) ?>
+                            </small>
+                        </div>
+                        <div class="form-group"></div>
+                        <div class="form-group"></div>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- ========== SEKTION 2: ANTRAG ========== -->

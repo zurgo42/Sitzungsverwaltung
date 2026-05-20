@@ -1019,6 +1019,173 @@ if (isset($_POST['save_antragstypen'])) {
     }
 }
 
+/**
+ * ABSTIMMUNGSREGELN SPEICHERN
+ *
+ * POST-Parameter:
+ * - save_voting_rules: 1
+ * - voting: Array mit Regel-Konfigurationen
+ */
+if (isset($_POST['save_voting_rules'])) {
+    $voting_data = $_POST['voting'] ?? [];
+
+    if (empty($voting_data)) {
+        $error_message = "Keine Voting-Daten übermittelt.";
+    } else {
+        try {
+            $updated_count = 0;
+            $old_values = [];
+            $new_values = [];
+
+            // Standard-Regel
+            if (isset($voting_data['default_rule'])) {
+                $config_key = 'voting_default_rule';
+                $value = $voting_data['default_rule'];
+
+                $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                $stmt->execute([$config_key]);
+                $old_value = $stmt->fetchColumn();
+
+                if ($old_value != $value) {
+                    $update_stmt = $pdo->prepare("
+                        INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                        VALUES (?, ?, 'text', 'Standard-Abstimmungsregel', 'voting', ?)
+                        ON DUPLICATE KEY UPDATE
+                            config_value = VALUES(config_value),
+                            updated_by = VALUES(updated_by),
+                            updated_at = NOW()
+                    ");
+                    $update_stmt->execute([$config_key, $value, $current_user['member_id']]);
+
+                    $old_values[$config_key] = $old_value ?: '(leer)';
+                    $new_values[$config_key] = $value;
+                    $updated_count++;
+                }
+            }
+
+            // Regel-Aktivierungen und Labels/Beschreibungen
+            $rule_keys = ['einfach', 'absolut', 'mehrheit_stimmber', 'zweidrittel', 'einstimmig'];
+            foreach ($rule_keys as $key) {
+                // Aktivierung
+                $enable_key = "enable_{$key}";
+                $config_key = "voting_{$enable_key}";
+                $value = isset($voting_data[$enable_key]) ? '1' : '0';
+
+                $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                $stmt->execute([$config_key]);
+                $old_value = $stmt->fetchColumn();
+
+                if ($old_value != $value) {
+                    $update_stmt = $pdo->prepare("
+                        INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                        VALUES (?, ?, 'boolean', ?, 'voting', ?)
+                        ON DUPLICATE KEY UPDATE
+                            config_value = VALUES(config_value),
+                            updated_by = VALUES(updated_by),
+                            updated_at = NOW()
+                    ");
+                    $update_stmt->execute([
+                        $config_key,
+                        $value,
+                        ucfirst($key) . " aktiviert",
+                        $current_user['member_id']
+                    ]);
+
+                    $old_values[$config_key] = $old_value ?: '(leer)';
+                    $new_values[$config_key] = $value;
+                    $updated_count++;
+                }
+
+                // Label
+                $label_key = "rule_{$key}_label";
+                if (isset($voting_data[$label_key])) {
+                    $config_key = "voting_{$label_key}";
+                    $value = $voting_data[$label_key];
+
+                    $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                    $stmt->execute([$config_key]);
+                    $old_value = $stmt->fetchColumn();
+
+                    if ($old_value != $value) {
+                        $update_stmt = $pdo->prepare("
+                            INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                            VALUES (?, ?, 'text', ?, 'voting', ?)
+                            ON DUPLICATE KEY UPDATE
+                                config_value = VALUES(config_value),
+                                updated_by = VALUES(updated_by),
+                                updated_at = NOW()
+                        ");
+                        $update_stmt->execute([
+                            $config_key,
+                            $value,
+                            "Label für {$key}",
+                            $current_user['member_id']
+                        ]);
+
+                        $old_values[$config_key] = $old_value ?: '(leer)';
+                        $new_values[$config_key] = $value;
+                        $updated_count++;
+                    }
+                }
+
+                // Beschreibung
+                $desc_key = "rule_{$key}_desc";
+                if (isset($voting_data[$desc_key])) {
+                    $config_key = "voting_{$desc_key}";
+                    $value = $voting_data[$desc_key];
+
+                    $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                    $stmt->execute([$config_key]);
+                    $old_value = $stmt->fetchColumn();
+
+                    if ($old_value != $value) {
+                        $update_stmt = $pdo->prepare("
+                            INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                            VALUES (?, ?, 'text', ?, 'voting', ?)
+                            ON DUPLICATE KEY UPDATE
+                                config_value = VALUES(config_value),
+                                updated_by = VALUES(updated_by),
+                                updated_at = NOW()
+                        ");
+                        $update_stmt->execute([
+                            $config_key,
+                            $value,
+                            "Beschreibung für {$key}",
+                            $current_user['member_id']
+                        ]);
+
+                        $old_values[$config_key] = $old_value ?: '(leer)';
+                        $new_values[$config_key] = $value;
+                        $updated_count++;
+                    }
+                }
+            }
+
+            if ($updated_count > 0) {
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'voting_rules_update',
+                    "Abstimmungsregeln aktualisiert: $updated_count Einstellungen geändert",
+                    'config',
+                    null,
+                    $old_values,
+                    $new_values
+                );
+
+                header('Location: ?tab=admin_init&msg=voting_rules_saved');
+                exit;
+            } else {
+                $success_message = "Keine Änderungen vorgenommen.";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Voting-Rules-Speichern: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Speichern: " . $e->getMessage();
+        }
+    }
+}
+
 // ============================================
 // 3. TODO-VERWALTUNG
 // ============================================
