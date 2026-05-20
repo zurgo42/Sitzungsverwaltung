@@ -8,6 +8,7 @@
 session_start();
 require_once 'session_config.php';
 require_once 'config.php';
+require_once 'includes/antragstypen_helper.php';
 
 // Prüfen ob eingeloggt
 if (!isset($_SESSION['member_id'])) {
@@ -25,6 +26,9 @@ $pdo = new PDO(
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]
 );
+
+// Antragstypen-Config laden
+$bart_config = lade_antragstypen_config($pdo);
 
 // Aktuellen User laden
 $user_stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");

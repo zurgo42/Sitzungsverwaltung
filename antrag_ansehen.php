@@ -7,6 +7,7 @@
 session_start();
 require_once 'session_config.php';
 require_once 'config.php';
+require_once 'includes/antragstypen_helper.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php');
@@ -19,6 +20,9 @@ $pdo = new PDO(
     DB_PASS,
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
 );
+
+// Antragstypen-Config laden
+$bart_config = lade_antragstypen_config($pdo);
 
 $user_stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
 $user_stmt->execute([$_SESSION['member_id']]);
@@ -90,7 +94,14 @@ if ($prefix === 'A') {
     $kann_bearbeiten = $ist_admin;
 }
 
-$bart_text = ['V' => 'Verfügung', 'R' => 'Ressortbeschluss', 'B' => 'Vorstandsbeschluss'];
+// Typ-Bezeichnungen aus Config
+$bart_text = get_aktive_typen($bart_config);
+// Fallback für alle Typen (auch wenn deaktiviert)
+foreach (['V', 'R', 'B'] as $typ) {
+    if (!isset($bart_text[$typ])) {
+        $bart_text[$typ] = get_typ_bezeichnung($typ, $bart_config);
+    }
+}
 $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vorstand'];
 ?>
 <!DOCTYPE html>

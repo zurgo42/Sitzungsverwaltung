@@ -283,9 +283,13 @@ render_user_notifications($pdo, $current_user['member_id']);
 
     <select name="bart">
         <option value="all" <?= $filter_bart === 'all' ? 'selected' : '' ?>>Alle Typen</option>
-        <option value="V" <?= $filter_bart === 'V' ? 'selected' : '' ?>>V - Verfügung</option>
-        <option value="R" <?= $filter_bart === 'R' ? 'selected' : '' ?>>R - Ressortbeschluss</option>
-        <option value="B" <?= $filter_bart === 'B' ? 'selected' : '' ?>>B - Vorstandsbeschluss</option>
+        <?php
+        $bart_config = $GLOBALS['bart_config'] ?? lade_antragstypen_config($pdo);
+        $aktive_typen = get_aktive_typen($bart_config);
+        foreach ($aktive_typen as $typ => $bezeichnung):
+        ?>
+            <option value="<?= $typ ?>" <?= $filter_bart === $typ ? 'selected' : '' ?>><?= htmlspecialchars($typ . ' - ' . $bezeichnung) ?></option>
+        <?php endforeach; ?>
     </select>
 
     <input type="text" name="search" placeholder="Suche..." value="<?= htmlspecialchars($search) ?>">
@@ -323,9 +327,18 @@ render_user_notifications($pdo, $current_user['member_id']);
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($antraege as $a):
+                <?php
+                // Typ-Bezeichnungen aus Config (einmal außerhalb der Schleife)
+                $bart_config = $GLOBALS['bart_config'] ?? lade_antragstypen_config($pdo);
+                $bart_bezeichnungen = [];
+                foreach (['V', 'R', 'B'] as $typ) {
+                    $bez = get_typ_bezeichnung($typ, $bart_config);
+                    // Kürzen für Tabelle
+                    $bart_bezeichnungen[$typ] = strlen($bez) > 12 ? substr($bez, 0, 12) : $bez;
+                }
+
+                foreach ($antraege as $a):
                     $prefix_a = substr($a['antrnr'], 0, 1);
-                    $bart_text = ['V' => 'Verfügung', 'R' => 'Ressort', 'B' => 'Vorstand'];
                 ?>
                     <tr>
                         <td>
@@ -356,7 +369,7 @@ render_user_notifications($pdo, $current_user['member_id']);
                         <td><?= htmlspecialchars($a['KurzN']) ?></td>
                         <td>
                             <?php if ($a['bart']): ?>
-                                <span class="badge status"><?= htmlspecialchars($bart_text[$a['bart']] ?? $a['bart']) ?></span>
+                                <span class="badge status"><?= htmlspecialchars($bart_bezeichnungen[$a['bart']] ?? $a['bart']) ?></span>
                             <?php endif; ?>
                         </td>
                         <td><?= $a['lzugriff'] ? date('d.m.Y H:i', strtotime($a['lzugriff'])) : '-' ?></td>

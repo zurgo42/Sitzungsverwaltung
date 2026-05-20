@@ -9,6 +9,7 @@
 session_start();
 require_once 'session_config.php';
 require_once 'config.php';
+require_once 'includes/antragstypen_helper.php';
 
 // Prüfen ob eingeloggt
 if (!isset($_SESSION['member_id'])) {
@@ -28,6 +29,10 @@ $pdo = new PDO(
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]
 );
+
+// Antragstypen-Config laden
+$bart_config = lade_antragstypen_config($pdo);
+$aktive_typen = get_aktive_typen($bart_config);
 
 /**
  * Generiert eine neue Folgenummer für Anträge
@@ -80,37 +85,245 @@ function generiereAntragsnummer($pdo, $prefix = 'A', $date = '') {
     return $prefix_pattern . str_pad($new_number, 2, '0', STR_PAD_LEFT);
 }
 
-try {
-    // Neue Antragsnummer generieren
-    $neue_antrnr = generiereAntragsnummer($pdo);
+// Prüfen ob Typen verfügbar sind
+if (empty($aktive_typen)) {
+    die('Fehler: Keine Antragstypen aktiviert. Bitte kontaktiere einen Administrator.');
+}
 
-    // Neuen Antrag in Datenbank erstellen (Minimalversion im Status A = Editing)
-    $stmt = $pdo->prepare("
-        INSERT INTO antraege (
-            antrnr,
-            antrst,
-            bart,
-            titel,
-            beschluss,
-            fin,
-            lzugriff
-        ) VALUES (?, ?, 'A', '', '', '0', NOW())
-    ");
+// Wenn POST-Request: Antrag erstellen
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $selected_bart = $_POST['bart'] ?? '';
 
-    $stmt->execute([
-        $neue_antrnr,
-        $current_user_id
-    ]);
+    // Validierung
+    if (!isset($aktive_typen[$selected_bart])) {
+        die('Fehler: Ungültiger Antragstyp ausgewählt.');
+    }
 
-    // Zur Bearbeitung weiterleiten
-    header('Location: antrag_bearbeiten.php?antrnr=' . urlencode($neue_antrnr) . '&created=1');
-    exit;
+    try {
+        // Neue Antragsnummer generieren
+        $neue_antrnr = generiereAntragsnummer($pdo);
 
-} catch (Exception $e) {
-    // Fehlerbehandlung
-    error_log("Fehler beim Erstellen eines neuen Antrags: " . $e->getMessage());
+        // Neuen Antrag in Datenbank erstellen (Minimalversion im Status A = Editing)
+        $stmt = $pdo->prepare("
+            INSERT INTO antraege (
+                antrnr,
+                antrst,
+                bart,
+                titel,
+                beschluss,
+                fin,
+                lzugriff
+            ) VALUES (?, ?, ?, '', '', '0', NOW())
+        ");
 
-    // Zurück zur Antragsliste mit Fehlermeldung
-    header('Location: antragsliste.php?error=' . urlencode('Fehler beim Erstellen: ' . $e->getMessage()));
+        $stmt->execute([
+            $neue_antrnr,
+            $current_user_id,
+            $selected_bart
+        ]);
+
+        // Zur Bearbeitung weiterleiten
+        header('Location: antrag_bearbeiten.php?antrnr=' . urlencode($neue_antrnr) . '&created=1');
+        exit;
+
+    } catch (Exception $e) {
+        // Fehlerbehandlung
+        error_log("Fehler beim Erstellen eines neuen Antrags: " . $e->getMessage());
+        $error_message = 'Fehler beim Erstellen: ' . $e->getMessage();
+    }
+}
+
+// Wenn nur ein Typ aktiv: Direkt erstellen ohne Auswahl
+if (count($aktive_typen) === 1) {
+    $default_bart = array_key_first($aktive_typen);
+    $_POST['bart'] = $default_bart;
+    $_SERVER['REQUEST_METHOD'] = 'POST';
+    // Script wird oben nochmal ausgeführt
+    header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
 }
+
+// Mehrere Typen: Auswahlformular anzeigen
+?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neuer Antrag</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .type-option {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .type-option:hover {
+            border-color: #2196f3;
+            background: #f0f7ff;
+        }
+
+        .type-option input[type="radio"] {
+            margin-right: 15px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .type-option label {
+            cursor: pointer;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .type-content {
+            flex: 1;
+        }
+
+        .type-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .type-desc {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .type-meta {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+        }
+
+        .btn-primary {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: #1976d2;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+            border: 1px solid #ddd;
+            padding: 12px 30px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Neuen Antrag erstellen</h1>
+        <p class="subtitle">Wähle die Art des Antrags aus:</p>
+
+        <?php if (isset($error_message)): ?>
+            <div class="error"><?= htmlspecialchars($error_message) ?></div>
+        <?php endif; ?>
+
+        <form method="POST">
+            <?php foreach ($aktive_typen as $typ => $bezeichnung): ?>
+                <div class="type-option">
+                    <label>
+                        <input type="radio" name="bart" value="<?= htmlspecialchars($typ) ?>" required>
+                        <div class="type-content">
+                            <div class="type-name"><?= htmlspecialchars($bezeichnung) ?></div>
+                            <?php
+                            $beschreibung = get_typ_beschreibung($typ, $bart_config);
+                            if ($beschreibung):
+                            ?>
+                                <div class="type-desc"><?= htmlspecialchars($beschreibung) ?></div>
+                            <?php endif; ?>
+
+                            <?php
+                            $meta_info = [];
+                            if ($bart_config["bart_{$typ}_betrag_aktiv"] ?? false) {
+                                $limit = $bart_config["bart_{$typ}_betrag_limit"] ?? 0;
+                                if ($limit > 0) {
+                                    $meta_info[] = "Max. {$limit}€";
+                                }
+                            }
+                            if ($bart_config["bart_{$typ}_wartezeit_aktiv"] ?? false) {
+                                $tage = $bart_config["bart_{$typ}_wartezeit_tage"] ?? 0;
+                                if ($tage > 0) {
+                                    $meta_info[] = "Wartezeit: {$tage} Tage";
+                                }
+                            }
+                            if (!empty($meta_info)):
+                            ?>
+                                <div class="type-meta"><?= htmlspecialchars(implode(' • ', $meta_info)) ?></div>
+                            <?php endif; ?>
+                        </div>
+                    </label>
+                </div>
+            <?php endforeach; ?>
+
+            <button type="submit" class="btn-primary">Antrag erstellen</button>
+            <a href="index.php?tab=proposals" class="btn-secondary">Abbrechen</a>
+        </form>
+    </div>
+</body>
+</html>

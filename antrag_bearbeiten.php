@@ -7,6 +7,7 @@
 session_start();
 require_once 'session_config.php';
 require_once 'config.php';
+require_once 'includes/antragstypen_helper.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php');
@@ -19,6 +20,9 @@ $pdo = new PDO(
     DB_PASS,
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
 );
+
+// Antragstypen-Config laden
+$bart_config = lade_antragstypen_config($pdo);
 
 // Hilfsfunktionen
 function getUserData($pdo, $member_id) {
@@ -69,15 +73,22 @@ function getAbstimmungsberechtigte($pdo, $bart, $antrst) {
     return $pdo->query("SELECT ID, KurzN, Funktion FROM berechtigte WHERE aktiv >= 18 ORDER BY Funktion DESC, KurzN ASC")->fetchAll();
 }
 
-function berechneWartezeit($antrnr) {
+function berechneWartezeit($antrnr, $bart, $bart_config) {
     if (strlen($antrnr) < 7) return null;
     $jahr = '20' . substr($antrnr, 1, 2);
     $monat = substr($antrnr, 3, 2);
     $tag = substr($antrnr, 5, 2);
     $antragsdatum = strtotime("$jahr-$monat-$tag");
     if (!$antragsdatum) return null;
-    $wartezeit_bis = $antragsdatum + (7 * 24 * 60 * 60);
-    return time() >= $wartezeit_bis ? 'erfüllt' : date('d.m.Y', $wartezeit_bis);
+
+    // Wartezeit aus Config laden
+    $wz = berechne_wartezeit($bart, $antragsdatum, $bart_config);
+
+    if (!$wz['aktiv']) {
+        return 'erfüllt'; // Keine Wartezeit konfiguriert
+    }
+
+    return $wz['erfuellt'] ? 'erfüllt' : date('d.m.Y', $wz['ablauf']);
 }
 
 function berechneMonatssumme($pdo, $member_id, $antrnr) {
@@ -195,6 +206,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Speichern-Funktion
 function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
+    global $bart_config; // Config aus globalem Scope
+
     $fin = floatval($post['fin'] ?? 0);
 
     // Admin kann Antragsteller ändern
@@ -207,6 +220,13 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     $monatssumme = berechneMonatssumme($pdo, $antrst, $antrnr);
     if ($fin < 600 && ($monatssumme + $fin) > 2000) {
         throw new Exception("Monatliche Verfügungsgrenze von 2000€ überschritten! Aktuelle Summe: " . number_format($monatssumme, 2) . "€");
+    }
+
+    // Betragsvalidierung basierend auf Antragstyp
+    $current_bart = $antrag['bart'] ?? 'V';
+    $betrag_check = validiere_betrag($current_bart, $fin, $bart_config);
+    if (!$betrag_check['valid']) {
+        throw new Exception($betrag_check['message']);
     }
 
     // Wichtig-Flag Logik - NUR bei action=save ändern, nicht bei finalize
@@ -237,12 +257,19 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     }
 
     // bart berechnen - aber wichtig hat Vorrang
+    // NEUE LOGIK: bart ist meist schon beim Erstellen gesetzt (aus antrag_neu.php)
+    // Fallback für alte Anträge: automatische Berechnung basierend auf Betrag
     if ($wichtig > 0) {
         $bart = 'B'; // Immer Vorstandsbeschluss wenn wichtig gesetzt
         error_log("DEBUG: bart='B' (wichtig=" . $wichtig . ")");
+    } elseif (!empty($antrag['bart']) && in_array($antrag['bart'], ['V', 'R', 'B'])) {
+        // Vorhandenen bart beibehalten (wurde bei Erstellung gewählt)
+        $bart = $antrag['bart'];
+        error_log("DEBUG: bart='" . $bart . "' (bereits gesetzt)");
     } else {
+        // Fallback: automatische Berechnung (für alte Anträge ohne gesetzten bart)
         $bart = ($monatssumme + $fin) > 600 || $fin >= 600 ? ($fin <= 3000 ? 'R' : 'B') : 'V';
-        error_log("DEBUG: bart='" . $bart . "' (wichtig=0, fin=" . $fin . ", monatssumme=" . $monatssumme . ")");
+        error_log("DEBUG: bart='" . $bart . "' (automatisch berechnet, fin=" . $fin . ", monatssumme=" . $monatssumme . ")");
     }
 
     // sofort-Wert
@@ -426,8 +453,8 @@ function wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user) {
 $ressorts = $pdo->query("SELECT ID as ressort, Ressort as klartext FROM svressorts ORDER BY Reihenfolge, ID")->fetchAll();
 $verfuegungsber = getVerfuegungsberechtigte($pdo);
 $abstimmende = getAbstimmungsberechtigte($pdo, $antrag['bart'], $antrag['antrst']);
-$wartezeit = berechneWartezeit($antrnr);
-$wartezeit_erfuellt = ($wartezeit === 'erfüllt' || ($antrag['verk1'] && $antrag['verk2']) || $antrag['bart'] === 'B');
+$wartezeit = berechneWartezeit($antrnr, $antrag['bart'], $bart_config);
+$wartezeit_erfuellt = ($wartezeit === 'erfüllt' || ($antrag['verk1'] && $antrag['verk2']));
 $monatssumme = berechneMonatssumme($pdo, $antrag['antrst'], $antrnr);
 
 $blockiert = false;
@@ -592,7 +619,7 @@ if ($user['aktiv'] >= 19) {
                 <div class="form-row">
                     <div class="form-group">
                         <label>Beschlussart</label>
-                        <input type="text" value="<?= $antrag['bart'] === 'V' ? 'Verfügung' : ($antrag['bart'] === 'R' ? 'Ressortbeschluss' : 'Vorstandsbeschluss') ?>" class="read-only" readonly>
+                        <input type="text" value="<?= htmlspecialchars(get_typ_bezeichnung($antrag['bart'], $bart_config)) ?>" class="read-only" readonly>
                     </div>
 
                     <?php if ($antrag['bart'] === 'V' || $antrag['bart'] === 'R'): ?>

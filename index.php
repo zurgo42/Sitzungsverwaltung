@@ -25,10 +25,11 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Konfiguration laden
-require_once 'config.php';           // Datenbankverbindung und Konstanten
-require_once 'config_adapter.php';   // Konfiguration für Mitgliederquelle
-require_once 'member_functions.php'; // Prozedurale Wrapper-Funktionen für Mitglieder
-require_once 'functions.php';        // Wiederverwendbare Funktionen
+require_once 'config.php';                    // Datenbankverbindung und Konstanten
+require_once 'config_adapter.php';            // Konfiguration für Mitgliederquelle
+require_once 'member_functions.php';          // Prozedurale Wrapper-Funktionen für Mitglieder
+require_once 'functions.php';                 // Wiederverwendbare Funktionen
+require_once 'includes/antragstypen_helper.php'; // Antragstypen-Konfiguration
 
 // ============================================
 // GLOBALES MEMBERS-ARRAY (für SSO und Standard-Modus)
@@ -40,6 +41,12 @@ $GLOBALS['members_by_id'] = [];
 foreach ($GLOBALS['all_members'] as $member) {
     $GLOBALS['members_by_id'][$member['member_id']] = $member;
 }
+
+// ============================================
+// ANTRAGSTYPEN-KONFIGURATION
+// ============================================
+// Einmal laden und global verfügbar machen
+$GLOBALS['bart_config'] = lade_antragstypen_config($pdo);
 
 /**
  * Hilfsfunktion: Holt Member-Daten nach ID aus dem globalen Array
