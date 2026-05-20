@@ -882,6 +882,143 @@ if (isset($_POST['save_aktiv_levels'])) {
     }
 }
 
+/**
+ * ANTRAGSTYPEN SPEICHERN
+ *
+ * POST-Parameter:
+ * - save_antragstypen: 1
+ * - bart: Array mit Typ-Konfigurationen
+ */
+if (isset($_POST['save_antragstypen'])) {
+    $bart_data = $_POST['bart'] ?? [];
+
+    if (empty($bart_data)) {
+        $error_message = "Keine Antragstypen-Daten übermittelt.";
+    } else {
+        try {
+            $updated_count = 0;
+            $old_values = [];
+            $new_values = [];
+
+            // Die drei Typen durchgehen
+            $typen = ['V', 'R', 'B'];
+            foreach ($typen as $typ) {
+                if (!isset($bart_data[$typ])) {
+                    continue;
+                }
+
+                $typ_data = $bart_data[$typ];
+
+                // Alle Felder für diesen Typ
+                $fields = [
+                    'aktiv' => isset($typ_data['aktiv']) ? '1' : '0',
+                    'bezeichnung' => $typ_data['bezeichnung'] ?? '',
+                    'beschreibung' => $typ_data['beschreibung'] ?? '',
+                    'betrag_aktiv' => isset($typ_data['betrag_aktiv']) ? '1' : '0',
+                    'betrag_limit' => intval($typ_data['betrag_limit'] ?? 0),
+                    'wartezeit_aktiv' => isset($typ_data['wartezeit_aktiv']) ? '1' : '0',
+                    'wartezeit_tage' => intval($typ_data['wartezeit_tage'] ?? 0),
+                    'freigabe_vereinfacht' => isset($typ_data['freigabe_vereinfacht']) ? '1' : '0'
+                ];
+
+                foreach ($fields as $field => $value) {
+                    $config_key = "bart_{$typ}_{$field}";
+                    $config_type = is_numeric($value) ? 'number' : (in_array($value, ['0', '1']) ? 'boolean' : 'text');
+
+                    // Alten Wert abrufen
+                    $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                    $stmt->execute([$config_key]);
+                    $old_value = $stmt->fetchColumn();
+
+                    if ($old_value != $value) {
+                        // Wert aktualisieren oder einfügen
+                        $update_stmt = $pdo->prepare("
+                            INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                            VALUES (?, ?, ?, ?, 'antragstypen', ?)
+                            ON DUPLICATE KEY UPDATE
+                                config_value = VALUES(config_value),
+                                updated_by = VALUES(updated_by),
+                                updated_at = NOW()
+                        ");
+                        $update_stmt->execute([
+                            $config_key,
+                            $value,
+                            $config_type,
+                            "Typ $typ - $field",
+                            $current_user['member_id']
+                        ]);
+
+                        $old_values[$config_key] = $old_value ?: '(leer)';
+                        $new_values[$config_key] = $value;
+                        $updated_count++;
+                    }
+                }
+            }
+
+            // Globale Einstellungen
+            if (isset($bart_data['global'])) {
+                $global_fields = [
+                    'show_betrag_in_liste' => isset($bart_data['global']['show_betrag_in_liste']) ? '1' : '0',
+                    'pflicht_bei_betrag' => intval($bart_data['global']['pflicht_bei_betrag'] ?? 100)
+                ];
+
+                foreach ($global_fields as $field => $value) {
+                    $config_key = "bart_{$field}";
+                    $config_type = is_numeric($value) && !in_array($value, ['0', '1']) ? 'number' : 'boolean';
+
+                    $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                    $stmt->execute([$config_key]);
+                    $old_value = $stmt->fetchColumn();
+
+                    if ($old_value != $value) {
+                        $update_stmt = $pdo->prepare("
+                            INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                            VALUES (?, ?, ?, ?, 'antragstypen', ?)
+                            ON DUPLICATE KEY UPDATE
+                                config_value = VALUES(config_value),
+                                updated_by = VALUES(updated_by),
+                                updated_at = NOW()
+                        ");
+                        $update_stmt->execute([
+                            $config_key,
+                            $value,
+                            $config_type,
+                            "Global - $field",
+                            $current_user['member_id']
+                        ]);
+
+                        $old_values[$config_key] = $old_value ?: '(leer)';
+                        $new_values[$config_key] = $value;
+                        $updated_count++;
+                    }
+                }
+            }
+
+            if ($updated_count > 0) {
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'antragstypen_update',
+                    "Antragstypen aktualisiert: $updated_count Einstellungen geändert",
+                    'config',
+                    null,
+                    $old_values,
+                    $new_values
+                );
+
+                header('Location: ?tab=admin_init&msg=antragstypen_saved');
+                exit;
+            } else {
+                $success_message = "Keine Änderungen vorgenommen.";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Antragstypen-Speichern: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Speichern: " . $e->getMessage();
+        }
+    }
+}
+
 // ============================================
 // 3. TODO-VERWALTUNG
 // ============================================

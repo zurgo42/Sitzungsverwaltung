@@ -155,6 +155,8 @@ body.dark-mode .init-danger-list {
             <div class="message">✅ Terminologie erfolgreich gespeichert!</div>
         <?php elseif ($_GET['msg'] === 'levels_saved'): ?>
             <div class="message">✅ aktiv-Level erfolgreich gespeichert!</div>
+        <?php elseif ($_GET['msg'] === 'antragstypen_saved'): ?>
+            <div class="message">✅ Antragstypen erfolgreich gespeichert!</div>
         <?php endif; ?>
     <?php endif; ?>
 
@@ -533,9 +535,194 @@ body.dark-mode .init-danger-list {
         </div>
     </div>
 
+    <!-- 5. ANTRAGSTYPEN / BESCHLUSSARTEN -->
+    <div class="admin-section">
+        <h3 class="admin-section-header init-section-header" onclick="toggleSection(this)">
+            📋 Antragstypen / Beschlussarten
+        </h3>
+
+        <div class="admin-section-content collapsed">
+            <p style="margin-bottom: 20px; color: #666; font-size: 13px;">
+                Konfiguration der drei Antragstypen: <strong>V</strong> (Verfügung), <strong>R</strong> (Ressortbeschluss), <strong>B</strong> (Vorstandsbeschluss).<br>
+                Nicht benötigte Typen können deaktiviert werden. Kleine Vereine können z.B. nur Vorstandsbeschlüsse nutzen.
+            </p>
+
+            <?php
+            // Antragstypen-Konfiguration laden
+            $bart_config_stmt = $pdo->query("
+                SELECT * FROM svconfig
+                WHERE category = 'antragstypen'
+                ORDER BY config_key
+            ");
+            $bart_configs = $bart_config_stmt->fetchAll();
+
+            // Configs in Array organisieren
+            $bart = [];
+            foreach ($bart_configs as $cfg) {
+                $bart[$cfg['config_key']] = $cfg['config_value'];
+            }
+            ?>
+
+            <form method="POST" action="?tab=admin_init">
+                <input type="hidden" name="save_antragstypen" value="1">
+
+                <?php
+                $typen = [
+                    'V' => ['name' => 'Verfügung', 'color' => '#e3f2fd', 'border' => '#2196f3'],
+                    'R' => ['name' => 'Ressortbeschluss', 'color' => '#fff3e0', 'border' => '#ff9800'],
+                    'B' => ['name' => 'Vorstandsbeschluss', 'color' => '#fce4ec', 'border' => '#e91e63']
+                ];
+
+                foreach ($typen as $typ => $typ_info):
+                    $aktiv = ($bart["bart_{$typ}_aktiv"] ?? '1') == '1';
+                ?>
+
+                <!-- TYP <?php echo $typ; ?> -->
+                <div style="background: <?php echo $typ_info['color']; ?>; border-left: 4px solid <?php echo $typ_info['border']; ?>; padding: 20px; margin-bottom: 20px; border-radius: 4px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <h4 style="margin: 0; font-size: 16px;">
+                            Typ <?php echo $typ; ?>: <?php echo $typ_info['name']; ?>
+                        </h4>
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600;">
+                            <input type="checkbox" name="bart[<?php echo $typ; ?>][aktiv]" value="1"
+                                   <?php echo $aktiv ? 'checked' : ''; ?>
+                                   onchange="toggleTypSection('<?php echo $typ; ?>', this.checked)">
+                            <span style="color: <?php echo $aktiv ? '#28a745' : '#999'; ?>;">
+                                <?php echo $aktiv ? '✓ Aktiviert' : '⊗ Deaktiviert'; ?>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div id="typ_<?php echo $typ; ?>_details" style="<?php echo !$aktiv ? 'opacity: 0.5; pointer-events: none;' : ''; ?>">
+                        <!-- Bezeichnung -->
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Bezeichnung:</label>
+                            <input type="text" name="bart[<?php echo $typ; ?>][bezeichnung]"
+                                   value="<?php echo htmlspecialchars($bart["bart_{$typ}_bezeichnung"] ?? $typ_info['name']); ?>"
+                                   style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+
+                        <!-- Beschreibung -->
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Beschreibung:</label>
+                            <input type="text" name="bart[<?php echo $typ; ?>][beschreibung]"
+                                   value="<?php echo htmlspecialchars($bart["bart_{$typ}_beschreibung"] ?? ''); ?>"
+                                   placeholder="Kurze Erklärung dieses Typs"
+                                   style="width: 100%; max-width: 600px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+
+                        <!-- Betragsgrenze -->
+                        <div style="background: white; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 10px;">
+                                <input type="checkbox" name="bart[<?php echo $typ; ?>][betrag_aktiv]" value="1"
+                                       <?php echo ($bart["bart_{$typ}_betrag_aktiv"] ?? '0') == '1' ? 'checked' : ''; ?>
+                                       onchange="toggleSubOption('betrag_<?php echo $typ; ?>', this.checked)">
+                                <strong>Betragsgrenze aktiv</strong>
+                            </label>
+                            <div id="betrag_<?php echo $typ; ?>_details" style="margin-left: 30px; <?php echo ($bart["bart_{$typ}_betrag_aktiv"] ?? '0') != '1' ? 'opacity: 0.5; pointer-events: none;' : ''; ?>">
+                                <label style="display: block; margin-bottom: 5px;">Maximaler Betrag (€):</label>
+                                <input type="number" name="bart[<?php echo $typ; ?>][betrag_limit]"
+                                       value="<?php echo htmlspecialchars($bart["bart_{$typ}_betrag_limit"] ?? '0'); ?>"
+                                       min="0" step="1"
+                                       style="width: 150px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                                <small style="display: block; margin-top: 5px; color: #666;">
+                                    Anträge dieses Typs dürfen diesen Betrag nicht überschreiten (0 = keine Grenze)
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Wartezeit -->
+                        <div style="background: white; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 10px;">
+                                <input type="checkbox" name="bart[<?php echo $typ; ?>][wartezeit_aktiv]" value="1"
+                                       <?php echo ($bart["bart_{$typ}_wartezeit_aktiv"] ?? '0') == '1' ? 'checked' : ''; ?>
+                                       onchange="toggleSubOption('wartezeit_<?php echo $typ; ?>', this.checked)">
+                                <strong>Wartezeit aktiv</strong>
+                            </label>
+                            <div id="wartezeit_<?php echo $typ; ?>_details" style="margin-left: 30px; <?php echo ($bart["bart_{$typ}_wartezeit_aktiv"] ?? '0') != '1' ? 'opacity: 0.5; pointer-events: none;' : ''; ?>">
+                                <label style="display: block; margin-bottom: 5px;">Wartezeit (Tage):</label>
+                                <input type="number" name="bart[<?php echo $typ; ?>][wartezeit_tage]"
+                                       value="<?php echo htmlspecialchars($bart["bart_{$typ}_wartezeit_tage"] ?? '0'); ?>"
+                                       min="0" max="365" step="1"
+                                       style="width: 150px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                                <small style="display: block; margin-top: 5px; color: #666;">
+                                    Anträge müssen diese Zeit zur Prüfung ausliegen, bevor sie beschlossen werden können
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Freigabe-Vereinfachung -->
+                        <div style="background: white; padding: 12px; border-radius: 4px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" name="bart[<?php echo $typ; ?>][freigabe_vereinfacht]" value="1"
+                                       <?php echo ($bart["bart_{$typ}_freigabe_vereinfacht"] ?? '0') == '1' ? 'checked' : ''; ?>>
+                                <strong>Vereinfachte Freigabe</strong>
+                            </label>
+                            <small style="display: block; margin-top: 5px; margin-left: 30px; color: #666;">
+                                Ermöglicht automatische oder vereinfachte Freigabe-Regeln für diesen Typ
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <?php endforeach; ?>
+
+                <!-- Globale Einstellungen -->
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 4px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 15px 0; font-size: 14px;">Globale Einstellungen</h4>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" name="bart[global][show_betrag_in_liste]" value="1"
+                                   <?php echo ($bart['bart_show_betrag_in_liste'] ?? '1') == '1' ? 'checked' : ''; ?>>
+                            <strong>Beträge in Antragsliste anzeigen</strong>
+                        </label>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">
+                            Betragsangabe ist Pflicht ab (€):
+                        </label>
+                        <input type="number" name="bart[global][pflicht_bei_betrag]"
+                               value="<?php echo htmlspecialchars($bart['bart_pflicht_bei_betrag'] ?? '100'); ?>"
+                               min="0" step="1"
+                               style="width: 150px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                        <small style="display: block; margin-top: 5px; color: #666;">
+                            Ab diesem Betrag muss eine Betragsangabe im Antrag gemacht werden
+                        </small>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn-primary">Antragstypen speichern</button>
+                    <span style="margin-left: 15px; color: #dc3545; font-size: 12px;">
+                        ⚠️ Änderungen wirken sich auf das Antragsverhalten aus
+                    </span>
+                </div>
+            </form>
+
+            <script>
+            function toggleTypSection(typ, enabled) {
+                const details = document.getElementById('typ_' + typ + '_details');
+                if (details) {
+                    details.style.opacity = enabled ? '1' : '0.5';
+                    details.style.pointerEvents = enabled ? 'auto' : 'none';
+                }
+            }
+
+            function toggleSubOption(prefix, enabled) {
+                const details = document.getElementById(prefix + '_details');
+                if (details) {
+                    details.style.opacity = enabled ? '1' : '0.5';
+                    details.style.pointerEvents = enabled ? 'auto' : 'none';
+                }
+            }
+            </script>
+        </div>
+    </div>
+
     <!-- PLATZHALTER FÜR WEITERE BEREICHE -->
     <!-- Hier werden später weitere Konfigurationsbereiche hinzugefügt:
-         - Antragstypen (V, R, B)
          - Workflow-Status (A, B, VS, X, Z)
          - Abstimmungsregeln
          - etc.
