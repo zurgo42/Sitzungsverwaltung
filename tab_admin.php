@@ -72,6 +72,43 @@ require_once 'module_notifications.php';
 .compact-log-table td {
     padding: 6px 8px !important;
 }
+
+/* End Meeting Modal */
+#end-meeting-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+#end-meeting-modal .modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.btn-warning {
+    background: #ff9800;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-warning:hover {
+    background: #f57c00;
+}
 </style>
 
 <!-- BENACHRICHTIGUNGEN -->
@@ -173,6 +210,13 @@ require_once 'module_notifications.php';
                     <td><?php echo $meeting['agenda_count']; ?></td>
                     <td class="action-buttons">
                         <button class="btn-view" onclick="editMeeting(<?php echo $meeting['meeting_id']; ?>)">✏️</button>
+                        <?php if ($meeting['status'] === 'active'): ?>
+                            <button class="btn-warning"
+                                    onclick="showEndMeetingModal(<?php echo $meeting['meeting_id']; ?>, '<?php echo htmlspecialchars($meeting['meeting_name'], ENT_QUOTES); ?>')"
+                                    title="Sitzung manuell beenden">
+                                ⏹️
+                            </button>
+                        <?php endif; ?>
                         <form method="POST" onsubmit="return confirm('Meeting wirklich löschen? Alle TOPs und Kommentare gehen verloren!');">
                             <input type="hidden" name="meeting_id" value="<?php echo $meeting['meeting_id']; ?>">
                             <button type="submit" name="delete_meeting" class="btn-delete">🗑️</button>
@@ -284,6 +328,40 @@ require_once 'module_notifications.php';
             </form>
         </div>
     </div>
+
+    <!-- End Meeting Modal (für Admins) -->
+    <div id="end-meeting-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>⏹️ Sitzung manuell beenden</h3>
+            <p style="color: #dc3545; margin-bottom: 15px;">
+                <strong>⚠️ Hinweis:</strong> Diese Funktion sollte nur verwendet werden, wenn der Protokollant
+                vergessen hat, die Sitzung zu beenden.
+            </p>
+            <form method="POST" id="end-meeting-form">
+                <input type="hidden" name="admin_end_meeting" value="1">
+                <input type="hidden" name="meeting_id" id="end_meeting_id">
+
+                <div class="form-group">
+                    <label>Meeting:</label>
+                    <input type="text" id="end_meeting_name" readonly style="background: #f5f5f5;">
+                </div>
+
+                <div class="form-group">
+                    <label>Endzeitpunkt:</label>
+                    <input type="datetime-local" name="end_time" id="end_meeting_time" required>
+                    <small style="display: block; margin-top: 5px; color: #666;">
+                        Trage hier den tatsächlichen Endzeitpunkt der Sitzung ein
+                    </small>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn-danger">Sitzung beenden</button>
+                    <button type="button" onclick="closeEndMeetingModal()" class="btn-secondary">Abbrechen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     </div> <!-- End admin-section-content -->
 </div>
 
@@ -1422,6 +1500,28 @@ function editMeeting(meetingId) {
 
 function closeEditMeetingModal() {
     document.getElementById('edit-meeting-modal').classList.remove('show');
+}
+
+// Sitzung manuell beenden (Admin-Funktion)
+function showEndMeetingModal(meetingId, meetingName) {
+    document.getElementById('end_meeting_id').value = meetingId;
+    document.getElementById('end_meeting_name').value = meetingName;
+
+    // Aktuellen Zeitpunkt als Vorschlag eintragen
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const datetimeLocal = `${year}-${month}-${day}T${hours}:${minutes}`;
+    document.getElementById('end_meeting_time').value = datetimeLocal;
+
+    document.getElementById('end-meeting-modal').style.display = 'flex';
+}
+
+function closeEndMeetingModal() {
+    document.getElementById('end-meeting-modal').style.display = 'none';
 }
 
 // Mitglied bearbeiten

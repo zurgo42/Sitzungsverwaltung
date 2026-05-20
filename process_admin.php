@@ -242,6 +242,78 @@ if (isset($_POST['edit_meeting'])) {
 }
 
 /**
+ * Meeting manuell beenden (Admin-Funktion)
+ *
+ * POST-Parameter:
+ * - admin_end_meeting: 1
+ * - meeting_id: Int (required)
+ * - end_time: DateTime (required)
+ *
+ * Aktion:
+ * - Status auf 'ended' setzen
+ * - end_time setzen
+ * - Admin-Aktion protokollieren
+ */
+if (isset($_POST['admin_end_meeting'])) {
+    $meeting_id = intval($_POST['meeting_id'] ?? 0);
+    $end_time = $_POST['end_time'] ?? '';
+
+    if (!$meeting_id) {
+        $error_message = "Ungültige Meeting-ID.";
+    } elseif (empty($end_time)) {
+        $error_message = "Endzeitpunkt muss angegeben werden.";
+    } else {
+        try {
+            // Datetime-Format konvertieren
+            if (!empty($end_time)) {
+                $end_time = str_replace('T', ' ', $end_time) . ':00';
+            }
+
+            // Alte Daten für Log abrufen
+            $stmt = $pdo->prepare("SELECT meeting_name, status, end_time FROM svmeetings WHERE meeting_id = ?");
+            $stmt->execute([$meeting_id]);
+            $old_meeting = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$old_meeting) {
+                $error_message = "Meeting nicht gefunden.";
+            } else {
+                // Meeting beenden
+                $stmt = $pdo->prepare("
+                    UPDATE svmeetings
+                    SET status = 'ended',
+                        end_time = ?
+                    WHERE meeting_id = ?
+                ");
+                $stmt->execute([$end_time, $meeting_id]);
+
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'meeting_admin_end',
+                    "Meeting manuell beendet: {$old_meeting['meeting_name']}",
+                    'meeting',
+                    $meeting_id,
+                    [
+                        'status' => $old_meeting['status'],
+                        'end_time' => $old_meeting['end_time'] ?? 'NULL'
+                    ],
+                    [
+                        'status' => 'ended',
+                        'end_time' => $end_time
+                    ]
+                );
+
+                $success_message = "✅ Sitzung wurde erfolgreich beendet.";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim manuellen Beenden der Sitzung: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Beenden: " . $e->getMessage();
+        }
+    }
+}
+
+/**
  * Meeting löschen
  * 
  * POST-Parameter:
