@@ -4,8 +4,8 @@
  * Zeigt ALLE Felder aus dem Bearbeitungsformular in kompakter Form
  */
 
-session_start();
 require_once 'session_config.php';
+session_start();
 require_once 'config.php';
 require_once 'includes/antragstypen_helper.php';
 require_once 'includes/voting_helper.php';

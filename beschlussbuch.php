@@ -5,8 +5,8 @@
  * Zeigt alle VS-Beschlüsse aus der beschluesse-Tabelle
  */
 
-session_start();
 require_once 'session_config.php';
+session_start();
 require_once 'config.php';
 
 if (!isset($_SESSION['member_id'])) {

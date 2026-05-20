@@ -5,8 +5,8 @@
  * Zeigt alle Anträge ohne VS-Präfix (offene Anträge)
  */
 
-session_start();
 require_once 'session_config.php';
+session_start();
 require_once 'config.php';
 require_once 'includes/antragstypen_helper.php';
 
