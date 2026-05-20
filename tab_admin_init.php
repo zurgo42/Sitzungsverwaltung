@@ -153,6 +153,8 @@ body.dark-mode .init-danger-list {
             <div class="message">✅ Ressort erfolgreich gelöscht!</div>
         <?php elseif ($_GET['msg'] === 'terminology_saved'): ?>
             <div class="message">✅ Terminologie erfolgreich gespeichert!</div>
+        <?php elseif ($_GET['msg'] === 'levels_saved'): ?>
+            <div class="message">✅ aktiv-Level erfolgreich gespeichert!</div>
         <?php endif; ?>
     <?php endif; ?>
 
@@ -410,48 +412,72 @@ body.dark-mode .init-danger-list {
                 Diese Stufen steuern, wer welche Aktionen durchführen darf.
             </p>
 
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                <h4 style="margin: 0 0 10px 0; font-size: 14px;">Standard-Level (Mensa-Konzept):</h4>
-                <table style="width: 100%; font-size: 13px;">
-                    <tr>
-                        <td style="padding: 5px; width: 80px; font-weight: 600;">0</td>
-                        <td style="padding: 5px;">Inaktiv / kein Zugriff</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 5px; font-weight: 600;">1-9</td>
-                        <td style="padding: 5px;">Gast / nur Leserechte</td>
-                    </tr>
-                    <tr style="background: #e8f5e9;">
-                        <td style="padding: 5px; font-weight: 600;">10</td>
-                        <td style="padding: 5px;"><strong>Mitglied</strong> - kann Anträge stellen</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 5px; font-weight: 600;">11-13</td>
-                        <td style="padding: 5px;">Erweiterte Mitglieder-Rechte</td>
-                    </tr>
-                    <tr style="background: #fff3e0;">
-                        <td style="padding: 5px; font-weight: 600;">14-17</td>
-                        <td style="padding: 5px;"><strong>Ressortleiter</strong> - kann über Ressort-Anträge abstimmen</td>
-                    </tr>
-                    <tr style="background: #e3f2fd;">
-                        <td style="padding: 5px; font-weight: 600;">18</td>
-                        <td style="padding: 5px;"><strong>Vorstand</strong> - kann über Vorstands-Anträge abstimmen</td>
-                    </tr>
-                    <tr style="background: #fce4ec;">
-                        <td style="padding: 5px; font-weight: 600;">19</td>
-                        <td style="padding: 5px;"><strong>Admin</strong> - volle Rechte, kann System konfigurieren</td>
-                    </tr>
-                </table>
+            <?php
+            // aktiv-Level Konfiguration laden
+            $level_config_stmt = $pdo->query("
+                SELECT * FROM svconfig
+                WHERE category = 'aktiv_levels'
+                ORDER BY config_key
+            ");
+            $level_configs = $level_config_stmt->fetchAll();
 
-                <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">
-                    💡 Diese Stufen können in svmembers bei jedem Mitglied individuell gesetzt werden.
-                </p>
-            </div>
+            // Level-Array erstellen (0-19)
+            $levels = [];
+            foreach ($level_configs as $cfg) {
+                $level_num = (int)str_replace('aktiv_level_', '', $cfg['config_key']);
+                $levels[$level_num] = $cfg['config_value'];
+            }
+            ?>
 
-            <p style="font-size: 12px; color: #999;">
-                Die Berechtigungsstufen sind aktuell fest kodiert. Eine Konfiguration der Level-Bedeutungen
-                folgt in einem späteren Schritt.
-            </p>
+            <form method="POST" action="?tab=admin_init">
+                <input type="hidden" name="save_aktiv_levels" value="1">
+
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px;">Standard-Level (in Anlehnung an einen großen Verein):</h4>
+                    <p style="margin: 0 0 15px 0; font-size: 12px; color: #666;">
+                        'aktiv' steht für Antrags-, Freigabe- und Zugriffsrechte
+                    </p>
+                    <table style="width: 100%; font-size: 13px;">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left; width: 80px; padding: 5px;">Level</th>
+                                <th style="text-align: left; padding: 5px;">Bezeichnung / Berechtigung</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php for ($i = 0; $i <= 19; $i++):
+                                // Highlight-Klassen für wichtige Level
+                                $bg_color = '';
+                                if ($i == 10) $bg_color = 'background: #e8f5e9;';
+                                elseif ($i >= 14 && $i <= 15) $bg_color = 'background: #fff3e0;';
+                                elseif ($i == 18) $bg_color = 'background: #e3f2fd;';
+                                elseif ($i == 19) $bg_color = 'background: #fce4ec;';
+                            ?>
+                                <tr style="<?php echo $bg_color; ?>">
+                                    <td style="padding: 5px; font-weight: 600;"><?php echo $i; ?></td>
+                                    <td style="padding: 5px;">
+                                        <input type="text"
+                                               name="level[<?php echo $i; ?>]"
+                                               value="<?php echo htmlspecialchars($levels[$i] ?? ''); ?>"
+                                               style="width: 100%; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                                    </td>
+                                </tr>
+                            <?php endfor; ?>
+                        </tbody>
+                    </table>
+
+                    <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">
+                        💡 Diese Stufen können in svmembers bei jedem Mitglied individuell gesetzt werden.
+                    </p>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn-primary">aktiv-Level speichern</button>
+                    <span style="margin-left: 15px; color: #dc3545; font-size: 12px;">
+                        ⚠️ Änderungen wirken sich auf die Darstellung im gesamten System aus
+                    </span>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -471,20 +497,20 @@ body.dark-mode .init-danger-list {
                 <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #856404;">Vordefinierte Funktionen (nicht änderbar):</h4>
                 <table style="width: 100%; font-size: 13px;">
                     <tr>
-                        <td style="padding: 5px; width: 80px; font-weight: 600; color: #856404;">FVo</td>
-                        <td style="padding: 5px; color: #856404;">Finanzvorstand - steuert Finanz-Abstimmungen</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 5px; font-weight: 600; color: #856404;">FVv</td>
-                        <td style="padding: 5px; color: #856404;">Finanzvorstand-Stellvertreter</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 5px; font-weight: 600; color: #856404;">VA</td>
-                        <td style="padding: 5px; color: #856404;">Vorsitzende/r - höchste Berechtigungsstufe</td>
+                        <td style="padding: 5px; width: 80px; font-weight: 600; color: #856404;">VA</td>
+                        <td style="padding: 5px; color: #856404;">Vorstandsassistenz (Rechte wie Vorstand, außer abstimmen)</td>
                     </tr>
                     <tr>
                         <td style="padding: 5px; font-weight: 600; color: #856404;">Vo</td>
-                        <td style="padding: 5px; color: #856404;">Vorstand - Vorstands-Abstimmungen</td>
+                        <td style="padding: 5px; color: #856404;">Vorstand - Vorstandsrechte, Abstimmung als Vorstand</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px; font-weight: 600; color: #856404;">FVo</td>
+                        <td style="padding: 5px; color: #856404;">Finanzvorstand - wie Vo, hat spezielle Freigabe-Rechte</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px; font-weight: 600; color: #856404;">FVv</td>
+                        <td style="padding: 5px; color: #856404;">Stellvertreter des Finanzvorstands - Rechte wie FVo</td>
                     </tr>
                 </table>
             </div>

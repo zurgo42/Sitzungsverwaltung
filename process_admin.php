@@ -808,6 +808,80 @@ if (isset($_POST['save_terminology'])) {
     }
 }
 
+/**
+ * AKTIV-LEVEL SPEICHERN
+ *
+ * POST-Parameter:
+ * - save_aktiv_levels: 1
+ * - level: Array mit level_num => bezeichnung
+ */
+if (isset($_POST['save_aktiv_levels'])) {
+    $levels = $_POST['level'] ?? [];
+
+    if (empty($levels)) {
+        $error_message = "Keine Level-Werte übermittelt.";
+    } else {
+        try {
+            $updated_count = 0;
+            $old_values = [];
+            $new_values = [];
+
+            foreach ($levels as $level_num => $bezeichnung) {
+                $config_key = 'aktiv_level_' . (int)$level_num;
+
+                // Alten Wert für Log abrufen
+                $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                $stmt->execute([$config_key]);
+                $old_value = $stmt->fetchColumn();
+
+                if ($old_value !== $bezeichnung) {
+                    // Wert aktualisieren oder einfügen
+                    $update_stmt = $pdo->prepare("
+                        INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                        VALUES (?, ?, 'text', ?, 'aktiv_levels', ?)
+                        ON DUPLICATE KEY UPDATE
+                            config_value = VALUES(config_value),
+                            updated_by = VALUES(updated_by),
+                            updated_at = NOW()
+                    ");
+                    $update_stmt->execute([
+                        $config_key,
+                        $bezeichnung,
+                        "Berechtigung für Level $level_num",
+                        $current_user['member_id']
+                    ]);
+
+                    $old_values["Level $level_num"] = $old_value ?: '(leer)';
+                    $new_values["Level $level_num"] = $bezeichnung;
+                    $updated_count++;
+                }
+            }
+
+            if ($updated_count > 0) {
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'aktiv_levels_update',
+                    "aktiv-Level aktualisiert: $updated_count Level geändert",
+                    'config',
+                    null,
+                    $old_values,
+                    $new_values
+                );
+
+                header('Location: ?tab=admin_init&msg=levels_saved');
+                exit;
+            } else {
+                $success_message = "Keine Änderungen vorgenommen.";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim aktiv-Level-Speichern: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Speichern: " . $e->getMessage();
+        }
+    }
+}
+
 // ============================================
 // 3. TODO-VERWALTUNG
 // ============================================
