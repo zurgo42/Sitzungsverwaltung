@@ -390,9 +390,12 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 // Level 1: Keine Abhängigkeiten
                 'svmembers',
                 'svopinion_answer_templates',
+                'svconfig',  // System-Konfiguration (2026-05-20)
+                'svressorts',  // Ressorts für Anträge (2026-05-20)
 
                 // Level 2: Abhängig von Level 1
                 'svmeetings',
+                'antraege',  // Anträge/Beschlüsse (2026-05-20)
                 'svabsences',
                 'svadmin_log',
                 'svpolls',
