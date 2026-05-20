@@ -723,6 +723,119 @@ require_once 'module_notifications.php';
     </div> <!-- End admin-section-content -->
 </div>
 
+<!-- Terminabfragen-Verwaltung -->
+<div id="admin-polls" class="admin-section">
+    <h3 class="admin-section-header collapsed" onclick="toggleSection(this)">📅 Terminabfragen-Verwaltung</h3>
+
+    <div class="admin-section-content collapsed">
+        <?php if (isset($_GET['msg']) && $_GET['msg'] === 'poll_deleted'): ?>
+            <div class="message">✅ Terminabfrage erfolgreich gelöscht!</div>
+        <?php endif; ?>
+
+        <p style="margin-bottom: 15px; color: #666; font-size: 13px;">
+            Als Admin kannst du alle Terminabfragen verwalten und löschen,
+            auch wenn User das vergessen haben.
+        </p>
+
+        <?php
+        // Alle Umfragen laden
+        $polls_stmt = $pdo->query("
+            SELECT p.*,
+                   m.first_name, m.last_name,
+                   (SELECT COUNT(*) FROM svpoll_options WHERE poll_id = p.poll_id) as option_count,
+                   (SELECT COUNT(DISTINCT participant_id) FROM svpoll_responses WHERE poll_id = p.poll_id) as response_count
+            FROM svpolls p
+            LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
+            ORDER BY p.created_at DESC
+        ");
+        $polls = $polls_stmt->fetchAll();
+        ?>
+
+        <?php if (empty($polls)): ?>
+            <div class="info-box">Keine Terminabfragen vorhanden.</div>
+        <?php else: ?>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Titel</th>
+                        <th>Ersteller</th>
+                        <th>Erstellt am</th>
+                        <th>Deadline</th>
+                        <th>Optionen</th>
+                        <th>Antworten</th>
+                        <th>Status</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($polls as $poll): ?>
+                        <tr>
+                            <td><?php echo $poll['poll_id']; ?></td>
+                            <td>
+                                <strong><?php echo htmlspecialchars($poll['title']); ?></strong>
+                                <?php if ($poll['description']): ?>
+                                    <br><small style="color: #666;">
+                                        <?php echo htmlspecialchars(substr($poll['description'], 0, 50)); ?>
+                                        <?php if (strlen($poll['description']) > 50) echo '...'; ?>
+                                    </small>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($poll['first_name']): ?>
+                                    <?php echo htmlspecialchars($poll['first_name'] . ' ' . $poll['last_name']); ?>
+                                <?php else: ?>
+                                    <span style="color: #999;">Externer Teilnehmer</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?></td>
+                            <td>
+                                <?php if ($poll['response_deadline']): ?>
+                                    <?php
+                                    $deadline = strtotime($poll['response_deadline']);
+                                    $is_expired = $deadline < time();
+                                    $color = $is_expired ? '#999' : '#333';
+                                    ?>
+                                    <span style="color: <?php echo $color; ?>;">
+                                        <?php echo date('d.m.Y', $deadline); ?>
+                                        <?php if ($is_expired): ?>
+                                            <small>(abgelaufen)</small>
+                                        <?php endif; ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span style="color: #999;">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td style="text-align: center;"><?php echo $poll['option_count']; ?></td>
+                            <td style="text-align: center;"><?php echo $poll['response_count']; ?></td>
+                            <td>
+                                <?php if ($poll['is_closed']): ?>
+                                    <span style="color: #999;">🔒 Geschlossen</span>
+                                <?php else: ?>
+                                    <span style="color: #28a745;">✓ Aktiv</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="action-buttons">
+                                <a href="?tab=termine&poll_id=<?php echo $poll['poll_id']; ?>"
+                                   class="btn-view"
+                                   title="Ansehen">
+                                    👁️
+                                </a>
+                                <form method="POST" style="display: inline-block;"
+                                      onsubmit="return confirm('Terminabfrage wirklich löschen? Alle Antworten gehen verloren!');">
+                                    <input type="hidden" name="admin_delete_poll" value="1">
+                                    <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
+                                    <button type="submit" class="btn-delete" title="Löschen">🗑️</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+    </div>
+</div>
+
 <!-- Abwesenheiten-Verwaltung -->
 <div id="admin-absences" class="admin-section">
     <h3 class="admin-section-header collapsed" onclick="toggleSection(this)">🏖️ Abwesenheiten-Verwaltung</h3>

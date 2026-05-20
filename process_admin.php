@@ -1689,6 +1689,73 @@ if (isset($_POST['admin_delete_todo'])) {
     }
 }
 
+/**
+ * Terminabfrage löschen (Admin-Funktion)
+ *
+ * POST-Parameter:
+ * - admin_delete_poll: 1
+ * - poll_id: Int (required)
+ *
+ * Aktion:
+ * - Alle Antworten löschen
+ * - Alle Optionen löschen
+ * - Umfrage löschen
+ * - Admin-Aktion protokollieren
+ */
+if (isset($_POST['admin_delete_poll'])) {
+    $poll_id = intval($_POST['poll_id'] ?? 0);
+
+    if (!$poll_id) {
+        $error_message = "Ungültige Umfrage-ID.";
+    } else {
+        try {
+            $pdo->beginTransaction();
+
+            // Umfrage-Daten für Log abrufen
+            $stmt = $pdo->prepare("SELECT * FROM svpolls WHERE poll_id = ?");
+            $stmt->execute([$poll_id]);
+            $poll = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$poll) {
+                $error_message = "Terminabfrage nicht gefunden.";
+            } else {
+                // 1. Antworten löschen
+                $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ?");
+                $stmt->execute([$poll_id]);
+
+                // 2. Optionen löschen
+                $stmt = $pdo->prepare("DELETE FROM svpoll_options WHERE poll_id = ?");
+                $stmt->execute([$poll_id]);
+
+                // 3. Umfrage löschen
+                $stmt = $pdo->prepare("DELETE FROM svpolls WHERE poll_id = ?");
+                $stmt->execute([$poll_id]);
+
+                $pdo->commit();
+
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'poll_delete',
+                    "Terminabfrage gelöscht: {$poll['title']}",
+                    'poll',
+                    $poll_id,
+                    $poll,
+                    null
+                );
+
+                header('Location: ?tab=admin&msg=poll_deleted');
+                exit;
+            }
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            error_log("Admin: Fehler beim Löschen der Terminabfrage: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Löschen: " . $e->getMessage();
+        }
+    }
+}
+
 // ============================================
 // 4. DATEN LADEN
 // ============================================
