@@ -1723,11 +1723,15 @@ if (isset($_POST['admin_delete_poll'])) {
                 $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ?");
                 $stmt->execute([$poll_id]);
 
-                // 2. Optionen löschen
-                $stmt = $pdo->prepare("DELETE FROM svpoll_options WHERE poll_id = ?");
+                // 2. Terminvorschläge (dates) löschen
+                $stmt = $pdo->prepare("DELETE FROM svpoll_dates WHERE poll_id = ?");
                 $stmt->execute([$poll_id]);
 
-                // 3. Umfrage löschen
+                // 3. Teilnehmer löschen
+                $stmt = $pdo->prepare("DELETE FROM svpoll_participants WHERE poll_id = ?");
+                $stmt->execute([$poll_id]);
+
+                // 4. Umfrage löschen
                 $stmt = $pdo->prepare("DELETE FROM svpolls WHERE poll_id = ?");
                 $stmt->execute([$poll_id]);
 

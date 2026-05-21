@@ -762,8 +762,8 @@ document.addEventListener('DOMContentLoaded', function() {
         $polls_stmt = $pdo->query("
             SELECT p.*,
                    m.first_name, m.last_name,
-                   (SELECT COUNT(*) FROM svpoll_options WHERE poll_id = p.poll_id) as option_count,
-                   (SELECT COUNT(DISTINCT participant_id) FROM svpoll_responses WHERE poll_id = p.poll_id) as response_count
+                   (SELECT COUNT(*) FROM svpoll_dates WHERE poll_id = p.poll_id) as option_count,
+                   (SELECT COUNT(DISTINCT member_id) FROM svpoll_responses WHERE poll_id = p.poll_id) as response_count
             FROM svpolls p
             LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
             ORDER BY p.created_at DESC
