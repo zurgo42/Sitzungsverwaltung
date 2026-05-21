@@ -4,6 +4,9 @@
  * Protokollant kann editieren, Teilnehmer können nachträgliche Kommentare hinzufügen
  */
 
+// Voting-Modul laden
+require_once 'module_voting.php';
+
 if (empty($agenda_items)) {
     echo '<div class="info-box">Keine Tagesordnungspunkte vorhanden.</div>';
     return;
