@@ -327,9 +327,6 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         WHERE antrnr = ?
     ");
 
-    // DEBUG: Ressort-Werte vor dem Speichern
-    error_log("DEBUG Ressorts: ressort1=" . ($post['ressort1'] ?? 'NULL') . ", ressort2=" . ($post['ressort2'] ?? 'NULL'));
-
     $update->execute([
         $antrst, $post['titel'], $post['beschluss'], $post['begr'] ?? null,
         $post['pers'] ?? null, $post['sach'] ?? null, $post['fintext'] ?? null,
