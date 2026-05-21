@@ -111,6 +111,26 @@ require_once 'module_notifications.php';
 }
 </style>
 
+<script>
+// Akkordion-Funktionalität für Admin-Sektionen
+function toggleSection(header) {
+    header.classList.toggle('collapsed');
+    const content = header.nextElementSibling;
+    content.classList.toggle('collapsed');
+}
+
+// Initialize: Start with all sections collapsed
+document.addEventListener('DOMContentLoaded', function() {
+    // Alle Sektionen initial eingeklappt
+    const allHeaders = document.querySelectorAll('.admin-section-header');
+    allHeaders.forEach(header => {
+        if (!header.classList.contains('collapsed')) {
+            toggleSection(header);
+        }
+    });
+});
+</script>
+
 <!-- BENACHRICHTIGUNGEN -->
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
 
@@ -1775,13 +1795,6 @@ function showExternalLogDetails(logId) {
     }
 }
 
-// Akkordion-Funktionalität
-function toggleSection(header) {
-    header.classList.toggle('collapsed');
-    const content = header.nextElementSibling;
-    content.classList.toggle('collapsed');
-}
-
 // ToDo bearbeiten
 function editTodo(todoId) {
     const todos = <?php echo json_encode($all_todos ?? []); ?>;
@@ -1810,13 +1823,4 @@ function showAddTodoForm() {
 function hideAddTodoForm() {
     document.getElementById('add-todo-form').style.display = 'none';
 }
-
-// Initialize: Start with all sections collapsed
-document.addEventListener('DOMContentLoaded', function() {
-    // Alle Sektionen initial eingeklappt
-    const allHeaders = document.querySelectorAll('.admin-section-header');
-    allHeaders.forEach(header => {
-        toggleSection(header);
-    });
-});
 </script>
