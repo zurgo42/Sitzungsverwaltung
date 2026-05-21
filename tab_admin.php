@@ -810,17 +810,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             </td>
                             <td><?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?></td>
                             <td>
-                                <?php if ($poll['response_deadline']): ?>
-                                    <?php
-                                    $deadline = strtotime($poll['response_deadline']);
-                                    $is_expired = $deadline < time();
-                                    $color = $is_expired ? '#999' : '#333';
-                                    ?>
-                                    <span style="color: <?php echo $color; ?>;">
-                                        <?php echo date('d.m.Y', $deadline); ?>
-                                        <?php if ($is_expired): ?>
-                                            <small>(abgelaufen)</small>
-                                        <?php endif; ?>
+                                <?php if ($poll['finalized_at']): ?>
+                                    <span style="color: #999;">
+                                        <?php echo date('d.m.Y', strtotime($poll['finalized_at'])); ?>
+                                        <small>(finalisiert)</small>
                                     </span>
                                 <?php else: ?>
                                     <span style="color: #999;">-</span>
@@ -829,11 +822,15 @@ document.addEventListener('DOMContentLoaded', function() {
                             <td style="text-align: center;"><?php echo $poll['option_count']; ?></td>
                             <td style="text-align: center;"><?php echo $poll['response_count']; ?></td>
                             <td>
-                                <?php if ($poll['is_closed']): ?>
-                                    <span style="color: #999;">🔒 Geschlossen</span>
-                                <?php else: ?>
-                                    <span style="color: #28a745;">✓ Aktiv</span>
-                                <?php endif; ?>
+                                <?php
+                                $status_icons = [
+                                    'open' => ['✓ Aktiv', '#28a745'],
+                                    'closed' => ['🔒 Geschlossen', '#999'],
+                                    'finalized' => ['✔️ Finalisiert', '#17a2b8']
+                                ];
+                                $status_info = $status_icons[$poll['status']] ?? ['?', '#666'];
+                                ?>
+                                <span style="color: <?php echo $status_info[1]; ?>;"><?php echo $status_info[0]; ?></span>
                             </td>
                             <td class="action-buttons">
                                 <a href="?tab=termine&poll_id=<?php echo $poll['poll_id']; ?>"
