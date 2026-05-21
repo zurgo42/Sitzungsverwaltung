@@ -318,53 +318,148 @@ try {
     // Ressorts-Tabelle
     $tables[] = "CREATE TABLE IF NOT EXISTS svressorts (
         ID INT AUTO_INCREMENT PRIMARY KEY,
+        Code VARCHAR(4) DEFAULT NULL COMMENT 'Ressort-Code (z.B. R15)',
         Ressort VARCHAR(100) NOT NULL COMMENT 'Name des Ressorts',
         Reihenfolge INT DEFAULT 100 COMMENT 'Sortierreihenfolge',
         aktiv TINYINT(1) DEFAULT 1 COMMENT '1=Aktiv, 0=Inaktiv',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_code (Code),
         INDEX idx_reihenfolge (Reihenfolge),
         INDEX idx_aktiv (aktiv)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     COMMENT='Ressorts für das Antragssystem'";
 
-    // Anträge/Beschlüsse-Tabelle
-    $tables[] = "CREATE TABLE IF NOT EXISTS antraege (
-        antrnr VARCHAR(20) PRIMARY KEY COMMENT 'Antragsnummer (z.B. A26051401)',
-        antrst INT NOT NULL COMMENT 'Antragsteller (member_id)',
-        bart VARCHAR(1) NOT NULL DEFAULT 'B' COMMENT 'Beschlussart: V, R, B',
-        titel VARCHAR(500) NOT NULL DEFAULT '',
-        beschluss TEXT COMMENT 'Beschlusstext',
-        ressort VARCHAR(100) DEFAULT NULL COMMENT 'Zuständiges Ressort',
-        betrag DECIMAL(10,2) DEFAULT NULL COMMENT 'Finanzieller Betrag',
-        fin CHAR(1) DEFAULT '0' COMMENT 'Finanzrelevanz: 0=Nein, 1=Ja',
-        wichtig CHAR(1) DEFAULT '0' COMMENT 'Wichtig-Flag',
+    // Anträge-Tabelle (für Clean-Installationen ohne Adapter)
+    // Bewährte VTool-Struktur + moderne Erweiterungen
+    $tables[] = "CREATE TABLE IF NOT EXISTS svantraege (
+        bart VARCHAR(1) DEFAULT NULL,
+        praesenz VARCHAR(11) DEFAULT NULL,
+        antrnr VARCHAR(10) NOT NULL PRIMARY KEY,
+        ergebnis TEXT DEFAULT NULL,
+        antrst VARCHAR(3) DEFAULT NULL COMMENT 'Antragsteller-Code',
+        ressort1 VARCHAR(4) DEFAULT NULL COMMENT 'Hauptressort (Code)',
+        ressort2 VARCHAR(4) DEFAULT NULL COMMENT 'Mitwirkendes Ressort (Code)',
+        verein VARCHAR(1) DEFAULT NULL,
+        int_ext VARCHAR(1) DEFAULT NULL,
+        titel VARCHAR(255) DEFAULT NULL,
+        beschluss TEXT DEFAULT NULL,
+        fin VARCHAR(8) DEFAULT NULL,
+        fintext TEXT DEFAULT NULL,
+        budgetnr VARCHAR(16) DEFAULT NULL,
+        budget VARCHAR(8) DEFAULT NULL,
+        pers TEXT DEFAULT NULL,
+        sach TEXT DEFAULT NULL,
+        begr TEXT DEFAULT NULL,
+        thread VARCHAR(64) DEFAULT NULL,
+        hinweis TEXT DEFAULT NULL,
+        verant TEXT DEFAULT NULL,
+        file1 VARCHAR(128) DEFAULT NULL,
+        filetext1 TEXT DEFAULT NULL,
+        file2 VARCHAR(128) DEFAULT NULL,
+        filetext2 TEXT DEFAULT NULL,
+        file3 VARCHAR(128) DEFAULT NULL,
+        filetext3 TEXT DEFAULT NULL,
+        file4 VARCHAR(128) DEFAULT NULL,
+        filetext4 TEXT DEFAULT NULL,
+        wichtig VARCHAR(3) DEFAULT NULL,
+        verf VARCHAR(64) DEFAULT NULL,
+        vorher VARCHAR(1) DEFAULT NULL,
+        sofort VARCHAR(1) DEFAULT NULL,
+        durch VARCHAR(64) DEFAULT NULL,
+        zufin VARCHAR(16) DEFAULT NULL,
+        zbem TEXT DEFAULT NULL,
+        verf1 VARCHAR(3) DEFAULT NULL,
+        verf2 VARCHAR(3) DEFAULT NULL,
+        verkb TEXT DEFAULT NULL,
+        verk1 INT UNSIGNED DEFAULT NULL,
+        verk2 INT UNSIGNED DEFAULT NULL,
+        warantrag VARCHAR(9) DEFAULT NULL,
+        lzugriff DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+        VName1 VARCHAR(3) DEFAULT NULL,
+        Votum1 VARCHAR(1) DEFAULT NULL,
+        VBegr1 TEXT DEFAULT NULL,
+        VProt1 TEXT DEFAULT NULL,
+        VBedenk1 TEXT DEFAULT NULL,
+        VDat1 VARCHAR(16) DEFAULT NULL,
+        VName2 VARCHAR(3) DEFAULT NULL,
+        Votum2 VARCHAR(1) DEFAULT NULL,
+        VBegr2 TEXT DEFAULT NULL,
+        VProt2 TEXT DEFAULT NULL,
+        VBedenk2 TEXT DEFAULT NULL,
+        VDat2 VARCHAR(16) DEFAULT NULL,
+        VName3 VARCHAR(3) DEFAULT NULL,
+        Votum3 VARCHAR(1) DEFAULT NULL,
+        VBegr3 TEXT DEFAULT NULL,
+        VProt3 TEXT DEFAULT NULL,
+        VBedenk3 TEXT DEFAULT NULL,
+        VDat3 VARCHAR(16) DEFAULT NULL,
+        VName4 VARCHAR(3) DEFAULT NULL,
+        Votum4 VARCHAR(1) DEFAULT NULL,
+        VBegr4 TEXT DEFAULT NULL,
+        VProt4 TEXT DEFAULT NULL,
+        VBedenk4 TEXT DEFAULT NULL,
+        VDat4 VARCHAR(16) DEFAULT NULL,
+        VName5 VARCHAR(3) DEFAULT NULL,
+        Votum5 VARCHAR(1) DEFAULT NULL,
+        VBegr5 TEXT DEFAULT NULL,
+        VProt5 TEXT DEFAULT NULL,
+        VBedenk5 TEXT DEFAULT NULL,
+        VDat5 VARCHAR(16) DEFAULT NULL,
+        VName6 VARCHAR(3) DEFAULT NULL,
+        Votum6 VARCHAR(1) DEFAULT NULL,
+        VBegr6 TEXT DEFAULT NULL,
+        VProt6 TEXT DEFAULT NULL,
+        VBedenk6 TEXT DEFAULT NULL,
+        VDat6 VARCHAR(16) DEFAULT NULL,
+        Zeitablauf TEXT DEFAULT NULL,
+        -- Neue Felder für moderne Funktionen
         status CHAR(1) DEFAULT 'A' COMMENT 'Status: A=Editing, E=Eingereicht, F=Freigegeben, G=Genehmigt, Z=Zurückgestellt, X=Abgelehnt',
         abstimmregel VARCHAR(20) DEFAULT 'einfach' COMMENT 'Abstimmungsregel: einfach, absolut, mehrheit_stimmber, zweidrittel, einstimmig',
-        ja INT DEFAULT NULL COMMENT 'Anzahl Ja-Stimmen',
-        nein INT DEFAULT NULL COMMENT 'Anzahl Nein-Stimmen',
-        enthaltung INT DEFAULT NULL COMMENT 'Anzahl Enthaltungen',
-        abstimm_ergebnis VARCHAR(50) DEFAULT NULL COMMENT 'Ergebnis der Abstimmung',
-        antrdatum DATE DEFAULT NULL COMMENT 'Antragsdatum',
-        frist DATE DEFAULT NULL COMMENT 'Wartefrist bis',
-        freigabedatum DATE DEFAULT NULL COMMENT 'Datum der Freigabe',
-        beschlussdatum DATE DEFAULT NULL COMMENT 'Datum des Beschlusses',
-        freiggeber INT DEFAULT NULL COMMENT 'member_id des Freigebers',
-        freigtext TEXT DEFAULT NULL COMMENT 'Freigabekommentar',
-        lzugriff DATETIME DEFAULT NULL COMMENT 'Letzter Zugriff',
+        betrag DECIMAL(10,2) DEFAULT NULL COMMENT 'Finanzieller Betrag (strukturiert)',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (antrst) REFERENCES svmembers(member_id) ON DELETE RESTRICT,
-        FOREIGN KEY (freiggeber) REFERENCES svmembers(member_id) ON DELETE SET NULL,
-        INDEX idx_antrst (antrst),
         INDEX idx_bart (bart),
+        INDEX idx_antrst (antrst),
+        INDEX idx_ressort1 (ressort1),
+        INDEX idx_ressort2 (ressort2),
         INDEX idx_status (status),
-        INDEX idx_ressort (ressort),
-        INDEX idx_antrdatum (antrdatum),
         INDEX idx_abstimmregel (abstimmregel),
-        INDEX idx_created_at (created_at)
+        INDEX idx_wichtig (wichtig),
+        INDEX idx_lzugriff (lzugriff)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    COMMENT='Anträge/Beschlüsse mit konfigurierbaren Typen'";
+    COMMENT='Anträge - Bewährte VTool-Struktur mit modernen Erweiterungen'";
+
+    // Beschlüsse-Tabelle (für Clean-Installationen ohne Adapter)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svbeschluesse (
+        antrnr VARCHAR(12) NOT NULL PRIMARY KEY,
+        fertig VARCHAR(1) DEFAULT NULL,
+        wichtig VARCHAR(1) DEFAULT NULL,
+        text TEXT DEFAULT NULL,
+        ressort TEXT DEFAULT NULL,
+        int_ext VARCHAR(8) DEFAULT NULL,
+        titel TEXT DEFAULT NULL,
+        beschluss TEXT DEFAULT NULL,
+        fintext TEXT DEFAULT NULL,
+        pers TEXT DEFAULT NULL,
+        sach TEXT DEFAULT NULL,
+        begr TEXT DEFAULT NULL,
+        dafuer TEXT DEFAULT NULL,
+        dagegen TEXT DEFAULT NULL,
+        enthaltungen TEXT DEFAULT NULL,
+        anmerkungen TEXT DEFAULT NULL,
+        -- Neue Felder für moderne Funktionen
+        status CHAR(1) DEFAULT 'F' COMMENT 'Status: F=Finalized',
+        abstimmregel VARCHAR(20) DEFAULT 'einfach' COMMENT 'Abstimmungsregel',
+        beschlussdatum DATE DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_ressort (ressort(100)),
+        INDEX idx_status (status),
+        INDEX idx_wichtig (wichtig),
+        INDEX idx_fertig (fertig)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='Beschlüsse - Bewährte VTool-Struktur mit modernen Erweiterungen'";
 
     // =========================================================
     // TERMINPLANUNG-TABELLEN
@@ -1125,7 +1220,10 @@ try {
             echo ".";
         }
 
-        echo "<p style='color: green;'>✓ " . count($ressorts) . " Demo-Ressorts eingefügt!</p>";
+        // Codes automatisch generieren (Rxx-Format)
+        $pdo->exec("UPDATE svressorts SET Code = CONCAT('R', LPAD(ID, 2, '0')) WHERE Code IS NULL");
+
+        echo "<p style='color: green;'>✓ " . count($ressorts) . " Demo-Ressorts eingefügt (mit Codes)!</p>";
     } else {
         echo "<p style='color: orange;'>⚠ Ressorts existieren bereits - überspringe</p>";
     }
