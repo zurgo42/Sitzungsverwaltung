@@ -404,6 +404,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 'svprotocols',  // Keine FK-Abhängigkeit mehr (meeting_id ist optional)
                 'svnotifications',  // Benachrichtigungs-Center (2026-04-27)
                 'svpush_subscriptions',  // Browser-Push-Abos (2026-04-27)
+                'svcollab_texts',  // Kollaborative Texte (2026-05-21)
 
                 // Level 3: Abhängig von Level 2
                 'svmeeting_participants',
@@ -417,17 +418,22 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 'svdocument_downloads',
                 'svmail_queue',
                 'svexternal_participants',  // Externe Teilnehmer für Umfragen (2025-12-18)
+                'svcollab_text_paragraphs',  // Absätze für kollaborative Texte (2026-05-21)
+                'svcollab_text_participants',  // Teilnehmer an kollaborativen Texten (2026-05-21)
+                'svcollab_text_versions',  // Versionen für kollaborative Texte (2026-05-21)
 
                 // Level 4: Abhängig von Level 3
                 'svagenda_comments',
                 'svagenda_live_comments',  // Live-Kommentare während Sitzung
                 'svagenda_post_comments',  // Nachträgliche Anmerkungen in ended-Phase
                 'svagenda_attachments',  // Dateianhänge an TOPs (2026-04-27)
+                'svagenda_personal_notes',  // Persönliche Notizen zu TOPs (2026-05-21)
                 'svprotocol_change_requests',
                 'svtodo_log',
                 'svpoll_responses',
                 'svopinion_response_options',
                 'svexternal_access_log',  // Log für externe Zugriffe (2026-05-03)
+                'svcollab_text_locks',  // Paragraph-Locks für kollaborative Texte (2026-05-21)
             ];
 
             // Importiere Tabellen in der definierten Reihenfolge
@@ -538,7 +544,16 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 }
             }
 
-            $pdo->commit();
+            // Commit nur wenn Transaktion noch aktiv ist
+            try {
+                if ($pdo->inTransaction()) {
+                    $pdo->commit();
+                } else {
+                    echo '<div class="warning"><p>⚠️ Warnung: Keine aktive Transaktion zum Committen (möglicherweise durch Fehler beendet)</p></div>';
+                }
+            } catch (PDOException $e) {
+                echo '<div class="error"><p>❌ Fehler beim Commit: ' . htmlspecialchars($e->getMessage()) . '</p></div>';
+            }
 
             // Fehler anzeigen (falls vorhanden)
             if (!empty($import_errors)) {
