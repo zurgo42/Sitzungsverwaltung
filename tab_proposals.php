@@ -299,33 +299,6 @@ $antragsteller = $antragsteller_stmt->fetchAll();
         .proposals-filters a {
             width: 100%;
         }
-
-        /* Proposals Tabelle */
-        .proposals-table-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .proposals-table-container table {
-            min-width: 800px;
-        }
-        .proposals-table-container th,
-        .proposals-table-container td {
-            padding: 8px;
-            font-size: 12px;
-        }
-        .proposals-table-container td[style*="white-space: nowrap"] {
-            white-space: normal !important;
-        }
-        .proposals-table-container .btn {
-            padding: 4px 8px !important;
-            font-size: 11px !important;
-            margin: 2px 0 !important;
-            display: block !important;
-            width: 100%;
-        }
-        .visibility-hint {
-            font-size: 10px;
-        }
     }
 </style>
 
@@ -392,113 +365,134 @@ render_user_notifications($pdo, $current_user['member_id']);
     <?= count($antraege) ?> Anträge gefunden
 </div>
 
-<div class="proposals-table-container">
-    <?php if (empty($antraege)): ?>
+<?php if (empty($antraege)): ?>
+    <div class="proposals-table-container">
         <div class="proposals-empty-state">
             Keine Anträge gefunden.
         </div>
-    <?php else: ?>
-        <table>
-            <thead>
-                <tr>
-                    <th>Nummer</th>
-                    <th>Titel</th>
-                    <th>Antragsteller</th>
-                    <th>Typ</th>
-                    <th>Zuletzt geändert</th>
-                    <th>Aktionen</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                // Typ-Bezeichnungen aus Config (einmal außerhalb der Schleife)
-                $bart_config = $GLOBALS['bart_config'] ?? lade_antragstypen_config($pdo);
-                $bart_bezeichnungen = [];
-                foreach (['V', 'R', 'B'] as $typ) {
-                    $bez = get_typ_bezeichnung($typ, $bart_config);
-                    // Kürzen für Tabelle
-                    $bart_bezeichnungen[$typ] = strlen($bez) > 12 ? substr($bez, 0, 12) : $bez;
-                }
+    </div>
+<?php else: ?>
+    <!-- Card-Layout (responsive, funktioniert auf Desktop und Mobile) -->
+    <?php
+    // Typ-Bezeichnungen aus Config
+    $bart_config = $GLOBALS['bart_config'] ?? lade_antragstypen_config($pdo);
+    $bart_bezeichnungen = [];
+    foreach (['V', 'R', 'B'] as $typ) {
+        $bart_bezeichnungen[$typ] = get_typ_bezeichnung($typ, $bart_config);
+    }
 
-                foreach ($antraege as $a):
-                    $prefix_a = substr($a['antrnr'], 0, 1);
-                    $is_deleted = ($prefix_a === 'X' || $prefix_a === 'Z');
-                    $in_abstimmung = ($prefix_a === 'B');
-                    $row_class = $is_deleted ? 'deleted-row' : ($in_abstimmung ? 'in-voting-row' : '');
-                ?>
-                    <tr <?= $row_class ? 'class="' . $row_class . '"' : '' ?>>
-                        <td>
-                            <span class="antrnr"><?= htmlspecialchars($a['antrnr']) ?></span>
-                            <?php if ($a['int_ext'] === 'i'): ?>
-                                <div class="visibility-hint" style="color: #d32f2f;">🔒 Vorstandsintern</div>
-                            <?php elseif ($a['int_ext'] === 'n'): ?>
-                                <div class="visibility-hint" style="color: #f57c00;">👥 Nicht öffentlich</div>
-                            <?php endif; ?>
-                            <?php
-                            // Status bei B/VS Anträgen
-                            if ($prefix_a === 'B') {
-                                // In Abstimmung
-                                if (preg_match('/^B(\d{6})/', $a['antrnr'], $matches)) {
-                                    $datum_str = $matches[1];
-                                    $datum = '20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2);
-                                    echo '<div class="visibility-hint" style="color: #FAAA00; font-weight: 600;">🗳️ In Abstimmung seit ' . date('d.m.Y', strtotime($datum)) . '</div>';
-                                }
-                            } elseif ($prefix_a === 'V') {
-                                // Beschlossen (VS)
-                                if (preg_match('/^V(\d{6})/', $a['antrnr'], $matches)) {
-                                    $datum_str = $matches[1];
-                                    $datum = '20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2);
-                                    echo '<div class="visibility-hint" style="color: #4caf50; font-weight: 600;">✓ Beschlossen am ' . date('d.m.Y', strtotime($datum)) . '</div>';
-                                }
-                            }
-                            ?>
-                        </td>
-                        <td>
-                            <strong><?= htmlspecialchars($a['titel']) ?></strong>
-                            <?php if ($a['fin'] > 0): ?>
-                                <div style="font-size: 12px; color: #856404; margin-top: 4px;">
-                                    💰 <?= number_format($a['fin'], 0, ',', '.') ?> €
-                                </div>
-                            <?php endif; ?>
-                        </td>
-                        <td><?= htmlspecialchars($a['KurzN']) ?></td>
-                        <td>
-                            <?php if ($a['bart']): ?>
-                                <span class="badge status"><?= htmlspecialchars($bart_bezeichnungen[$a['bart']] ?? $a['bart']) ?></span>
-                            <?php endif; ?>
-                        </td>
-                        <td><?= $a['lzugriff'] ? date('d.m.Y H:i', strtotime($a['lzugriff'])) : '-' ?></td>
-                        <td style="white-space: nowrap;">
-                            <a href="antrag_ansehen.php?antrnr=<?= urlencode($a['antrnr']) ?>"
-                               class="btn btn-secondary"
-                               style="padding: 6px 12px; font-size: 13px; display: inline-block;">
-                                👁️ Ansehen
-                            </a>
-                            <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($a['antrnr']) ?>"
-                               class="btn"
-                               style="padding: 6px 12px; font-size: 13px; margin-left: 8px; display: inline-block; background: #0066cc; color: white;">
-                                ✏️ Bearbeiten
-                            </a>
-                            <?php if ($in_abstimmung && !$ist_admin): ?>
-                                <div style="font-size: 11px; color: #FAAA00; margin-top: 4px;">
-                                    ⚠️ Nur Admin kann während Abstimmung bearbeiten
-                                </div>
-                            <?php endif; ?>
-                            <?php if ($show_deleted && ($prefix_a === 'X' || $prefix_a === 'Z')): ?>
-                                <form method="POST" style="display: inline-block; margin-left: 10px;">
-                                    <input type="hidden" name="antrnr" value="<?= htmlspecialchars($a['antrnr']) ?>">
-                                    <button type="submit" name="delete_permanent" value="1"
-                                            class="btn"
-                                            style="padding: 6px 12px; font-size: 13px; background: #dc3545;"
-                                            onclick="return confirm('Antrag PERMANENT löschen? Dies kann nicht rückgängig gemacht werden!');">
-                                        🗑️ Endgültig löschen
-                                    </button>
-                                </form>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    <?php endif; ?>
-</div>
+    foreach ($antraege as $a):
+        $prefix_a = substr($a['antrnr'], 0, 1);
+        $is_deleted = ($prefix_a === 'X' || $prefix_a === 'Z');
+        $in_abstimmung = ($prefix_a === 'B');
+
+        // Hintergrundfarbe basierend auf Status
+        if ($is_deleted) {
+            $card_bg = '#ffe0e0';
+            $card_border = '#ffcccc';
+        } elseif ($in_abstimmung) {
+            $card_bg = 'rgba(250, 170, 0, 0.08)';
+            $card_border = '#FAAA00';
+        } else {
+            $card_bg = 'white';
+            $card_border = '#ddd';
+        }
+    ?>
+    <div style="background: <?= $card_bg ?>; border: 1px solid <?= $card_border ?>; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <!-- Header mit Nummer, Typ und Datum -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+                <span class="antrnr" style="background: #e9ecef; padding: 4px 10px; border-radius: 4px; font-size: 13px; font-weight: bold;">
+                    <?= htmlspecialchars($a['antrnr']) ?>
+                </span>
+                <?php if ($a['bart']): ?>
+                    <span style="background: #d1ecf1; color: #0c5460; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                        <?= htmlspecialchars($bart_bezeichnungen[$a['bart']] ?? $a['bart']) ?>
+                    </span>
+                <?php endif; ?>
+                <?php if ($a['int_ext'] === 'i'): ?>
+                    <span style="background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold;">
+                        🔒 Vorstandsintern
+                    </span>
+                <?php elseif ($a['int_ext'] === 'n'): ?>
+                    <span style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold;">
+                        👥 Nicht öffentlich
+                    </span>
+                <?php endif; ?>
+            </div>
+            <div style="text-align: right; font-size: 12px; color: #666;">
+                <div><?= htmlspecialchars($a['KurzN']) ?></div>
+                <?php if ($a['lzugriff']): ?>
+                    <div style="font-size: 11px; color: #999;"><?= date('d.m.Y H:i', strtotime($a['lzugriff'])) ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Status-Anzeige -->
+        <?php
+        if ($prefix_a === 'B') {
+            if (preg_match('/^B(\d{6})/', $a['antrnr'], $matches)) {
+                $datum_str = $matches[1];
+                $datum = '20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2);
+                echo '<div style="background: rgba(250, 170, 0, 0.2); padding: 6px 10px; border-radius: 4px; margin-bottom: 10px; font-size: 12px; color: #000; font-weight: 600;">';
+                echo '🗳️ In Abstimmung seit ' . date('d.m.Y', strtotime($datum));
+                echo '</div>';
+            }
+        } elseif ($prefix_a === 'V') {
+            if (preg_match('/^V(\d{6})/', $a['antrnr'], $matches)) {
+                $datum_str = $matches[1];
+                $datum = '20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2);
+                echo '<div style="background: rgba(76, 175, 80, 0.15); padding: 6px 10px; border-radius: 4px; margin-bottom: 10px; font-size: 12px; color: #2e7d32; font-weight: 600;">';
+                echo '✓ Beschlossen am ' . date('d.m.Y', strtotime($datum));
+                echo '</div>';
+            }
+        }
+        ?>
+
+        <!-- Titel -->
+        <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #2c3e50;">
+            <?= htmlspecialchars($a['titel']) ?>
+        </h3>
+
+        <!-- Finanzbetrag falls vorhanden -->
+        <?php if ($a['fin'] > 0): ?>
+            <div style="background: #fff3cd; padding: 8px 10px; border-radius: 4px; margin-bottom: 10px; font-size: 13px; color: #856404; font-weight: 600;">
+                💰 <?= number_format($a['fin'], 0, ',', '.') ?> €
+            </div>
+        <?php endif; ?>
+
+        <!-- Aktionen -->
+        <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="antrag_ansehen.php?antrnr=<?= urlencode($a['antrnr']) ?>"
+               class="btn btn-secondary"
+               style="padding: 8px 16px; font-size: 13px; text-decoration: none; display: inline-block; flex: 1; min-width: 120px; text-align: center;">
+                👁️ Ansehen
+            </a>
+            <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($a['antrnr']) ?>"
+               class="btn btn-primary"
+               style="padding: 8px 16px; font-size: 13px; text-decoration: none; display: inline-block; flex: 1; min-width: 120px; text-align: center;">
+                ✏️ Bearbeiten
+            </a>
+        </div>
+
+        <!-- Admin-Hinweis bei B-Anträgen -->
+        <?php if ($in_abstimmung && !$ist_admin): ?>
+            <div style="margin-top: 8px; font-size: 11px; color: #856404; background: rgba(250, 170, 0, 0.1); padding: 6px 8px; border-radius: 4px;">
+                ⚠️ Nur Administratoren können während der Abstimmung bearbeiten
+            </div>
+        <?php endif; ?>
+
+        <!-- Endgültig löschen für Admins bei X/Z -->
+        <?php if ($show_deleted && ($prefix_a === 'X' || $prefix_a === 'Z') && $ist_admin): ?>
+            <form method="POST" style="margin-top: 10px;">
+                <input type="hidden" name="antrnr" value="<?= htmlspecialchars($a['antrnr']) ?>">
+                <button type="submit" name="delete_permanent" value="1"
+                        style="width: 100%; padding: 8px; font-size: 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;"
+                        onclick="return confirm('Antrag PERMANENT löschen? Dies kann nicht rückgängig gemacht werden!');">
+                    🗑️ Endgültig löschen
+                </button>
+            </form>
+        <?php endif; ?>
+    </div>
+    <?php endforeach; ?>
+<?php endif; ?>
