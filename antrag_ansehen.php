@@ -170,6 +170,29 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
             </div>
         </div>
 
+        <?php if ($prefix === 'B'): ?>
+            <!-- Hinweis: Abstimmung aktiv -->
+            <div style="background: rgba(250, 170, 0, 0.15); border: 2px solid #FAAA00; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(250, 170, 0, 0.3);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="font-size: 28px;">🗳️</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px; color: #000;">
+                            Abstimmung läuft
+                        </div>
+                        <div style="font-size: 13px; color: #666;">
+                            Dieser Antrag befindet sich aktuell in der Abstimmung.
+                            <?php if (!$kann_bearbeiten): ?>
+                                Während der Abstimmung können nur Administratoren Änderungen vornehmen.
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <a href="abstimmungen.php?antrnr=<?= urlencode($antrnr) ?>" class="btn btn-warning" style="padding: 10px 16px; font-size: 14px; white-space: nowrap;">
+                        → Zur Abstimmung
+                    </a>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- BASISDATEN -->
         <div class="section-compact">
             <div class="section-title">Basisdaten</div>

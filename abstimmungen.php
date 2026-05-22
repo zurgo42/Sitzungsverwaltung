@@ -490,6 +490,19 @@ foreach ($antraege as $a) {
     <title>Abstimmungen</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="antrag-styles.css">
+    <style>
+        /* Breiteres Layout für Abstimmungsseite */
+        .container-wide {
+            max-width: 1600px !important;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        @media (max-width: 1650px) {
+            .container-wide {
+                max-width: 95% !important;
+            }
+        }
+    </style>
     <script>
         // Dark Mode automatisch von index.php übernehmen
         (function() {
@@ -503,10 +516,23 @@ foreach ($antraege as $a) {
                 }
             }
         })();
+
+        // Toggle für Antragsanzeige
+        function toggleAntrag() {
+            const iframe = document.getElementById('antrag_frame_wrapper');
+            const btn = document.getElementById('toggle_antrag_btn');
+            if (iframe.style.display === 'none') {
+                iframe.style.display = 'block';
+                btn.textContent = '▲ Antrag ausblenden';
+            } else {
+                iframe.style.display = 'none';
+                btn.textContent = '▼ Ganzen Antrag anzeigen';
+            }
+        }
     </script>
 </head>
 <body>
-    <div class="container">
+    <div class="container-wide">
         <a href="index.php?tab=proposals" class="back-link">← Zurück zur Übersicht</a>
 
         <?php if (isset($_GET['msg'])): ?>
@@ -569,9 +595,12 @@ foreach ($antraege as $a) {
                 }
             }
 
-            // Antrag anzeigen - Einbettung der vollständigen Antragsansicht
-            echo '<div style="border: 2px solid #0066cc; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">';
+            // Antrag anzeigen - Einbettung der vollständigen Antragsansicht mit Toggle
+            echo '<div style="margin-bottom: 20px;">';
+            echo '<button id="toggle_antrag_btn" onclick="toggleAntrag()" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 15px; margin-bottom: 10px;">▼ Ganzen Antrag anzeigen</button>';
+            echo '<div id="antrag_frame_wrapper" style="display: none; border: 2px solid #0066cc; border-radius: 8px; overflow: hidden;">';
             echo '<iframe src="antrag_ansehen.php?antrnr=' . urlencode($antrag['antrnr']) . '" style="width: 100%; border: none; min-height: 800px;" id="antrag_frame"></iframe>';
+            echo '</div>';
             echo '</div>';
             echo '<script>
                 // Iframe-Höhe automatisch anpassen
@@ -702,12 +731,20 @@ foreach ($antraege as $a) {
             <!-- Hinweis hinzufügen -->
             <div class="votum-box">
                 <h3 style="margin-bottom: 10px; font-size: 16px;">Hinweis für Antragsteller hinzufügen:</h3>
-                <form method="POST">
+                <form method="POST" action="abstimmungen.php?antrnr=<?= urlencode($antrag['antrnr']) ?>">
                     <input type="hidden" name="add_hinweis" value="1">
                     <input type="hidden" name="antrnr" value="<?= htmlspecialchars($antrag['antrnr']) ?>">
-                    <textarea name="neuerhinweis" rows="3" placeholder="Ihr Hinweis..."></textarea>
-                    <button type="submit" class="btn" style="margin-top: 10px;">Hinweis hinzufügen</button>
+                    <textarea name="neuerhinweis" rows="3" placeholder="Ihr Hinweis..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;" required></textarea>
+                    <button type="submit" class="btn btn-primary" style="margin-top: 10px;">💬 Hinweis hinzufügen</button>
                 </form>
+                <?php if (!empty($antrag['hinweis'])): ?>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                        <h4 style="font-size: 13px; color: #666; margin-bottom: 8px;">Bisherige Hinweise:</h4>
+                        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px; white-space: pre-wrap;">
+                            <?= htmlspecialchars($antrag['hinweis']) ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- Antrag zurückziehen (nur Antragsteller) -->
