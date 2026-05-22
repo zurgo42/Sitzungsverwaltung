@@ -257,6 +257,36 @@ $antragsteller = $antragsteller_stmt->fetchAll();
 
     /* Mobile Optimierung */
     @media (max-width: 768px) {
+        /* Benachrichtigungs-Box (gelber Kasten) */
+        div[style*="background: #f9f9f9"] {
+            padding: 8px 10px !important;
+            margin-left: -10px !important;
+            margin-right: -10px !important;
+            border-radius: 0 !important;
+            overflow-x: auto;
+            word-wrap: break-word;
+        }
+        div[style*="background: #f9f9f9"] span {
+            font-size: 12px !important;
+            line-height: 1.6;
+        }
+        div[style*="background: #f9f9f9"] a[style*="background: #ffc107"],
+        div[style*="background: var(--warning)"] {
+            display: block !important;
+            margin: 5px 0 !important;
+            margin-left: 0 !important;
+            padding: 6px 8px !important;
+            font-size: 11px !important;
+            text-align: center;
+            white-space: normal !important;
+            word-break: break-word;
+        }
+        .kommende-termine-break::after {
+            content: "\A";
+            white-space: pre;
+        }
+
+        /* Proposals Filter */
         .proposals-filters {
             grid-template-columns: 1fr;
             gap: 10px;
@@ -269,6 +299,8 @@ $antragsteller = $antragsteller_stmt->fetchAll();
         .proposals-filters a {
             width: 100%;
         }
+
+        /* Proposals Tabelle */
         .proposals-table-container {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
