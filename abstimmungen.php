@@ -499,10 +499,28 @@ foreach ($antraege as $a) {
             padding: 20px !important;
             box-sizing: border-box !important;
         }
+
+        /* Iframe für Antragsanzeige */
+        #antrag_frame_wrapper {
+            max-height: 80vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
         @media (max-width: 768px) {
             body .container-wide {
                 width: 100% !important;
                 padding: 10px !important;
+            }
+
+            #antrag_frame {
+                min-height: 400px !important;
+                height: 70vh !important;
+                max-height: 70vh !important;
+            }
+
+            #antrag_frame_wrapper {
+                max-height: 70vh !important;
             }
         }
     </style>
@@ -601,8 +619,11 @@ foreach ($antraege as $a) {
             // Antrag anzeigen - Einbettung der vollständigen Antragsansicht mit Toggle
             echo '<div style="margin-bottom: 20px;">';
             echo '<button id="toggle_antrag_btn" onclick="toggleAntrag()" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 15px; margin-bottom: 10px;">▼ Ganzen Antrag anzeigen</button>';
-            echo '<div id="antrag_frame_wrapper" style="display: none; border: 2px solid #0066cc; border-radius: 8px; overflow: hidden;">';
-            echo '<iframe src="antrag_ansehen.php?antrnr=' . urlencode($antrag['antrnr']) . '" style="width: 100%; border: none; min-height: 800px;" id="antrag_frame"></iframe>';
+            echo '<div id="antrag_frame_wrapper" style="display: none; border: 2px solid #0066cc; border-radius: 8px; overflow: auto;">';
+            echo '<iframe src="antrag_ansehen.php?antrnr=' . urlencode($antrag['antrnr']) . '" style="width: 100%; border: none; min-height: 600px; height: 100vh; max-height: 1200px;" id="antrag_frame"></iframe>';
+            echo '</div>';
+            echo '<div style="margin-top: 10px; display: none;" id="antrag_external_link">';
+            echo '<a href="antrag_ansehen.php?antrnr=' . urlencode($antrag['antrnr']) . '" target="_blank" class="btn btn-secondary" style="width: 100%; padding: 10px;">📄 Antrag in neuem Tab öffnen</a>';
             echo '</div>';
             echo '</div>';
             echo '<script>
@@ -612,6 +633,22 @@ foreach ($antraege as $a) {
                         document.getElementById("antrag_frame").style.height = e.data.height + "px";
                     }
                 });
+
+                // Toggle-Funktion angepasst
+                function toggleAntrag() {
+                    const wrapper = document.getElementById("antrag_frame_wrapper");
+                    const btn = document.getElementById("toggle_antrag_btn");
+                    const link = document.getElementById("antrag_external_link");
+                    if (wrapper.style.display === "none") {
+                        wrapper.style.display = "block";
+                        link.style.display = "block";
+                        btn.textContent = "▲ Antrag ausblenden";
+                    } else {
+                        wrapper.style.display = "none";
+                        link.style.display = "none";
+                        btn.textContent = "▼ Ganzen Antrag anzeigen";
+                    }
+                }
             </script>';
 
             // Prüfen ob User abstimmberechtigt ist
