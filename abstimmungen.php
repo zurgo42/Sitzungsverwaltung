@@ -493,16 +493,11 @@ foreach ($antraege as $a) {
     <style>
         /* Breiteres Layout für Abstimmungsseite - überschreibt style.css .container */
         body .container-wide {
-            max-width: 1600px !important;
             width: 95% !important;
+            max-width: 1600px !important;
             margin: 0 auto !important;
             padding: 20px !important;
-        }
-        @media (max-width: 1650px) {
-            body .container-wide {
-                max-width: 95% !important;
-                width: 95% !important;
-            }
+            box-sizing: border-box !important;
         }
         @media (max-width: 768px) {
             body .container-wide {
