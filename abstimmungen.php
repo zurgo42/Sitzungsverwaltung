@@ -491,15 +491,23 @@ foreach ($antraege as $a) {
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="antrag-styles.css">
     <style>
-        /* Breiteres Layout für Abstimmungsseite */
-        .container-wide {
+        /* Breiteres Layout für Abstimmungsseite - überschreibt style.css .container */
+        body .container-wide {
             max-width: 1600px !important;
-            margin: 0 auto;
-            padding: 20px;
+            width: 95% !important;
+            margin: 0 auto !important;
+            padding: 20px !important;
         }
         @media (max-width: 1650px) {
-            .container-wide {
+            body .container-wide {
                 max-width: 95% !important;
+                width: 95% !important;
+            }
+        }
+        @media (max-width: 768px) {
+            body .container-wide {
+                width: 100% !important;
+                padding: 10px !important;
             }
         }
     </style>
@@ -532,7 +540,7 @@ foreach ($antraege as $a) {
     </script>
 </head>
 <body>
-    <div class="container-wide">
+    <div class="container-wide" style="max-width: 1600px !important; width: 95%; margin: 0 auto; padding: 20px;">
         <a href="index.php?tab=proposals" class="back-link">← Zurück zur Übersicht</a>
 
         <?php if (isset($_GET['msg'])): ?>
