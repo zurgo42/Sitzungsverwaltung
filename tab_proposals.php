@@ -193,6 +193,16 @@ $antragsteller = $antragsteller_stmt->fetchAll();
     .proposals-sub-heading {
         color: #333;
     }
+    .in-voting-row {
+        background: rgba(250, 170, 0, 0.15) !important;
+    }
+    .in-voting-row:hover {
+        background: rgba(250, 170, 0, 0.25) !important;
+    }
+    .deleted-row {
+        background: #ffe0e0 !important;
+        opacity: 0.7;
+    }
 
     /* Dark Mode Anpassungen */
     body.dark-mode .proposals-filters {
@@ -339,8 +349,11 @@ render_user_notifications($pdo, $current_user['member_id']);
 
                 foreach ($antraege as $a):
                     $prefix_a = substr($a['antrnr'], 0, 1);
+                    $is_deleted = ($prefix_a === 'X' || $prefix_a === 'Z');
+                    $in_abstimmung = ($prefix_a === 'B');
+                    $row_class = $is_deleted ? 'deleted-row' : ($in_abstimmung ? 'in-voting-row' : '');
                 ?>
-                    <tr>
+                    <tr <?= $row_class ? 'class="' . $row_class . '"' : '' ?>>
                         <td>
                             <span class="antrnr"><?= htmlspecialchars($a['antrnr']) ?></span>
                             <?php if ($a['int_ext'] === 'i'): ?>
@@ -349,11 +362,20 @@ render_user_notifications($pdo, $current_user['member_id']);
                                 <div class="visibility-hint" style="color: #f57c00;">👥 Nicht öffentlich</div>
                             <?php endif; ?>
                             <?php
-                            if ($prefix_a === 'B' || $prefix_a === 'V') {
-                                if (preg_match('/^[BV](\d{6})/', $a['antrnr'], $matches)) {
+                            // Status bei B/VS Anträgen
+                            if ($prefix_a === 'B') {
+                                // In Abstimmung
+                                if (preg_match('/^B(\d{6})/', $a['antrnr'], $matches)) {
                                     $datum_str = $matches[1];
                                     $datum = '20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2);
-                                    echo '<div class="visibility-hint" style="color: #0066cc;">📅 Finalisiert: ' . date('d.m.Y', strtotime($datum)) . '</div>';
+                                    echo '<div class="visibility-hint" style="color: #FAAA00; font-weight: 600;">🗳️ In Abstimmung seit ' . date('d.m.Y', strtotime($datum)) . '</div>';
+                                }
+                            } elseif ($prefix_a === 'V') {
+                                // Beschlossen (VS)
+                                if (preg_match('/^V(\d{6})/', $a['antrnr'], $matches)) {
+                                    $datum_str = $matches[1];
+                                    $datum = '20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2);
+                                    echo '<div class="visibility-hint" style="color: #4caf50; font-weight: 600;">✓ Beschlossen am ' . date('d.m.Y', strtotime($datum)) . '</div>';
                                 }
                             }
                             ?>
@@ -375,14 +397,20 @@ render_user_notifications($pdo, $current_user['member_id']);
                         <td><?= $a['lzugriff'] ? date('d.m.Y H:i', strtotime($a['lzugriff'])) : '-' ?></td>
                         <td style="white-space: nowrap;">
                             <a href="antrag_ansehen.php?antrnr=<?= urlencode($a['antrnr']) ?>"
-                               style="padding: 6px 12px; font-size: 13px; display: inline-block; background: #e9ecef; color: #495057; text-decoration: none; border-radius: 4px; border: 1px solid #dee2e6;">
+                               class="btn btn-secondary"
+                               style="padding: 6px 12px; font-size: 13px; display: inline-block;">
                                 👁️ Ansehen
                             </a>
                             <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($a['antrnr']) ?>"
                                class="btn"
-                               style="padding: 6px 12px; font-size: 13px; margin-left: 10px; display: inline-block;">
+                               style="padding: 6px 12px; font-size: 13px; margin-left: 8px; display: inline-block; background: #0066cc; color: white;">
                                 ✏️ Bearbeiten
                             </a>
+                            <?php if ($in_abstimmung && !$ist_admin): ?>
+                                <div style="font-size: 11px; color: #FAAA00; margin-top: 4px;">
+                                    ⚠️ Nur Admin kann während Abstimmung bearbeiten
+                                </div>
+                            <?php endif; ?>
                             <?php if ($show_deleted && ($prefix_a === 'X' || $prefix_a === 'Z')): ?>
                                 <form method="POST" style="display: inline-block; margin-left: 10px;">
                                     <input type="hidden" name="antrnr" value="<?= htmlspecialchars($a['antrnr']) ?>">
