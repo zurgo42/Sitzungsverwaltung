@@ -254,6 +254,47 @@ $antragsteller = $antragsteller_stmt->fetchAll();
     body.dark-mode .proposals-sub-heading {
         color: #e0e0e0 !important;
     }
+
+    /* Mobile Optimierung */
+    @media (max-width: 768px) {
+        .proposals-filters {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .proposals-filters .filter-actions {
+            grid-column: span 1;
+            flex-direction: column;
+        }
+        .proposals-filters button,
+        .proposals-filters a {
+            width: 100%;
+        }
+        .proposals-table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .proposals-table-container table {
+            min-width: 800px;
+        }
+        .proposals-table-container th,
+        .proposals-table-container td {
+            padding: 8px;
+            font-size: 12px;
+        }
+        .proposals-table-container td[style*="white-space: nowrap"] {
+            white-space: normal !important;
+        }
+        .proposals-table-container .btn {
+            padding: 4px 8px !important;
+            font-size: 11px !important;
+            margin: 2px 0 !important;
+            display: block !important;
+            width: 100%;
+        }
+        .visibility-hint {
+            font-size: 10px;
+        }
+    }
 </style>
 
 <!-- BENACHRICHTIGUNGEN -->
