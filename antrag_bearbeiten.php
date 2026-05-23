@@ -147,7 +147,7 @@ if (!$darf_bearbeiten) {
     die("⚠️ Keine Berechtigung zur Bearbeitung.<br><br>" .
         "Dieser Antrag wurde bereits finalisiert und kann nur noch von Administratoren bearbeitet werden.<br>" .
         "Status: " . htmlspecialchars($prefix) . "-Antrag<br><br>" .
-        "<a href='antragsliste.php'>← Zurück zur Liste</a> | " .
+        "<a href='index.php?tab=proposals'>← Zurück zur Liste</a> | " .
         "<a href='antrag_ansehen.php?antrnr=" . urlencode($antrnr) . "'>Antrag ansehen</a>");
 }
 
@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'delete':
                 verwerfenAntrag($pdo, $antrnr, $antrag, $user);
-                header('Location: antragsliste.php?msg=withdrawn');
+                header('Location: index.php?tab=proposals?msg=withdrawn');
                 exit;
 
             case 'verkuerzung':
@@ -1083,7 +1083,7 @@ if ($user['aktiv'] >= 19) {
                         </button>
                     <?php endif; ?>
 
-                    <a href="antragsliste.php" class="btn btn-secondary">❌ Abbrechen</a>
+                    <a href="index.php?tab=proposals" class="btn btn-secondary">❌ Abbrechen</a>
                 </div>
             </div>
 

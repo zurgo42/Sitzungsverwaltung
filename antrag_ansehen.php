@@ -166,7 +166,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                 <?php if ($prefix === 'B'): ?>
                     <a href="abstimmungen.php?antrnr=<?= urlencode($antrnr) ?>" class="btn btn-warning" style="padding: 6px 12px; font-size: 12px;">🗳️ Abstimmen</a>
                 <?php endif; ?>
-                <a href="antragsliste.php" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">← Liste</a>
+                <a href="index.php?tab=proposals" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">← Liste</a>
             </div>
         </div>
 
@@ -429,9 +429,11 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                 <?php endif; ?>
             </div>
             <?php endif; ?>
+        </div>
+        <!-- Ende grid-2col -->
 
-            <!-- WARTEZEITVERKÜRZUNG -->
-            <?php if ($antrag['verk1'] || $antrag['verk2']): ?>
+        <!-- WARTEZEITVERKÜRZUNG -->
+        <?php if ($antrag['verk1'] || $antrag['verk2']): ?>
             <div class="section-compact">
                 <div class="section-title">Wartezeitverkürzung</div>
                 <div style="font-size: 12px; color: #2e7d32;">
