@@ -21,6 +21,39 @@ $pdo = new PDO(
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
 );
 
+/**
+ * Macht URLs und HTML-Links in Text klickbar
+ * Nimmt rohen (nicht-escapedten) Text und gibt HTML zurück
+ */
+function make_urls_clickable($text) {
+    if (empty($text)) return '';
+
+    // 1. Bereits existierende <a href=URL>Text</a> Patterns finden und klickbar machen
+    $text = preg_replace_callback(
+        '/&lt;a\s+href=(["\']?)([^"\'&>\s]+)\1[^&]*&gt;([^&<]*)&lt;\/a&gt;/i',
+        function($matches) {
+            $url = html_entity_decode($matches[2]);
+            $link_text = html_entity_decode($matches[3]);
+            return '<a href="' . htmlspecialchars($url) . '" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">' . htmlspecialchars($link_text) . '</a>';
+        },
+        $text
+    );
+
+    // 2. Standalone URLs (http:// oder https://) in klickbare Links verwandeln
+    $text = preg_replace_callback(
+        '#https?://[^\s<>"]+#i',
+        function($matches) {
+            $url = $matches[0];
+            // URL kürzen für Anzeige wenn sehr lang
+            $display_url = strlen($url) > 60 ? substr($url, 0, 57) . '...' : $url;
+            return '<a href="' . htmlspecialchars($url) . '" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">' . htmlspecialchars($display_url) . '</a>';
+        },
+        $text
+    );
+
+    return $text;
+}
+
 // User laden
 $user_stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
 $user_stmt->execute([$_SESSION['member_id']]);
@@ -40,6 +73,23 @@ function highlightWords2(string $text, ?string $search): string {
     if (!$search || trim($search) === '') return $text;
     $search = preg_quote($search, '/');
     return preg_replace('/(' . $search . ')/iu', '<mark style="background:#ffd700;color:#000;">$1</mark>', $text);
+}
+
+/**
+ * Kombiniert URLs klickbar machen und Highlighting
+ */
+function display_with_links($text, $search = null) {
+    if (empty($text)) return '';
+
+    // 1. URLs klickbar machen
+    $text = make_urls_clickable($text);
+
+    // 2. Highlighting anwenden
+    if ($search) {
+        $text = highlightWords2($text, $search);
+    }
+
+    return $text;
 }
 
 // Berechtigungen
@@ -471,28 +521,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                 <b><a href="antrag_ansehen.php?antrnr=<?= h($b['antrnr']) ?>" style="color:black;text-decoration:none;"><?= h($b['antrnr']) ?></a></b> (<?= $datum_anzeige ?>)<br>
                 Ressort: <?= highlightWords2(h($ressort_text), $search) ?><br>
                 <b>Beschlusstitel: <?= highlightWords2(h($b['titel']), $search) ?></b><br>
-                Beschluss: <?= highlightWords2(h($b['beschluss']), $search) ?><br>
+                Beschluss: <?= display_with_links(h($b['beschluss']), $search) ?><br>
                 <?php if (!empty($b['fintext'])): ?>
-                    Finanzielle Auswirkungen: <?= highlightWords2(h($b['fintext']), $search) ?><br>
+                    Finanzielle Auswirkungen: <?= display_with_links(h($b['fintext']), $search) ?><br>
                 <?php else: ?>
                     Finanzielle Auswirkungen: Keine<br>
                 <?php endif; ?>
                 <?php if (!empty($b['pers'])): ?>
-                    Personelle Auswirkungen: <?= highlightWords2(h($b['pers']), $search) ?><br>
+                    Personelle Auswirkungen: <?= display_with_links(h($b['pers']), $search) ?><br>
                 <?php else: ?>
                     Personelle Auswirkungen: Keine<br>
                 <?php endif; ?>
                 <?php if (!empty($b['sach'])): ?>
-                    Sachliche Auswirkungen: <?= highlightWords2(h($b['sach']), $search) ?><br>
+                    Sachliche Auswirkungen: <?= display_with_links(h($b['sach']), $search) ?><br>
                 <?php else: ?>
                     Sachliche Auswirkungen: Keine<br>
                 <?php endif; ?>
                 <?php if (!empty($b['begr'])): ?>
-                    Begründung: <?= highlightWords2(h($b['begr']), $search) ?><br>
+                    Begründung: <?= display_with_links(h($b['begr']), $search) ?><br>
                 <?php endif; ?>
                 Abstimmung: <?= h($b['votum_text']) ?><br>
                 <?php if (!empty($b['anmerkungen'])): ?>
-                    Protokollnotiz/Anmerkung: <?= highlightWords2(h($b['anmerkungen']), $search) ?><br>
+                    Protokollnotiz/Anmerkung: <?= display_with_links(h($b['anmerkungen']), $search) ?><br>
                 <?php endif; ?>
             </p>
             <?php endforeach; ?>
@@ -534,7 +584,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
 
             <div style="background: #f1f3f5; padding: 12px; border-radius: 6px; margin: 10px 0; font-size: 14px;">
                 <strong style="font-size: 11px; text-transform: uppercase; color: #495057; display: block; margin-bottom: 4px;">Beschlusswortlaut:</strong>
-                <?= highlightWords2(nl2br(h($b['beschluss'])), $search) ?>
+                <?= display_with_links(nl2br(h($b['beschluss'])), $search) ?>
             </div>
 
             <?php if (!empty($b['fintext']) || $b['fin'] > 0 || !empty($b['sach']) || !empty($b['pers'])): ?>
@@ -546,20 +596,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                         <div style="font-weight: 600; color: #856404; margin-bottom: 4px;">💰 <?= number_format($b['fin'], 0, ',', '.') ?> €</div>
                     <?php endif; ?>
                     <?php if ($b['fintext']): ?>
-                        <?= highlightWords2(h($b['fintext']), $search) ?>
+                        <?= display_with_links(h($b['fintext']), $search) ?>
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
                 <?php if ($b['sach']): ?>
                 <div style="font-size: 12px; background: #f8f9fa; padding: 8px; border-radius: 4px; border-left: 3px solid #28a745;">
                     <strong style="font-size: 10px; color: #6c757d; text-transform: uppercase; display: block;">Sachlich / Rechtlich</strong>
-                    <?= highlightWords2(h($b['sach']), $search) ?>
+                    <?= display_with_links(h($b['sach']), $search) ?>
                 </div>
                 <?php endif; ?>
                 <?php if ($b['pers']): ?>
                 <div style="font-size: 12px; background: #f8f9fa; padding: 8px; border-radius: 4px; border-left: 3px solid #e67e22;">
                     <strong style="font-size: 10px; color: #6c757d; text-transform: uppercase; display: block;">Personell</strong>
-                    <?= highlightWords2(h($b['pers']), $search) ?>
+                    <?= display_with_links(h($b['pers']), $search) ?>
                 </div>
                 <?php endif; ?>
             </div>
@@ -568,7 +618,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
             <?php if (!empty($b['begr'])): ?>
             <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
                 <strong style="font-size: 11px; text-transform: uppercase; color: #495057; display: block; margin-bottom: 4px;">Begründung:</strong>
-                <div style="font-size: 13px;"><?= highlightWords2(nl2br(h($b['begr'])), $search) ?></div>
+                <div style="font-size: 13px;"><?= display_with_links(nl2br(h($b['begr'])), $search) ?></div>
             </div>
             <?php endif; ?>
 
@@ -576,7 +626,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                 <div>
                     <strong>Abstimmung:</strong> <?= h($b['votum_text']) ?>
                     <?php if (!empty($b['anmerkungen'])): ?>
-                        <br><strong>Protokollnotiz:</strong> <?= highlightWords2(h($b['anmerkungen']), $search) ?>
+                        <br><strong>Protokollnotiz:</strong> <?= display_with_links(h($b['anmerkungen']), $search) ?>
                     <?php endif; ?>
                 </div>
                 <div style="display: flex; gap: 5px; flex-wrap: wrap;">

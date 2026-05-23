@@ -262,6 +262,32 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                     <div class="compact-value"><?= $antrag['lzugriff'] ? date('d.m.Y H:i', strtotime($antrag['lzugriff'])) : '-' ?></div>
                 </div>
                 <?php
+                // Wartezeit-Anzeige wenn noch laufend (nur bei B-Anträgen)
+                $prefix = substr($antrnr, 0, 1);
+                if ($prefix === 'B' && preg_match('/^B(\d{6})/', $antrnr, $matches)) {
+                    $datum_str = $matches[1];
+                    $abstimmung_seit = '20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2);
+
+                    // Wartezeit aus Config holen
+                    $wartezeit_tage = $bart_config["bart_{$antrag['bart']}_wartezeit_tage"] ?? 7;
+                    $wartezeit_ende = date('Y-m-d H:i:s', strtotime($abstimmung_seit . ' + ' . $wartezeit_tage . ' days'));
+
+                    // Prüfen ob Wartezeit noch läuft
+                    if (strtotime($wartezeit_ende) > time()) {
+                        $tage_verbleibend = ceil((strtotime($wartezeit_ende) - time()) / 86400);
+                        ?>
+                        <div class="compact-row">
+                            <div class="compact-label">⏳ Wartezeit:</div>
+                            <div class="compact-value" style="color: #d32f2f; font-weight: 600;">
+                                Läuft bis <?= date('d.m.Y H:i', strtotime($wartezeit_ende)) ?>
+                                (noch <?= $tage_verbleibend ?> <?= $tage_verbleibend == 1 ? 'Tag' : 'Tage' ?>)
+                            </div>
+                        </div>
+                        <?php
+                    }
+                }
+                ?>
+                <?php
                 // Abstimmungs- und Beschlussdatum
                 $prefix = substr($antrnr, 0, 1);
                 if ($prefix === 'B' || $prefix === 'V'):
