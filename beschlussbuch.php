@@ -152,6 +152,14 @@ foreach ($beschluesse as &$b) {
     $warantrag_stmt->execute([$b['antrnr']]);
     $b['warantrag'] = $warantrag_stmt->fetchColumn();
 
+    // Prüfen ob der Ursprungsantrag tatsächlich existiert
+    $b['warantrag_exists'] = false;
+    if (!empty($b['warantrag'])) {
+        $check_stmt = $pdo->prepare("SELECT COUNT(*) FROM antraege WHERE antrnr = ?");
+        $check_stmt->execute([$b['warantrag']]);
+        $b['warantrag_exists'] = ($check_stmt->fetchColumn() > 0);
+    }
+
     // Finanzielle Auswirkungen: Betrag aus fintext extrahieren
     $b['fin'] = 0;
     if (!empty($b['fintext']) && preg_match('/(\d+)\s*Euro/', $b['fintext'], $matches)) {
@@ -642,7 +650,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                         </a>
                         <?php endif; ?>
                     <?php elseif (!$isVTool && $kann_duplizieren): ?>
-                        <?php if ($b['warantrag']): ?>
+                        <?php if ($b['warantrag_exists']): ?>
                         <a href="antrag_ansehen.php?antrnr=<?= urlencode($b['warantrag']) ?>"
                            style="font-size: 10px; background: #4caf50; color: white; text-decoration: none; padding: 4px 8px; border-radius: 3px;">
                             📄 Ursprungsantrag
