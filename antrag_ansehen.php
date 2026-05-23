@@ -205,12 +205,16 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                     <div class="compact-label">Beschlussart:</div>
                     <div class="compact-value"><strong><?= $bart_text[$antrag['bart']] ?? $antrag['bart'] ?></strong></div>
                 </div>
+                <?php
+                // Abstimmungsregel nur zeigen, wenn mehrere Optionen aktiviert
+                $all_rules = get_voting_rules($voting_config);
+                if (count($all_rules) > 1):
+                ?>
                 <div class="compact-row">
                     <div class="compact-label">Abstimmungsregel:</div>
                     <div class="compact-value">
                         <?php
                         $regel = $antrag['abstimmregel'] ?? 'einfach';
-                        $all_rules = get_voting_rules($voting_config);
                         echo htmlspecialchars($all_rules[$regel]['label'] ?? $regel);
                         ?>
                         <small style="color: #666; font-size: 11px; display: block;">
@@ -218,6 +222,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                         </small>
                     </div>
                 </div>
+                <?php endif; ?>
                 <div class="compact-row">
                     <div class="compact-label">Ressort:</div>
                     <div class="compact-value"><?= htmlspecialchars($antrag['ressort1_name'] ?? '') ?><?= $antrag['ressort2_name'] ? ' + ' . htmlspecialchars($antrag['ressort2_name']) : '' ?></div>

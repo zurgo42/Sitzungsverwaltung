@@ -801,14 +801,16 @@ if ($user['aktiv'] >= 19) {
                     </div>
                 </div>
 
-                <!-- Zeile 6: Abstimmungsregel (nur für Admins änderbar) -->
-                <?php if ($user['aktiv'] >= 19): ?>
+                <!-- Zeile 6: Abstimmungsregel (nur für Admins änderbar und wenn mehrere Optionen) -->
+                <?php
+                $enabled_rules = get_enabled_voting_rules($voting_config);
+                if ($user['aktiv'] >= 19 && count($enabled_rules) > 1):
+                ?>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="abstimmregel">Abstimmungsregel</label>
                             <select id="abstimmregel" name="abstimmregel" style="width: 100%;">
                                 <?php
-                                $enabled_rules = get_enabled_voting_rules($voting_config);
                                 $current_regel = $antrag['abstimmregel'] ?? get_default_voting_rule($voting_config);
                                 foreach ($enabled_rules as $key => $rule):
                                 ?>
@@ -826,7 +828,7 @@ if ($user['aktiv'] >= 19) {
                         <div class="form-group"></div>
                         <div class="form-group"></div>
                     </div>
-                <?php else: ?>
+                <?php elseif (count($enabled_rules) === 1): ?>
                     <!-- Abstimmungsregel anzeigen (nicht änderbar) -->
                     <div class="form-row">
                         <div class="form-group">
