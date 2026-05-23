@@ -396,7 +396,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
         $referer = 'index.php?tab=proposals';
     }
     ?>
-    <a href="<?= h($referer) ?>" class="back-link">← Zurück</a>
+    <div style="margin-bottom: 20px;">
+        <a href="<?= h($referer) ?>" class="btn btn-secondary" style="display: inline-block;">← Zurück</a>
+    </div>
 
     <div class="header">
         <h1>📚 Beschlussbuch</h1>

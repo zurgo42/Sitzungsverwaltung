@@ -552,7 +552,9 @@ if ($user['aktiv'] >= 19) {
 </head>
 <body>
     <div class="container">
-        <a href="index.php?tab=proposals" class="back-link">← Zurück zur Antragsliste</a>
+        <div style="margin-bottom: 20px;">
+            <a href="index.php?tab=proposals" class="btn btn-secondary" style="display: inline-block;">← Zurück zur Antragsliste</a>
+        </div>
 
         <div class="header">
             <div>
@@ -631,7 +633,7 @@ if ($user['aktiv'] >= 19) {
                 <div class="form-row">
                     <div class="form-group">
                         <label>Beschlussart</label>
-                        <input type="text" value="<?= htmlspecialchars(get_typ_bezeichnung($antrag['bart'], $bart_config)) ?>" class="read-only" readonly>
+                        <input type="text" value="<?= htmlspecialchars(get_typ_bezeichnung($antrag['bart'], $bart_config) ?? '') ?>" class="read-only" readonly>
                     </div>
 
                     <?php if ($antrag['bart'] === 'V' || $antrag['bart'] === 'R'): ?>
@@ -860,7 +862,7 @@ if ($user['aktiv'] >= 19) {
                 <div class="form-row full">
                     <div class="form-group">
                         <label for="beschluss">Beschlusstext <span class="required">*</span></label>
-                        <textarea id="beschluss" name="beschluss" required style="min-height: 50px; max-height: 50px;"><?= htmlspecialchars($antrag['beschluss']) ?></textarea>
+                        <textarea id="beschluss" name="beschluss" required style="min-height: 50px; resize: vertical;"><?= htmlspecialchars($antrag['beschluss']) ?></textarea>
                     </div>
                 </div>
 

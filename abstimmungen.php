@@ -554,7 +554,9 @@ foreach ($antraege as $a) {
 </head>
 <body>
     <div class="container-wide" style="max-width: 1600px !important; width: 95%; margin: 0 auto; padding: 20px;">
-        <a href="index.php?tab=proposals" class="back-link">← Zurück zur Übersicht</a>
+        <div style="margin-bottom: 20px;">
+            <a href="index.php?tab=proposals" class="btn btn-secondary" style="display: inline-block;">← Zurück zur Übersicht</a>
+        </div>
 
         <?php if (isset($_GET['msg'])): ?>
             <?php if ($_GET['msg'] === 'voted'): ?>
