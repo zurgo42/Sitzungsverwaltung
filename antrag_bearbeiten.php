@@ -338,7 +338,9 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         $post['filetext3'] ?? null, $post['filetext4'] ?? null,
         $sofort, $post['durch'] ?? null,
         isset($post['zufin']) ? 1 : 0, $post['zbem'] ?? null,
-        $post['praesenz'] ?? null, $post['verf1'] ?? null, $post['verf2'] ?? null,
+        $post['praesenz'] ?? null,
+        !empty($post['verf1']) ? $post['verf1'] : null,
+        !empty($post['verf2']) ? $post['verf2'] : null,
         isset($post['vorher']) ? 1 : 0,
         $abstimmregel,
         $antrnr
