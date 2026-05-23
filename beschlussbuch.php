@@ -390,10 +390,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
 
     <?php
     // Dynamischer Zurück-Link zur aufrufenden Seite
-    $referer = $_SERVER['HTTP_REFERER'] ?? 'antragsliste.php';
+    $referer = $_SERVER['HTTP_REFERER'] ?? 'index.php?tab=proposals';
     // Sicherstellen, dass der Referer zur gleichen Domain gehört
     if (parse_url($referer, PHP_URL_HOST) !== $_SERVER['HTTP_HOST']) {
-        $referer = 'antragsliste.php';
+        $referer = 'index.php?tab=proposals';
     }
     ?>
     <a href="<?= h($referer) ?>" class="back-link">← Zurück</a>
