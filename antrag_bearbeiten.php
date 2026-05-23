@@ -1032,6 +1032,18 @@ if ($user['aktiv'] >= 19) {
             <div class="form-section section-gray-6">
                 <div class="section-header">Nächste Schritte</div>
 
+                <?php if ($wartezeit && $wartezeit !== 'erfüllt' && substr($antrnr, 0, 1) === 'A'): ?>
+                    <div class="info-box" style="background: #e3f2fd; border-left-color: #2196f3; margin-bottom: 12px;">
+                        <strong>⏳ Wartezeit läuft bis: <?= htmlspecialchars($wartezeit) ?></strong>
+                        <?php
+                        $wz_tage = $bart_config["bart_{$antrag['bart']}_wartezeit_tage"] ?? 7;
+                        ?>
+                        <div style="font-size: 11px; color: #666; margin-top: 4px;">
+                            (Konfigurierte Wartezeit für diesen Antragstyp: <?= $wz_tage ?> Tage)
+                        </div>
+                    </div>
+                <?php endif; ?>
+
                 <?php if ($kann_verwerfen && substr($antrnr, 0, 1) === 'A'): ?>
                     <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107; margin-bottom: 12px;">
                         <strong>Nur für Vorstand, GF und Antragsteller:</strong>
