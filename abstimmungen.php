@@ -261,6 +261,46 @@ function render_antrag_detail($pdo, $antrag) {
 }
 */
 
+// POST-Verarbeitung: Nur Bemerkungen speichern (ohne Votum)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_remarks'])) {
+    $antrnr = $_POST['antrnr'] ?? '';
+    $abstimmend = (int)($_POST['abstimmend'] ?? 0);
+    $vbegr = $_POST['VBegr'] ?? '';
+    $vprot = $_POST['VProt'] ?? '';
+
+    if ($antrnr && $abstimmend > 0 && $abstimmend <= 6) {
+        try {
+            // Prüfen ob User berechtigt ist
+            $check_stmt = $pdo->prepare("SELECT VName$abstimmend FROM antraege WHERE antrnr = ?");
+            $check_stmt->execute([$antrnr]);
+            $vname = $check_stmt->fetchColumn();
+
+            if ($vname == $user['ID']) {
+                // Nur Bemerkungen speichern (Votum bleibt unverändert)
+                $update_sql = "UPDATE antraege SET
+                    VBegr$abstimmend = ?,
+                    VProt$abstimmend = ?
+                    WHERE antrnr = ?";
+
+                $pdo->prepare($update_sql)->execute([$vbegr, $vprot, $antrnr]);
+
+                // Für AJAX-Anfragen JSON zurückgeben
+                if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true, 'message' => 'Bemerkungen gespeichert']);
+                    exit;
+                }
+            }
+        } catch (Exception $e) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+                exit;
+            }
+        }
+    }
+}
+
 // POST-Verarbeitung: Votum speichern
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['votum_action'])) {
     $antrnr = $_POST['antrnr'] ?? '';
@@ -762,19 +802,88 @@ foreach ($antraege as $a) {
                         </div>
 
                         <div style="margin-top: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Bemerkung / Erläuterung (nicht im Protokoll):</label>
-                            <textarea name="VBegr" rows="3"></textarea>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">
+                                Bemerkung / Erläuterung (nicht im Protokoll):
+                                <span id="save-status-begr-<?= $user_position ?>" style="margin-left: 10px; font-size: 11px; color: #666; font-weight: normal;"></span>
+                            </label>
+                            <textarea name="VBegr" id="vbegr-<?= $user_position ?>" rows="3"
+                                      value="<?= htmlspecialchars($antrag["VBegr$user_position"] ?? '') ?>"><?= htmlspecialchars($antrag["VBegr$user_position"] ?? '') ?></textarea>
                         </div>
 
                         <div style="margin-top: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Formelle Protokollnotiz (wird veröffentlicht):</label>
-                            <textarea name="VProt" rows="3"></textarea>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">
+                                Formelle Protokollnotiz (wird veröffentlicht):
+                                <span id="save-status-prot-<?= $user_position ?>" style="margin-left: 10px; font-size: 11px; color: #666; font-weight: normal;"></span>
+                            </label>
+                            <textarea name="VProt" id="vprot-<?= $user_position ?>" rows="3"><?= htmlspecialchars($antrag["VProt$user_position"] ?? '') ?></textarea>
                         </div>
 
                         <button type="submit" class="btn" style="margin-top: 20px; padding: 12px 24px; font-size: 16px;">
                             ✓ Abstimmen
                         </button>
                     </form>
+
+                    <!-- AutoSave für Bemerkungen -->
+                    <script>
+                    (function() {
+                        const antrnr = '<?= htmlspecialchars($antrag['antrnr']) ?>';
+                        const abstimmend = <?= $user_position ?>;
+                        const vbegrField = document.getElementById('vbegr-<?= $user_position ?>');
+                        const vprotField = document.getElementById('vprot-<?= $user_position ?>');
+                        const statusBegr = document.getElementById('save-status-begr-<?= $user_position ?>');
+                        const statusProt = document.getElementById('save-status-prot-<?= $user_position ?>');
+
+                        let saveTimeout = null;
+
+                        function autoSaveRemarks() {
+                            clearTimeout(saveTimeout);
+
+                            // Status anzeigen
+                            statusBegr.textContent = '💾 Speichere...';
+                            statusBegr.style.color = '#666';
+                            statusProt.textContent = '💾 Speichere...';
+                            statusProt.style.color = '#666';
+
+                            saveTimeout = setTimeout(() => {
+                                const formData = new FormData();
+                                formData.append('save_remarks', '1');
+                                formData.append('antrnr', antrnr);
+                                formData.append('abstimmend', abstimmend);
+                                formData.append('VBegr', vbegrField.value);
+                                formData.append('VProt', vprotField.value);
+
+                                fetch(window.location.href, {
+                                    method: 'POST',
+                                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                                    body: formData
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        statusBegr.textContent = '✓ Gespeichert';
+                                        statusBegr.style.color = '#4caf50';
+                                        statusProt.textContent = '✓ Gespeichert';
+                                        statusProt.style.color = '#4caf50';
+
+                                        setTimeout(() => {
+                                            statusBegr.textContent = '';
+                                            statusProt.textContent = '';
+                                        }, 2000);
+                                    }
+                                })
+                                .catch(error => {
+                                    statusBegr.textContent = '✗ Fehler';
+                                    statusBegr.style.color = '#f44336';
+                                    statusProt.textContent = '✗ Fehler';
+                                    statusProt.style.color = '#f44336';
+                                });
+                            }, 1000); // 1 Sekunde Debounce
+                        }
+
+                        vbegrField.addEventListener('input', autoSaveRemarks);
+                        vprotField.addEventListener('input', autoSaveRemarks);
+                    })();
+                    </script>
                     <?php
                 }
                 ?>
