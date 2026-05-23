@@ -735,9 +735,24 @@ foreach ($antraege as $a) {
                                     <input type="radio" name="Votum" value="4">
                                     <strong>Rückverweis</strong> - Noch nicht abstimmungsreif
                                 </label>
-                                <label>
-                                    <input type="radio" name="Votum" value="5">
-                                    <strong>Bedenkzeit</strong> - Ich benötige mehr Zeit
+                                <label style="display: flex; flex-direction: column; align-items: flex-start;">
+                                    <div>
+                                        <input type="radio" name="Votum" value="5" id="votum_bedenkzeit">
+                                        <strong>Bedenkzeit</strong> - Ich benötige Zeit bis:
+                                    </div>
+                                    <?php
+                                    // Bedenkzeit vorbelegen: 7 Tage ab jetzt
+                                    $default_bedenkzeit = date('Y-m-d', strtotime('+7 days'));
+                                    $max_bedenkzeit = date('Y-m-d', strtotime('+14 days'));
+                                    ?>
+                                    <input type="date" name="VBedenk" id="bedenkzeit_date"
+                                           value="<?= $default_bedenkzeit ?>"
+                                           min="<?= date('Y-m-d') ?>"
+                                           max="<?= $max_bedenkzeit ?>"
+                                           style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin: 8px 0 0 30px; width: auto;">
+                                    <small style="margin-left: 30px; color: #666; font-size: 11px;">
+                                        (Vorbelegt: 7 Tage | Maximum: 14 Tage)
+                                    </small>
                                 </label>
                             <?php endif; ?>
                             <label>
@@ -754,11 +769,6 @@ foreach ($antraege as $a) {
                         <div style="margin-top: 15px;">
                             <label style="display: block; margin-bottom: 5px; font-weight: 600;">Formelle Protokollnotiz (wird veröffentlicht):</label>
                             <textarea name="VProt" rows="3"></textarea>
-                        </div>
-
-                        <div style="margin-top: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Bedenkzeit bis (nur bei Bedenkzeit):</label>
-                            <input type="date" name="VBedenk" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                         </div>
 
                         <button type="submit" class="btn" style="margin-top: 20px; padding: 12px 24px; font-size: 16px;">
