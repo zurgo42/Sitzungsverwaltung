@@ -883,7 +883,12 @@ if ($user['aktiv'] >= 19) {
                     <div class="form-group">
                         <label for="fin">Betrag (volle Euro)</label>
                         <input type="number" id="fin" name="fin" step="1" min="0" value="<?= htmlspecialchars($antrag['fin'] ?? '0') ?>" style="max-width: 150px;">
-                        <div class="help-text">≤600€=Verfügung | 601-3000€=Ressort | >3000€=Vorstand</div>
+                        <?php
+                        // Betragsgrenzen aus Config
+                        $v_limit = $bart_config['bart_V_betrag_limit'] ?? 600;
+                        $r_limit = $bart_config['bart_R_betrag_limit'] ?? 3000;
+                        ?>
+                        <div class="help-text">≤<?= $v_limit ?>€=Verfügung | <?= ($v_limit + 1) ?>-<?= $r_limit ?>€=Ressort | ><?= $r_limit ?>€=Vorstand</div>
                     </div>
                 </div>
 
