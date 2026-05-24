@@ -570,6 +570,32 @@ if ($user['aktiv'] >= 19) {
             }
         })();
     </script>
+    <style>
+        /* Dark Mode Overrides für inline Styles */
+        body.dark-mode .header {
+            background: var(--bg-primary);
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .header h1,
+        body.dark-mode .header .antrnr {
+            color: var(--text-primary);
+        }
+
+        body.dark-mode .container {
+            background: var(--bg-primary);
+        }
+
+        body.dark-mode .info-box {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        body.dark-mode .alert-error strong,
+        body.dark-mode .info-box strong {
+            color: var(--text-primary) !important;
+        }
+    </style>
 </head>
 <body>
     <div class="container">

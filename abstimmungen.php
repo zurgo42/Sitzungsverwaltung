@@ -574,6 +574,43 @@ foreach ($antraege as $a) {
                 font-size: 14px !important;
             }
         }
+
+        /* Dark Mode Overrides für inline Styles */
+        body.dark-mode .antraege-liste {
+            background: var(--bg-secondary);
+        }
+
+        body.dark-mode .antraege-liste table {
+            background: var(--bg-primary);
+        }
+
+        body.dark-mode .antraege-liste th {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        body.dark-mode .antraege-liste td {
+            color: var(--text-primary);
+            border-bottom-color: var(--border-color);
+        }
+
+        body.dark-mode .antraege-liste tr:hover {
+            background: var(--hover-bg);
+        }
+
+        body.dark-mode .votum-box {
+            background: var(--bg-secondary);
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .header {
+            background: var(--bg-primary);
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .header h1 {
+            color: var(--text-primary);
+        }
     </style>
     <script>
         // Dark Mode automatisch von index.php übernehmen
@@ -742,26 +779,28 @@ foreach ($antraege as $a) {
                     $votum_text = ['', 'Ja', 'Nein', 'Enthaltung', 'Rückverweis', 'Bedenkzeit', 'Befangen'];
                     $votum_colors = ['white', '#d4edda', '#f8d7da', '#fff3cd', '#e1bee7', '#fff8dc', '#e0e0e0'];
 
-                    echo '<div style="padding: 10px; margin-bottom: 8px; background: ' . $votum_colors[$votum] . '; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">';
-                    echo '<div><strong>' . htmlspecialchars($voter['Vorname'] . ' ' . $voter['Name']) . '</strong>';
+                    echo '<div style="padding: 10px; margin-bottom: 8px; background: ' . $votum_colors[$votum] . '; border-radius: 4px;">';
+                    echo '<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 5px;"><strong>' . htmlspecialchars($voter['Vorname'] . ' ' . $voter['Name']) . '</strong>';
                     if ($votum > 0) {
-                        echo ' <span style="margin-left: 10px;">→ <strong>' . $votum_text[$votum] . '</strong></span>';
+                        echo ' <span style="margin-left: 5px;">→ <strong>' . $votum_text[$votum] . '</strong></span>';
                         if (!empty($antrag["VDat$i"])) {
                             echo ' <span style="color: #666; font-size: 12px;">(' . date('d.m.Y H:i', strtotime($antrag["VDat$i"])) . ')</span>';
                         }
                     } else {
-                        echo ' <span style="margin-left: 10px; color: #d32f2f;">→ Stimme steht noch aus</span>';
+                        echo '</div><div style="color: #d32f2f; font-size: 13px; margin-top: 3px;">→ Stimme steht noch aus</div>';
                     }
-                    echo '</div>';
+                    if ($votum > 0) {
+                        echo '</div>';
+                    }
 
                     // Begründung/Protokollnotiz anzeigen
                     if (!empty($antrag["VBegr$i"]) || !empty($antrag["VProt$i"])) {
-                        echo '<details style="margin-top: 5px;"><summary style="cursor: pointer; color: #0066cc; font-size: 12px;">Details</summary>';
+                        echo '<details style="margin-top: 8px;"><summary style="cursor: pointer; color: #0066cc; font-size: 12px; font-weight: 600;">Bemerkungen anzeigen</summary>';
                         if (!empty($antrag["VBegr$i"])) {
-                            echo '<div style="margin-top: 5px; font-size: 12px; color: #666;"><strong>Bemerkung:</strong> ' . nl2br(htmlspecialchars($antrag["VBegr$i"])) . '</div>';
+                            echo '<div style="margin-top: 5px; padding: 8px; background: rgba(0,102,204,0.05); border-left: 3px solid #0066cc; border-radius: 3px; font-size: 12px; color: #333;"><strong>Bemerkung:</strong><br>' . nl2br(htmlspecialchars($antrag["VBegr$i"])) . '</div>';
                         }
                         if (!empty($antrag["VProt$i"])) {
-                            echo '<div style="margin-top: 5px; font-size: 12px; color: #333;"><strong>Protokollnotiz:</strong> ' . nl2br(htmlspecialchars($antrag["VProt$i"])) . '</div>';
+                            echo '<div style="margin-top: 5px; padding: 8px; background: rgba(250,170,0,0.1); border-left: 3px solid #FAAA00; border-radius: 3px; font-size: 12px; color: #333;"><strong>Protokollnotiz:</strong><br>' . nl2br(htmlspecialchars($antrag["VProt$i"])) . '</div>';
                         }
                         echo '</details>';
                     }
@@ -804,17 +843,30 @@ foreach ($antraege as $a) {
                                     </div>
                                     <?php
                                     // Bedenkzeit vorbelegen: 7 Tage ab jetzt
+                                    // Berechne, wann der Antrag zur Abstimmung gestellt wurde (B-Datum aus Antragsnummer)
+                                    $antrag_datum = null;
+                                    if (preg_match('/^B(\d{6})/', $antrag['antrnr'], $matches)) {
+                                        $datum_str = $matches[1];
+                                        $antrag_datum = strtotime('20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2));
+                                    }
+
                                     $default_bedenkzeit = date('Y-m-d', strtotime('+7 days'));
                                     $max_bedenkzeit = date('Y-m-d', strtotime('+14 days'));
+
+                                    // Prüfen ob Bedenkzeit > 14 Tage nach Antragsstellung
+                                    $min_datum_fur_anzeige = $antrag_datum ? date('Y-m-d', $antrag_datum + (14 * 86400)) : date('Y-m-d');
+                                    $show_bedenkzeit_hint = (strtotime($default_bedenkzeit) > strtotime($min_datum_fur_anzeige));
                                     ?>
                                     <input type="date" name="VBedenk" id="bedenkzeit_date"
                                            value="<?= $default_bedenkzeit ?>"
                                            min="<?= date('Y-m-d') ?>"
                                            max="<?= $max_bedenkzeit ?>"
-                                           style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin: 8px 0 0 30px; width: auto;">
-                                    <small style="margin-left: 30px; color: #666; font-size: 11px;">
-                                        (Vorbelegt: 7 Tage | Maximum: 14 Tage)
+                                           style="padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; margin: 8px 0 0 30px; width: auto; background: var(--bg-primary); color: var(--text-primary);">
+                                    <?php if ($show_bedenkzeit_hint): ?>
+                                    <small style="margin-left: 30px; color: var(--text-secondary); font-size: 11px;">
+                                        Vorbelegt: 7 Tage | Maximum: 14 Tage
                                     </small>
+                                    <?php endif; ?>
                                 </label>
                             <?php endif; ?>
                             <label>
@@ -949,7 +1001,7 @@ foreach ($antraege as $a) {
             <!-- Liste aller Abstimmungen -->
             <div class="header">
                 <h1>Abstimmungen über Anträge</h1>
-                <p style="margin-top: 10px; color: #666;">
+                <p style="margin-top: 10px; color: var(--text-secondary);">
                     Hier werden alle zur Abstimmung stehenden Anträge angezeigt.
                 </p>
             </div>
