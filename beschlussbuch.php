@@ -432,6 +432,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
         body.dark-mode .back-link {
             color: #64b5f6;
         }
+
+        /* Lange URLs und Wörter umbrechen */
+        div[style*="font-size: 12px"],
+        div[style*="font-size: 13px"],
+        div[style*="font-size: 14px"],
+        a {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        /* Mobile Optimierung */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+            .filters {
+                grid-template-columns: 1fr;
+            }
+            div[style*="padding: 15px"] {
+                padding: 10px !important;
+            }
+        }
     </style>
 </head>
 <body>

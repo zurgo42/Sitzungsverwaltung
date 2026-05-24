@@ -138,13 +138,15 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         .compact-value { color: var(--text-primary); }
         .section-compact { background: var(--bg-primary); padding: 12px; margin-bottom: 12px; border-radius: 6px; border: 1px solid var(--border-color); }
         .section-title { font-weight: 700; font-size: 14px; margin-bottom: 10px; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; }
-        .text-box { background: var(--bg-secondary); padding: 8px; border-radius: 4px; border-left: 3px solid var(--primary); font-size: 12px; margin-top: 6px; }
+        .text-box { background: var(--bg-secondary); padding: 8px; border-radius: 4px; border-left: 3px solid var(--primary); font-size: 12px; margin-top: 6px; word-wrap: break-word; overflow-wrap: break-word; }
         .accordion { cursor: pointer; background: var(--bg-secondary); padding: 8px; border-radius: 4px; margin: 6px 0; font-weight: 600; user-select: none; }
         .accordion:hover { background: var(--hover-bg); }
         .accordion::before { content: '▶ '; font-size: 10px; margin-right: 6px; }
         .accordion.active::before { content: '▼ '; }
-        .acc-content { display: none; padding: 8px; background: var(--bg-secondary); border-radius: 4px; margin-bottom: 6px; font-size: 12px; white-space: pre-wrap; }
+        .acc-content { display: none; padding: 8px; background: var(--bg-secondary); border-radius: 4px; margin-bottom: 6px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
         .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .compact-value { word-wrap: break-word; overflow-wrap: break-word; }
+        a { word-wrap: break-word; overflow-wrap: break-word; }
         @media (max-width: 1024px) {
             .compact-grid { grid-template-columns: repeat(2, 1fr); }
         }
@@ -152,6 +154,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
             .compact-grid { grid-template-columns: 1fr; gap: 6px; }
             .compact-label { min-width: 80px; }
             .grid-2col { grid-template-columns: 1fr; }
+            .container { padding: 10px !important; }
         }
     </style>
 </head>

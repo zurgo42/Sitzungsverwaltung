@@ -547,6 +547,12 @@ foreach ($antraege as $a) {
             -webkit-overflow-scrolling: touch;
         }
 
+        /* Lange URLs und Wörter umbrechen */
+        .votum-box, textarea, input, a {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
         @media (max-width: 768px) {
             body .container-wide {
                 width: 100% !important;
@@ -561,6 +567,11 @@ foreach ($antraege as $a) {
 
             #antrag_frame_wrapper {
                 max-height: 70vh !important;
+            }
+
+            /* Textbereiche auf Smartphone */
+            textarea {
+                font-size: 14px !important;
             }
         }
     </style>
