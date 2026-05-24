@@ -1148,6 +1148,7 @@ try {
 
             ['bart_show_betrag_in_liste', '1', 'boolean', 'Beträge in Antragsliste anzeigen', 'antragstypen'],
             ['bart_pflicht_bei_betrag', '100', 'number', 'Ab welchem Betrag ist Betragsangabe Pflicht', 'antragstypen'],
+            ['bart_verfuegung_monatslimit', '2000', 'number', 'Maximale Summe aller Verfügungen pro Monat (Ressortbeschluss erforderlich bei Überschreitung)', 'antragstypen'],
 
             // Abstimmungsregeln
             ['voting_default_rule', 'einfach', 'text', 'Standard-Abstimmungsregel für neue Anträge', 'voting'],

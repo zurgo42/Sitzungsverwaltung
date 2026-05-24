@@ -374,37 +374,42 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     $vname_fields = [];
 
     if ($antrag['bart'] === 'V') {
-        // Verfügung: verf1 muss abstimmen
-        if (empty($antrag['verf1'])) {
-            throw new Exception("Verfügungsberechtigter muss angegeben werden.");
-        }
-        $vname_fields = ['VName1' => $antrag['verf1']];
+        // Verfügung: Alle mit Verfügungsberechtigung (aktiv >= 14)
+        $verfuegungsber_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE aktiv >= 14 ORDER BY ID LIMIT 6");
+        $verfuegungsber = $verfuegungsber_stmt->fetchAll(PDO::FETCH_COLUMN);
 
-        // Antragsteller hinzufügen wenn nicht bereits dabei
-        if ($antrag['antrst'] != $antrag['verf1']) {
-            $vname_fields['VName2'] = $antrag['antrst'];
+        if (empty($verfuegungsber)) {
+            throw new Exception("Keine Verfügungsberechtigten gefunden.");
+        }
+
+        for ($i = 0; $i < count($verfuegungsber); $i++) {
+            $vname_fields['VName' . ($i + 1)] = $verfuegungsber[$i];
         }
 
     } elseif ($antrag['bart'] === 'R') {
-        // Ressortbeschluss: verf1 und verf2 müssen abstimmen
-        if (empty($antrag['verf1']) || empty($antrag['verf2'])) {
-            throw new Exception("Beide Verfügungsberechtigte müssen angegeben werden. (bart=" . $antrag['bart'] . ", verf1=" . ($antrag['verf1'] ?? 'leer') . ", verf2=" . ($antrag['verf2'] ?? 'leer') . ")");
-        }
-        if ($antrag['verf1'] == $antrag['verf2']) {
-            throw new Exception("Die Verfügungsberechtigten dürfen nicht identisch sein.");
-        }
-        $vname_fields = [
-            'VName1' => $antrag['verf1'],
-            'VName2' => $antrag['verf2']
-        ];
+        // Ressortbeschluss: Antragsteller + FVo (oder FVv wenn FVo = Antragsteller)
+        $vname_fields['VName1'] = $antrag['antrst'];
 
-        // Antragsteller hinzufügen wenn nicht bereits dabei
-        if ($antrag['antrst'] != $antrag['verf1'] && $antrag['antrst'] != $antrag['verf2']) {
-            $vname_fields['VName3'] = $antrag['antrst'];
+        // FVo holen
+        $fvo_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE Funktion = 'FVo' AND aktiv >= 18 LIMIT 1");
+        $fvo = $fvo_stmt->fetchColumn();
+
+        if ($fvo && $fvo != $antrag['antrst']) {
+            // FVo ist nicht der Antragsteller -> FVo als VName2
+            $vname_fields['VName2'] = $fvo;
+        } else {
+            // FVo ist Antragsteller oder nicht vorhanden -> FVv als VName2
+            $fvv_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE Funktion = 'FVv' AND aktiv >= 18 LIMIT 1");
+            $fvv = $fvv_stmt->fetchColumn();
+            if ($fvv) {
+                $vname_fields['VName2'] = $fvv;
+            } else {
+                throw new Exception("Kein Finanzvorstand (FVo/FVv) für Zweitstimme gefunden.");
+            }
         }
 
     } elseif ($antrag['bart'] === 'B') {
-        // Vorstandsbeschluss: alle Vorstandsmitglieder (aktiv >= 18)
+        // Vorstandsbeschluss: Nur Vorstandsmitglieder (aktiv >= 18)
         $vorstand_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE aktiv >= 18 ORDER BY ID LIMIT 6");
         $vorstand = $vorstand_stmt->fetchAll(PDO::FETCH_COLUMN);
 
@@ -414,11 +419,6 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 
         for ($i = 0; $i < count($vorstand); $i++) {
             $vname_fields['VName' . ($i + 1)] = $vorstand[$i];
-        }
-
-        // Antragsteller hinzufügen wenn nicht bereits im Vorstand
-        if (!in_array($antrag['antrst'], $vorstand) && count($vname_fields) < 6) {
-            $vname_fields['VName' . (count($vname_fields) + 1)] = $antrag['antrst'];
         }
     }
 
