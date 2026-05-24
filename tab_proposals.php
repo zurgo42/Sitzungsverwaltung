@@ -308,12 +308,12 @@ require_once 'module_notifications.php';
 render_user_notifications($pdo, $current_user['member_id']);
 ?>
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
     <h2 style="margin: 0;" class="proposals-main-heading">📋 Anträge/Beschlüsse verwalten</h2>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="abstimmungen.php" style="padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">🗳️ Abstimmungen</a>
-        <a href="beschlussbuch.php" style="padding: 10px 20px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">📚 Beschlussbuch</a>
-        <a href="antrag_neu.php" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">+ Neuer Antrag</a>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <a href="abstimmungen.php" style="padding: 6px 12px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; display: inline-block; white-space: nowrap;">🗳️ Abstimmungen</a>
+        <a href="beschlussbuch.php" style="padding: 6px 12px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; display: inline-block; white-space: nowrap;">📚 Beschlussbuch</a>
+        <a href="antrag_neu.php" style="padding: 6px 12px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; display: inline-block; white-space: nowrap;">+ Neuer Antrag</a>
     </div>
 </div>
 

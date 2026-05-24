@@ -121,10 +121,12 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         (function() {
             const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
             if (hasCookie && document.cookie.includes('darkMode=enabled')) {
+                document.documentElement.classList.add('dark-mode');
                 document.body.classList.add('dark-mode');
             } else if (!hasCookie) {
                 const savedDarkMode = localStorage.getItem('darkMode');
                 if (savedDarkMode === 'enabled') {
+                    document.documentElement.classList.add('dark-mode');
                     document.body.classList.add('dark-mode');
                 }
             }

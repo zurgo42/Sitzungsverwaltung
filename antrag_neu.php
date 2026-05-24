@@ -151,6 +151,23 @@ if (count($aktive_typen) === 1) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neuer Antrag</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // Dark Mode automatisch von index.php übernehmen
+        (function() {
+            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
+            if (hasCookie && document.cookie.includes('darkMode=enabled')) {
+                document.documentElement.classList.add('dark-mode');
+                document.body.classList.add('dark-mode');
+            } else if (!hasCookie) {
+                const savedDarkMode = localStorage.getItem('darkMode');
+                if (savedDarkMode === 'enabled') {
+                    document.documentElement.classList.add('dark-mode');
+                    document.body.classList.add('dark-mode');
+                }
+            }
+        })();
+    </script>
     <style>
         * {
             margin: 0;
@@ -160,33 +177,36 @@ if (count($aktive_typen) === 1) {
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #f5f5f5;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
             padding: 40px 20px;
         }
 
         .container {
             max-width: 600px;
             margin: 0 auto;
-            background: white;
+            background: var(--bg-primary);
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px var(--shadow-color);
             padding: 40px;
+            border: 1px solid var(--border-color);
         }
 
         h1 {
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 10px;
             font-size: 24px;
         }
 
         .subtitle {
-            color: #666;
+            color: var(--text-secondary);
             margin-bottom: 30px;
             font-size: 14px;
         }
 
         .type-option {
-            border: 2px solid #ddd;
+            border: 2px solid var(--border-color);
+            background: var(--bg-primary);
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 15px;
@@ -195,8 +215,8 @@ if (count($aktive_typen) === 1) {
         }
 
         .type-option:hover {
-            border-color: #2196f3;
-            background: #f0f7ff;
+            border-color: var(--primary);
+            background: var(--hover-bg);
         }
 
         .type-option input[type="radio"] {
@@ -210,6 +230,7 @@ if (count($aktive_typen) === 1) {
             cursor: pointer;
             display: flex;
             align-items: flex-start;
+            color: var(--text-primary);
         }
 
         .type-content {
@@ -219,23 +240,23 @@ if (count($aktive_typen) === 1) {
         .type-name {
             font-size: 18px;
             font-weight: 600;
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 5px;
         }
 
         .type-desc {
             font-size: 14px;
-            color: #666;
+            color: var(--text-secondary);
         }
 
         .type-meta {
             font-size: 12px;
-            color: #999;
+            color: var(--text-muted);
             margin-top: 8px;
         }
 
         .btn-primary {
-            background: #2196f3;
+            background: var(--primary);
             color: white;
             border: none;
             padding: 12px 30px;
@@ -244,16 +265,18 @@ if (count($aktive_typen) === 1) {
             cursor: pointer;
             margin-top: 20px;
             width: 100%;
+            transition: all 0.3s;
         }
 
         .btn-primary:hover {
-            background: #1976d2;
+            background: var(--dunkelblau);
+            transform: translateY(-1px);
         }
 
         .btn-secondary {
-            background: #f5f5f5;
-            color: #666;
-            border: 1px solid #ddd;
+            background: var(--neutral);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
             padding: 12px 30px;
             border-radius: 4px;
             font-size: 16px;
@@ -263,15 +286,20 @@ if (count($aktive_typen) === 1) {
             text-decoration: none;
             display: inline-block;
             text-align: center;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: var(--hover-bg);
         }
 
         .error {
-            background: #ffebee;
-            color: #c62828;
+            background: rgba(211, 47, 47, 0.1);
+            color: var(--danger);
             padding: 15px;
             border-radius: 4px;
             margin-bottom: 20px;
-            border-left: 4px solid #c62828;
+            border-left: 4px solid var(--danger);
         }
 
         /* Mobile Optimierung */
