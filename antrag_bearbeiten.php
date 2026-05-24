@@ -380,6 +380,11 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         }
         $vname_fields = ['VName1' => $antrag['verf1']];
 
+        // Antragsteller hinzufügen wenn nicht bereits dabei
+        if ($antrag['antrst'] != $antrag['verf1']) {
+            $vname_fields['VName2'] = $antrag['antrst'];
+        }
+
     } elseif ($antrag['bart'] === 'R') {
         // Ressortbeschluss: verf1 und verf2 müssen abstimmen
         if (empty($antrag['verf1']) || empty($antrag['verf2'])) {
@@ -393,6 +398,11 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
             'VName2' => $antrag['verf2']
         ];
 
+        // Antragsteller hinzufügen wenn nicht bereits dabei
+        if ($antrag['antrst'] != $antrag['verf1'] && $antrag['antrst'] != $antrag['verf2']) {
+            $vname_fields['VName3'] = $antrag['antrst'];
+        }
+
     } elseif ($antrag['bart'] === 'B') {
         // Vorstandsbeschluss: alle Vorstandsmitglieder (aktiv >= 18)
         $vorstand_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE aktiv >= 18 ORDER BY ID LIMIT 6");
@@ -404,6 +414,11 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 
         for ($i = 0; $i < count($vorstand); $i++) {
             $vname_fields['VName' . ($i + 1)] = $vorstand[$i];
+        }
+
+        // Antragsteller hinzufügen wenn nicht bereits im Vorstand
+        if (!in_array($antrag['antrst'], $vorstand) && count($vname_fields) < 6) {
+            $vname_fields['VName' . (count($vname_fields) + 1)] = $antrag['antrst'];
         }
     }
 
