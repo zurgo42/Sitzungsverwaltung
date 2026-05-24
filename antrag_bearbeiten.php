@@ -555,7 +555,7 @@ if ($user['aktiv'] >= 19) {
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="antrag-styles.css">
     <script>
-        // Dark Mode automatisch von index.php übernehmen
+        // Dark Mode automatisch von index.php übernehmen (Cookie/localStorage Sync)
         (function() {
             const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
             if (hasCookie && document.cookie.includes('darkMode=enabled')) {
