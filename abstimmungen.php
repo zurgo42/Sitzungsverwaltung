@@ -536,41 +536,13 @@ foreach ($antraege as $a) {
             const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
             if (hasCookie && document.cookie.includes('darkMode=enabled')) {
                 document.documentElement.classList.add('dark-mode');
-                document.body.classList.add('dark-mode');
             } else if (!hasCookie) {
                 const savedDarkMode = localStorage.getItem('darkMode');
                 if (savedDarkMode === 'enabled') {
                     document.documentElement.classList.add('dark-mode');
-                    document.body.classList.add('dark-mode');
                 }
             }
         })();
-
-        // DEBUG: Dark Mode Status anzeigen
-        window.addEventListener('DOMContentLoaded', function() {
-            const debug = document.createElement('div');
-            debug.style.cssText = 'position: fixed; top: 10px; right: 10px; background: red; color: white; padding: 10px; z-index: 9999; font-size: 12px; border-radius: 4px; max-width: 300px;';
-
-            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
-            const cookieValue = document.cookie.split(';').find(c => c.trim().startsWith('darkMode='));
-            const localStorageValue = localStorage.getItem('darkMode');
-            const htmlHasClass = document.documentElement.classList.contains('dark-mode');
-            const bodyHasClass = document.body.classList.contains('dark-mode');
-            const bodyBg = window.getComputedStyle(document.body).backgroundColor;
-
-            debug.innerHTML = `
-                <strong>🔍 Dark Mode Debug</strong><br>
-                Cookie exists: ${hasCookie}<br>
-                Cookie value: ${cookieValue || 'none'}<br>
-                localStorage: ${localStorageValue || 'none'}<br>
-                html.dark-mode: ${htmlHasClass}<br>
-                body.dark-mode: ${bodyHasClass}<br>
-                body bg-color: ${bodyBg}<br>
-                <button onclick="this.parentElement.remove()" style="margin-top: 5px; padding: 2px 5px;">Close</button>
-            `;
-
-            document.body.appendChild(debug);
-        });
     </script>
     <style>
         /* Breiteres Layout für Abstimmungsseite - überschreibt style.css .container */
@@ -580,7 +552,7 @@ foreach ($antraege as $a) {
         }
 
         /* Dark Mode */
-        body.dark-mode {
+        html.dark-mode body {
             background: #1a1a1a !important;
             color: #e0e0e0 !important;
         }
@@ -594,7 +566,7 @@ foreach ($antraege as $a) {
             background: white;
         }
 
-        body.dark-mode .container-wide {
+        html.dark-mode .container-wide {
             background: #2d2d2d !important;
         }
 
@@ -634,80 +606,80 @@ foreach ($antraege as $a) {
         }
 
         /* Dark Mode Overrides für inline Styles */
-        body.dark-mode .antraege-liste {
+        html.dark-mode.antraege-liste {
             background: #2d2d2d !important;
         }
 
-        body.dark-mode .antraege-liste table {
+        html.dark-mode.antraege-liste table {
             background: #2d2d2d !important;
         }
 
-        body.dark-mode .antraege-liste th {
+        html.dark-mode.antraege-liste th {
             background: #1a1a1a !important;
             color: #e0e0e0 !important;
         }
 
-        body.dark-mode .antraege-liste td {
+        html.dark-mode.antraege-liste td {
             color: #e0e0e0 !important;
             border-bottom-color: #444 !important;
         }
 
-        body.dark-mode .antraege-liste tr:hover {
+        html.dark-mode.antraege-liste tr:hover {
             background: #333 !important;
         }
 
-        body.dark-mode .votum-box {
+        html.dark-mode.votum-box {
             background: #2d2d2d !important;
             border-color: #444 !important;
         }
 
-        body.dark-mode .header {
+        html.dark-mode.header {
             background: #2d2d2d !important;
             border-color: #444 !important;
         }
 
-        body.dark-mode .header h1 {
+        html.dark-mode.header h1 {
             color: #e0e0e0 !important;
         }
 
-        body.dark-mode .header p {
+        html.dark-mode.header p {
             color: #b0b0b0 !important;
         }
 
         /* Inline Styles Overrides */
-        body.dark-mode div[style*="background: white"],
-        body.dark-mode div[style*="background: #fff"] {
+        html.dark-modediv[style*="background: white"],
+        html.dark-modediv[style*="background: #fff"] {
             background: #2d2d2d !important;
         }
 
-        body.dark-mode div[style*="background: #f8f9fa"] {
+        html.dark-modediv[style*="background: #f8f9fa"] {
             background: #1a1a1a !important;
         }
 
-        body.dark-mode div[style*="color: #333"],
-        body.dark-mode div[style*="color: #666"],
-        body.dark-mode div[style*="color: #000"] {
+        html.dark-modediv[style*="color: #333"],
+        html.dark-modediv[style*="color: #666"],
+        html.dark-modediv[style*="color: #000"] {
             color: #e0e0e0 !important;
         }
 
-        body.dark-mode strong {
+        html.dark-modestrong {
             color: #e0e0e0 !important;
         }
 
-        body.dark-mode h1, body.dark-mode h2, body.dark-mode h3 {
+        html.dark-modeh1, body.dark-mode h2, body.dark-mode h3 {
             color: #e0e0e0 !important;
         }
 
-        body.dark-mode .form-section,
-        body.dark-mode .section-compact {
+        html.dark-mode.form-section,
+        html.dark-mode.section-compact {
             background: #2d2d2d !important;
             border-color: #444 !important;
         }
 
-        body.dark-mode input[type="text"],
-        body.dark-mode input[type="date"],
-        body.dark-mode textarea,
-        body.dark-mode select {
+        html.dark-modeinput[type="text"],
+        html.dark-modeinput[type="date"],
+        html.dark-modetextarea,
+        html.dark-modeselect {
             background: #1a1a1a !important;
             color: #e0e0e0 !important;
             border-color: #444 !important;

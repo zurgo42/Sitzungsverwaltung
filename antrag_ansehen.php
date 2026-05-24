@@ -122,41 +122,13 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
             const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
             if (hasCookie && document.cookie.includes('darkMode=enabled')) {
                 document.documentElement.classList.add('dark-mode');
-                document.body.classList.add('dark-mode');
             } else if (!hasCookie) {
                 const savedDarkMode = localStorage.getItem('darkMode');
                 if (savedDarkMode === 'enabled') {
                     document.documentElement.classList.add('dark-mode');
-                    document.body.classList.add('dark-mode');
                 }
             }
         })();
-
-        // DEBUG: Dark Mode Status anzeigen
-        window.addEventListener('DOMContentLoaded', function() {
-            const debug = document.createElement('div');
-            debug.style.cssText = 'position: fixed; top: 10px; right: 10px; background: red; color: white; padding: 10px; z-index: 9999; font-size: 12px; border-radius: 4px; max-width: 300px;';
-
-            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
-            const cookieValue = document.cookie.split(';').find(c => c.trim().startsWith('darkMode='));
-            const localStorageValue = localStorage.getItem('darkMode');
-            const htmlHasClass = document.documentElement.classList.contains('dark-mode');
-            const bodyHasClass = document.body.classList.contains('dark-mode');
-            const bodyBg = window.getComputedStyle(document.body).backgroundColor;
-
-            debug.innerHTML = `
-                <strong>🔍 Dark Mode Debug</strong><br>
-                Cookie exists: ${hasCookie}<br>
-                Cookie value: ${cookieValue || 'none'}<br>
-                localStorage: ${localStorageValue || 'none'}<br>
-                html.dark-mode: ${htmlHasClass}<br>
-                body.dark-mode: ${bodyHasClass}<br>
-                body bg-color: ${bodyBg}<br>
-                <button onclick="this.parentElement.remove()" style="margin-top: 5px; padding: 2px 5px;">Close</button>
-            `;
-
-            document.body.appendChild(debug);
-        });
     </script>
     <style>
         body {
@@ -167,7 +139,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         }
 
         /* Dark Mode */
-        body.dark-mode {
+        html.dark-mode body {
             background: #1a1a1a !important;
             color: #e0e0e0 !important;
         }
@@ -189,56 +161,56 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         h1 { color: #333; }
 
         /* Dark Mode Overrides */
-        body.dark-mode .container {
+        html.dark-mode .container {
             background: #2d2d2d !important;
         }
 
-        body.dark-mode h1 {
+        html.dark-mode h1 {
             color: #e0e0e0 !important;
         }
 
-        body.dark-mode .compact-label {
+        html.dark-mode .compact-label {
             color: #b0b0b0 !important;
         }
 
-        body.dark-mode .compact-value {
+        html.dark-mode .compact-value {
             color: #e0e0e0 !important;
         }
 
-        body.dark-mode .section-compact {
+        html.dark-mode .section-compact {
             background: #2d2d2d !important;
             border-color: #444 !important;
         }
 
-        body.dark-mode .section-title {
+        html.dark-mode .section-title {
             color: #8ECAF6 !important;
             border-bottom-color: #8ECAF6 !important;
         }
 
-        body.dark-mode .text-box {
+        html.dark-mode .text-box {
             background: #1a1a1a !important;
             border-left-color: #8ECAF6 !important;
         }
 
-        body.dark-mode .accordion {
+        html.dark-mode .accordion {
             background: #1a1a1a !important;
         }
 
-        body.dark-mode .accordion:hover {
+        html.dark-mode .accordion:hover {
             background: #333 !important;
         }
 
-        body.dark-mode .acc-content {
+        html.dark-mode .acc-content {
             background: #1a1a1a !important;
         }
 
-        body.dark-mode div[style*="color: #000"],
-        body.dark-mode div[style*="color: #333"],
-        body.dark-mode div[style*="color: #666"] {
+        html.dark-mode div[style*="color: #000"],
+        html.dark-mode div[style*="color: #333"],
+        html.dark-mode div[style*="color: #666"] {
             color: #e0e0e0 !important;
         }
 
-        body.dark-mode div[style*="background: #ffebee"] {
+        html.dark-mode div[style*="background: #ffebee"] {
             background: rgba(211, 47, 47, 0.2) !important;
         }
 

@@ -560,41 +560,13 @@ if ($user['aktiv'] >= 19) {
             const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
             if (hasCookie && document.cookie.includes('darkMode=enabled')) {
                 document.documentElement.classList.add('dark-mode');
-                document.body.classList.add('dark-mode');
             } else if (!hasCookie) {
                 const savedDarkMode = localStorage.getItem('darkMode');
                 if (savedDarkMode === 'enabled') {
                     document.documentElement.classList.add('dark-mode');
-                    document.body.classList.add('dark-mode');
                 }
             }
         })();
-
-        // DEBUG: Dark Mode Status anzeigen
-        window.addEventListener('DOMContentLoaded', function() {
-            const debug = document.createElement('div');
-            debug.style.cssText = 'position: fixed; top: 10px; right: 10px; background: red; color: white; padding: 10px; z-index: 9999; font-size: 12px; border-radius: 4px; max-width: 300px;';
-
-            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
-            const cookieValue = document.cookie.split(';').find(c => c.trim().startsWith('darkMode='));
-            const localStorageValue = localStorage.getItem('darkMode');
-            const htmlHasClass = document.documentElement.classList.contains('dark-mode');
-            const bodyHasClass = document.body.classList.contains('dark-mode');
-            const bodyBg = window.getComputedStyle(document.body).backgroundColor;
-
-            debug.innerHTML = `
-                <strong>🔍 Dark Mode Debug</strong><br>
-                Cookie exists: ${hasCookie}<br>
-                Cookie value: ${cookieValue || 'none'}<br>
-                localStorage: ${localStorageValue || 'none'}<br>
-                html.dark-mode: ${htmlHasClass}<br>
-                body.dark-mode: ${bodyHasClass}<br>
-                body bg-color: ${bodyBg}<br>
-                <button onclick="this.parentElement.remove()" style="margin-top: 5px; padding: 2px 5px;">Close</button>
-            `;
-
-            document.body.appendChild(debug);
-        });
     </script>
     <style>
         /* Dark Mode Overrides für inline Styles */
@@ -604,66 +576,66 @@ if ($user['aktiv'] >= 19) {
         }
 
         /* Dark Mode */
-        body.dark-mode {
+        html.dark-mode body {
             background: #1a1a1a !important;
             color: #e0e0e0 !important;
         }
 
-        body.dark-mode .container {
+        html.dark-mode .container {
             background: #2d2d2d !important;
         }
 
-        body.dark-mode .header {
+        html.dark-mode .header {
             background: #2d2d2d !important;
             border-color: #444 !important;
         }
 
-        body.dark-mode .header h1,
-        body.dark-mode .header .antrnr {
+        html.dark-mode .header h1,
+        html.dark-mode .header .antrnr {
             color: #e0e0e0 !important;
         }
 
-        body.dark-mode .info-box {
+        html.dark-mode .info-box {
             background: #1a1a1a !important;
             color: #e0e0e0 !important;
         }
 
-        body.dark-mode .alert-error strong,
-        body.dark-mode .info-box strong {
+        html.dark-mode .alert-error strong,
+        html.dark-mode .info-box strong {
             color: #e0e0e0 !important;
         }
 
-        body.dark-mode div[style*="background: #fff8dc"],
-        body.dark-mode div[style*="background: #e3f2fd"],
-        body.dark-mode div[style*="background: #fff3cd"],
-        body.dark-mode div[style*="background: #e8f5e9"] {
+        html.dark-mode div[style*="background: #fff8dc"],
+        html.dark-mode div[style*="background: #e3f2fd"],
+        html.dark-mode div[style*="background: #fff3cd"],
+        html.dark-mode div[style*="background: #e8f5e9"] {
             background: #2d2d2d !important;
         }
 
-        body.dark-mode div[style*="color: #666"],
-        body.dark-mode div[style*="color: #333"],
-        body.dark-mode small[style*="color: #666"],
-        body.dark-mode label[style*="color: #666"] {
+        html.dark-mode div[style*="color: #666"],
+        html.dark-mode div[style*="color: #333"],
+        html.dark-mode small[style*="color: #666"],
+        html.dark-mode label[style*="color: #666"] {
             color: #b0b0b0 !important;
         }
 
-        body.dark-mode .form-section {
+        html.dark-mode .form-section {
             background: #2d2d2d !important;
             border-color: #444 !important;
         }
 
-        body.dark-mode input[type="text"],
-        body.dark-mode input[type="number"],
-        body.dark-mode input[type="date"],
-        body.dark-mode input[type="file"],
-        body.dark-mode textarea,
-        body.dark-mode select {
+        html.dark-mode input[type="text"],
+        html.dark-mode input[type="number"],
+        html.dark-mode input[type="date"],
+        html.dark-mode input[type="file"],
+        html.dark-mode textarea,
+        html.dark-mode select {
             background: #1a1a1a !important;
             color: #e0e0e0 !important;
             border-color: #444 !important;
         }
 
-        body.dark-mode .section-header {
+        html.dark-mode .section-header {
             color: #8ECAF6 !important;
             border-bottom-color: #8ECAF6 !important;
         }

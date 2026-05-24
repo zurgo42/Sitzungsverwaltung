@@ -267,12 +267,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
             const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
             if (hasCookie && document.cookie.includes('darkMode=enabled')) {
                 document.documentElement.classList.add('dark-mode');
-                document.body.classList.add('dark-mode');
             } else if (!hasCookie) {
                 const savedDarkMode = localStorage.getItem('darkMode');
                 if (savedDarkMode === 'enabled') {
                     document.documentElement.classList.add('dark-mode');
-                    document.body.classList.add('dark-mode');
                 }
             }
         })();
@@ -391,76 +389,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
         }
 
         /* Dark Mode */
-        body.dark-mode {
+        html.dark-mode body {
             background: #1a1a1a;
             color: #e0e0e0;
         }
-        body.dark-mode .header {
+        html.dark-mode .header {
             background: #2d2d2d;
             border-color: #444;
         }
-        body.dark-mode h1 {
+        html.dark-mode h1 {
             color: #e0e0e0;
         }
-        body.dark-mode .filters {
+        html.dark-mode .filters {
             background: #2d2d2d;
             border-color: #444;
         }
-        body.dark-mode .filters input,
-        body.dark-mode .filters select {
-            background: #1a1a1a;
-            color: #e0e0e0;
-            border-color: #444;
-        }
-        body.dark-mode .filter-label {
-            color: #e0e0e0;
-        }
-        body.dark-mode .count {
-            background: #2d2d2d;
-            color: #e0e0e0;
-        }
-        body.dark-mode .table-container {
-            background: #2d2d2d;
-        }
-        body.dark-mode th {
+        html.dark-mode .filters input,
+        html.dark-mode .filters select {
             background: #1a1a1a;
             color: #e0e0e0;
             border-color: #444;
         }
-        body.dark-mode td {
+        html.dark-mode .filter-label {
+            color: #e0e0e0;
+        }
+        html.dark-mode .count {
+            background: #2d2d2d;
+            color: #e0e0e0;
+        }
+        html.dark-mode .table-container {
+            background: #2d2d2d;
+        }
+        html.dark-mode th {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+        html.dark-mode td {
             border-color: #444;
             color: #e0e0e0;
         }
-        body.dark-mode tr:hover {
+        html.dark-mode tr:hover {
             background: #333;
         }
-        body.dark-mode .back-link {
+        html.dark-mode .back-link {
             color: #64b5f6;
         }
-        body.dark-mode .card-container {
+        html.dark-mode .card-container {
             background: #2d2d2d !important;
             border-color: #444 !important;
         }
-        body.dark-mode .antrnr-badge {
+        html.dark-mode .antrnr-badge {
             background: #1a1a1a !important;
             color: #64b5f6 !important;
         }
-        body.dark-mode .antrnr-badge a {
+        html.dark-mode .antrnr-badge a {
             color: #64b5f6 !important;
         }
-        body.dark-mode .title-box {
+        html.dark-mode .title-box {
             background: #1a1a1a !important;
             color: #e0e0e0 !important;
             border-color: #444 !important;
         }
-        body.dark-mode .content-box {
+        html.dark-mode .content-box {
             background: #1a1a1a !important;
             color: #e0e0e0 !important;
         }
-        body.dark-mode .news-item {
+        html.dark-mode .news-item {
             border-color: #444 !important;
         }
-        body.dark-mode .news-item a {
+        html.dark-mode .news-item a {
             color: #64b5f6 !important;
         }
 

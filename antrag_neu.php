@@ -156,14 +156,20 @@ if (count($aktive_typen) === 1) {
         // Dark Mode automatisch von index.php übernehmen
         (function() {
             const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
-            if (hasCookie && document.cookie.includes('darkMode=enabled')) {
+            const darkModeEnabled = (hasCookie && document.cookie.includes('darkMode=enabled')) ||
+                                   (!hasCookie && localStorage.getItem('darkMode') === 'enabled');
+
+            if (darkModeEnabled) {
+                // HTML sofort setzen (im <head>)
                 document.documentElement.classList.add('dark-mode');
-                document.body.classList.add('dark-mode');
-            } else if (!hasCookie) {
-                const savedDarkMode = localStorage.getItem('darkMode');
-                if (savedDarkMode === 'enabled') {
-                    document.documentElement.classList.add('dark-mode');
+
+                // Body setzen sobald verfügbar
+                if (document.body) {
                     document.body.classList.add('dark-mode');
+                } else {
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.body.classList.add('dark-mode');
+                    });
                 }
             }
         })();
