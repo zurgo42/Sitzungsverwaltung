@@ -36,14 +36,14 @@ function getUserData($pdo, $member_id) {
 }
 
 function getVerfuegungsberechtigte($pdo) {
-    $stmt = $pdo->query("SELECT ID, KurzN, Funktion FROM berechtigte WHERE aktiv >= 18 ORDER BY KurzN");
+    $stmt = $pdo->query("SELECT ID, KurzN, Vorname, Funktion FROM berechtigte WHERE aktiv >= 18 ORDER BY aktiv DESC, Vorname ASC");
     return $stmt->fetchAll();
 }
 
 function getAbstimmungsberechtigte($pdo, $bart, $antrst) {
     // Für V und R: aktiv >= 14
     if ($bart === 'V' || $bart === 'R') {
-        $members = $pdo->query("SELECT ID, KurzN, Funktion FROM berechtigte WHERE aktiv >= 14 ORDER BY Funktion DESC, KurzN ASC")->fetchAll();
+        $members = $pdo->query("SELECT ID, KurzN, Vorname, Funktion FROM berechtigte WHERE aktiv >= 14 ORDER BY aktiv DESC, Vorname ASC")->fetchAll();
 
         // Für R: zusätzlich FVo oder FVv
         if ($bart === 'R') {
@@ -74,7 +74,7 @@ function getAbstimmungsberechtigte($pdo, $bart, $antrst) {
     }
 
     // Für B: alle mit aktiv >= 18 (Vorstand)
-    return $pdo->query("SELECT ID, KurzN, Funktion FROM berechtigte WHERE aktiv >= 18 ORDER BY Funktion DESC, KurzN ASC")->fetchAll();
+    return $pdo->query("SELECT ID, KurzN, Vorname, Funktion FROM berechtigte WHERE aktiv >= 18 ORDER BY aktiv DESC, Vorname ASC")->fetchAll();
 }
 
 function berechneWartezeit($antrnr, $bart, $bart_config) {
@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'delete':
                 verwerfenAntrag($pdo, $antrnr, $antrag, $user);
-                header('Location: index.php?tab=proposals?msg=withdrawn');
+                header('Location: index.php?tab=proposals&msg=withdrawn');
                 exit;
 
             case 'verkuerzung':
@@ -375,7 +375,7 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 
     if ($antrag['bart'] === 'V') {
         // Verfügung: Alle mit Verfügungsberechtigung (aktiv >= 14)
-        $verfuegungsber_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE aktiv >= 14 ORDER BY ID LIMIT 6");
+        $verfuegungsber_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE aktiv >= 14 ORDER BY aktiv DESC, Vorname ASC LIMIT 6");
         $verfuegungsber = $verfuegungsber_stmt->fetchAll(PDO::FETCH_COLUMN);
 
         if (empty($verfuegungsber)) {
@@ -410,7 +410,7 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 
     } elseif ($antrag['bart'] === 'B') {
         // Vorstandsbeschluss: Nur Vorstandsmitglieder (aktiv >= 18)
-        $vorstand_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE aktiv >= 18 ORDER BY ID LIMIT 6");
+        $vorstand_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE aktiv >= 18 ORDER BY aktiv DESC, Vorname ASC LIMIT 6");
         $vorstand = $vorstand_stmt->fetchAll(PDO::FETCH_COLUMN);
 
         if (empty($vorstand)) {
@@ -543,7 +543,7 @@ if ($antrag['verk2']) {
 // Alle User mit aktiv>=9 für Admin-Antragsteller-Auswahl
 $alle_antragsteller = [];
 if ($user['aktiv'] >= 19) {
-    $alle_antragsteller = $pdo->query("SELECT ID, KurzN, Vorname, Name FROM berechtigte WHERE aktiv >= 9 ORDER BY KurzN")->fetchAll();
+    $alle_antragsteller = $pdo->query("SELECT ID, KurzN, Vorname, Name FROM berechtigte WHERE aktiv >= 9 ORDER BY aktiv DESC, Vorname ASC")->fetchAll();
 }
 ?>
 <!DOCTYPE html>

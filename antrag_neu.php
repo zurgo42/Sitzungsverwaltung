@@ -273,6 +273,37 @@ if (count($aktive_typen) === 1) {
             margin-bottom: 20px;
             border-left: 4px solid #c62828;
         }
+
+        /* Mobile Optimierung */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 20px;
+                max-width: 100vw;
+                overflow-x: hidden;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .type-option {
+                padding: 15px;
+            }
+
+            .type-name {
+                font-size: 16px;
+            }
+
+            .btn-primary,
+            .btn-secondary {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>

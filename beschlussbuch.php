@@ -262,15 +262,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="antrag-styles.css">
     <script>
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-        }
-        document.addEventListener('DOMContentLoaded', function() {
-            if (localStorage.getItem('darkMode') === 'true') {
+        // Dark Mode automatisch von index.php übernehmen (Cookie/localStorage Sync)
+        (function() {
+            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
+            if (hasCookie && document.cookie.includes('darkMode=enabled')) {
+                document.documentElement.classList.add('dark-mode');
                 document.body.classList.add('dark-mode');
+            } else if (!hasCookie) {
+                const savedDarkMode = localStorage.getItem('darkMode');
+                if (savedDarkMode === 'enabled') {
+                    document.documentElement.classList.add('dark-mode');
+                    document.body.classList.add('dark-mode');
+                }
             }
-        });
+        })();
     </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -432,6 +437,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
         body.dark-mode .back-link {
             color: #64b5f6;
         }
+        body.dark-mode .card-container {
+            background: #2d2d2d !important;
+            border-color: #444 !important;
+        }
+        body.dark-mode .antrnr-badge {
+            background: #1a1a1a !important;
+            color: #64b5f6 !important;
+        }
+        body.dark-mode .antrnr-badge a {
+            color: #64b5f6 !important;
+        }
+        body.dark-mode .title-box {
+            background: #1a1a1a !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+        body.dark-mode .content-box {
+            background: #1a1a1a !important;
+            color: #e0e0e0 !important;
+        }
+        body.dark-mode .news-item {
+            border-color: #444 !important;
+        }
+        body.dark-mode .news-item a {
+            color: #64b5f6 !important;
+        }
 
         /* Lange URLs und Wörter umbrechen */
         div[style*="font-size: 12px"],
@@ -537,7 +568,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
         </div>
     <?php elseif ($view_mode === 'news' && $user['aktiv'] > 9): ?>
         <!-- MensaNews-Liste Format -->
-        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" class="card-container">
             <?php foreach ($beschluesse as $b):
                 // Datum aus Antragsnummer
                 if (preg_match('/^VS(\d{6})/', $b['antrnr'], $matches)) {
@@ -549,8 +580,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                 }
                 $ressort_text = !empty($b['ressort']) ? $b['ressort'] : 'Vorstand Gesamt';
             ?>
-            <p style="text-align: left; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
-                <b><a href="antrag_ansehen.php?antrnr=<?= h($b['antrnr']) ?>" style="color:black;text-decoration:none;"><?= h($b['antrnr']) ?></a></b> (<?= $datum_anzeige ?>)<br>
+            <p style="text-align: left; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;" class="news-item">
+                <b><a href="antrag_ansehen.php?antrnr=<?= h($b['antrnr']) ?>" style="color: #0066cc; text-decoration:none;"><?= h($b['antrnr']) ?></a></b> (<?= $datum_anzeige ?>)<br>
                 Ressort: <?= highlightWords2(h($ressort_text), $search) ?><br>
                 <b>Beschlusstitel: <?= highlightWords2(h($b['titel']), $search) ?></b><br>
                 Beschluss: <?= display_with_links(h($b['beschluss']), $search) ?><br>
@@ -592,11 +623,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
             }
             $ressort_text = !empty($b['ressort']) ? $b['ressort'] : 'Vorstand Gesamt';
         ?>
-        <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" class="card-container">
             <div style="display:flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                 <div>
-                    <span style="background: #e9ecef; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
-                        <a href="antrag_ansehen.php?antrnr=<?= h($b['antrnr']) ?>" style="color:inherit; text-decoration:none;"><?= h($b['antrnr']) ?></a>
+                    <span style="background: #e9ecef; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;" class="antrnr-badge">
+                        <a href="antrag_ansehen.php?antrnr=<?= h($b['antrnr']) ?>" style="color: #333; text-decoration:none;"><?= h($b['antrnr']) ?></a>
                     </span>
                     <span style="background: #d1ecf1; color: #0c5460; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 5px;"><?= h($ressort_text) ?></span>
                 </div>
@@ -610,11 +641,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                 </div>
             </div>
 
-            <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #2c3e50; background: #f8f9fa; padding: 8px; border-radius: 4px; border: 1px solid #eee;">
+            <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #2c3e50; background: #f8f9fa; padding: 8px; border-radius: 4px; border: 1px solid #eee;" class="title-box">
                 <?= highlightWords2(h($b['titel']), $search) ?>
             </h3>
 
-            <div style="background: #f1f3f5; padding: 12px; border-radius: 6px; margin: 10px 0; font-size: 14px;">
+            <div style="background: #f1f3f5; padding: 12px; border-radius: 6px; margin: 10px 0; font-size: 14px;" class="content-box">
                 <strong style="font-size: 11px; text-transform: uppercase; color: #495057; display: block; margin-bottom: 4px;">Beschlusswortlaut:</strong>
                 <?= display_with_links(nl2br(h($b['beschluss'])), $search) ?>
             </div>

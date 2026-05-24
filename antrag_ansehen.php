@@ -202,7 +202,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
             <div class="compact-grid">
                 <div class="compact-row">
                     <div class="compact-label">Antragsteller:</div>
-                    <div class="compact-value"><?= htmlspecialchars($antrag['Name']) ?> (<?= htmlspecialchars($antrag['AntragstellerKurz']) ?>)</div>
+                    <div class="compact-value"><?= htmlspecialchars($antrag['Vorname']) ?> <?= htmlspecialchars($antrag['Name']) ?></div>
                 </div>
                 <div class="compact-row">
                     <div class="compact-label">Beschlussart:</div>
@@ -226,17 +226,19 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                     </div>
                 </div>
                 <?php endif; ?>
+                <?php if ($antrag['ressort1_name'] || $antrag['ressort2_name']): ?>
                 <div class="compact-row">
-                    <div class="compact-label">Ressort:</div>
+                    <div class="compact-label">Ressorts:</div>
                     <div class="compact-value"><?= htmlspecialchars($antrag['ressort1_name'] ?? '') ?><?= $antrag['ressort2_name'] ? ' + ' . htmlspecialchars($antrag['ressort2_name']) : '' ?></div>
                 </div>
+                <?php endif; ?>
                 <div class="compact-row">
                     <div class="compact-label">Verantwortlich:</div>
                     <div class="compact-value"><?= htmlspecialchars($antrag['verant'] ?? '') ?></div>
                 </div>
                 <?php if ($verf1_name): ?>
                 <div class="compact-row">
-                    <div class="compact-label">Abstimmend:</div>
+                    <div class="compact-label">Abstimmung:</div>
                     <div class="compact-value"><?= htmlspecialchars($verf1_name) ?><?= $verf2_name ? ' + ' . htmlspecialchars($verf2_name) : '' ?></div>
                 </div>
                 <?php endif; ?>
@@ -248,10 +250,10 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                     <div class="compact-label">Verein/Stiftung:</div>
                     <div class="compact-value"><?= $antrag['verein'] === 'S' ? 'Stiftung' : 'Verein' ?></div>
                 </div>
-                <?php if (isset($antrag['praesenz'])): ?>
+                <?php if (isset($antrag['praesenz']) && $antrag['praesenz'] == 1): ?>
                 <div class="compact-row">
                     <div class="compact-label">Abstimmungsform:</div>
-                    <div class="compact-value"><?= $antrag['praesenz'] == 1 ? 'Präsenzsitzung' : 'Online' ?></div>
+                    <div class="compact-value">Präsenzsitzung</div>
                 </div>
                 <?php endif; ?>
                 <?php if ($antrag['thread']): ?>
