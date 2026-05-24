@@ -806,6 +806,7 @@ if ($user['aktiv'] >= 19) {
                 <!-- Zeile 6: Abstimmungsregel (nur für Admins änderbar und wenn mehrere Optionen) -->
                 <?php
                 $enabled_rules = get_enabled_voting_rules($voting_config);
+                // Nur anzeigen wenn mehr als eine Regel aktiviert ist
                 if ($user['aktiv'] >= 19 && count($enabled_rules) > 1):
                 ?>
                     <div class="form-row">
@@ -823,23 +824,6 @@ if ($user['aktiv'] >= 19) {
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                            <small style="display: block; margin-top: 5px; color: #666; font-size: 11px;">
-                                <?= get_voting_rule_description($current_regel, $voting_config) ?>
-                            </small>
-                        </div>
-                        <div class="form-group"></div>
-                        <div class="form-group"></div>
-                    </div>
-                <?php elseif (count($enabled_rules) === 1): ?>
-                    <!-- Abstimmungsregel anzeigen (nicht änderbar) -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Abstimmungsregel</label>
-                            <input type="text" value="<?php
-                                $current_regel = $antrag['abstimmregel'] ?? 'einfach';
-                                $all_rules = get_voting_rules($voting_config);
-                                echo htmlspecialchars($all_rules[$current_regel]['label'] ?? $current_regel);
-                            ?>" class="read-only" readonly>
                             <small style="display: block; margin-top: 5px; color: #666; font-size: 11px;">
                                 <?= get_voting_rule_description($current_regel, $voting_config) ?>
                             </small>

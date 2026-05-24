@@ -658,36 +658,45 @@ foreach ($antraege as $a) {
                 }
             }
 
-            // Antrag anzeigen - Einbettung der vollständigen Antragsansicht mit Toggle
+            // Antrag anzeigen - Einfaches Akkordeon
             echo '<div style="margin-bottom: 20px;">';
             echo '<button id="toggle_antrag_btn" onclick="toggleAntrag()" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 15px; margin-bottom: 10px;">▼ Ganzen Antrag anzeigen</button>';
-            echo '<div id="antrag_frame_wrapper" style="display: none; border: 2px solid #0066cc; border-radius: 8px; overflow: auto;">';
-            echo '<iframe src="antrag_ansehen.php?antrnr=' . urlencode($antrag['antrnr']) . '" style="width: 100%; border: none; min-height: 600px; height: 100vh; max-height: 1200px;" id="antrag_frame"></iframe>';
+            echo '<div id="antrag_details" style="display: none; background: white; border: 2px solid #0066cc; border-radius: 8px; padding: 20px; margin-bottom: 10px;">';
+            echo '<p style="text-align: center; color: #666;">Lade Antragsdaten...</p>';
             echo '</div>';
-            echo '<div style="margin-top: 10px; display: none;" id="antrag_external_link">';
-            echo '<a href="antrag_ansehen.php?antrnr=' . urlencode($antrag['antrnr']) . '" target="_blank" class="btn btn-secondary" style="width: 100%; padding: 10px;">📄 Antrag in neuem Tab öffnen</a>';
+            echo '<div style="margin-top: 10px;">';
+            echo '<a href="antrag_ansehen.php?antrnr=' . urlencode($antrag['antrnr']) . '" target="_blank" class="btn btn-secondary" style="width: 100%; padding: 10px; text-decoration: none; display: inline-block; text-align: center;">📄 In neuem Tab öffnen</a>';
             echo '</div>';
             echo '</div>';
             echo '<script>
-                // Iframe-Höhe automatisch anpassen
-                window.addEventListener("message", function(e) {
-                    if (e.data.height) {
-                        document.getElementById("antrag_frame").style.height = e.data.height + "px";
-                    }
-                });
+                let antragLoaded = false;
 
-                // Toggle-Funktion angepasst
                 function toggleAntrag() {
-                    const wrapper = document.getElementById("antrag_frame_wrapper");
+                    const details = document.getElementById("antrag_details");
                     const btn = document.getElementById("toggle_antrag_btn");
-                    const link = document.getElementById("antrag_external_link");
-                    if (wrapper.style.display === "none") {
-                        wrapper.style.display = "block";
-                        link.style.display = "block";
+
+                    if (details.style.display === "none") {
+                        details.style.display = "block";
                         btn.textContent = "▲ Antrag ausblenden";
+
+                        // Content per AJAX laden (nur beim ersten Mal)
+                        if (!antragLoaded) {
+                            fetch("antrag_ansehen.php?antrnr=' . urlencode($antrag['antrnr']) . '")
+                                .then(response => response.text())
+                                .then(html => {
+                                    // Extrahiere nur den Body-Content (ohne Header/Footer)
+                                    const parser = new DOMParser();
+                                    const doc = parser.parseFromString(html, "text/html");
+                                    const content = doc.querySelector(".container") || doc.body;
+                                    details.innerHTML = content.innerHTML;
+                                    antragLoaded = true;
+                                })
+                                .catch(error => {
+                                    details.innerHTML = "<p style=\"color: #d32f2f; text-align: center;\">Fehler beim Laden: " + error.message + "</p>";
+                                });
+                        }
                     } else {
-                        wrapper.style.display = "none";
-                        link.style.display = "none";
+                        details.style.display = "none";
                         btn.textContent = "▼ Ganzen Antrag anzeigen";
                     }
                 }

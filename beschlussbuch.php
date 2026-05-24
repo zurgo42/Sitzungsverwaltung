@@ -146,19 +146,12 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $beschluesse = $stmt->fetchAll();
 
-// Warantrag für jeden Beschluss aus antraege-Tabelle holen
+// Ursprungsantrag aus antraege-Tabelle holen (gleiche Nummer)
 foreach ($beschluesse as &$b) {
-    $warantrag_stmt = $pdo->prepare("SELECT warantrag FROM antraege WHERE antrnr = ?");
-    $warantrag_stmt->execute([$b['antrnr']]);
-    $b['warantrag'] = $warantrag_stmt->fetchColumn();
-
-    // Prüfen ob der Ursprungsantrag tatsächlich existiert
-    $b['warantrag_exists'] = false;
-    if (!empty($b['warantrag'])) {
-        $check_stmt = $pdo->prepare("SELECT COUNT(*) FROM antraege WHERE antrnr = ?");
-        $check_stmt->execute([$b['warantrag']]);
-        $b['warantrag_exists'] = ($check_stmt->fetchColumn() > 0);
-    }
+    // Der Ursprungsantrag hat die gleiche antrnr in der antraege-Tabelle
+    $check_stmt = $pdo->prepare("SELECT COUNT(*) FROM antraege WHERE antrnr = ?");
+    $check_stmt->execute([$b['antrnr']]);
+    $b['ursprung_exists'] = ($check_stmt->fetchColumn() > 0);
 
     // Finanzielle Auswirkungen: Betrag aus fintext extrahieren
     $b['fin'] = 0;
@@ -225,12 +218,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
             $verf2 = $orig_antrag['verf2'] ?? null;
         }
 
+        // Beschlussart basierend auf Betrag ermitteln
+        $bart = 'V'; // Default: Verfügung
+        if ($fin > 3000) {
+            $bart = 'B'; // Vorstandsbeschluss
+        } elseif ($fin > 600) {
+            $bart = 'R'; // Ressortbeschluss
+        }
+
         // Duplikat erstellen mit Daten aus beschluesse und antraege
         $insert_sql = "INSERT INTO antraege (
-            antrnr, titel, beschluss, begr, fin, fintext, pers, sach,
+            antrnr, titel, beschluss, begr, fin, fintext, pers, sach, bart,
             ressort1, ressort2, verant, antrst, int_ext, wichtig, verf1, verf2,
             lzugriff
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
         $pdo->prepare($insert_sql)->execute([
             $neue_nr,
@@ -241,6 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
             $orig_beschluss['fintext'] ?? '',
             $orig_beschluss['pers'] ?? '',
             $orig_beschluss['sach'] ?? '',
+            $bart,
             $orig_antrag['ressort1'] ?? null,
             $orig_antrag['ressort2'] ?? null,
             $orig_antrag['verant'] ?? null,
@@ -650,8 +652,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
                         </a>
                         <?php endif; ?>
                     <?php elseif (!$isVTool && $kann_duplizieren): ?>
-                        <?php if ($b['warantrag_exists']): ?>
-                        <a href="antrag_ansehen.php?antrnr=<?= urlencode($b['warantrag']) ?>"
+                        <?php if ($b['ursprung_exists']): ?>
+                        <a href="antrag_ansehen.php?antrnr=<?= urlencode($b['antrnr']) ?>"
                            style="font-size: 10px; background: #4caf50; color: white; text-decoration: none; padding: 4px 8px; border-radius: 3px;">
                             📄 Ursprungsantrag
                         </a>
