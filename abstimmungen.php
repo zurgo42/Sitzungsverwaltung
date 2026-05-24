@@ -530,6 +530,22 @@ foreach ($antraege as $a) {
     <title>Abstimmungen</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="antrag-styles.css">
+    <script>
+        // Dark Mode automatisch von index.php übernehmen (Cookie/localStorage Sync)
+        (function() {
+            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
+            if (hasCookie && document.cookie.includes('darkMode=enabled')) {
+                document.documentElement.classList.add('dark-mode');
+                document.body.classList.add('dark-mode');
+            } else if (!hasCookie) {
+                const savedDarkMode = localStorage.getItem('darkMode');
+                if (savedDarkMode === 'enabled') {
+                    document.documentElement.classList.add('dark-mode');
+                    document.body.classList.add('dark-mode');
+                }
+            }
+        })();
+    </script>
     <style>
         /* Breiteres Layout für Abstimmungsseite - überschreibt style.css .container */
         body {
@@ -672,21 +688,6 @@ foreach ($antraege as $a) {
         }
     </style>
     <script>
-        // Dark Mode automatisch von index.php übernehmen (Cookie/localStorage Sync)
-        (function() {
-            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
-            if (hasCookie && document.cookie.includes('darkMode=enabled')) {
-                document.documentElement.classList.add('dark-mode');
-                document.body.classList.add('dark-mode');
-            } else if (!hasCookie) {
-                const savedDarkMode = localStorage.getItem('darkMode');
-                if (savedDarkMode === 'enabled') {
-                    document.documentElement.classList.add('dark-mode');
-                    document.body.classList.add('dark-mode');
-                }
-            }
-        })();
-
         // Toggle für Antragsanzeige
         function toggleAntrag() {
             const iframe = document.getElementById('antrag_frame_wrapper');
