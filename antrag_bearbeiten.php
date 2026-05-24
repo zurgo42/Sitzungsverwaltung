@@ -221,9 +221,11 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     }
 
     // Monatssummen-Prüfung für Verfügungen
+    $v_limit = $bart_config['bart_V_betrag_limit'] ?? 600;
+    $monatslimit = $bart_config['verfuegung_monatslimit'] ?? 2000;
     $monatssumme = berechneMonatssumme($pdo, $antrst, $antrnr);
-    if ($fin < 600 && ($monatssumme + $fin) > 2000) {
-        throw new Exception("Monatliche Verfügungsgrenze von 2000€ überschritten! Aktuelle Summe: " . number_format($monatssumme, 2) . "€");
+    if ($fin <= $v_limit && ($monatssumme + $fin) > $monatslimit) {
+        throw new Exception("Monatliche Verfügungsgrenze von " . number_format($monatslimit, 0, ',', '.') . "€ überschritten! Aktuelle Summe: " . number_format($monatssumme, 2, ',', '.') . "€");
     }
 
     // Betragsvalidierung basierend auf Antragstyp
@@ -604,10 +606,19 @@ if ($user['aktiv'] >= 19) {
             </div>
         <?php endif; ?>
 
-        <?php if ($monatssumme > 0 && ($antrag['fin'] ?? 0) < 600): ?>
-            <div class="alert alert-warning">
-                <strong>Monatssumme Verfügungen:</strong> <?= number_format($monatssumme, 2) ?>€ + aktuell <?= number_format($antrag['fin'] ?? 0, 2) ?>€ = <?= number_format($monatssumme + ($antrag['fin'] ?? 0), 2) ?>€
-                (Max. 2000€/Monat, sonst Ressortbeschluss)
+        <?php
+        $v_limit = $bart_config['bart_V_betrag_limit'] ?? 600;
+        $monatslimit = $bart_config['verfuegung_monatslimit'] ?? 2000;
+        $summe_mit_aktuell = $monatssumme + ($antrag['fin'] ?? 0);
+        if ($monatssumme > 0 && ($antrag['fin'] ?? 0) <= $v_limit):
+        ?>
+            <div class="alert alert-<?= $summe_mit_aktuell > $monatslimit ? 'error' : 'warning' ?>">
+                <strong>Monatssumme Verfügungen:</strong> <?= number_format($monatssumme, 2, ',', '.') ?>€ + aktuell <?= number_format($antrag['fin'] ?? 0, 2, ',', '.') ?>€ = <?= number_format($summe_mit_aktuell, 2, ',', '.') ?>€
+                <?php if ($summe_mit_aktuell > $monatslimit): ?>
+                    <br><strong style="color: #d32f2f;">⚠️ Monatslimit überschritten! Ein Ressortbeschluss ist erforderlich.</strong>
+                <?php else: ?>
+                    (Max. <?= number_format($monatslimit, 0, ',', '.') ?>€/Monat, sonst Ressortbeschluss)
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 

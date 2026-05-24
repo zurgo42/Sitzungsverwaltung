@@ -280,7 +280,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                     ?>
                     <div style="background: #ffebee; border: 2px solid #d32f2f; border-radius: 8px; padding: 15px; margin: 20px 0; text-align: center;">
                         <div style="font-size: 18px; font-weight: 700; color: #d32f2f; margin-bottom: 5px;">
-                            ⏳ Wartezeit läuft noch
+                            ⏳ Wartezeit
                         </div>
                         <div style="font-size: 16px; color: #c62828; font-weight: 600;">
                             Endet am <?= date('d.m.Y', strtotime($wartezeit_ende)) ?> um <?= date('H:i', strtotime($wartezeit_ende)) ?> Uhr

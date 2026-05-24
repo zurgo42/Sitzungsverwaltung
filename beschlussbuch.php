@@ -221,12 +221,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
             $verf2 = $orig_antrag['verf2'] ?? null;
         }
 
-        // Duplikat erstellen mit Daten aus beschluesse und antraege
+        // Duplikat erstellen mit Daten aus beschluesse und antraege (ohne Hinweise)
         $insert_sql = "INSERT INTO antraege (
             antrnr, titel, beschluss, begr, fin, fintext, pers, sach, bart,
             ressort1, ressort2, verant, antrst, int_ext, wichtig, verf1, verf2,
-            lzugriff
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            hinweis, lzugriff
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', NOW())";
 
         $pdo->prepare($insert_sql)->execute([
             $neue_nr,
