@@ -8,7 +8,6 @@
 require_once 'session_config.php';
 session_start();
 require_once 'config.php';
-require_once 'includes/antragstypen_helper.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php');
@@ -21,9 +20,6 @@ $pdo = new PDO(
     DB_PASS,
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
 );
-
-// Antragstypen-Config laden für Betragsgrenzen
-$bart_config = lade_antragstypen_config($pdo);
 
 /**
  * Macht URLs und HTML-Links in Text klickbar
@@ -209,28 +205,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
             $fin = (int)$matches[1];
         }
 
+        // Beschlussart aus Ursprungsantrag übernehmen
+        $bart = $orig_antrag['bart'] ?? 'V';
+
         // Prüfen ob es ein Vorstandsbeschluss war (bart='B')
         $wichtig = 0;
         $verf1 = null;
         $verf2 = null;
-        if ($orig_antrag['bart'] === 'B') {
+        if ($bart === 'B') {
             // Vorstandsbeschluss: wichtig übernehmen
             $wichtig = $orig_antrag['wichtig'] ?? 0;
         } else {
             // Verfügung oder Ressortbeschluss: verf1 und verf2 übernehmen
             $verf1 = $orig_antrag['verf1'] ?? null;
             $verf2 = $orig_antrag['verf2'] ?? null;
-        }
-
-        // Beschlussart basierend auf Betrag ermitteln (aus Config)
-        $v_limit = $bart_config['bart_V_betrag_limit'] ?? 600;
-        $r_limit = $bart_config['bart_R_betrag_limit'] ?? 3000;
-
-        $bart = 'V'; // Default: Verfügung
-        if ($fin > $r_limit) {
-            $bart = 'B'; // Vorstandsbeschluss
-        } elseif ($fin > $v_limit) {
-            $bart = 'R'; // Ressortbeschluss
         }
 
         // Duplikat erstellen mit Daten aus beschluesse und antraege
