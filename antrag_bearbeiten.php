@@ -573,46 +573,73 @@ if ($user['aktiv'] >= 19) {
     <style>
         /* Dark Mode Overrides für inline Styles */
         body {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        /* Dark Mode */
+        body.dark-mode {
+            background: #1a1a1a !important;
+            color: #e0e0e0 !important;
         }
 
         body.dark-mode .container {
-            background: var(--bg-primary);
+            background: #2d2d2d !important;
         }
 
         body.dark-mode .header {
-            background: var(--bg-primary);
-            border-color: var(--border-color);
+            background: #2d2d2d !important;
+            border-color: #444 !important;
         }
 
         body.dark-mode .header h1,
         body.dark-mode .header .antrnr {
-            color: var(--text-primary);
+            color: #e0e0e0 !important;
         }
 
         body.dark-mode .info-box {
-            background: var(--bg-secondary) !important;
-            color: var(--text-primary) !important;
+            background: #1a1a1a !important;
+            color: #e0e0e0 !important;
         }
 
         body.dark-mode .alert-error strong,
         body.dark-mode .info-box strong {
-            color: var(--text-primary) !important;
+            color: #e0e0e0 !important;
         }
 
         body.dark-mode div[style*="background: #fff8dc"],
         body.dark-mode div[style*="background: #e3f2fd"],
         body.dark-mode div[style*="background: #fff3cd"],
         body.dark-mode div[style*="background: #e8f5e9"] {
-            background: var(--bg-secondary) !important;
+            background: #2d2d2d !important;
         }
 
         body.dark-mode div[style*="color: #666"],
         body.dark-mode div[style*="color: #333"],
         body.dark-mode small[style*="color: #666"],
         body.dark-mode label[style*="color: #666"] {
-            color: var(--text-secondary) !important;
+            color: #b0b0b0 !important;
+        }
+
+        body.dark-mode .form-section {
+            background: #2d2d2d !important;
+            border-color: #444 !important;
+        }
+
+        body.dark-mode input[type="text"],
+        body.dark-mode input[type="number"],
+        body.dark-mode input[type="date"],
+        body.dark-mode input[type="file"],
+        body.dark-mode textarea,
+        body.dark-mode select {
+            background: #1a1a1a !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+
+        body.dark-mode .section-header {
+            color: #8ECAF6 !important;
+            border-bottom-color: #8ECAF6 !important;
         }
     </style>
 </head>

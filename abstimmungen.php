@@ -533,8 +533,14 @@ foreach ($antraege as $a) {
     <style>
         /* Breiteres Layout für Abstimmungsseite - überschreibt style.css .container */
         body {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        /* Dark Mode */
+        body.dark-mode {
+            background: #1a1a1a !important;
+            color: #e0e0e0 !important;
         }
 
         body .container-wide {
@@ -543,7 +549,11 @@ foreach ($antraege as $a) {
             margin: 0 auto !important;
             padding: 20px !important;
             box-sizing: border-box !important;
-            background: var(--bg-primary);
+            background: white;
+        }
+
+        body.dark-mode .container-wide {
+            background: #2d2d2d !important;
         }
 
         /* Iframe für Antragsanzeige */
@@ -583,59 +593,82 @@ foreach ($antraege as $a) {
 
         /* Dark Mode Overrides für inline Styles */
         body.dark-mode .antraege-liste {
-            background: var(--bg-secondary);
+            background: #2d2d2d !important;
         }
 
         body.dark-mode .antraege-liste table {
-            background: var(--bg-primary);
+            background: #2d2d2d !important;
         }
 
         body.dark-mode .antraege-liste th {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
+            background: #1a1a1a !important;
+            color: #e0e0e0 !important;
         }
 
         body.dark-mode .antraege-liste td {
-            color: var(--text-primary);
-            border-bottom-color: var(--border-color);
+            color: #e0e0e0 !important;
+            border-bottom-color: #444 !important;
         }
 
         body.dark-mode .antraege-liste tr:hover {
-            background: var(--hover-bg);
+            background: #333 !important;
         }
 
         body.dark-mode .votum-box {
-            background: var(--bg-secondary);
-            border-color: var(--border-color);
+            background: #2d2d2d !important;
+            border-color: #444 !important;
         }
 
         body.dark-mode .header {
-            background: var(--bg-primary);
-            border-color: var(--border-color);
+            background: #2d2d2d !important;
+            border-color: #444 !important;
         }
 
         body.dark-mode .header h1 {
-            color: var(--text-primary);
+            color: #e0e0e0 !important;
+        }
+
+        body.dark-mode .header p {
+            color: #b0b0b0 !important;
         }
 
         /* Inline Styles Overrides */
         body.dark-mode div[style*="background: white"],
         body.dark-mode div[style*="background: #fff"] {
-            background: var(--bg-primary) !important;
+            background: #2d2d2d !important;
         }
 
         body.dark-mode div[style*="background: #f8f9fa"] {
-            background: var(--bg-secondary) !important;
+            background: #1a1a1a !important;
         }
 
         body.dark-mode div[style*="color: #333"],
         body.dark-mode div[style*="color: #666"],
         body.dark-mode div[style*="color: #000"] {
-            color: var(--text-primary) !important;
+            color: #e0e0e0 !important;
         }
 
         body.dark-mode strong {
-            color: var(--text-primary);
+            color: #e0e0e0 !important;
+        }
+
+        body.dark-mode h1, body.dark-mode h2, body.dark-mode h3 {
+            color: #e0e0e0 !important;
+        }
+
+        body.dark-mode .form-section,
+        body.dark-mode .section-compact {
+            background: #2d2d2d !important;
+            border-color: #444 !important;
+        }
+
+        body.dark-mode input[type="text"],
+        body.dark-mode input[type="date"],
+        body.dark-mode textarea,
+        body.dark-mode select {
+            background: #1a1a1a !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
         }
     </style>
     <script>

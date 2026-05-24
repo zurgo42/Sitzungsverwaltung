@@ -136,39 +136,80 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         body {
             font-size: 13px;
             line-height: 1.4;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        /* Dark Mode */
+        body.dark-mode {
+            background: #1a1a1a !important;
+            color: #e0e0e0 !important;
         }
         .compact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 15px; margin-bottom: 15px; }
         .compact-row { display: flex; gap: 6px; margin-bottom: 6px; font-size: 12px; }
-        .compact-label { font-weight: 600; color: var(--text-secondary); min-width: 100px; flex-shrink: 0; }
-        .compact-value { color: var(--text-primary); }
-        .section-compact { background: var(--bg-primary); padding: 12px; margin-bottom: 12px; border-radius: 6px; border: 1px solid var(--border-color); }
-        .section-title { font-weight: 700; font-size: 14px; margin-bottom: 10px; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; }
-        .text-box { background: var(--bg-secondary); padding: 8px; border-radius: 4px; border-left: 3px solid var(--primary); font-size: 12px; margin-top: 6px; word-wrap: break-word; overflow-wrap: break-word; }
-        .accordion { cursor: pointer; background: var(--bg-secondary); padding: 8px; border-radius: 4px; margin: 6px 0; font-weight: 600; user-select: none; }
-        .accordion:hover { background: var(--hover-bg); }
+        .compact-label { font-weight: 600; color: #666; min-width: 100px; flex-shrink: 0; }
+        .compact-value { color: #333; }
+        .section-compact { background: white; padding: 12px; margin-bottom: 12px; border-radius: 6px; border: 1px solid #ddd; }
+        .section-title { font-weight: 700; font-size: 14px; margin-bottom: 10px; color: #005596; border-bottom: 2px solid #005596; padding-bottom: 4px; }
+        .text-box { background: #f8f9fa; padding: 8px; border-radius: 4px; border-left: 3px solid #005596; font-size: 12px; margin-top: 6px; word-wrap: break-word; overflow-wrap: break-word; }
+        .accordion { cursor: pointer; background: #f8f9fa; padding: 8px; border-radius: 4px; margin: 6px 0; font-weight: 600; user-select: none; }
+        .accordion:hover { background: #f5f5f5; }
         .accordion::before { content: '▶ '; font-size: 10px; margin-right: 6px; }
         .accordion.active::before { content: '▼ '; }
-        .acc-content { display: none; padding: 8px; background: var(--bg-secondary); border-radius: 4px; margin-bottom: 6px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
+        .acc-content { display: none; padding: 8px; background: #f8f9fa; border-radius: 4px; margin-bottom: 6px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
         .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .compact-value { word-wrap: break-word; overflow-wrap: break-word; }
         a { word-wrap: break-word; overflow-wrap: break-word; }
-        h1 { color: var(--text-primary); }
+        h1 { color: #333; }
 
-        /* Dark Mode Overrides für inline Styles */
+        /* Dark Mode Overrides */
         body.dark-mode .container {
-            background: var(--bg-primary);
+            background: #2d2d2d !important;
         }
 
         body.dark-mode h1 {
-            color: var(--text-primary) !important;
+            color: #e0e0e0 !important;
+        }
+
+        body.dark-mode .compact-label {
+            color: #b0b0b0 !important;
+        }
+
+        body.dark-mode .compact-value {
+            color: #e0e0e0 !important;
+        }
+
+        body.dark-mode .section-compact {
+            background: #2d2d2d !important;
+            border-color: #444 !important;
+        }
+
+        body.dark-mode .section-title {
+            color: #8ECAF6 !important;
+            border-bottom-color: #8ECAF6 !important;
+        }
+
+        body.dark-mode .text-box {
+            background: #1a1a1a !important;
+            border-left-color: #8ECAF6 !important;
+        }
+
+        body.dark-mode .accordion {
+            background: #1a1a1a !important;
+        }
+
+        body.dark-mode .accordion:hover {
+            background: #333 !important;
+        }
+
+        body.dark-mode .acc-content {
+            background: #1a1a1a !important;
         }
 
         body.dark-mode div[style*="color: #000"],
         body.dark-mode div[style*="color: #333"],
         body.dark-mode div[style*="color: #666"] {
-            color: var(--text-primary) !important;
+            color: #e0e0e0 !important;
         }
 
         body.dark-mode div[style*="background: #ffebee"] {
