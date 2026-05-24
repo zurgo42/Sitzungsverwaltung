@@ -693,6 +693,19 @@ body.dark-mode .init-danger-list {
                             Ab diesem Betrag muss eine Betragsangabe im Antrag gemacht werden
                         </small>
                     </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">
+                            Monatliches Verfügungslimit (€):
+                        </label>
+                        <input type="number" name="bart[global][verfuegung_monatslimit]"
+                               value="<?php echo htmlspecialchars($bart['bart_verfuegung_monatslimit'] ?? '2000'); ?>"
+                               min="0" step="1"
+                               style="width: 150px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                        <small style="display: block; margin-top: 5px; color: #666;">
+                            Maximale Summe aller Verfügungen pro Monat. Bei Überschreitung ist ein Ressortbeschluss erforderlich.
+                        </small>
+                    </div>
                 </div>
 
                 <div style="margin-top: 20px;">

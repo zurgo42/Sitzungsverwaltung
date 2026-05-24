@@ -222,7 +222,7 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 
     // Monatssummen-Prüfung für Verfügungen
     $v_limit = $bart_config['bart_V_betrag_limit'] ?? 600;
-    $monatslimit = $bart_config['verfuegung_monatslimit'] ?? 2000;
+    $monatslimit = $bart_config['bart_verfuegung_monatslimit'] ?? 2000;
     $monatssumme = berechneMonatssumme($pdo, $antrst, $antrnr);
     if ($fin <= $v_limit && ($monatssumme + $fin) > $monatslimit) {
         throw new Exception("Monatliche Verfügungsgrenze von " . number_format($monatslimit, 0, ',', '.') . "€ überschritten! Aktuelle Summe: " . number_format($monatssumme, 2, ',', '.') . "€");
@@ -608,7 +608,7 @@ if ($user['aktiv'] >= 19) {
 
         <?php
         $v_limit = $bart_config['bart_V_betrag_limit'] ?? 600;
-        $monatslimit = $bart_config['verfuegung_monatslimit'] ?? 2000;
+        $monatslimit = $bart_config['bart_verfuegung_monatslimit'] ?? 2000;
         $summe_mit_aktuell = $monatssumme + ($antrag['fin'] ?? 0);
         if ($monatssumme > 0 && ($antrag['fin'] ?? 0) <= $v_limit):
         ?>

@@ -4,7 +4,7 @@
 
 INSERT INTO svconfig (config_key, config_value, config_type, description, category)
 VALUES (
-    'verfuegung_monatslimit',
+    'bart_verfuegung_monatslimit',
     '2000',
     'number',
     'Maximale Summe aller Verfügungen pro Monat in Euro. Bei Überschreitung ist ein Ressortbeschluss erforderlich, auch wenn der einzelne Betrag unter der Verfügungsgrenze liegt.',

@@ -1031,7 +1031,8 @@ if (isset($_POST['save_antragstypen'])) {
             if (isset($bart_data['global'])) {
                 $global_fields = [
                     'show_betrag_in_liste' => isset($bart_data['global']['show_betrag_in_liste']) ? '1' : '0',
-                    'pflicht_bei_betrag' => intval($bart_data['global']['pflicht_bei_betrag'] ?? 100)
+                    'pflicht_bei_betrag' => intval($bart_data['global']['pflicht_bei_betrag'] ?? 100),
+                    'verfuegung_monatslimit' => intval($bart_data['global']['verfuegung_monatslimit'] ?? 2000)
                 ];
 
                 foreach ($global_fields as $field => $value) {
