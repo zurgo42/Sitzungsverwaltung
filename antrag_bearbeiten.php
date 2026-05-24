@@ -569,6 +569,32 @@ if ($user['aktiv'] >= 19) {
                 }
             }
         })();
+
+        // DEBUG: Dark Mode Status anzeigen
+        window.addEventListener('DOMContentLoaded', function() {
+            const debug = document.createElement('div');
+            debug.style.cssText = 'position: fixed; top: 10px; right: 10px; background: red; color: white; padding: 10px; z-index: 9999; font-size: 12px; border-radius: 4px; max-width: 300px;';
+
+            const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('darkMode='));
+            const cookieValue = document.cookie.split(';').find(c => c.trim().startsWith('darkMode='));
+            const localStorageValue = localStorage.getItem('darkMode');
+            const htmlHasClass = document.documentElement.classList.contains('dark-mode');
+            const bodyHasClass = document.body.classList.contains('dark-mode');
+            const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+
+            debug.innerHTML = `
+                <strong>🔍 Dark Mode Debug</strong><br>
+                Cookie exists: ${hasCookie}<br>
+                Cookie value: ${cookieValue || 'none'}<br>
+                localStorage: ${localStorageValue || 'none'}<br>
+                html.dark-mode: ${htmlHasClass}<br>
+                body.dark-mode: ${bodyHasClass}<br>
+                body bg-color: ${bodyBg}<br>
+                <button onclick="this.parentElement.remove()" style="margin-top: 5px; padding: 2px 5px;">Close</button>
+            `;
+
+            document.body.appendChild(debug);
+        });
     </script>
     <style>
         /* Dark Mode Overrides für inline Styles */
