@@ -572,6 +572,15 @@ if ($user['aktiv'] >= 19) {
     </script>
     <style>
         /* Dark Mode Overrides für inline Styles */
+        body {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        body.dark-mode .container {
+            background: var(--bg-primary);
+        }
+
         body.dark-mode .header {
             background: var(--bg-primary);
             border-color: var(--border-color);
@@ -582,10 +591,6 @@ if ($user['aktiv'] >= 19) {
             color: var(--text-primary);
         }
 
-        body.dark-mode .container {
-            background: var(--bg-primary);
-        }
-
         body.dark-mode .info-box {
             background: var(--bg-secondary) !important;
             color: var(--text-primary) !important;
@@ -594,6 +599,20 @@ if ($user['aktiv'] >= 19) {
         body.dark-mode .alert-error strong,
         body.dark-mode .info-box strong {
             color: var(--text-primary) !important;
+        }
+
+        body.dark-mode div[style*="background: #fff8dc"],
+        body.dark-mode div[style*="background: #e3f2fd"],
+        body.dark-mode div[style*="background: #fff3cd"],
+        body.dark-mode div[style*="background: #e8f5e9"] {
+            background: var(--bg-secondary) !important;
+        }
+
+        body.dark-mode div[style*="color: #666"],
+        body.dark-mode div[style*="color: #333"],
+        body.dark-mode small[style*="color: #666"],
+        body.dark-mode label[style*="color: #666"] {
+            color: var(--text-secondary) !important;
         }
     </style>
 </head>

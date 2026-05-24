@@ -532,12 +532,18 @@ foreach ($antraege as $a) {
     <link rel="stylesheet" href="antrag-styles.css">
     <style>
         /* Breiteres Layout für Abstimmungsseite - überschreibt style.css .container */
+        body {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
         body .container-wide {
             width: 95% !important;
             max-width: 1600px !important;
             margin: 0 auto !important;
             padding: 20px !important;
             box-sizing: border-box !important;
+            background: var(--bg-primary);
         }
 
         /* Iframe für Antragsanzeige */
@@ -609,6 +615,26 @@ foreach ($antraege as $a) {
         }
 
         body.dark-mode .header h1 {
+            color: var(--text-primary);
+        }
+
+        /* Inline Styles Overrides */
+        body.dark-mode div[style*="background: white"],
+        body.dark-mode div[style*="background: #fff"] {
+            background: var(--bg-primary) !important;
+        }
+
+        body.dark-mode div[style*="background: #f8f9fa"] {
+            background: var(--bg-secondary) !important;
+        }
+
+        body.dark-mode div[style*="color: #333"],
+        body.dark-mode div[style*="color: #666"],
+        body.dark-mode div[style*="color: #000"] {
+            color: var(--text-primary) !important;
+        }
+
+        body.dark-mode strong {
             color: var(--text-primary);
         }
     </style>

@@ -133,7 +133,12 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         })();
     </script>
     <style>
-        body { font-size: 13px; line-height: 1.4; }
+        body {
+            font-size: 13px;
+            line-height: 1.4;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
         .compact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 15px; margin-bottom: 15px; }
         .compact-row { display: flex; gap: 6px; margin-bottom: 6px; font-size: 12px; }
         .compact-label { font-weight: 600; color: var(--text-secondary); min-width: 100px; flex-shrink: 0; }
@@ -149,6 +154,27 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .compact-value { word-wrap: break-word; overflow-wrap: break-word; }
         a { word-wrap: break-word; overflow-wrap: break-word; }
+        h1 { color: var(--text-primary); }
+
+        /* Dark Mode Overrides für inline Styles */
+        body.dark-mode .container {
+            background: var(--bg-primary);
+        }
+
+        body.dark-mode h1 {
+            color: var(--text-primary) !important;
+        }
+
+        body.dark-mode div[style*="color: #000"],
+        body.dark-mode div[style*="color: #333"],
+        body.dark-mode div[style*="color: #666"] {
+            color: var(--text-primary) !important;
+        }
+
+        body.dark-mode div[style*="background: #ffebee"] {
+            background: rgba(211, 47, 47, 0.2) !important;
+        }
+
         @media (max-width: 1024px) {
             .compact-grid { grid-template-columns: repeat(2, 1fr); }
         }
