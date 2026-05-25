@@ -1634,13 +1634,109 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $category = $_POST['category'] ?? 'information';
-    $proposal_text = ($category === 'antrag_beschluss') ? trim($_POST['proposal_text'] ?? '') : '';
+    $priority = floatval($_POST['priority'] ?? 5.0);
+    $duration = intval($_POST['duration'] ?? 10);
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
 
     if ($title) {
         try {
             // Transaktion starten für atomare Operation
             $pdo->beginTransaction();
+
+            $antrnr = null;
+            $proposal_text = '';
+
+            // Wenn Kategorie "antrag_beschluss" und Beschlusstext vorhanden: Vollständigen Antrag erstellen
+            if ($category === 'antrag_beschluss' && !empty($_POST['proposal_beschluss'])) {
+                // Validierung der Pflichtfelder
+                $validation_errors = [];
+                if (empty(trim($_POST['proposal_beschluss']))) {
+                    $validation_errors[] = "Beschlusstext ist erforderlich";
+                }
+                if (empty(trim($_POST['proposal_ressort1']))) {
+                    $validation_errors[] = "Ressort ist erforderlich";
+                }
+                if (empty(trim($_POST['proposal_verant']))) {
+                    $validation_errors[] = "Verantwortlicher ist erforderlich";
+                }
+
+                if (!empty($validation_errors)) {
+                    throw new Exception("Pflichtfelder fehlen: " . implode(", ", $validation_errors));
+                }
+
+                $antrnr = generiereAntragsnummer($pdo);
+
+                // Sofort-Wert ermitteln
+                $sofort = 0;
+                if (isset($_POST['proposal_sofort_1'])) $sofort = 1;
+                elseif (isset($_POST['proposal_sofort_2'])) $sofort = 2;
+
+                // Hinweis mit Zeitstempel erstellen
+                $hinweis = '';
+                if (!empty($_POST['proposal_hinweis'])) {
+                    $hinweis = date('d.m.Y H:i') . ' (' . ($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? '') . '): ' . trim($_POST['proposal_hinweis']);
+                }
+
+                // File-Upload-Handling
+                $file_paths = ['', '', '', ''];
+                $file_texts = ['', '', '', ''];
+                for ($i = 1; $i <= 4; $i++) {
+                    $file_field = "proposal_file$i";
+                    if (isset($_FILES[$file_field]) && $_FILES[$file_field]['error'] === UPLOAD_ERR_OK) {
+                        $upload_dir = __DIR__ . '/uploads/antraege/';
+                        if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
+
+                        $filename = $antrnr . '_f' . $i . '_' . basename($_FILES[$file_field]['name']);
+                        $filepath = $upload_dir . $filename;
+
+                        if (move_uploaded_file($_FILES[$file_field]['tmp_name'], $filepath)) {
+                            $file_paths[$i-1] = 'uploads/antraege/' . $filename;
+                        }
+                    }
+                    $file_texts[$i-1] = trim($_POST["proposal_filetext$i"] ?? '');
+                }
+
+                // Antrag in antraege-Tabelle einfügen
+                $stmt_antrag = $pdo->prepare("
+                    INSERT INTO antraege (
+                        antrnr, antrst, bart, titel, beschluss, begr,
+                        fin, fintext, pers, sach,
+                        ressort1, ressort2, verant, verein, int_ext,
+                        sofort, durch, zufin, hinweis,
+                        file1, file2, file3, file4,
+                        filetext1, filetext2, filetext3, filetext4,
+                        praesenz, meeting_id, lzugriff
+                    ) VALUES (?, ?, 'B', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW())
+                ");
+                $stmt_antrag->execute([
+                    $antrnr,
+                    $current_user['member_id'],
+                    trim($_POST['proposal_titel'] ?? $title),        // titel (eigener oder TOP-Titel)
+                    trim($_POST['proposal_beschluss']),              // beschluss
+                    trim($_POST['proposal_begr'] ?? ''),             // begr
+                    floatval($_POST['proposal_fin'] ?? 0),           // fin
+                    trim($_POST['proposal_fintext'] ?? ''),          // fintext
+                    trim($_POST['proposal_pers'] ?? ''),             // pers
+                    trim($_POST['proposal_sach'] ?? ''),             // sach
+                    trim($_POST['proposal_ressort1'] ?? ''),         // ressort1
+                    !empty($_POST['proposal_ressort2']) ? trim($_POST['proposal_ressort2']) : null,  // ressort2
+                    trim($_POST['proposal_verant'] ?? ''),           // verant (jetzt Textfeld)
+                    $_POST['proposal_verein'] ?? 'V',                // verein
+                    $_POST['proposal_int_ext'] ?? 'e',               // int_ext (e=Extern als Standard)
+                    $sofort,                                         // sofort
+                    trim($_POST['proposal_durch'] ?? ''),            // durch
+                    isset($_POST['proposal_zufin']) ? 1 : 0,        // zufin
+                    $hinweis,                                        // hinweis
+                    $file_paths[0], $file_paths[1], $file_paths[2], $file_paths[3],  // file1-4
+                    $file_texts[0], $file_texts[1], $file_texts[2], $file_texts[3],  // filetext1-4
+                    $current_meeting_id                              // meeting_id
+                ]);
+
+                error_log("Created proposal $antrnr (Vorstandsbeschluss) for active meeting $current_meeting_id");
+            } elseif ($category === 'antrag_beschluss') {
+                // Einfacher Antragstext ohne vollständigen Antrag (wenn allow_decisions=0)
+                $proposal_text = trim($_POST['proposal_text'] ?? '');
+            }
 
             error_log("Adding TOP (active meeting): meeting_id=$current_meeting_id, confidential=$is_confidential, title=$title");
 
@@ -1649,8 +1745,8 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
 
             $stmt = $pdo->prepare("
                 INSERT INTO svagenda_items
-                (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id)
-                VALUES (?, ?, ?, ?, ?, ?, 5, 10, ?, ?)
+                (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $current_meeting_id,
@@ -1659,6 +1755,9 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
                 $description,
                 $category,
                 $proposal_text,
+                $antrnr,
+                $priority,
+                $duration,
                 $is_confidential,
                 $current_user['member_id']
             ]);
@@ -1672,12 +1771,16 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
             exit;
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             // Rollback bei Fehler
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
             error_log("FEHLER beim Hinzufügen des TOP (active): " . $e->getMessage() . " | Stack: " . $e->getTraceAsString());
+
+            // Fehler an User anzeigen
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=" . urlencode($e->getMessage()));
+            exit;
         }
     }
 }

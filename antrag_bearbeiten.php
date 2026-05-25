@@ -763,6 +763,8 @@ if ($user['aktiv'] >= 19) {
                                     (von Vorstand festgelegt)
                                 <?php endif; ?>
                             </div>
+                        </div>
+                        <div class="form-group">
                             <?php if (!empty($antrag['meeting_id'])): ?>
                                 <?php
                                 // Sitzung und TOP laden
@@ -775,7 +777,7 @@ if ($user['aktiv'] >= 19) {
                                 $top_info = $top_stmt->fetch(PDO::FETCH_ASSOC);
                                 ?>
                                 <?php if ($meeting_info): ?>
-                                    <div style="margin-top: 8px; padding: 8px; background: #e3f2fd; border-left: 3px solid #2196f3; border-radius: 4px;">
+                                    <div style="padding: 8px; background: #e3f2fd; border-left: 3px solid #2196f3; border-radius: 4px;">
                                         <strong>📅 Sitzung:</strong> <?= htmlspecialchars($meeting_info['meeting_name']) ?><br>
                                         <small><?= date('d.m.Y H:i', strtotime($meeting_info['meeting_date'])) ?> Uhr</small>
                                         <?php if ($top_info): ?>
@@ -784,9 +786,6 @@ if ($user['aktiv'] >= 19) {
                                     </div>
                                 <?php endif; ?>
                             <?php endif; ?>
-                        </div>
-                        <div class="form-group">
-                            <!-- Leer -->
                         </div>
                     <?php else: ?>
                         <div class="form-group"></div>
