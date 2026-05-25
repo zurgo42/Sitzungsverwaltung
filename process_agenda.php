@@ -2684,22 +2684,15 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
         $beschluss_saved = false;
 
         if ($item && !empty($item['antrnr'])) {
-            // ANTRAGSABSTIMMUNG: Besseres Format für Protokoll
-            // Antragsdaten aus antraege-Tabelle laden
-            $stmt_antrag = $pdo->prepare("SELECT titel FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
-            $stmt_antrag->execute([$item['antrnr']]);
-            $antrag = $stmt_antrag->fetch(PDO::FETCH_ASSOC);
-
-            $antrag_titel = $antrag ? $antrag['titel'] : 'Unbekannter Antrag';
-
+            // ANTRAGSABSTIMMUNG: Kompaktes Format
             // Ergebnis ermitteln
             $result_text = "";
             if ($counts['yes'] > $counts['no']) {
-                $result_text = "ANGENOMMEN";
+                $result_text = "angenommen";
             } elseif ($counts['no'] > $counts['yes']) {
-                $result_text = "ABGELEHNT";
+                $result_text = "nicht angenommen";
             } else {
-                $result_text = "UNENTSCHIEDEN";
+                $result_text = "unentschieden";
             }
 
             $result_summary = "Antrag {$item['antrnr']} - {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung - {$result_text}";
@@ -2707,19 +2700,14 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
             // In beschluesse-Tabelle speichern
             $beschluss_saved = save_voting_result_to_beschluesse($pdo, $voting_id, $item);
 
-            // Protokolltext für Antrag
-            $protocol_entry = "\n\nAntrag {$item['antrnr']} - {$antrag_titel} wurde abgestimmt: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung - {$result_text}";
-            if ($beschluss_saved) {
-                $protocol_entry .= "\nEintrag ins Beschlussbuch ist erfolgt";
-            }
+            // Protokolltext für Antrag - kompakt in 1 Zeile
+            $protocol_entry = "\n\nAbstimmung über den Antrag: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung ({$result_text})";
         } else {
-            // STIMMUNGSBILD: Bisheriges Format
-            if (!empty($voting['voting_question'])) {
-                $result_summary = "Stimmungsbild: " . $voting['voting_question'] . "\n";
-            }
-            $result_summary .= "Abstimmungsergebnis: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung";
+            // STIMMUNGSBILD: Kompaktes Format - alles in 1 Zeile
+            $question = !empty($voting['voting_question']) ? $voting['voting_question'] : 'Keine Frage angegeben';
 
-            $protocol_entry = "\n\n[Abstimmungsergebnis]\n" . $result_summary;
+            $result_summary = "Stimmungsbild: {$question} - {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung";
+            $protocol_entry = "\n\nStimmungsbild: {$question} Ergebnis: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung";
         }
 
         // Voting abschließen

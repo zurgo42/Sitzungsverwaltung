@@ -553,8 +553,7 @@ function render_closed_votings($item_id, $pdo) {
                     ?>
                 </div>
             </details>
-        </div>
-    </details>
+        </details>
         <?php
     }
 }
