@@ -616,21 +616,18 @@ function save_voting_result_to_beschluesse($pdo, $voting_id, $item) {
         return false;
     }
 
-    // In svbeschluesse einfügen oder updaten
+    // In beschluesse einfügen oder updaten (VTool-Tabelle)
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO svbeschluesse (
+            INSERT INTO beschluesse (
                 antrnr, fertig, titel, beschluss, begr,
                 fintext, pers, sach, ressort, int_ext,
-                dafuer, dagegen, enthaltungen,
-                status, beschlussdatum, created_at
-            ) VALUES (?, 'F', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'F', CURDATE(), NOW())
+                dafuer, dagegen, enthaltungen
+            ) VALUES (?, 'F', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 dafuer = ?,
                 dagegen = ?,
-                enthaltungen = ?,
-                beschlussdatum = CURDATE(),
-                updated_at = NOW()
+                enthaltungen = ?
         ");
 
         $dafuer_str = implode(', ', $dafuer_list);
@@ -657,7 +654,7 @@ function save_voting_result_to_beschluesse($pdo, $voting_id, $item) {
             $enthaltungen_str
         ]);
 
-        error_log("✓ Voting result saved to svbeschluesse for antrnr {$item['antrnr']}: Yes={$counts['yes']}, No={$counts['no']}, Abstain={$counts['abstain']}");
+        error_log("✓ Voting result saved to beschluesse for antrnr {$item['antrnr']}: Yes={$counts['yes']}, No={$counts['no']}, Abstain={$counts['abstain']}");
 
         // Antrag als bearbeitet markieren (praesenz=2 bedeutet: abgestimmt)
         $stmt = $pdo->prepare("UPDATE antraege SET praesenz = 2 WHERE antrnr = ?");
