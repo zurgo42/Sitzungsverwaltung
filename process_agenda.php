@@ -2700,6 +2700,19 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
         $stmt->execute([$voting['item_id']]);
         $item = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        // Ergebnis automatisch ins Protokoll einfügen
+        if ($item) {
+            $current_protocol = $item['protocol_notes'] ?? '';
+            $protocol_entry = "\n\n[Abstimmungsergebnis]\n" . $result_summary;
+
+            $stmt = $pdo->prepare("
+                UPDATE svagenda_items
+                SET protocol_notes = CONCAT(COALESCE(protocol_notes, ''), ?)
+                WHERE item_id = ?
+            ");
+            $stmt->execute([$protocol_entry, $item['item_id']]);
+        }
+
         // Bei verlinktem Antrag: In beschluesse-Tabelle speichern
         if ($item && !empty($item['antrnr'])) {
             save_voting_result_to_beschluesse($pdo, $voting_id, $item);

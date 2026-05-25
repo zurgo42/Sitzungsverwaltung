@@ -467,38 +467,38 @@ function render_closed_votings($item_id, $pdo) {
         }
 
         $is_open = ($voting['voting_type'] === 'open');
+
+        // Zusammenfassung für Summary erstellen
+        $summary_text = "🗳️ ";
+        if (!empty($voting['voting_question'])) {
+            $summary_text .= htmlspecialchars($voting['voting_question']) . " - ";
+        }
+        $summary_text .= "{$counts['yes']} ✅ / {$counts['no']} ❌ / {$counts['abstain']} ⊝";
         ?>
-        <div style="margin: 15px 0; padding: 15px; background: #f5f5f5; border: 2px solid #9e9e9e; border-radius: 8px;">
-            <h4 style="margin-top: 0; color: #666;">
-                🗳️ Abgeschlossene Abstimmung
-                <?php if ($is_open): ?>
-                    <span style="font-size: 12px; background: #757575; color: white; padding: 2px 8px; border-radius: 3px; margin-left: 8px;">OFFEN</span>
-                <?php else: ?>
-                    <span style="font-size: 12px; background: #757575; color: white; padding: 2px 8px; border-radius: 3px; margin-left: 8px;">GEHEIM</span>
-                <?php endif; ?>
-            </h4>
-
-            <?php if (!empty($voting['voting_question'])): ?>
-                <div style="margin: 10px 0; padding: 12px; background: white; border-left: 4px solid #9e9e9e; border-radius: 4px;">
-                    <strong style="color: #666; font-size: 14px;">Stimmungsbild zu der Frage:</strong>
-                    <div style="margin-top: 5px; font-size: 15px; color: #333;">
-                        <?= htmlspecialchars($voting['voting_question']) ?>
+        <details style="margin: 10px 0; border: 1px solid #9e9e9e; border-radius: 6px; overflow: hidden;">
+            <summary style="padding: 8px 12px; background: #f5f5f5; cursor: pointer; font-size: 13px; color: #666;">
+                <?= $summary_text ?>
+                <span style="font-size: 11px; margin-left: 8px;">(<?= date('d.m.', strtotime($voting['closed_at'])) ?>)</span>
+            </summary>
+            <div style="padding: 12px; background: white;">
+                <?php if (!empty($voting['voting_question'])): ?>
+                    <div style="margin-bottom: 10px; padding: 8px; background: #f9f9f9; border-left: 3px solid #9e9e9e; border-radius: 4px;">
+                        <strong style="color: #666; font-size: 12px;">Frage:</strong>
+                        <div style="margin-top: 4px; font-size: 13px; color: #333;">
+                            <?= htmlspecialchars($voting['voting_question']) ?>
+                        </div>
                     </div>
+                <?php endif; ?>
+
+                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                    Gestartet: <?= date('d.m.Y H:i', strtotime($voting['created_at'])) ?> (<?= htmlspecialchars($initiator_name) ?>)<br>
+                    Abgeschlossen: <?= date('d.m.Y H:i', strtotime($voting['closed_at'])) ?>
+                    <?php if ($closer_name): ?> (<?= htmlspecialchars($closer_name) ?>)<?php endif; ?><br>
+                    Art: <?= $is_open ? 'Offen' : 'Geheim' ?> |
+                    Stimmberechtigt: <?= $voting['eligible_voters'] === 'all' ? 'Alle' : 'Vorstand' ?>
                 </div>
-            <?php endif; ?>
 
-            <div style="font-size: 13px; color: #666; margin-bottom: 10px;">
-                Gestartet: <?= date('d.m.Y H:i', strtotime($voting['created_at'])) ?> Uhr (<?= htmlspecialchars($initiator_name) ?>)<br>
-                Abgeschlossen: <?= date('d.m.Y H:i', strtotime($voting['closed_at'])) ?> Uhr
-                <?php if ($closer_name): ?>
-                    (<?= htmlspecialchars($closer_name) ?>)
-                <?php endif; ?><br>
-                Stimmberechtigt: <?= $voting['eligible_voters'] === 'all' ? 'Alle Teilnehmer' : 'Nur Vorstand' ?>
-            </div>
-
-            <!-- Ergebnis -->
-            <div style="padding: 12px; background: white; border-radius: 6px; margin-bottom: 10px;">
-                <div style="font-weight: 600; margin-bottom: 8px;">
+                <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px;">
                     <?= htmlspecialchars($voting['result_summary'] ?? 'Ergebnis') ?>
                 </div>
 
@@ -538,8 +538,8 @@ function render_closed_votings($item_id, $pdo) {
                     }
                     ?>
                 </div>
-            </details>
-        </div>
+            </div>
+        </details>
         <?php
     }
 }

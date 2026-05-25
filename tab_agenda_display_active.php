@@ -14,9 +14,6 @@ if (empty($agenda_items)) {
     return;
 }
 
-// Übersicht anzeigen (read-only während aktiver Sitzung)
-render_simple_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
-
 // Aktiven TOP ermitteln
 $stmt = $pdo->prepare("SELECT active_item_id FROM svmeetings WHERE meeting_id = ?");
 $stmt->execute([$current_meeting_id]);
@@ -44,7 +41,7 @@ $active_item_id = $stmt->fetchColumn();
 }
 </style>
 
-<h3 style="margin: 20px 0 15px 0;">🟢 Laufende Sitzung - Tagesordnungspunkte</h3>
+<h3 style="margin: 20px 0 15px 0;">🟢 Laufende Sitzung</h3>
 
 <!-- Direktlink zur Sitzung -->
 <?php
@@ -61,7 +58,7 @@ if (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt') {
     $link_description = 'Link zur Sitzung:';
 }
 ?>
-<div style="margin: 15px 0; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+<div style="margin: 0 0 15px 0; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
     <strong style="color: #1976d2;">🔗 <?php echo $link_description; ?></strong>
     <div style="margin-top: 8px; display: flex; gap: 10px; align-items: center;">
         <input type="text" id="directLinkInput" readonly value="<?php echo htmlspecialchars($direct_link); ?>"
@@ -94,6 +91,14 @@ function copyDirectLink() {
     }
 }
 </script>
+
+<!-- Übersicht -->
+<?php
+// Übersicht anzeigen (read-only während aktiver Sitzung)
+render_simple_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
+?>
+
+<h4 style="margin: 20px 0 10px 0; color: #333;">Tagesordnungspunkte</h4>
 
 <!-- TEILNEHMERLISTE -->
 <?php if ($is_secretary): ?>
@@ -135,10 +140,11 @@ function copyDirectLink() {
             }
         }
     </style>
-    <details open style="margin: 20px 0; padding: 15px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 8px;">
-        <summary style="cursor: pointer; font-weight: 600; color: #1976d2; font-size: 16px; margin-bottom: 10px;">
-            👥 Teilnehmerverwaltung (klicken zum Auf-/Zuklappen)
+    <details style="margin: 20px 0; padding: 15px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 8px;">
+        <summary style="cursor: pointer; font-weight: 600; color: #1976d2; font-size: 14px; padding: 8px 0;">
+            👥 Teilnehmerverwaltung
         </summary>
+        <div style="margin-top: 10px;">
 
         <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
             <input type="hidden" name="update_attendance" value="1">
@@ -286,6 +292,7 @@ function copyDirectLink() {
             });
         }
         </script>
+        </div>
     </details>
 <?php else: ?>
     <?php render_readonly_participant_list($pdo, $current_meeting_id, $participants); ?>
@@ -944,15 +951,19 @@ foreach ($agenda_items as $item):
         </details>
         <?php endif; ?>
 
-        <!-- ABSTIMMUNG -->
+        <!-- ABSTIMMUNG (nur im aktiven TOP) -->
+        <?php if ($is_active): ?>
+            <?php
+            // Prüfen ob aktive Abstimmung existiert
+            $active_voting = get_active_voting($pdo, $item['item_id']);
+
+            // Voting-UI rendern (zeigt Start-Button oder laufende Abstimmung)
+            render_voting_ui($item, $active_voting, $current_user, $meeting, $pdo);
+            ?>
+        <?php endif; ?>
+
         <?php
-        // Prüfen ob aktive Abstimmung existiert
-        $active_voting = get_active_voting($pdo, $item['item_id']);
-
-        // Voting-UI rendern (zeigt Start-Button oder laufende Abstimmung)
-        render_voting_ui($item, $active_voting, $current_user, $meeting, $pdo);
-
-        // Abgeschlossene Abstimmungen anzeigen
+        // Abgeschlossene Abstimmungen anzeigen (bei allen TOPs)
         render_closed_votings($item['item_id'], $pdo);
         ?>
 
