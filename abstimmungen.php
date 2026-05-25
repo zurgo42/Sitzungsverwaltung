@@ -561,7 +561,68 @@ foreach ($antraege as $a) {
             -webkit-overflow-scrolling: touch;
         }
 
+        /* Styles für AJAX-geladenen Antragsinhalt (aus antrag_ansehen.php) */
+        #antrag_details .compact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 20px; margin-bottom: 15px; }
+        #antrag_details .compact-row { display: flex; gap: 8px; margin-bottom: 8px; font-size: 13px; padding: 6px; background: rgba(0, 85, 150, 0.03); border-radius: 4px; }
+        #antrag_details .compact-label { font-weight: 600; color: #005596; min-width: 120px; flex-shrink: 0; }
+        #antrag_details .compact-value { color: #333; font-weight: 500; }
+        #antrag_details .section-compact { background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 2px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        #antrag_details .section-title { font-weight: 700; font-size: 15px; margin-bottom: 12px; color: #005596; border-bottom: 3px solid #005596; padding-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+        #antrag_details .text-box { background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 4px solid #005596; font-size: 13px; margin-top: 8px; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.6; }
+        #antrag_details .accordion { cursor: pointer; background: #e3f2fd; padding: 10px 12px; border-radius: 6px; margin: 8px 0; font-weight: 600; user-select: none; border: 1px solid #8ECAF6; transition: all 0.2s; }
+        #antrag_details .accordion:hover { background: #bbdefb; }
+        #antrag_details .accordion::before { content: '▶ '; font-size: 11px; margin-right: 8px; color: #005596; }
+        #antrag_details .accordion.active::before { content: '▼ '; }
+        #antrag_details .acc-content { display: none; padding: 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px; font-size: 13px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.6; border: 1px solid #ddd; }
+        #antrag_details .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* Dark Mode für AJAX-geladenen Content */
+        html.dark-mode #antrag_details .compact-label {
+            color: #8ECAF6 !important;
+        }
+
+        html.dark-mode #antrag_details .compact-row {
+            background: rgba(142, 202, 246, 0.05) !important;
+        }
+
+        html.dark-mode #antrag_details .section-compact {
+            background: #2d2d2d !important;
+            border-color: #8ECAF6 !important;
+        }
+
+        html.dark-mode #antrag_details .section-title {
+            color: #8ECAF6 !important;
+            border-bottom-color: #8ECAF6 !important;
+        }
+
+        html.dark-mode #antrag_details .text-box {
+            background: #1a1a1a !important;
+            border-left-color: #8ECAF6 !important;
+        }
+
+        html.dark-mode #antrag_details .accordion {
+            background: rgba(142, 202, 246, 0.1) !important;
+            border-color: #8ECAF6 !important;
+        }
+
+        html.dark-mode #antrag_details .accordion:hover {
+            background: rgba(142, 202, 246, 0.2) !important;
+        }
+
+        html.dark-mode #antrag_details .accordion::before {
+            color: #8ECAF6 !important;
+        }
+
+        html.dark-mode #antrag_details .acc-content {
+            background: #1a1a1a !important;
+            border-color: #444 !important;
+        }
+
         /* Mobile Optimierung */
+        @media (max-width: 1024px) {
+            #antrag_details .compact-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
         @media (max-width: 768px) {
             body .container-wide {
                 width: 100% !important;
@@ -580,6 +641,17 @@ foreach ($antraege as $a) {
 
             textarea {
                 font-size: 14px !important;
+            }
+
+            #antrag_details .compact-grid {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            #antrag_details .compact-label {
+                min-width: 80px;
+            }
+            #antrag_details .grid-2col {
+                grid-template-columns: 1fr;
             }
         }
     </style>
