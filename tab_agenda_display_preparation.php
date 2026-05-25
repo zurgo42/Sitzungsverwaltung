@@ -382,32 +382,19 @@ function copyDirectLink() {
                 <label style="font-weight: 600;">Beschreibung:</label>
                 <textarea name="description" rows="3"></textarea>
             </div>
-            
+
             <div class="form-group">
                 <label style="font-weight: 600;">Kategorie:</label>
                 <?php render_category_select('category', 'new_top_category', '', 'toggleProposalField(\'new_top\')'); ?>
             </div>
-            
-            <div class="form-group" id="new_top_proposal" style="display:none;">
-                <label style="font-weight: 600;">📄 Antragstext:</label>
-                <textarea name="proposal_text" rows="4" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px;"></textarea>
-            </div>
 
             <?php if (($meeting['allow_decisions'] ?? 1) == 1): ?>
-            <!-- Checkbox für Beschlussfassung in der Sitzung -->
-            <div class="form-group top-form-group" style="border-top: 2px solid #e0e0e0; padding-top: 15px; margin-top: 15px;">
-                <label style="display: flex; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="create_proposal_checkbox" name="create_proposal" value="1" onchange="toggleProposalForm()" style="margin-right: 8px;">
-                    <strong>📜 Beschluss in dieser Sitzung fassen</strong>
-                </label>
-                <small style="display: block; margin-top: 5px; color: #666;">
-                    Wenn aktiviert, wird ein vollständiger Antrag erstellt, der direkt in der Sitzung abgestimmt werden kann.
-                </small>
-            </div>
-
-            <!-- Vollständiges Antragsformular (nur sichtbar wenn Checkbox aktiviert) -->
-            <div id="proposal_form_fields" style="display: none; border: 2px solid #4caf50; border-radius: 8px; padding: 15px; margin: 15px 0; background: #f9fff9;">
+            <!-- Vollständiges Antragsformular (nur sichtbar wenn Kategorie "Antrag/Beschluss" gewählt) -->
+            <div id="new_top_proposal" style="display: none; border: 2px solid #4caf50; border-radius: 8px; padding: 15px; margin: 15px 0; background: #f9fff9;">
                 <h4 style="margin-top: 0; color: #4caf50;">📋 Antragsdetails</h4>
+                <small style="display: block; margin-bottom: 15px; color: #666;">
+                    Bei Kategorie "Antrag/Beschluss" wird ein vollständiger Antrag erstellt, der direkt in der Sitzung abgestimmt werden kann.
+                </small>
 
                 <div class="form-group">
                     <label style="font-weight: 600;">Beschlusstext: *</label>
@@ -468,6 +455,12 @@ function copyDirectLink() {
                 <small style="display: block; margin-top: 10px; color: #666;">
                     * Pflichtfelder. Der Antrag wird mit praesenz=1 erstellt und erscheint in der Antragsliste.
                 </small>
+            </div>
+            <?php else: ?>
+            <!-- Einfaches Antragstext-Feld wenn Beschlüsse deaktiviert -->
+            <div class="form-group" id="new_top_proposal" style="display:none;">
+                <label style="font-weight: 600;">📄 Antragstext:</label>
+                <textarea name="proposal_text" rows="4" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px;"></textarea>
             </div>
             <?php endif; ?>
 

@@ -100,11 +100,9 @@ if (isset($_POST['add_agenda_item'])) {
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $category = $_POST['category'] ?? 'information';
-    $proposal_text = ($category === 'antrag_beschluss') ? trim($_POST['proposal_text'] ?? '') : '';
     $priority = floatval($_POST['priority'] ?? 5.0);
     $duration = intval($_POST['duration'] ?? 15);
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
-    $create_proposal = isset($_POST['create_proposal']) ? 1 : 0;
 
     if ($current_meeting_id && $title) {
         try {
@@ -112,9 +110,10 @@ if (isset($_POST['add_agenda_item'])) {
             $pdo->beginTransaction();
 
             $antrnr = null;
+            $proposal_text = '';
 
-            // Wenn Beschluss in Sitzung gewünscht: Antrag erstellen
-            if ($create_proposal && !empty($_POST['proposal_beschluss'])) {
+            // Wenn Kategorie "antrag_beschluss" und Beschlusstext vorhanden: Vollständigen Antrag erstellen
+            if ($category === 'antrag_beschluss' && !empty($_POST['proposal_beschluss'])) {
                 $antrnr = generiereAntragsnummer($pdo);
 
                 // Antrag in antraege-Tabelle einfügen
@@ -139,6 +138,9 @@ if (isset($_POST['add_agenda_item'])) {
                 ]);
 
                 error_log("Created proposal $antrnr for meeting $current_meeting_id");
+            } elseif ($category === 'antrag_beschluss') {
+                // Einfacher Antragstext ohne vollständigen Antrag (wenn allow_decisions=0)
+                $proposal_text = trim($_POST['proposal_text'] ?? '');
             }
 
             // TOP-Nummer automatisch vergeben

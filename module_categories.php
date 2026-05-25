@@ -63,7 +63,7 @@ function render_category_select($name, $id, $selected = 'information', $onchange
 function render_category_javascript() {
     ?>
     <script>
-    // Antragstext-Feld ein/ausblenden
+    // Antragstext-Feld bzw. vollständiges Antragsformular ein/ausblenden
     function toggleProposalField(prefix) {
         const select = document.getElementById(prefix + '_category');
         const proposalDiv = document.getElementById(prefix + '_proposal');
@@ -73,20 +73,6 @@ function render_category_javascript() {
                 proposalDiv.style.display = 'block';
             } else {
                 proposalDiv.style.display = 'none';
-            }
-        }
-    }
-
-    // Vollständiges Antragsformular ein/ausblenden (für Meeting-Beschlüsse)
-    function toggleProposalForm() {
-        const checkbox = document.getElementById('create_proposal_checkbox');
-        const formFields = document.getElementById('proposal_form_fields');
-
-        if (checkbox && formFields) {
-            if (checkbox.checked) {
-                formFields.style.display = 'block';
-            } else {
-                formFields.style.display = 'none';
             }
         }
     }
