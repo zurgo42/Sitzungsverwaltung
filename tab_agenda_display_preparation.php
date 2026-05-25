@@ -392,7 +392,85 @@ function copyDirectLink() {
                 <label style="font-weight: 600;">📄 Antragstext:</label>
                 <textarea name="proposal_text" rows="4" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px;"></textarea>
             </div>
-            
+
+            <?php if (($meeting['allow_decisions'] ?? 1) == 1): ?>
+            <!-- Checkbox für Beschlussfassung in der Sitzung -->
+            <div class="form-group top-form-group" style="border-top: 2px solid #e0e0e0; padding-top: 15px; margin-top: 15px;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="create_proposal_checkbox" name="create_proposal" value="1" onchange="toggleProposalForm()" style="margin-right: 8px;">
+                    <strong>📜 Beschluss in dieser Sitzung fassen</strong>
+                </label>
+                <small style="display: block; margin-top: 5px; color: #666;">
+                    Wenn aktiviert, wird ein vollständiger Antrag erstellt, der direkt in der Sitzung abgestimmt werden kann.
+                </small>
+            </div>
+
+            <!-- Vollständiges Antragsformular (nur sichtbar wenn Checkbox aktiviert) -->
+            <div id="proposal_form_fields" style="display: none; border: 2px solid #4caf50; border-radius: 8px; padding: 15px; margin: 15px 0; background: #f9fff9;">
+                <h4 style="margin-top: 0; color: #4caf50;">📋 Antragsdetails</h4>
+
+                <div class="form-group">
+                    <label style="font-weight: 600;">Beschlusstext: *</label>
+                    <textarea name="proposal_beschluss" rows="4" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px;"></textarea>
+                    <small style="color: #666;">Der konkrete Beschluss, über den abgestimmt wird</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600;">Begründung:</label>
+                    <textarea name="proposal_begr" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600;">Finanzen (Betrag):</label>
+                    <input type="number" name="proposal_fin" step="0.01" min="0" value="0" style="width: 200px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <small style="color: #666; margin-left: 10px;">€</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600;">Finanzielle Erläuterung:</label>
+                    <textarea name="proposal_fintext" rows="2" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                </div>
+
+                <?php
+                // Ressorts laden
+                $ressorts_stmt = $pdo->query("SELECT code, name FROM svressorts ORDER BY name");
+                $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_ASSOC);
+                ?>
+
+                <div class="form-group">
+                    <label style="font-weight: 600;">Hauptressort: *</label>
+                    <select name="proposal_ressort1" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">-- Bitte wählen --</option>
+                        <?php foreach ($ressorts as $r): ?>
+                            <option value="<?= htmlspecialchars($r['code']) ?>"><?= htmlspecialchars($r['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600;">Mitwirkendes Ressort:</label>
+                    <select name="proposal_ressort2" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">-- Optional --</option>
+                        <?php foreach ($ressorts as $r): ?>
+                            <option value="<?= htmlspecialchars($r['code']) ?>"><?= htmlspecialchars($r['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600;">Art des Antrags:</label>
+                    <select name="proposal_int_ext" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="int">Intern</option>
+                        <option value="ext">Extern</option>
+                    </select>
+                </div>
+
+                <small style="display: block; margin-top: 10px; color: #666;">
+                    * Pflichtfelder. Der Antrag wird mit praesenz=1 erstellt und erscheint in der Antragsliste.
+                </small>
+            </div>
+            <?php endif; ?>
+
             <?php
             // Priorität/Dauer nur für Führungsteam
             $is_leadership = in_array(strtolower($current_user['role'] ?? ''), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam']);

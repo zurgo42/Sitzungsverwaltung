@@ -67,7 +67,7 @@ function render_category_javascript() {
     function toggleProposalField(prefix) {
         const select = document.getElementById(prefix + '_category');
         const proposalDiv = document.getElementById(prefix + '_proposal');
-        
+
         if (select && proposalDiv) {
             if (select.value === 'antrag_beschluss') {
                 proposalDiv.style.display = 'block';
@@ -76,12 +76,26 @@ function render_category_javascript() {
             }
         }
     }
-    
+
+    // Vollständiges Antragsformular ein/ausblenden (für Meeting-Beschlüsse)
+    function toggleProposalForm() {
+        const checkbox = document.getElementById('create_proposal_checkbox');
+        const formFields = document.getElementById('proposal_form_fields');
+
+        if (checkbox && formFields) {
+            if (checkbox.checked) {
+                formFields.style.display = 'block';
+            } else {
+                formFields.style.display = 'none';
+            }
+        }
+    }
+
     // Bei Seitenlade alle Felder prüfen
     document.addEventListener('DOMContentLoaded', function() {
         // Neues TOP Formular
         toggleProposalField('new_top');
-        
+
         // Alle Edit-Formulare
         document.querySelectorAll('[id$="_category"]').forEach(function(select) {
             const match = select.id.match(/edit_(\d+)_category/);

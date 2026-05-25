@@ -25,6 +25,43 @@ function get_full_meeting_link($meeting_id) {
     return $protocol . $host . $script . "?tab=agenda&meeting_id=" . $meeting_id;
 }
 
+/**
+ * Generiert eine neue Antragsnummer
+ * Format: A + YYMMDD + laufende Nummer (01-99)
+ */
+function generiereAntragsnummer($pdo, $prefix = 'A', $date = '') {
+    if ($date === '') {
+        $date_part = date('ymd');
+    } else {
+        $date_part = $date;
+    }
+
+    $prefix_pattern = $prefix . $date_part;
+
+    $stmt = $pdo->prepare("
+        SELECT antrnr
+        FROM antraege
+        WHERE antrnr LIKE ?
+        ORDER BY antrnr DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$prefix_pattern . '%']);
+    $existing = $stmt->fetch();
+
+    if (!$existing) {
+        return $prefix_pattern . '01';
+    }
+
+    $last_number = (int)substr($existing['antrnr'], -2);
+    $new_number = $last_number + 1;
+
+    if ($new_number > 99) {
+        throw new Exception("Tageslimit für Anträge erreicht (max. 99 pro Tag)");
+    }
+
+    return $prefix_pattern . str_pad($new_number, 2, '0', STR_PAD_LEFT);
+}
+
 // ============================================
 // BERECHTIGUNGEN ERMITTELN (WICHTIG: VOR DEN HANDLERN!)
 // ============================================
@@ -67,11 +104,42 @@ if (isset($_POST['add_agenda_item'])) {
     $priority = floatval($_POST['priority'] ?? 5.0);
     $duration = intval($_POST['duration'] ?? 15);
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
+    $create_proposal = isset($_POST['create_proposal']) ? 1 : 0;
 
     if ($current_meeting_id && $title) {
         try {
             // Transaktion starten für atomare Operation
             $pdo->beginTransaction();
+
+            $antrnr = null;
+
+            // Wenn Beschluss in Sitzung gewünscht: Antrag erstellen
+            if ($create_proposal && !empty($_POST['proposal_beschluss'])) {
+                $antrnr = generiereAntragsnummer($pdo);
+
+                // Antrag in antraege-Tabelle einfügen
+                $stmt_antrag = $pdo->prepare("
+                    INSERT INTO antraege (
+                        antrnr, antrst, bart, titel, beschluss, begr, fin, fintext,
+                        ressort1, ressort2, int_ext, praesenz, meeting_id, lzugriff
+                    ) VALUES (?, ?, 'A', ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW())
+                ");
+                $stmt_antrag->execute([
+                    $antrnr,
+                    $current_user['member_id'],
+                    $title,
+                    trim($_POST['proposal_beschluss']),
+                    trim($_POST['proposal_begr'] ?? ''),
+                    floatval($_POST['proposal_fin'] ?? 0),
+                    trim($_POST['proposal_fintext'] ?? ''),
+                    trim($_POST['proposal_ressort1'] ?? ''),
+                    !empty($_POST['proposal_ressort2']) ? trim($_POST['proposal_ressort2']) : null,
+                    $_POST['proposal_int_ext'] ?? 'int',
+                    $current_meeting_id
+                ]);
+
+                error_log("Created proposal $antrnr for meeting $current_meeting_id");
+            }
 
             // TOP-Nummer automatisch vergeben
             $top_number = get_next_top_number($pdo, $current_meeting_id, $is_confidential);
@@ -79,8 +147,8 @@ if (isset($_POST['add_agenda_item'])) {
             // TOP in Datenbank einfügen
             $stmt = $pdo->prepare("
                 INSERT INTO svagenda_items
-                (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $current_meeting_id,
@@ -89,6 +157,7 @@ if (isset($_POST['add_agenda_item'])) {
                 $description,
                 $category,
                 $proposal_text,
+                $antrnr,
                 $priority,
                 $duration,
                 $is_confidential,
@@ -115,7 +184,7 @@ if (isset($_POST['add_agenda_item'])) {
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
             exit;
 
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             // Rollback bei Fehler
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
