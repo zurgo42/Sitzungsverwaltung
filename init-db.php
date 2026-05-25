@@ -209,6 +209,7 @@ try {
         voting_id INT AUTO_INCREMENT PRIMARY KEY,
         item_id INT NOT NULL COMMENT 'FK zu svagenda_items',
         initiated_by_member_id INT NOT NULL COMMENT 'Wer hat Abstimmung gestartet',
+        voting_question VARCHAR(500) DEFAULT NULL COMMENT 'Frage bei Stimmungsbild (wenn kein Antrag)',
         voting_type ENUM('open', 'secret') NOT NULL DEFAULT 'open' COMMENT 'Offen oder geheim',
         eligible_voters ENUM('board', 'all') NOT NULL DEFAULT 'board' COMMENT 'Vorstand oder alle Teilnehmer',
         status ENUM('active', 'closed') NOT NULL DEFAULT 'active' COMMENT 'Läuft oder abgeschlossen',

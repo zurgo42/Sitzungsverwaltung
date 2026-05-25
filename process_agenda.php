@@ -2495,6 +2495,7 @@ if (isset($_POST['initiate_voting']) && $meeting['status'] === 'active') {
     $item_id = intval($_POST['item_id'] ?? 0);
     $voting_type = $_POST['voting_type'] ?? 'open'; // 'open' oder 'secret'
     $eligible_voters = $_POST['eligible_voters'] ?? 'board'; // 'board' oder 'all'
+    $voting_question = trim($_POST['voting_question'] ?? ''); // Frage bei Stimmungsbild
 
     if (!$item_id) {
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=invalid_item");
@@ -2516,10 +2517,10 @@ if (isset($_POST['initiate_voting']) && $meeting['status'] === 'active') {
 
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO svvotings (item_id, initiated_by_member_id, voting_type, eligible_voters, status, created_at)
-            VALUES (?, ?, ?, ?, 'active', NOW())
+            INSERT INTO svvotings (item_id, initiated_by_member_id, voting_question, voting_type, eligible_voters, status, created_at)
+            VALUES (?, ?, ?, ?, ?, 'active', NOW())
         ");
-        $stmt->execute([$item_id, $current_user['member_id'], $voting_type, $eligible_voters]);
+        $stmt->execute([$item_id, $current_user['member_id'], $voting_question ?: null, $voting_type, $eligible_voters]);
 
         error_log("Voting initiated for item $item_id by member {$current_user['member_id']} (type: $voting_type, eligible: $eligible_voters)");
 
@@ -2673,7 +2674,11 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
         $counts = get_vote_counts($pdo, $voting_id);
 
         // Ergebnis-Zusammenfassung erstellen
-        $result_summary = "Abstimmungsergebnis: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung";
+        $result_summary = "";
+        if (!empty($voting['voting_question'])) {
+            $result_summary = "Stimmungsbild: " . $voting['voting_question'] . "\n";
+        }
+        $result_summary .= "Abstimmungsergebnis: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung";
         if ($counts['yes'] > $counts['no']) {
             $result_summary .= " - ANGENOMMEN";
         } elseif ($counts['no'] > $counts['yes']) {

@@ -183,6 +183,18 @@ function render_voting_ui($item, $voting, $current_user, $meeting, $pdo) {
                     <input type="hidden" name="initiate_voting" value="1">
                     <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
 
+                    <?php if (empty($item['antrnr'])): ?>
+                    <!-- Frage für Stimmungsbild (nur wenn kein Antrag verknüpft) -->
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #856404;">
+                            Stimmungsbild zu der Frage:
+                        </label>
+                        <input type="text" name="voting_question" required
+                               placeholder="z.B. 'Sollen wir das Projekt fortsetzen?'"
+                               style="width: 100%; padding: 6px; border: 1px solid #ffc107; border-radius: 4px; font-size: 13px;">
+                    </div>
+                    <?php endif; ?>
+
                     <div style="display: flex; gap: 20px; margin-bottom: 10px; flex-wrap: wrap;">
                         <div>
                             <strong style="font-size: 12px;">Stimmberechtigung:</strong>
@@ -244,6 +256,15 @@ function render_voting_ui($item, $voting, $current_user, $meeting, $pdo) {
                     <span style="font-size: 12px; background: #ff9800; color: white; padding: 2px 8px; border-radius: 3px; margin-left: 8px;">GEHEIM</span>
                 <?php endif; ?>
             </h4>
+
+            <?php if (!empty($voting['voting_question'])): ?>
+                <div style="margin: 10px 0; padding: 12px; background: white; border-left: 4px solid #2196f3; border-radius: 4px;">
+                    <strong style="color: #1976d2; font-size: 14px;">Stimmungsbild zu der Frage:</strong>
+                    <div style="margin-top: 5px; font-size: 15px; color: #333;">
+                        <?= htmlspecialchars($voting['voting_question']) ?>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <div style="font-size: 13px; color: #666; margin-bottom: 10px;">
                 Gestartet von <?= htmlspecialchars($initiator_name) ?> am <?= date('d.m.Y H:i', strtotime($voting['created_at'])) ?> Uhr<br>
@@ -456,6 +477,15 @@ function render_closed_votings($item_id, $pdo) {
                     <span style="font-size: 12px; background: #757575; color: white; padding: 2px 8px; border-radius: 3px; margin-left: 8px;">GEHEIM</span>
                 <?php endif; ?>
             </h4>
+
+            <?php if (!empty($voting['voting_question'])): ?>
+                <div style="margin: 10px 0; padding: 12px; background: white; border-left: 4px solid #9e9e9e; border-radius: 4px;">
+                    <strong style="color: #666; font-size: 14px;">Stimmungsbild zu der Frage:</strong>
+                    <div style="margin-top: 5px; font-size: 15px; color: #333;">
+                        <?= htmlspecialchars($voting['voting_question']) ?>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <div style="font-size: 13px; color: #666; margin-bottom: 10px;">
                 Gestartet: <?= date('d.m.Y H:i', strtotime($voting['created_at'])) ?> Uhr (<?= htmlspecialchars($initiator_name) ?>)<br>
