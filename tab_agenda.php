@@ -250,35 +250,35 @@ $can_edit_meeting = ($is_secretary || $is_chairman);
     <?php endif; ?>
 
     <?php
+    // JavaScript für Module laden (VOR den Display-Dateien, damit inline-Handler funktionieren)
+    render_category_javascript();
+    ?>
+
+    <?php
     // ============================================
     // 4. FORMULARE JE NACH STATUS
     // ============================================
-    
+
     if ($meeting['status'] === 'preparation') {
         // VORBEREITUNG: TOPs anzeigen mit Bearbeitungsmöglichkeit
         // (Das Formular für neue TOPs ist bereits in der Display-Datei enthalten)
         include 'tab_agenda_display_preparation.php';
-        
+
     } elseif ($meeting['status'] === 'active') {
         // AKTIVE SITZUNG: TOPs mit Protokoll-Funktionen, Live-Kommentare
         include 'tab_agenda_display_active.php';
-        
+
     } elseif ($meeting['status'] === 'ended') {
         // SITZUNG BEENDET: Protokollant editiert, Teilnehmer kommentieren nach
         include 'tab_agenda_display_ended.php';
-        
+
     } elseif ($meeting['status'] === 'protocol_ready') {
         // PROTOKOLL BEREIT: Warten auf Genehmigung durch Sitzungsleiter
         include 'tab_agenda_display_protocol_ready.php';
-        
+
     } else {
         // ARCHIVED: Nur Ansicht
         include 'tab_agenda_display_readonly.php';
     }
     ?>
 </div>
-
-<?php
-// JavaScript für Module laden
-render_category_javascript();
-?>
