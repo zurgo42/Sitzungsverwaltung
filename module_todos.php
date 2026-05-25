@@ -53,11 +53,13 @@ function render_todo_creation_form($pdo, $item, $meeting_id, $is_secretary, $mee
         return strcmp($a['last_name'], $b['last_name']);
     });
     ?>
-    
-    <div style="margin-top: 15px; padding: 12px; background: #fff8e1; border: 2px solid #ffc107; border-radius: 6px;">
-        <h4 style="color: #f57c00; margin-bottom: 12px;">✅ ToDo erstellen</h4>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+
+    <details style="margin-top: 15px; border: 2px solid #ffc107; border-radius: 6px; overflow: hidden;">
+        <summary style="padding: 8px 12px; background: #fff8e1; cursor: pointer; font-weight: 600; color: #f57c00; font-size: 13px;">
+            ✅ ToDo erstellen
+        </summary>
+        <div style="padding: 12px; background: #fffef7;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
             <div>
                 <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px;">
                     Zuständig:
@@ -116,10 +118,11 @@ function render_todo_creation_form($pdo, $item, $meeting_id, $is_secretary, $mee
             </label>
         </div>
         
-        <small style="display: block; margin-top: 8px; color: #666; font-size: 11px;">
-            💡 ToDos werden beim Speichern des Protokolls erstellt
-        </small>
-    </div>
+            <small style="display: block; margin-top: 8px; color: #666; font-size: 11px;">
+                💡 ToDos werden beim Speichern des Protokolls erstellt
+            </small>
+        </div>
+    </details>
     <?php
 }
 ?>

@@ -17,6 +17,9 @@
 // Persönliche Notizen-Funktionen laden
 require_once __DIR__ . '/personal_notes_functions.php';
 
+// Voting-Funktionen laden
+require_once __DIR__ . '/module_voting.php';
+
 // Hilfsfunktion: Vollständigen Link zur Sitzung generieren
 function get_full_meeting_link($meeting_id) {
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';

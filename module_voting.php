@@ -174,41 +174,46 @@ function render_voting_ui($item, $voting, $current_user, $meeting, $pdo) {
     // Wenn keine aktive Abstimmung: Button zum Starten (nur für berechtigte)
     if (!$voting && $can_initiate) {
         ?>
-        <div style="margin: 15px 0; padding: 15px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px;">
-            <h4 style="margin-top: 0; color: #856404;">🗳️ Abstimmung durchführen</h4>
-            <form method="POST" action="?tab=agenda&meeting_id=<?= $meeting['meeting_id'] ?>" style="display: inline-block;">
-                <input type="hidden" name="initiate_voting" value="1">
-                <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
+        <details style="margin: 10px 0; border: 2px solid #ffc107; border-radius: 6px; overflow: hidden;">
+            <summary style="padding: 8px 12px; background: #fff3cd; cursor: pointer; font-weight: 600; color: #856404; font-size: 13px;">
+                🗳️ Abstimmung durchführen
+            </summary>
+            <div style="padding: 12px; background: #fffbf0;">
+                <form method="POST" action="?tab=agenda&meeting_id=<?= $meeting['meeting_id'] ?>">
+                    <input type="hidden" name="initiate_voting" value="1">
+                    <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
 
-                <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Stimmberechtigung:</label>
-                    <label style="display: inline-flex; align-items: center; margin-right: 20px;">
-                        <input type="radio" name="eligible_voters" value="board" checked style="margin-right: 5px;">
-                        Nur Vorstand
-                    </label>
-                    <label style="display: inline-flex; align-items: center;">
-                        <input type="radio" name="eligible_voters" value="all" style="margin-right: 5px;">
-                        Alle Teilnehmer
-                    </label>
-                </div>
+                    <div style="display: flex; gap: 20px; margin-bottom: 10px; flex-wrap: wrap;">
+                        <div>
+                            <strong style="font-size: 12px;">Stimmberechtigung:</strong>
+                            <label style="display: inline-flex; align-items: center; margin-left: 10px;">
+                                <input type="radio" name="eligible_voters" value="board" checked style="margin-right: 4px;">
+                                <span style="font-size: 12px;">Vorstand</span>
+                            </label>
+                            <label style="display: inline-flex; align-items: center; margin-left: 10px;">
+                                <input type="radio" name="eligible_voters" value="all" style="margin-right: 4px;">
+                                <span style="font-size: 12px;">Alle</span>
+                            </label>
+                        </div>
+                        <div>
+                            <strong style="font-size: 12px;">Art:</strong>
+                            <label style="display: inline-flex; align-items: center; margin-left: 10px;">
+                                <input type="radio" name="voting_type" value="open" checked style="margin-right: 4px;">
+                                <span style="font-size: 12px;">Offen</span>
+                            </label>
+                            <label style="display: inline-flex; align-items: center; margin-left: 10px;">
+                                <input type="radio" name="voting_type" value="secret" style="margin-right: 4px;">
+                                <span style="font-size: 12px;">Geheim</span>
+                            </label>
+                        </div>
+                    </div>
 
-                <div style="margin-bottom: 10px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Abstimmungsart:</label>
-                    <label style="display: inline-flex; align-items: center; margin-right: 20px;">
-                        <input type="radio" name="voting_type" value="open" checked style="margin-right: 5px;">
-                        Offen (Stimmen sofort sichtbar)
-                    </label>
-                    <label style="display: inline-flex; align-items: center;">
-                        <input type="radio" name="voting_type" value="secret" style="margin-right: 5px;">
-                        Geheim (Ergebnis erst nach Abschluss)
-                    </label>
-                </div>
-
-                <button type="submit" style="background: #ffc107; color: #333; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
-                    🗳️ Abstimmung starten
-                </button>
-            </form>
-        </div>
+                    <button type="submit" style="background: #ffc107; color: #333; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">
+                        🗳️ Abstimmung starten
+                    </button>
+                </form>
+            </div>
+        </details>
         <?php
         return;
     }

@@ -748,7 +748,7 @@ foreach ($agenda_items as $item):
                         <input type="hidden" name="toggle_confidential" value="1">
                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                         <button type="submit" style="background: #2196f3; color: white; padding: 4px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">
-                            <?php echo $item['is_confidential'] ? '🔓 Öffentlich' : '🔒 Vertraulich'; ?>
+                            <?php echo $item['is_confidential'] ? '🔓 Verschieben zu Öffentlich' : '🔒 Verschieben zu Vertraulich'; ?>
                         </button>
                     </form>
                 </div>
@@ -838,63 +838,59 @@ foreach ($agenda_items as $item):
             </div>
         <?php endif; ?>
         
-        <!-- Diskussionsbeiträge aus Vorbereitung -->
+        <!-- Diskussionsbeiträge aus Vorbereitung (nur wenn vorhanden) -->
+        <?php
+        $prep_comments = get_item_comments($pdo, $item['item_id']);
+        if (!empty($prep_comments)):
+        ?>
         <div style="margin-top: 12px;">
             <h4 style="font-size: 14px; color: #666; margin-bottom: 8px;">💬 Diskussionsbeiträge (Vorbereitung)</h4>
-            <?php
-            $prep_comments = get_item_comments($pdo, $item['item_id']);
-            if (!empty($prep_comments)):
-            ?>
-                <div style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 8px; max-height: 150px; overflow-y: auto;">
-                    <?php foreach ($prep_comments as $comment): ?>
-                        <?php render_comment_line($comment, 'full'); ?>
-                    <?php endforeach; ?>
-                </div>
-            <?php else: ?>
-                <div style="color: #999; font-size: 12px;">Keine Kommentare aus Vorbereitung</div>
-            <?php endif; ?>
+            <div style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 8px; max-height: 150px; overflow-y: auto;">
+                <?php foreach ($prep_comments as $comment): ?>
+                    <?php render_comment_line($comment, 'full'); ?>
+                <?php endforeach; ?>
+            </div>
         </div>
+        <?php endif; ?>
 
-        <!-- Dateianhänge (kompakt) -->
+        <!-- Dateianhänge (nur wenn vorhanden) -->
+        <?php
+        // Vorhandene Attachments laden
+        $stmt_attachments = $pdo->prepare("
+            SELECT aa.*
+            FROM svagenda_attachments aa
+            WHERE aa.item_id = ?
+            ORDER BY aa.uploaded_at DESC
+        ");
+        $stmt_attachments->execute([$item['item_id']]);
+        $attachments = $stmt_attachments->fetchAll(PDO::FETCH_ASSOC);
+
+        // Mitgliederdaten über Adapter laden
+        foreach ($attachments as &$att) {
+            if ($att['uploaded_by_member_id']) {
+                $member = get_member_by_id($pdo, $att['uploaded_by_member_id']);
+                if ($member) {
+                    $att['first_name'] = $member['first_name'];
+                    $att['last_name'] = $member['last_name'];
+                } else {
+                    $att['first_name'] = 'Unbekannt';
+                    $att['last_name'] = '';
+                }
+            } else {
+                $att['first_name'] = '';
+                $att['last_name'] = '';
+            }
+        }
+        unset($att);
+
+        if (!empty($attachments)):
+        ?>
         <details style="margin: 10px 0;">
             <summary style="cursor: pointer; padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
-                📎 Dateianhänge (<?php
-                // Anzahl vorhandener Attachments
-                $stmt_count = $pdo->prepare("SELECT COUNT(*) FROM svagenda_attachments WHERE item_id = ?");
-                $stmt_count->execute([$item['item_id']]);
-                echo $stmt_count->fetchColumn();
-                ?>)
+                📎 Dateianhänge (<?php echo count($attachments); ?>)
             </summary>
             <div style="margin-top: 10px; padding: 10px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px;">
-                <?php
-                // Vorhandene Attachments laden
-                $stmt_attachments = $pdo->prepare("
-                    SELECT aa.*
-                    FROM svagenda_attachments aa
-                    WHERE aa.item_id = ?
-                    ORDER BY aa.uploaded_at DESC
-                ");
-                $stmt_attachments->execute([$item['item_id']]);
-                $attachments = $stmt_attachments->fetchAll(PDO::FETCH_ASSOC);
-
-                // Mitgliederdaten über Adapter laden
-                foreach ($attachments as &$att) {
-                    if ($att['uploaded_by_member_id']) {
-                        $member = get_member_by_id($pdo, $att['uploaded_by_member_id']);
-                        if ($member) {
-                            $att['first_name'] = $member['first_name'];
-                            $att['last_name'] = $member['last_name'];
-                        } else {
-                            $att['first_name'] = 'Unbekannt';
-                            $att['last_name'] = '';
-                        }
-                    } else {
-                        $att['first_name'] = '';
-                        $att['last_name'] = '';
-                    }
-                }
-                unset($att);
-                ?>
+                <?php ?>
 
                 <!-- Vorhandene Dateien -->
                 <div id="attachments-list-<?php echo $item['item_id']; ?>">
@@ -946,6 +942,7 @@ foreach ($agenda_items as $item):
                 </div>
             </div>
         </details>
+        <?php endif; ?>
 
         <!-- ABSTIMMUNG -->
         <?php
@@ -1153,13 +1150,8 @@ foreach ($agenda_items as $item):
                                       placeholder="Notizen zu diesem TOP..."
                                       style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
                     </div>
-                    
-                    <?php 
-                    // Abstimmungsfelder nur bei Antrag/Beschluss
-                    if ($item['category'] === 'antrag_beschluss') {
-                        render_voting_fields($item['item_id'], $item);
-                    }
-                    
+
+                    <?php
                     // ToDo-Vergabe (für Protokollant) - INNERHALB des Formulars!
                     render_todo_creation_form($pdo, $item, $current_meeting_id, $is_secretary, 'active', $participants);
                     ?>
@@ -1186,13 +1178,13 @@ foreach ($agenda_items as $item):
                     
                     if (!empty($future_meetings)):
                 ?>
-                    <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="margin-top: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 5px;">
-                        <input type="hidden" name="save_resubmit" value="1">
-                        <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
-                        
-                        <div style="font-weight: 600; color: #1976d2; margin-bottom: 10px;">
+                    <details style="margin-top: 15px; border: 2px solid #2196f3; border-radius: 6px; overflow: hidden;">
+                        <summary style="padding: 8px 12px; background: #e3f2fd; cursor: pointer; font-weight: 600; color: #1976d2; font-size: 13px;">
                             🔄 Wiedervorlage für spätere Sitzung
-                        </div>
+                        </summary>
+                        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="padding: 12px; background: #f0f8ff;">
+                            <input type="hidden" name="save_resubmit" value="1">
+                            <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                         
                         <div style="margin-bottom: 10px;">
                             <label style="font-size: 13px;">Sitzung auswählen:</label>
@@ -1225,10 +1217,11 @@ foreach ($agenda_items as $item):
                             🔄 Wiedervorlage speichern
                         </button>
                         
-                        <div style="font-size: 11px; color: #666; margin-top: 8px;">
-                            ℹ️ Der TOP wird mit "Wiedervorlage: [Titel]" in der gewählten Sitzung angelegt
-                        </div>
-                    </form>
+                            <div style="font-size: 11px; color: #666; margin-top: 8px;">
+                                ℹ️ Der TOP wird mit "Wiedervorlage: [Titel]" in der gewählten Sitzung angelegt
+                            </div>
+                        </form>
+                    </details>
                 <?php 
                     endif;
                 endif;
