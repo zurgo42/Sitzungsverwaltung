@@ -763,7 +763,43 @@ foreach ($agenda_items as $item):
             </div>
         </div>
         <?php endif; ?>
-        
+
+        <!-- Vollständiger Antrag bei verlinktem Antrag -->
+        <?php if ($item['antrnr']): ?>
+            <?php
+            // Antragsdaten laden
+            $antrag_stmt = $pdo->prepare("SELECT titel, beschluss FROM antraege WHERE antrnr = ?");
+            $antrag_stmt->execute([$item['antrnr']]);
+            $antrag_data = $antrag_stmt->fetch(PDO::FETCH_ASSOC);
+            ?>
+            <?php if ($antrag_data): ?>
+            <div style="margin-bottom: 15px; border: 2px solid #4caf50; border-radius: 8px; padding: 15px; background: #f0f8f0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="color: #4caf50; font-size: 16px;">📋 Antrag <?php echo htmlspecialchars($item['antrnr']); ?></strong>
+                    <a href="antrag_ansehen.php?antrnr=<?php echo urlencode($item['antrnr']); ?>"
+                       target="_blank"
+                       style="background: #4caf50; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px;">
+                        🔗 Vollständigen Antrag öffnen
+                    </a>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <strong style="display: block; margin-bottom: 5px; color: #333;">Titel:</strong>
+                    <div style="padding: 8px; background: white; border-radius: 4px; border: 1px solid #ddd;">
+                        <?php echo nl2br(htmlspecialchars($antrag_data['titel'])); ?>
+                    </div>
+                </div>
+
+                <div>
+                    <strong style="display: block; margin-bottom: 5px; color: #333;">Beschlusstext:</strong>
+                    <div style="padding: 8px; background: white; border-radius: 4px; border: 1px solid #ddd;">
+                        <?php echo nl2br(htmlspecialchars($antrag_data['beschluss'])); ?>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+        <?php endif; ?>
+
         <!-- Bearbeiten-Button (nur für Ersteller) -->
         <?php if ($is_creator): ?>
         <details style="margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; padding: 10px; background: #fafafa;">
