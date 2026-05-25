@@ -947,6 +947,18 @@ foreach ($agenda_items as $item):
             </div>
         </details>
 
+        <!-- ABSTIMMUNG -->
+        <?php
+        // Prüfen ob aktive Abstimmung existiert
+        $active_voting = get_active_voting($pdo, $item['item_id']);
+
+        // Voting-UI rendern (zeigt Start-Button oder laufende Abstimmung)
+        render_voting_ui($item, $active_voting, $current_user, $meeting, $pdo);
+
+        // Abgeschlossene Abstimmungen anzeigen
+        render_closed_votings($item['item_id'], $pdo);
+        ?>
+
         <!-- LIVE-KOMMENTARE (dynamisch ein-/ausgeblendet je nach Aktiv-Status) -->
         <?php if ($item['top_number'] != 999): ?>
             <div id="live-comments-container-<?php echo $item['item_id']; ?>"

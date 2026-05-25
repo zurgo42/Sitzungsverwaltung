@@ -201,6 +201,45 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // =========================================================
+    // ABSTIMMUNGS-TABELLEN
+    // =========================================================
+
+    // Abstimmungen für TOPs
+    $tables[] = "CREATE TABLE IF NOT EXISTS svvotings (
+        voting_id INT AUTO_INCREMENT PRIMARY KEY,
+        item_id INT NOT NULL COMMENT 'FK zu svagenda_items',
+        initiated_by_member_id INT NOT NULL COMMENT 'Wer hat Abstimmung gestartet',
+        voting_type ENUM('open', 'secret') NOT NULL DEFAULT 'open' COMMENT 'Offen oder geheim',
+        eligible_voters ENUM('board', 'all') NOT NULL DEFAULT 'board' COMMENT 'Vorstand oder alle Teilnehmer',
+        status ENUM('active', 'closed') NOT NULL DEFAULT 'active' COMMENT 'Läuft oder abgeschlossen',
+        result_summary TEXT DEFAULT NULL COMMENT 'Zusammenfassung für Protokoll',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        closed_at DATETIME DEFAULT NULL,
+        closed_by_member_id INT DEFAULT NULL COMMENT 'Wer hat abgeschlossen',
+        INDEX idx_item_id (item_id),
+        INDEX idx_status (status),
+        FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE,
+        FOREIGN KEY (initiated_by_member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (closed_by_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Einzelne Stimmen
+    $tables[] = "CREATE TABLE IF NOT EXISTS svvotes (
+        vote_id INT AUTO_INCREMENT PRIMARY KEY,
+        voting_id INT NOT NULL COMMENT 'FK zu svvotings',
+        member_id INT NOT NULL COMMENT 'Wer stimmt ab',
+        vote ENUM('yes', 'no', 'abstain') NOT NULL COMMENT 'Ja/Nein/Enthaltung',
+        submitted_by_member_id INT DEFAULT NULL COMMENT 'Falls Protokollführer für jemanden abstimmt',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_vote (voting_id, member_id) COMMENT 'Jeder Member kann nur einmal abstimmen',
+        INDEX idx_voting_id (voting_id),
+        INDEX idx_member_id (member_id),
+        FOREIGN KEY (voting_id) REFERENCES svvotings(voting_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (submitted_by_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // =========================================================
     // PROTOKOLL-TABELLEN
     // =========================================================
 

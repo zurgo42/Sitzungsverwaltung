@@ -2478,3 +2478,232 @@ if (isset($_POST['quick_todo_create'])) {
         exit;
     }
 }
+
+/**
+ * =========================================================
+ * VOTING / ABSTIMMUNGS-FUNKTIONEN
+ * =========================================================
+ */
+
+/**
+ * Abstimmung initiieren
+ */
+if (isset($_POST['initiate_voting']) && $meeting['status'] === 'active') {
+    $item_id = intval($_POST['item_id'] ?? 0);
+    $voting_type = $_POST['voting_type'] ?? 'open'; // 'open' oder 'secret'
+    $eligible_voters = $_POST['eligible_voters'] ?? 'board'; // 'board' oder 'all'
+
+    if (!$item_id) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=invalid_item");
+        exit;
+    }
+
+    // Prüfen ob User berechtigt ist (Sitzungsleiter, Protokollführer, Admin)
+    if (!can_initiate_voting($current_user, $meeting)) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=no_permission#top-$item_id");
+        exit;
+    }
+
+    // Prüfen ob bereits aktive Abstimmung existiert
+    $existing = get_active_voting($pdo, $item_id);
+    if ($existing) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=voting_already_active#top-$item_id");
+        exit;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO svvotings (item_id, initiated_by_member_id, voting_type, eligible_voters, status, created_at)
+            VALUES (?, ?, ?, ?, 'active', NOW())
+        ");
+        $stmt->execute([$item_id, $current_user['member_id'], $voting_type, $eligible_voters]);
+
+        error_log("Voting initiated for item $item_id by member {$current_user['member_id']} (type: $voting_type, eligible: $eligible_voters)");
+
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=voting_started#top-$item_id");
+        exit;
+    } catch (PDOException $e) {
+        error_log("Error initiating voting: " . $e->getMessage());
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=voting_start_failed#top-$item_id");
+        exit;
+    }
+}
+
+/**
+ * Stimme abgeben
+ */
+if (isset($_POST['submit_vote']) && $meeting['status'] === 'active') {
+    $voting_id = intval($_POST['voting_id'] ?? 0);
+    $vote = $_POST['vote'] ?? ''; // 'yes', 'no', 'abstain'
+    $item_id = intval($_POST['item_id'] ?? 0);
+
+    if (!$voting_id || !in_array($vote, ['yes', 'no', 'abstain'])) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=invalid_vote#top-$item_id");
+        exit;
+    }
+
+    // Voting-Daten laden
+    $stmt = $pdo->prepare("SELECT * FROM svvotings WHERE voting_id = ? AND status = 'active'");
+    $stmt->execute([$voting_id]);
+    $voting = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$voting) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=voting_not_found#top-$item_id");
+        exit;
+    }
+
+    // Prüfen ob User stimmberechtigt ist
+    if (!is_eligible_to_vote($current_user, $voting['eligible_voters'])) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=not_eligible#top-$item_id");
+        exit;
+    }
+
+    // Prüfen ob bereits abgestimmt
+    if (has_voted($pdo, $voting_id, $current_user['member_id'])) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=already_voted#top-$item_id");
+        exit;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO svvotes (voting_id, member_id, vote, created_at)
+            VALUES (?, ?, ?, NOW())
+        ");
+        $stmt->execute([$voting_id, $current_user['member_id'], $vote]);
+
+        error_log("Vote submitted: voting_id=$voting_id, member_id={$current_user['member_id']}, vote=$vote");
+
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=vote_submitted#top-$item_id");
+        exit;
+    } catch (PDOException $e) {
+        error_log("Error submitting vote: " . $e->getMessage());
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=vote_failed#top-$item_id");
+        exit;
+    }
+}
+
+/**
+ * Protokollführer gibt Stimme für Teilnehmer ab
+ */
+if (isset($_POST['submit_vote_for_member']) && $is_secretary && $meeting['status'] === 'active') {
+    $voting_id = intval($_POST['voting_id'] ?? 0);
+    $for_member_id = intval($_POST['for_member_id'] ?? 0);
+    $vote = $_POST['vote'] ?? '';
+    $item_id = intval($_POST['item_id'] ?? 0);
+
+    if (!$voting_id || !$for_member_id || !in_array($vote, ['yes', 'no', 'abstain'])) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=invalid_vote#top-$item_id");
+        exit;
+    }
+
+    // Voting-Daten laden
+    $stmt = $pdo->prepare("SELECT * FROM svvotings WHERE voting_id = ? AND status = 'active'");
+    $stmt->execute([$voting_id]);
+    $voting = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$voting) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=voting_not_found#top-$item_id");
+        exit;
+    }
+
+    // Prüfen ob Zielperson stimmberechtigt ist
+    $target_member = get_member_by_id($pdo, $for_member_id);
+    if (!$target_member || !is_eligible_to_vote($target_member, $voting['eligible_voters'])) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=target_not_eligible#top-$item_id");
+        exit;
+    }
+
+    // Prüfen ob bereits abgestimmt
+    if (has_voted($pdo, $voting_id, $for_member_id)) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=target_already_voted#top-$item_id");
+        exit;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO svvotes (voting_id, member_id, vote, submitted_by_member_id, created_at)
+            VALUES (?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([$voting_id, $for_member_id, $vote, $current_user['member_id']]);
+
+        error_log("Vote submitted by secretary: voting_id=$voting_id, for_member_id=$for_member_id, vote=$vote, submitted_by={$current_user['member_id']}");
+
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=vote_submitted#top-$item_id");
+        exit;
+    } catch (PDOException $e) {
+        error_log("Error submitting vote for member: " . $e->getMessage());
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=vote_failed#top-$item_id");
+        exit;
+    }
+}
+
+/**
+ * Abstimmung abschließen
+ */
+if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
+    $voting_id = intval($_POST['voting_id'] ?? 0);
+    $item_id = intval($_POST['item_id'] ?? 0);
+
+    if (!$voting_id) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=invalid_voting#top-$item_id");
+        exit;
+    }
+
+    // Prüfen ob User berechtigt ist
+    if (!can_close_voting($current_user, $meeting)) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=no_permission#top-$item_id");
+        exit;
+    }
+
+    // Voting-Daten laden
+    $stmt = $pdo->prepare("SELECT * FROM svvotings WHERE voting_id = ? AND status = 'active'");
+    $stmt->execute([$voting_id]);
+    $voting = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$voting) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=voting_not_found#top-$item_id");
+        exit;
+    }
+
+    try {
+        // Stimmen zählen
+        $counts = get_vote_counts($pdo, $voting_id);
+
+        // Ergebnis-Zusammenfassung erstellen
+        $result_summary = "Abstimmungsergebnis: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung";
+        if ($counts['yes'] > $counts['no']) {
+            $result_summary .= " - ANGENOMMEN";
+        } elseif ($counts['no'] > $counts['yes']) {
+            $result_summary .= " - ABGELEHNT";
+        } else {
+            $result_summary .= " - UNENTSCHIEDEN";
+        }
+
+        // Voting abschließen
+        $stmt = $pdo->prepare("
+            UPDATE svvotings
+            SET status = 'closed', closed_at = NOW(), closed_by_member_id = ?, result_summary = ?
+            WHERE voting_id = ?
+        ");
+        $stmt->execute([$current_user['member_id'], $result_summary, $voting_id]);
+
+        // TOP-Daten laden
+        $stmt = $pdo->prepare("SELECT * FROM svagenda_items WHERE item_id = ?");
+        $stmt->execute([$voting['item_id']]);
+        $item = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Bei verlinktem Antrag: In beschluesse-Tabelle speichern
+        if ($item && !empty($item['antrnr'])) {
+            save_voting_result_to_beschluesse($pdo, $voting_id, $item);
+        }
+
+        error_log("Voting closed: voting_id=$voting_id, result=$result_summary");
+
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=voting_closed#top-$item_id");
+        exit;
+    } catch (PDOException $e) {
+        error_log("Error closing voting: " . $e->getMessage());
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=voting_close_failed#top-$item_id");
+        exit;
+    }
+}
