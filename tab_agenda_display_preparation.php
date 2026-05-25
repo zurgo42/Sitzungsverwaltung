@@ -420,7 +420,7 @@ function copyDirectLink() {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
                         <div class="form-group">
                             <label style="font-weight: 600;">Ressort <span style="color: red;">*</span></label>
-                            <select name="proposal_ressort1" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <select name="proposal_ressort1" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                                 <option value="">-- Bitte wählen --</option>
                                 <?php foreach ($ressorts as $r): ?>
                                     <option value="<?= htmlspecialchars($r['Code']) ?>"><?= htmlspecialchars($r['Ressort']) ?></option>
@@ -441,7 +441,7 @@ function copyDirectLink() {
                     <!-- Verantwortlich -->
                     <div class="form-group" style="margin-bottom: 15px;">
                         <label style="font-weight: 600;">Verantwortlich für die Umsetzung <span style="color: red;">*</span></label>
-                        <select name="proposal_verant" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <select name="proposal_verant" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                             <option value="">-- Bitte wählen --</option>
                             <?php foreach ($berechtigte as $b): ?>
                                 <option value="<?= htmlspecialchars($b['ID']) ?>"><?= htmlspecialchars($b['Vorname'] . ' ' . $b['Name']) ?> (<?= htmlspecialchars($b['KurzN']) ?>)</option>
@@ -475,13 +475,13 @@ function copyDirectLink() {
                     <!-- Titel -->
                     <div class="form-group" style="margin-bottom: 15px;">
                         <label style="font-weight: 600;">Titel <span style="color: red;">*</span></label>
-                        <input type="text" name="proposal_titel" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Titel des Antrags (kann vom TOP-Titel abweichen)">
+                        <input type="text" name="proposal_titel" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Titel des Antrags (kann vom TOP-Titel abweichen)">
                     </div>
 
                     <!-- Beschlusstext -->
                     <div class="form-group" style="margin-bottom: 15px;">
                         <label style="font-weight: 600;">Beschlusstext <span style="color: red;">*</span></label>
-                        <textarea name="proposal_beschluss" required rows="3" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px; resize: vertical; min-height: 50px;" placeholder="Der konkrete Beschluss, über den abgestimmt wird"></textarea>
+                        <textarea name="proposal_beschluss" rows="3" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px; resize: vertical; min-height: 50px;" placeholder="Der konkrete Beschluss, über den abgestimmt wird"></textarea>
                     </div>
 
                     <!-- Begründung -->

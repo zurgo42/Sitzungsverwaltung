@@ -114,6 +114,22 @@ if (isset($_POST['add_agenda_item'])) {
 
             // Wenn Kategorie "antrag_beschluss" und Beschlusstext vorhanden: Vollständigen Antrag erstellen
             if ($category === 'antrag_beschluss' && !empty($_POST['proposal_beschluss'])) {
+                // Validierung der Pflichtfelder
+                $validation_errors = [];
+                if (empty(trim($_POST['proposal_beschluss']))) {
+                    $validation_errors[] = "Beschlusstext ist erforderlich";
+                }
+                if (empty(trim($_POST['proposal_ressort1']))) {
+                    $validation_errors[] = "Ressort ist erforderlich";
+                }
+                if (empty(trim($_POST['proposal_verant']))) {
+                    $validation_errors[] = "Verantwortlicher ist erforderlich";
+                }
+
+                if (!empty($validation_errors)) {
+                    throw new Exception("Pflichtfelder fehlen: " . implode(", ", $validation_errors));
+                }
+
                 $antrnr = generiereAntragsnummer($pdo);
 
                 // Sofort-Wert ermitteln
