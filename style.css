@@ -2667,14 +2667,22 @@ html.dark-mode [style*="background:#fff"] {
 }
 
 html.dark-mode [style*="background: #f8f9fa"],
-html.dark-mode [style*="background:#f8f9fa"] {
+html.dark-mode [style*="background:#f8f9fa"],
+html.dark-mode [style*="background: #f1f3f5"],
+html.dark-mode [style*="background:#f1f3f5"] {
     background: var(--bg-tertiary) !important;
 }
 
 html.dark-mode [style*="color: #333"],
 html.dark-mode [style*="color:#333"],
 html.dark-mode [style*="color: #666"],
-html.dark-mode [style*="color:#666"] {
+html.dark-mode [style*="color:#666"],
+html.dark-mode [style*="color: #000"],
+html.dark-mode [style*="color:#000"],
+html.dark-mode [style*="color: #495057"],
+html.dark-mode [style*="color:#495057"],
+html.dark-mode [style*="color: #6c757d"],
+html.dark-mode [style*="color:#6c757d"] {
     color: var(--text-primary) !important;
 }
 
@@ -3988,4 +3996,46 @@ html.dark-mode details div[style*="padding: 8px"][style*="background: white"] {
 
 html.dark-mode details div[style*="margin-bottom: 15px"] {
     margin-bottom: 8px !important;
+}
+
+/* Spezielle Kontrast-Fixes für Dark Mode */
+html.dark-mode .alert-warning [style*="color: #000"],
+html.dark-mode .alert-warning strong,
+html.dark-mode .alert [style*="color: #000"] {
+    color: #fff !important;
+}
+
+html.dark-mode .alert-warning [style*="color: #666"] {
+    color: #e0e0e0 !important;
+}
+
+/* Beschlussbuch Labels */
+html.dark-mode .content-box strong[style*="color: #495057"],
+html.dark-mode [style*="color: #6c757d"] {
+    color: var(--text-secondary) !important;
+}
+
+/* Buttons im Dark Mode besser sichtbar */
+html.dark-mode .btn:not(.btn-warning):not(.btn-danger) {
+    background: var(--primary) !important;
+    color: #fff !important;
+}
+
+html.dark-mode .btn-secondary {
+    background: var(--neutral-dark) !important;
+    color: #fff !important;
+}
+
+/* Tabellen im Dark Mode */
+html.dark-mode table td {
+    background: var(--bg-primary) !important;
+}
+
+html.dark-mode table td strong {
+    color: var(--text-primary) !important;
+}
+
+html.dark-mode table th {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
 }
