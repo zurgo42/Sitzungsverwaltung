@@ -119,22 +119,28 @@ if (isset($_POST['add_agenda_item'])) {
                 // Antrag in antraege-Tabelle einfügen
                 $stmt_antrag = $pdo->prepare("
                     INSERT INTO antraege (
-                        antrnr, antrst, bart, titel, beschluss, begr, fin, fintext,
-                        ressort1, ressort2, int_ext, praesenz, meeting_id, lzugriff
-                    ) VALUES (?, ?, 'A', ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW())
+                        antrnr, antrst, bart, titel, beschluss, begr,
+                        fin, fintext, pers, sach,
+                        ressort1, ressort2, verant, verein, int_ext,
+                        praesenz, meeting_id, lzugriff
+                    ) VALUES (?, ?, 'A', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW())
                 ");
                 $stmt_antrag->execute([
                     $antrnr,
                     $current_user['member_id'],
-                    $title,
-                    trim($_POST['proposal_beschluss']),
-                    trim($_POST['proposal_begr'] ?? ''),
-                    floatval($_POST['proposal_fin'] ?? 0),
-                    trim($_POST['proposal_fintext'] ?? ''),
-                    trim($_POST['proposal_ressort1'] ?? ''),
-                    !empty($_POST['proposal_ressort2']) ? trim($_POST['proposal_ressort2']) : null,
-                    $_POST['proposal_int_ext'] ?? 'int',
-                    $current_meeting_id
+                    $title,                                          // titel
+                    trim($_POST['proposal_beschluss']),              // beschluss
+                    trim($_POST['proposal_begr'] ?? ''),             // begr
+                    floatval($_POST['proposal_fin'] ?? 0),           // fin
+                    trim($_POST['proposal_fintext'] ?? ''),          // fintext
+                    trim($_POST['proposal_pers'] ?? ''),             // pers
+                    trim($_POST['proposal_sach'] ?? ''),             // sach
+                    trim($_POST['proposal_ressort1'] ?? ''),         // ressort1
+                    !empty($_POST['proposal_ressort2']) ? trim($_POST['proposal_ressort2']) : null,  // ressort2
+                    trim($_POST['proposal_verant'] ?? ''),           // verant
+                    $_POST['proposal_verein'] ?? 'V',                // verein
+                    $_POST['proposal_int_ext'] ?? 'int',             // int_ext
+                    $current_meeting_id                              // meeting_id
                 ]);
 
                 error_log("Created proposal $antrnr for meeting $current_meeting_id");

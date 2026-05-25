@@ -390,82 +390,118 @@ function copyDirectLink() {
 
             <?php if (($meeting['allow_decisions'] ?? 1) == 1): ?>
             <!-- Vollständiges Antragsformular (nur sichtbar wenn Kategorie "Antrag/Beschluss" gewählt) -->
-            <div id="new_top_proposal" style="display: none; border: 2px solid #4caf50; border-radius: 8px; padding: 15px; margin: 15px 0; background: #f9fff9;">
-                <h4 style="margin-top: 0; color: #4caf50;">📋 Antragsdetails</h4>
-                <small style="display: block; margin-bottom: 15px; color: #666;">
-                    Bei Kategorie "Antrag/Beschluss" wird ein vollständiger Antrag erstellt, der direkt in der Sitzung abgestimmt werden kann.
+            <div id="new_top_proposal" style="display: none; border: 2px solid #4caf50; border-radius: 8px; padding: 20px; margin: 15px 0; background: #f9fff9;">
+                <h4 style="margin-top: 0; color: #4caf50; border-bottom: 2px solid #4caf50; padding-bottom: 10px;">📋 Vollständiger Antrag</h4>
+                <small style="display: block; margin-bottom: 20px; color: #666;">
+                    Bei Kategorie "Antrag und Beschluss" wird ein vollständiger Antrag erstellt, der direkt in der Sitzung abgestimmt werden kann.
                 </small>
 
-                <div class="form-group">
-                    <label style="font-weight: 600;">Beschlusstext: *</label>
-                    <textarea name="proposal_beschluss" rows="4" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px;"></textarea>
-                    <small style="color: #666;">Der konkrete Beschluss, über den abgestimmt wird</small>
-                </div>
-
-                <div class="form-group">
-                    <label style="font-weight: 600;">Begründung:</label>
-                    <textarea name="proposal_begr" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label style="font-weight: 600;">Finanzen (Betrag):</label>
-                    <input type="number" name="proposal_fin" step="0.01" min="0" value="0" style="width: 200px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <small style="color: #666; margin-left: 10px;">€</small>
-                </div>
-
-                <div class="form-group">
-                    <label style="font-weight: 600;">Finanzielle Erläuterung:</label>
-                    <textarea name="proposal_fintext" rows="2" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
-                </div>
-
                 <?php
-                // Ressorts laden mit Fehlerbehandlung
+                // Ressorts und Berechtigte laden
                 $ressorts = [];
+                $berechtigte = [];
                 try {
-                    $ressorts_stmt = $pdo->query("SELECT code, name FROM svressorts ORDER BY name");
+                    $ressorts_stmt = $pdo->query("SELECT Code, Ressort FROM svressorts WHERE aktiv=1 ORDER BY Reihenfolge, Ressort");
                     $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    $berechtigte_stmt = $pdo->query("SELECT ID, Vorname, Name, KurzN FROM berechtigte WHERE aktiv >= 10 ORDER BY Name");
+                    $berechtigte = $berechtigte_stmt->fetchAll(PDO::FETCH_ASSOC);
                 } catch (PDOException $e) {
-                    error_log("Fehler beim Laden der Ressorts: " . $e->getMessage());
-                    echo '<div style="color: red; padding: 10px; background: #ffe0e0; margin: 10px 0;">Fehler beim Laden der Ressorts: ' . htmlspecialchars($e->getMessage()) . '</div>';
+                    error_log("Fehler beim Laden: " . $e->getMessage());
+                    echo '<div style="color: red; padding: 10px; background: #ffe0e0; margin: 10px 0;">Fehler: ' . htmlspecialchars($e->getMessage()) . '</div>';
                 }
                 ?>
 
+                <!-- Beschlusstext -->
                 <div class="form-group">
-                    <label style="font-weight: 600;">Hauptressort: *</label>
-                    <select name="proposal_ressort1" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <label style="font-weight: 600;">Beschlusstext <span style="color: red;">*</span></label>
+                    <textarea name="proposal_beschluss" rows="3" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px;" placeholder="Der konkrete Beschluss, über den abgestimmt wird"></textarea>
+                </div>
+
+                <!-- Begründung -->
+                <div class="form-group">
+                    <label style="font-weight: 600;">Begründung</label>
+                    <textarea name="proposal_begr" rows="4" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Ausführliche Begründung des Antrags"></textarea>
+                </div>
+
+                <!-- Betrag -->
+                <div class="form-group">
+                    <label style="font-weight: 600;">Betrag (volle Euro)</label>
+                    <input type="number" name="proposal_fin" step="1" min="0" value="0" style="width: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <small style="color: #666; margin-left: 10px; display: inline-block;">≤600€=Verfügung | 601-3000€=Ressort | >3000€=Vorstand</small>
+                </div>
+
+                <!-- Auswirkungen in einer Reihe -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Finanzielle Auswirkungen</label>
+                        <textarea name="proposal_fintext" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Personelle Auswirkungen</label>
+                        <textarea name="proposal_pers" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Sachliche Auswirkungen</label>
+                        <textarea name="proposal_sach" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Ressorts -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Ressort <span style="color: red;">*</span></label>
+                        <select name="proposal_ressort1" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">-- Bitte wählen --</option>
+                            <?php foreach ($ressorts as $r): ?>
+                                <option value="<?= htmlspecialchars($r['Code']) ?>"><?= htmlspecialchars($r['Ressort']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Mitwirkendes Ressort</label>
+                        <select name="proposal_ressort2" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">-- Optional --</option>
+                            <?php foreach ($ressorts as $r): ?>
+                                <option value="<?= htmlspecialchars($r['Code']) ?>"><?= htmlspecialchars($r['Ressort']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Verantwortlich -->
+                <div class="form-group">
+                    <label style="font-weight: 600;">Verantwortlich für die Umsetzung <span style="color: red;">*</span></label>
+                    <select name="proposal_verant" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                         <option value="">-- Bitte wählen --</option>
-                        <?php foreach ($ressorts as $r): ?>
-                            <option value="<?= htmlspecialchars($r['code']) ?>"><?= htmlspecialchars($r['name']) ?></option>
+                        <?php foreach ($berechtigte as $b): ?>
+                            <option value="<?= htmlspecialchars($b['ID']) ?>"><?= htmlspecialchars($b['Vorname'] . ' ' . $b['Name']) ?> (<?= htmlspecialchars($b['KurzN']) ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label style="font-weight: 600;">Mitwirkendes Ressort:</label>
-                    <select name="proposal_ressort2" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        <option value="">-- Optional --</option>
-                        <?php foreach ($ressorts as $r): ?>
-                            <option value="<?= htmlspecialchars($r['code']) ?>"><?= htmlspecialchars($r['name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                <!-- Verein und Sichtbarkeit -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Verein/Stiftung</label>
+                        <select name="proposal_verein" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="V">Verein</option>
+                            <option value="S">Stiftung</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Sichtbarkeit</label>
+                        <select name="proposal_int_ext" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="int">Intern</option>
+                            <option value="ext">Extern</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label style="font-weight: 600;">Art des Antrags:</label>
-                    <select name="proposal_int_ext" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        <option value="int">Intern</option>
-                        <option value="ext">Extern</option>
-                    </select>
-                </div>
-
-                <small style="display: block; margin-top: 10px; color: #666;">
-                    * Pflichtfelder. Der Antrag wird mit praesenz=1 erstellt und erscheint in der Antragsliste.
+                <small style="display: block; margin-top: 15px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; color: #856404;">
+                    <strong>Hinweis:</strong> Der Antrag wird mit praesenz=1 erstellt und erscheint in der Antragsliste. Felder mit <span style="color: red;">*</span> sind Pflichtfelder.
                 </small>
             </div>
-            <?php
-            // DEBUG
-            error_log("DEBUG: Proposal form (allow_decisions=1) rendered successfully");
-            ?>
             <?php else: ?>
             <!-- Einfaches Antragstext-Feld wenn Beschlüsse deaktiviert -->
             <div class="form-group" id="new_top_proposal" style="display:none;">
