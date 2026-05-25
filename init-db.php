@@ -1110,6 +1110,14 @@ try {
         }
     }
 
+    // Migration: voting_question zu svvotings hinzufügen
+    $stmt = $pdo->query("SHOW COLUMNS FROM svvotings LIKE 'voting_question'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'voting_question' zu svvotings hinzu...</p>";
+        $pdo->exec("ALTER TABLE svvotings ADD COLUMN voting_question VARCHAR(500) DEFAULT NULL COMMENT 'Frage bei Stimmungsbild (wenn kein Antrag)' AFTER initiated_by_member_id");
+        echo ".";
+    }
+
     echo "<p style='color: green;'>✓ Migrations abgeschlossen!</p>";
 
     // =========================================================
