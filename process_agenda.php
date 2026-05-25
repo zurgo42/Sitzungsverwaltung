@@ -2670,6 +2670,11 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
     }
 
     try {
+        // TOP-Daten laden (brauchen wir für antrnr-Check)
+        $stmt = $pdo->prepare("SELECT * FROM svagenda_items WHERE item_id = ?");
+        $stmt->execute([$voting['item_id']]);
+        $item = $stmt->fetch(PDO::FETCH_ASSOC);
+
         // Stimmen zählen
         $counts = get_vote_counts($pdo, $voting_id);
 
@@ -2679,12 +2684,16 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
             $result_summary = "Stimmungsbild: " . $voting['voting_question'] . "\n";
         }
         $result_summary .= "Abstimmungsergebnis: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung";
-        if ($counts['yes'] > $counts['no']) {
-            $result_summary .= " - ANGENOMMEN";
-        } elseif ($counts['no'] > $counts['yes']) {
-            $result_summary .= " - ABGELEHNT";
-        } else {
-            $result_summary .= " - UNENTSCHIEDEN";
+
+        // "ANGENOMMEN/ABGELEHNT" nur bei Anträgen hinzufügen
+        if ($item && !empty($item['antrnr'])) {
+            if ($counts['yes'] > $counts['no']) {
+                $result_summary .= " - ANGENOMMEN";
+            } elseif ($counts['no'] > $counts['yes']) {
+                $result_summary .= " - ABGELEHNT";
+            } else {
+                $result_summary .= " - UNENTSCHIEDEN";
+            }
         }
 
         // Voting abschließen
@@ -2694,11 +2703,6 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
             WHERE voting_id = ?
         ");
         $stmt->execute([$current_user['member_id'], $result_summary, $voting_id]);
-
-        // TOP-Daten laden
-        $stmt = $pdo->prepare("SELECT * FROM svagenda_items WHERE item_id = ?");
-        $stmt->execute([$voting['item_id']]);
-        $item = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // Ergebnis automatisch ins Protokoll einfügen
         if ($item) {
