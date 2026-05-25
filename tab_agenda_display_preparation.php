@@ -397,17 +397,13 @@ function copyDirectLink() {
                 </small>
 
                 <?php
-                // Ressorts und Berechtigte laden
+                // Ressorts laden
                 $ressorts = [];
-                $berechtigte = [];
                 try {
                     $ressorts_stmt = $pdo->query("SELECT Code, Ressort FROM svressorts WHERE aktiv=1 ORDER BY Reihenfolge, Ressort");
                     $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                    $berechtigte_stmt = $pdo->query("SELECT ID, Vorname, Name, KurzN FROM berechtigte WHERE aktiv >= 10 ORDER BY Name");
-                    $berechtigte = $berechtigte_stmt->fetchAll(PDO::FETCH_ASSOC);
                 } catch (PDOException $e) {
-                    error_log("Fehler beim Laden: " . $e->getMessage());
+                    error_log("Fehler beim Laden der Ressorts: " . $e->getMessage());
                     echo '<div style="color: red; padding: 10px; background: #ffe0e0; margin: 10px 0;">Fehler: ' . htmlspecialchars($e->getMessage()) . '</div>';
                 }
                 ?>
@@ -441,12 +437,7 @@ function copyDirectLink() {
                     <!-- Verantwortlich -->
                     <div class="form-group" style="margin-bottom: 15px;">
                         <label style="font-weight: 600;">Verantwortlich für die Umsetzung <span style="color: red;">*</span></label>
-                        <select name="proposal_verant" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="">-- Bitte wählen --</option>
-                            <?php foreach ($berechtigte as $b): ?>
-                                <option value="<?= htmlspecialchars($b['ID']) ?>"><?= htmlspecialchars($b['Vorname'] . ' ' . $b['Name']) ?> (<?= htmlspecialchars($b['KurzN']) ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
+                        <input type="text" name="proposal_verant" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Name des Verantwortlichen">
                     </div>
 
                     <!-- Verein und Sichtbarkeit -->
@@ -461,8 +452,9 @@ function copyDirectLink() {
                         <div class="form-group">
                             <label style="font-weight: 600;">Sichtbarkeit</label>
                             <select name="proposal_int_ext" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                                <option value="int">Intern</option>
-                                <option value="ext">Extern</option>
+                                <option value="e" selected>Extern (alle Ms)</option>
+                                <option value="n">Nicht öffentlich (Führung)</option>
+                                <option value="i">Intern (nur Vorstand)</option>
                             </select>
                         </div>
                     </div>

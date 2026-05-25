@@ -186,9 +186,9 @@ if (isset($_POST['add_agenda_item'])) {
                     trim($_POST['proposal_sach'] ?? ''),             // sach
                     trim($_POST['proposal_ressort1'] ?? ''),         // ressort1
                     !empty($_POST['proposal_ressort2']) ? trim($_POST['proposal_ressort2']) : null,  // ressort2
-                    trim($_POST['proposal_verant'] ?? ''),           // verant
+                    trim($_POST['proposal_verant'] ?? ''),           // verant (jetzt Textfeld)
                     $_POST['proposal_verein'] ?? 'V',                // verein
-                    $_POST['proposal_int_ext'] ?? 'int',             // int_ext
+                    $_POST['proposal_int_ext'] ?? 'e',               // int_ext (e=Extern als Standard)
                     $sofort,                                         // sofort
                     trim($_POST['proposal_durch'] ?? ''),            // durch
                     isset($_POST['proposal_zufin']) ? 1 : 0,        // zufin
@@ -253,7 +253,10 @@ if (isset($_POST['add_agenda_item'])) {
                 $pdo->rollBack();
             }
             error_log("FEHLER beim Hinzufügen des TOP: " . $e->getMessage() . " | Stack: " . $e->getTraceAsString());
-            $error = "Fehler beim Hinzufügen des TOP: " . $e->getMessage();
+
+            // Fehler an User anzeigen
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=" . urlencode($e->getMessage()));
+            exit;
         }
     }
 }
