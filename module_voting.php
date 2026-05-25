@@ -183,8 +183,7 @@ function render_voting_ui($item, $voting, $current_user, $meeting, $pdo) {
                     <input type="hidden" name="initiate_voting" value="1">
                     <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
 
-                    <?php if (empty($item['antrnr'])): ?>
-                    <!-- Frage für Stimmungsbild (nur wenn kein Antrag verknüpft) -->
+                    <!-- Frage für Stimmungsbild (immer anzeigen) -->
                     <div style="margin-bottom: 10px;">
                         <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #856404;">
                             Stimmungsbild zu der Frage:
@@ -192,6 +191,21 @@ function render_voting_ui($item, $voting, $current_user, $meeting, $pdo) {
                         <input type="text" name="voting_question" required
                                placeholder="z.B. 'Sollen wir das Projekt fortsetzen?'"
                                style="width: 100%; padding: 6px; border: 1px solid #ffc107; border-radius: 4px; font-size: 13px;">
+                    </div>
+
+                    <?php if (!empty($item['antrnr'])): ?>
+                    <!-- Checkbox für Antragsabstimmung (nur wenn Antrag verknüpft) -->
+                    <div style="margin-bottom: 10px; padding: 10px; background: #fff8dc; border: 1px solid #ffc107; border-radius: 4px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" name="vote_on_proposal" value="1"
+                                   style="margin-right: 8px; width: 16px; height: 16px;">
+                            <span style="font-size: 13px; font-weight: 600; color: #856404;">
+                                Diesen Antrag (<?= htmlspecialchars($item['antrnr']) ?>) zur Abstimmung stellen
+                            </span>
+                        </label>
+                        <small style="display: block; margin-top: 4px; margin-left: 24px; color: #666; font-size: 11px;">
+                            Mit Beschlussfassung und Eintrag ins Beschlussbuch
+                        </small>
                     </div>
                     <?php endif; ?>
 
@@ -546,11 +560,14 @@ function render_closed_votings($item_id, $pdo) {
 
 /**
  * Speichert Abstimmungsergebnis in beschluesse-Tabelle (bei Anträgen)
+ *
+ * @return bool True wenn erfolgreich gespeichert, false bei Fehler
  */
 function save_voting_result_to_beschluesse($pdo, $voting_id, $item) {
     // Nur bei verlinkten Anträgen
     if (empty($item['antrnr'])) {
-        return;
+        error_log("save_voting_result_to_beschluesse: Kein antrnr vorhanden");
+        return false;
     }
 
     // Voting-Daten laden
@@ -558,7 +575,10 @@ function save_voting_result_to_beschluesse($pdo, $voting_id, $item) {
     $stmt->execute([$voting_id]);
     $voting = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$voting) return;
+    if (!$voting) {
+        error_log("save_voting_result_to_beschluesse: Voting $voting_id nicht gefunden");
+        return false;
+    }
 
     // Stimmen laden
     $votes = get_votes_with_members($pdo, $voting_id);
@@ -590,7 +610,10 @@ function save_voting_result_to_beschluesse($pdo, $voting_id, $item) {
     $stmt->execute([$item['antrnr']]);
     $antrag = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$antrag) return;
+    if (!$antrag) {
+        error_log("save_voting_result_to_beschluesse: Antrag {$item['antrnr']} nicht in antraege-Tabelle gefunden");
+        return false;
+    }
 
     // In svbeschluesse einfügen oder updaten
     try {
@@ -602,14 +625,19 @@ function save_voting_result_to_beschluesse($pdo, $voting_id, $item) {
                 status, beschlussdatum, created_at
             ) VALUES (?, 'F', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'F', CURDATE(), NOW())
             ON DUPLICATE KEY UPDATE
-                dafuer = VALUES(dafuer),
-                dagegen = VALUES(dagegen),
-                enthaltungen = VALUES(enthaltungen),
-                beschlussdatum = VALUES(beschlussdatum),
+                dafuer = ?,
+                dagegen = ?,
+                enthaltungen = ?,
+                beschlussdatum = CURDATE(),
                 updated_at = NOW()
         ");
 
+        $dafuer_str = implode(', ', $dafuer_list);
+        $dagegen_str = implode(', ', $dagegen_list);
+        $enthaltungen_str = implode(', ', $enthaltungen_list);
+
         $stmt->execute([
+            // INSERT values
             $item['antrnr'],
             $antrag['titel'],
             $antrag['beschluss'],
@@ -619,18 +647,28 @@ function save_voting_result_to_beschluesse($pdo, $voting_id, $item) {
             $antrag['sach'],
             $antrag['ressort1'],
             $antrag['int_ext'],
-            implode(', ', $dafuer_list),
-            implode(', ', $dagegen_list),
-            implode(', ', $enthaltungen_list)
+            $dafuer_str,
+            $dagegen_str,
+            $enthaltungen_str,
+            // ON DUPLICATE KEY UPDATE values
+            $dafuer_str,
+            $dagegen_str,
+            $enthaltungen_str
         ]);
 
-        error_log("Voting result saved to svbeschluesse for antrnr {$item['antrnr']}: Yes={$counts['yes']}, No={$counts['no']}, Abstain={$counts['abstain']}");
+        error_log("✓ Voting result saved to svbeschluesse for antrnr {$item['antrnr']}: Yes={$counts['yes']}, No={$counts['no']}, Abstain={$counts['abstain']}");
 
         // Antrag als bearbeitet markieren (praesenz=2 bedeutet: abgestimmt)
         $stmt = $pdo->prepare("UPDATE antraege SET praesenz = 2 WHERE antrnr = ?");
         $stmt->execute([$item['antrnr']]);
 
+        error_log("✓ Antrag {$item['antrnr']} als abgestimmt markiert (praesenz=2)");
+
+        return true;
+
     } catch (PDOException $e) {
-        error_log("Error saving voting result to beschluesse: " . $e->getMessage());
+        error_log("✗ Error saving voting result to beschluesse: " . $e->getMessage());
+        error_log("✗ SQL State: " . $e->getCode());
+        return false;
     }
 }

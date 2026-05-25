@@ -2678,22 +2678,48 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
         // Stimmen zählen
         $counts = get_vote_counts($pdo, $voting_id);
 
-        // Ergebnis-Zusammenfassung erstellen
+        // Ergebnis-Zusammenfassung und Protokolltext erstellen
         $result_summary = "";
-        if (!empty($voting['voting_question'])) {
-            $result_summary = "Stimmungsbild: " . $voting['voting_question'] . "\n";
-        }
-        $result_summary .= "Abstimmungsergebnis: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung";
+        $protocol_entry = "";
+        $beschluss_saved = false;
 
-        // "ANGENOMMEN/ABGELEHNT" nur bei Anträgen hinzufügen
         if ($item && !empty($item['antrnr'])) {
+            // ANTRAGSABSTIMMUNG: Besseres Format für Protokoll
+            // Antragsdaten aus antraege-Tabelle laden
+            $stmt_antrag = $pdo->prepare("SELECT titel FROM antraege WHERE antrnr = ?");
+            $stmt_antrag->execute([$item['antrnr']]);
+            $antrag = $stmt_antrag->fetch(PDO::FETCH_ASSOC);
+
+            $antrag_titel = $antrag ? $antrag['titel'] : 'Unbekannter Antrag';
+
+            // Ergebnis ermitteln
+            $result_text = "";
             if ($counts['yes'] > $counts['no']) {
-                $result_summary .= " - ANGENOMMEN";
+                $result_text = "ANGENOMMEN";
             } elseif ($counts['no'] > $counts['yes']) {
-                $result_summary .= " - ABGELEHNT";
+                $result_text = "ABGELEHNT";
             } else {
-                $result_summary .= " - UNENTSCHIEDEN";
+                $result_text = "UNENTSCHIEDEN";
             }
+
+            $result_summary = "Antrag {$item['antrnr']} - {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung - {$result_text}";
+
+            // In beschluesse-Tabelle speichern
+            $beschluss_saved = save_voting_result_to_beschluesse($pdo, $voting_id, $item);
+
+            // Protokolltext für Antrag
+            $protocol_entry = "\n\nAntrag {$item['antrnr']} - {$antrag_titel} wurde abgestimmt: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung - {$result_text}";
+            if ($beschluss_saved) {
+                $protocol_entry .= "\nEintrag ins Beschlussbuch ist erfolgt";
+            }
+        } else {
+            // STIMMUNGSBILD: Bisheriges Format
+            if (!empty($voting['voting_question'])) {
+                $result_summary = "Stimmungsbild: " . $voting['voting_question'] . "\n";
+            }
+            $result_summary .= "Abstimmungsergebnis: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung";
+
+            $protocol_entry = "\n\n[Abstimmungsergebnis]\n" . $result_summary;
         }
 
         // Voting abschließen
@@ -2706,20 +2732,12 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
 
         // Ergebnis automatisch ins Protokoll einfügen
         if ($item) {
-            $current_protocol = $item['protocol_notes'] ?? '';
-            $protocol_entry = "\n\n[Abstimmungsergebnis]\n" . $result_summary;
-
             $stmt = $pdo->prepare("
                 UPDATE svagenda_items
                 SET protocol_notes = CONCAT(COALESCE(protocol_notes, ''), ?)
                 WHERE item_id = ?
             ");
             $stmt->execute([$protocol_entry, $item['item_id']]);
-        }
-
-        // Bei verlinktem Antrag: In beschluesse-Tabelle speichern
-        if ($item && !empty($item['antrnr'])) {
-            save_voting_result_to_beschluesse($pdo, $voting_id, $item);
         }
 
         error_log("Voting closed: voting_id=$voting_id, result=$result_summary");
