@@ -143,18 +143,18 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
             background: #1a1a1a !important;
             color: #e0e0e0 !important;
         }
-        .compact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 15px; margin-bottom: 15px; }
-        .compact-row { display: flex; gap: 6px; margin-bottom: 6px; font-size: 12px; }
-        .compact-label { font-weight: 600; color: #666; min-width: 100px; flex-shrink: 0; }
-        .compact-value { color: #333; }
-        .section-compact { background: white; padding: 12px; margin-bottom: 12px; border-radius: 6px; border: 1px solid #ddd; }
-        .section-title { font-weight: 700; font-size: 14px; margin-bottom: 10px; color: #005596; border-bottom: 2px solid #005596; padding-bottom: 4px; }
-        .text-box { background: #f8f9fa; padding: 8px; border-radius: 4px; border-left: 3px solid #005596; font-size: 12px; margin-top: 6px; word-wrap: break-word; overflow-wrap: break-word; }
-        .accordion { cursor: pointer; background: #f8f9fa; padding: 8px; border-radius: 4px; margin: 6px 0; font-weight: 600; user-select: none; }
-        .accordion:hover { background: #f5f5f5; }
-        .accordion::before { content: '▶ '; font-size: 10px; margin-right: 6px; }
+        .compact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 20px; margin-bottom: 15px; }
+        .compact-row { display: flex; gap: 8px; margin-bottom: 8px; font-size: 13px; padding: 6px; background: rgba(0, 85, 150, 0.03); border-radius: 4px; }
+        .compact-label { font-weight: 600; color: #005596; min-width: 120px; flex-shrink: 0; }
+        .compact-value { color: #333; font-weight: 500; }
+        .section-compact { background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 2px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .section-title { font-weight: 700; font-size: 15px; margin-bottom: 12px; color: #005596; border-bottom: 3px solid #005596; padding-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+        .text-box { background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 4px solid #005596; font-size: 13px; margin-top: 8px; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.6; }
+        .accordion { cursor: pointer; background: #e3f2fd; padding: 10px 12px; border-radius: 6px; margin: 8px 0; font-weight: 600; user-select: none; border: 1px solid #8ECAF6; transition: all 0.2s; }
+        .accordion:hover { background: #bbdefb; }
+        .accordion::before { content: '▶ '; font-size: 11px; margin-right: 8px; color: #005596; }
         .accordion.active::before { content: '▼ '; }
-        .acc-content { display: none; padding: 8px; background: #f8f9fa; border-radius: 4px; margin-bottom: 6px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
+        .acc-content { display: none; padding: 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px; font-size: 13px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.6; border: 1px solid #ddd; }
         .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .compact-value { word-wrap: break-word; overflow-wrap: break-word; }
         a { word-wrap: break-word; overflow-wrap: break-word; }
@@ -170,7 +170,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         }
 
         html.dark-mode .compact-label {
-            color: #b0b0b0 !important;
+            color: #8ECAF6 !important;
         }
 
         html.dark-mode .compact-value {
@@ -179,7 +179,11 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
 
         html.dark-mode .section-compact {
             background: #2d2d2d !important;
-            border-color: #444 !important;
+            border-color: #8ECAF6 !important;
+        }
+
+        html.dark-mode .compact-row {
+            background: rgba(142, 202, 246, 0.05) !important;
         }
 
         html.dark-mode .section-title {
@@ -193,15 +197,21 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         }
 
         html.dark-mode .accordion {
-            background: #1a1a1a !important;
+            background: rgba(142, 202, 246, 0.1) !important;
+            border-color: #8ECAF6 !important;
         }
 
         html.dark-mode .accordion:hover {
-            background: #333 !important;
+            background: rgba(142, 202, 246, 0.2) !important;
+        }
+
+        html.dark-mode .accordion::before {
+            color: #8ECAF6 !important;
         }
 
         html.dark-mode .acc-content {
             background: #1a1a1a !important;
+            border-color: #444 !important;
         }
 
         html.dark-mode div[style*="color: #000"],
