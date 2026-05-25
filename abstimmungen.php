@@ -664,14 +664,11 @@ foreach ($antraege as $a) {
                 }
             }
 
-            // Antrag anzeigen - Einfaches Akkordeon
+            // Antrag anzeigen - Akkordeon mit AJAX-Loading
             echo '<div style="margin-bottom: 20px;">';
             echo '<button id="toggle_antrag_btn" onclick="toggleAntrag()" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 15px; margin-bottom: 10px;">▼ Ganzen Antrag anzeigen</button>';
-            echo '<div id="antrag_details" style="display: none; background: white; border: 2px solid #0066cc; border-radius: 8px; padding: 20px; margin-bottom: 10px;">';
+            echo '<div id="antrag_details" style="display: none; margin-bottom: 10px;">';
             echo '<p style="text-align: center; color: #666;">Lade Antragsdaten...</p>';
-            echo '</div>';
-            echo '<div style="margin-top: 10px;">';
-            echo '<a href="antrag_ansehen.php?antrnr=' . urlencode($antrag['antrnr']) . '" target="_blank" class="btn btn-secondary" style="width: 100%; padding: 10px; text-decoration: none; display: inline-block; text-align: center;">📄 In neuem Tab öffnen</a>';
             echo '</div>';
             echo '</div>';
             echo '<script>
