@@ -39,21 +39,28 @@ function render_category_badge($category) {
 /**
  * Rendert ein Kategorie-Auswahlfeld
  */
-function render_category_select($name, $id, $selected = 'information', $onchange = '') {
+function render_category_select($name, $id, $selected = 'information', $onchange = '', $allow_decisions = true) {
     $categories = $GLOBALS['category_labels'];
     echo '<select name="' . htmlspecialchars($name) . '" id="' . htmlspecialchars($id) . '"';
     if ($onchange) {
         echo ' onchange="' . htmlspecialchars($onchange) . '"';
     }
     echo ' style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">';
-    
+
     foreach ($categories as $key => $cat) {
         $selected_attr = ($key === $selected) ? ' selected' : '';
+        $label = $cat['label'];
+
+        // Spezielle Labels für antrag_beschluss basierend auf allow_decisions
+        if ($key === 'antrag_beschluss') {
+            $label = $allow_decisions ? 'Antrag und Beschluss' : 'Antrag vorbereiten';
+        }
+
         echo '<option value="' . $key . '"' . $selected_attr . '>';
-        echo $cat['icon'] . ' ' . $cat['label'];
+        echo $cat['icon'] . ' ' . $label;
         echo '</option>';
     }
-    
+
     echo '</select>';
 }
 

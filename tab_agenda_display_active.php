@@ -344,7 +344,7 @@ function copyDirectLink() {
 
         <div class="form-group">
             <label>Kategorie:</label>
-            <?php render_category_select('category', 'active_new_category', 'information', 'toggleProposalField(\'active_new\')'); ?>
+            <?php render_category_select('category', 'active_new_category', 'information', 'toggleProposalField(\'active_new\')', ($meeting['allow_decisions'] ?? 1) == 1); ?>
         </div>
 
         <div class="form-group" id="active_new_proposal" style="display:none;">

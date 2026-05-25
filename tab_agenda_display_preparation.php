@@ -385,7 +385,7 @@ function copyDirectLink() {
 
             <div class="form-group">
                 <label style="font-weight: 600;">Kategorie:</label>
-                <?php render_category_select('category', 'new_top_category', '', 'toggleProposalField(\'new_top\')'); ?>
+                <?php render_category_select('category', 'new_top_category', '', 'toggleProposalField(\'new_top\')', ($meeting['allow_decisions'] ?? 1) == 1); ?>
             </div>
 
             <?php if (($meeting['allow_decisions'] ?? 1) == 1): ?>
@@ -670,7 +670,7 @@ foreach ($agenda_items as $item):
                 
                 <div style="margin-bottom: 10px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">Kategorie:</label>
-                    <?php render_category_select('category', 'edit_category_' . $item['item_id'], $item['category'], 'toggleProposalField("edit_' . $item['item_id'] . '")'); ?>
+                    <?php render_category_select('category', 'edit_category_' . $item['item_id'], $item['category'], 'toggleProposalField("edit_' . $item['item_id'] . '")', ($meeting['allow_decisions'] ?? 1) == 1); ?>
                 </div>
 
                 <div style="margin-bottom: 10px;" id="edit_<?php echo $item['item_id']; ?>_proposal" style="display: <?php echo $item['category'] === 'antrag_beschluss' ? 'block' : 'none'; ?>;">
