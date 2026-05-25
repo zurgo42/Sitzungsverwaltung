@@ -75,6 +75,7 @@ try {
         ended_at DATETIME DEFAULT NULL,
         status ENUM('preparation', 'active', 'ended', 'protocol_ready', 'archived') DEFAULT 'preparation',
         visibility_type ENUM('public', 'authenticated', 'invited_only') DEFAULT 'invited_only',
+        allow_decisions TINYINT(1) DEFAULT 1 COMMENT 'Beschlüsse in dieser Sitzung erlauben (1=ja, 0=nein)',
         protokoll TEXT DEFAULT NULL,
         prot_intern TEXT DEFAULT NULL,
         protocol_intern TEXT NOT NULL DEFAULT '',
@@ -113,6 +114,7 @@ try {
         description TEXT,
         category ENUM('information', 'klaerung', 'diskussion', 'aussprache', 'antrag_beschluss', 'wahl', 'bericht', 'sonstiges') DEFAULT 'information',
         proposal_text TEXT,
+        antrnr VARCHAR(15) NULL COMMENT 'Verknüpfung zu antraege.antrnr für Beschlussfassung',
         vote_yes INT DEFAULT NULL,
         vote_no INT DEFAULT NULL,
         vote_abstain INT DEFAULT NULL,
@@ -134,7 +136,8 @@ try {
         INDEX idx_is_active (is_active),
         INDEX idx_created_by (created_by_member_id),
         INDEX idx_grouped_with (grouped_with_item_id),
-        INDEX idx_category (category)
+        INDEX idx_category (category),
+        INDEX idx_antrnr (antrnr)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Kommentare-Tabelle
@@ -1026,6 +1029,45 @@ try {
             // Index existiert bereits - ignorieren
         }
         echo ".";
+    }
+
+    // Migration: allow_decisions zu svmeetings hinzufügen
+    $stmt = $pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'allow_decisions'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'allow_decisions' zu svmeetings hinzu...</p>";
+        $pdo->exec("ALTER TABLE svmeetings ADD COLUMN allow_decisions TINYINT(1) DEFAULT 1 COMMENT 'Beschlüsse in dieser Sitzung erlauben (1=ja, 0=nein)' AFTER visibility_type");
+        echo ".";
+    }
+
+    // Migration: antrnr zu svagenda_items hinzufügen
+    $stmt = $pdo->query("SHOW COLUMNS FROM svagenda_items LIKE 'antrnr'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'antrnr' zu svagenda_items hinzu...</p>";
+        $pdo->exec("ALTER TABLE svagenda_items ADD COLUMN antrnr VARCHAR(15) NULL COMMENT 'Verknüpfung zu antraege.antrnr für Beschlussfassung' AFTER proposal_text");
+        // Index hinzufügen
+        try {
+            $pdo->exec("ALTER TABLE svagenda_items ADD INDEX idx_antrnr (antrnr)");
+        } catch (PDOException $e) {
+            // Index existiert bereits - ignorieren
+        }
+        echo ".";
+    }
+
+    // Migration: meeting_id zu antraege hinzufügen (falls Tabelle existiert)
+    $table_check = $pdo->query("SHOW TABLES LIKE 'antraege'");
+    if ($table_check->fetch()) {
+        $stmt = $pdo->query("SHOW COLUMNS FROM antraege LIKE 'meeting_id'");
+        if (!$stmt->fetch()) {
+            echo "<p>Füge Spalte 'meeting_id' zu antraege hinzu...</p>";
+            $pdo->exec("ALTER TABLE antraege ADD COLUMN meeting_id INT NULL COMMENT 'Verknüpfung zur Sitzung falls Präsenzantrag'");
+            // Index hinzufügen
+            try {
+                $pdo->exec("ALTER TABLE antraege ADD INDEX idx_meeting (meeting_id)");
+            } catch (PDOException $e) {
+                // Index existiert bereits - ignorieren
+            }
+            echo ".";
+        }
     }
 
     echo "<p style='color: green;'>✓ Migrations abgeschlossen!</p>";
