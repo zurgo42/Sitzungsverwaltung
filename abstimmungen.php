@@ -581,6 +581,10 @@ foreach ($antraege as $a) {
             color: #8ECAF6 !important;
         }
 
+        html.dark-mode #antrag_details .compact-value {
+            color: #e0e0e0 !important;
+        }
+
         html.dark-mode #antrag_details .compact-row {
             background: rgba(142, 202, 246, 0.05) !important;
         }

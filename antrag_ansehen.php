@@ -156,6 +156,10 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
             color: #8ECAF6 !important;
         }
 
+        html.dark-mode .compact-value {
+            color: #e0e0e0 !important;
+        }
+
         html.dark-mode .compact-row {
             background: rgba(142, 202, 246, 0.05) !important;
         }
