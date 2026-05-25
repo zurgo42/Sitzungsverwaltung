@@ -33,12 +33,12 @@
 .section-gray-5 { background: var(--bg-secondary); }
 .section-gray-6 { background: var(--neutral); }
 
-body.dark-mode .section-gray-1 { background: rgba(0, 85, 150, 0.2); }
-body.dark-mode .section-gray-2 { background: rgba(250, 170, 0, 0.15); }
-body.dark-mode .section-gray-3 { background: rgba(76, 175, 80, 0.15); }
-body.dark-mode .section-gray-4 { background: rgba(142, 202, 246, 0.1); }
-body.dark-mode .section-gray-5 { background: var(--bg-tertiary); }
-body.dark-mode .section-gray-6 { background: var(--bg-secondary); }
+html.dark-mode .section-gray-1 { background: rgba(0, 85, 150, 0.2); }
+html.dark-mode .section-gray-2 { background: rgba(250, 170, 0, 0.15); }
+html.dark-mode .section-gray-3 { background: rgba(76, 175, 80, 0.15); }
+html.dark-mode .section-gray-4 { background: rgba(142, 202, 246, 0.1); }
+html.dark-mode .section-gray-5 { background: var(--bg-tertiary); }
+html.dark-mode .section-gray-6 { background: var(--bg-secondary); }
 
 .section-header {
     font-size: 16px;
@@ -248,7 +248,7 @@ body.dark-mode .section-gray-6 { background: var(--bg-secondary); }
     color: var(--success);
 }
 
-body.dark-mode .alert-success {
+html.dark-mode .alert-success {
     background: rgba(76, 175, 80, 0.2);
 }
 
@@ -258,7 +258,7 @@ body.dark-mode .alert-success {
     color: var(--danger);
 }
 
-body.dark-mode .alert-error {
+html.dark-mode .alert-error {
     background: rgba(211, 47, 47, 0.2);
 }
 
@@ -268,7 +268,7 @@ body.dark-mode .alert-error {
     color: var(--warning);
 }
 
-body.dark-mode .alert-warning {
+html.dark-mode .alert-warning {
     background: rgba(250, 170, 0, 0.2);
 }
 
@@ -278,7 +278,7 @@ body.dark-mode .alert-warning {
     color: var(--primary);
 }
 
-body.dark-mode .alert-info {
+html.dark-mode .alert-info {
     background: rgba(142, 202, 246, 0.15);
 }
 
@@ -292,7 +292,7 @@ body.dark-mode .alert-info {
     font-size: 14px;
 }
 
-body.dark-mode .info-box {
+html.dark-mode .info-box {
     background: rgba(142, 202, 246, 0.15);
 }
 
@@ -304,7 +304,7 @@ body.dark-mode .info-box {
     margin-bottom: 15px;
 }
 
-body.dark-mode .hint-box {
+html.dark-mode .hint-box {
     background: rgba(250, 170, 0, 0.15);
 }
 
@@ -449,7 +449,7 @@ tr:hover {
     opacity: 0.7;
 }
 
-body.dark-mode .deleted-row {
+html.dark-mode .deleted-row {
     background: rgba(211, 47, 47, 0.15) !important;
 }
 
@@ -530,20 +530,20 @@ a {
    DARK MODE SPECIFIC ADJUSTMENTS
    ============================================== */
 
-body.dark-mode .form-section {
+html.dark-mode .form-section {
     border-color: var(--border-color);
 }
 
-body.dark-mode .section-header {
+html.dark-mode .section-header {
     color: var(--primary-light);
     border-bottom-color: var(--primary-light);
 }
 
-body.dark-mode .votum-box {
+html.dark-mode .votum-box {
     border-color: var(--card-border);
 }
 
-body.dark-mode th {
+html.dark-mode th {
     background: var(--bg-tertiary);
     border-bottom-color: var(--card-border);
 }

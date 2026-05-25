@@ -606,43 +606,43 @@ foreach ($antraege as $a) {
         }
 
         /* Dark Mode Overrides für inline Styles */
-        html.dark-mode.antraege-liste {
+        html.dark-mode .antraege-liste {
             background: #2d2d2d !important;
         }
 
-        html.dark-mode.antraege-liste table {
+        html.dark-mode .antraege-liste table {
             background: #2d2d2d !important;
         }
 
-        html.dark-mode.antraege-liste th {
+        html.dark-mode .antraege-liste th {
             background: #1a1a1a !important;
             color: #e0e0e0 !important;
         }
 
-        html.dark-mode.antraege-liste td {
+        html.dark-mode .antraege-liste td {
             color: #e0e0e0 !important;
             border-bottom-color: #444 !important;
         }
 
-        html.dark-mode.antraege-liste tr:hover {
+        html.dark-mode .antraege-liste tr:hover {
             background: #333 !important;
         }
 
-        html.dark-mode.votum-box {
+        html.dark-mode .votum-box {
             background: #2d2d2d !important;
             border-color: #444 !important;
         }
 
-        html.dark-mode.header {
+        html.dark-mode .header {
             background: #2d2d2d !important;
             border-color: #444 !important;
         }
 
-        html.dark-mode.header h1 {
+        html.dark-mode .header h1 {
             color: #e0e0e0 !important;
         }
 
-        html.dark-mode.header p {
+        html.dark-mode .header p {
             color: #b0b0b0 !important;
         }
 
@@ -670,8 +670,8 @@ foreach ($antraege as $a) {
             color: #e0e0e0 !important;
         }
 
-        html.dark-mode.form-section,
-        html.dark-mode.section-compact {
+        html.dark-mode .form-section,
+        html.dark-mode .section-compact {
             background: #2d2d2d !important;
             border-color: #444 !important;
         }
