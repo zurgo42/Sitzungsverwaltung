@@ -116,19 +116,52 @@ if (isset($_POST['add_agenda_item'])) {
             if ($category === 'antrag_beschluss' && !empty($_POST['proposal_beschluss'])) {
                 $antrnr = generiereAntragsnummer($pdo);
 
+                // Sofort-Wert ermitteln
+                $sofort = 0;
+                if (isset($_POST['proposal_sofort_1'])) $sofort = 1;
+                elseif (isset($_POST['proposal_sofort_2'])) $sofort = 2;
+
+                // Hinweis mit Zeitstempel erstellen
+                $hinweis = '';
+                if (!empty($_POST['proposal_hinweis'])) {
+                    $hinweis = date('d.m.Y H:i') . ' (' . ($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? '') . '): ' . trim($_POST['proposal_hinweis']);
+                }
+
+                // File-Upload-Handling
+                $file_paths = ['', '', '', ''];
+                $file_texts = ['', '', '', ''];
+                for ($i = 1; $i <= 4; $i++) {
+                    $file_field = "proposal_file$i";
+                    if (isset($_FILES[$file_field]) && $_FILES[$file_field]['error'] === UPLOAD_ERR_OK) {
+                        $upload_dir = __DIR__ . '/uploads/antraege/';
+                        if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
+
+                        $filename = $antrnr . '_f' . $i . '_' . basename($_FILES[$file_field]['name']);
+                        $filepath = $upload_dir . $filename;
+
+                        if (move_uploaded_file($_FILES[$file_field]['tmp_name'], $filepath)) {
+                            $file_paths[$i-1] = 'uploads/antraege/' . $filename;
+                        }
+                    }
+                    $file_texts[$i-1] = trim($_POST["proposal_filetext$i"] ?? '');
+                }
+
                 // Antrag in antraege-Tabelle einfügen
                 $stmt_antrag = $pdo->prepare("
                     INSERT INTO antraege (
                         antrnr, antrst, bart, titel, beschluss, begr,
                         fin, fintext, pers, sach,
                         ressort1, ressort2, verant, verein, int_ext,
+                        sofort, durch, zufin, hinweis,
+                        file1, file2, file3, file4,
+                        filetext1, filetext2, filetext3, filetext4,
                         praesenz, meeting_id, lzugriff
-                    ) VALUES (?, ?, 'A', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW())
+                    ) VALUES (?, ?, 'B', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW())
                 ");
                 $stmt_antrag->execute([
                     $antrnr,
                     $current_user['member_id'],
-                    $title,                                          // titel
+                    trim($_POST['proposal_titel'] ?? $title),        // titel (eigener oder TOP-Titel)
                     trim($_POST['proposal_beschluss']),              // beschluss
                     trim($_POST['proposal_begr'] ?? ''),             // begr
                     floatval($_POST['proposal_fin'] ?? 0),           // fin
@@ -140,10 +173,16 @@ if (isset($_POST['add_agenda_item'])) {
                     trim($_POST['proposal_verant'] ?? ''),           // verant
                     $_POST['proposal_verein'] ?? 'V',                // verein
                     $_POST['proposal_int_ext'] ?? 'int',             // int_ext
+                    $sofort,                                         // sofort
+                    trim($_POST['proposal_durch'] ?? ''),            // durch
+                    isset($_POST['proposal_zufin']) ? 1 : 0,        // zufin
+                    $hinweis,                                        // hinweis
+                    $file_paths[0], $file_paths[1], $file_paths[2], $file_paths[3],  // file1-4
+                    $file_texts[0], $file_texts[1], $file_texts[2], $file_texts[3],  // filetext1-4
                     $current_meeting_id                              // meeting_id
                 ]);
 
-                error_log("Created proposal $antrnr for meeting $current_meeting_id");
+                error_log("Created proposal $antrnr (Vorstandsbeschluss) for meeting $current_meeting_id");
             } elseif ($category === 'antrag_beschluss') {
                 // Einfacher Antragstext ohne vollständigen Antrag (wenn allow_decisions=0)
                 $proposal_text = trim($_POST['proposal_text'] ?? '');
