@@ -533,8 +533,8 @@ function render_closed_votings($item_id, $pdo) {
             </div>
 
             <!-- Einzelne Stimmen -->
-            <details>
-                <summary style="cursor: pointer; font-size: 13px; color: #666;">Einzelne Stimmen anzeigen</summary>
+            <details style="margin: 10px; border-top: 1px solid #e0e0e0;">
+                <summary style="cursor: pointer; font-size: 13px; color: #666; padding: 8px 0;">Einzelne Stimmen anzeigen</summary>
                 <div style="margin-top: 10px; font-size: 13px; background: white; padding: 10px; border-radius: 4px;">
                     <?php
                     foreach ($votes as $v) {
@@ -552,8 +552,9 @@ function render_closed_votings($item_id, $pdo) {
                     }
                     ?>
                 </div>
-            </div>
-        </details>
+            </details>
+        </div>
+    </details>
         <?php
     }
 }
