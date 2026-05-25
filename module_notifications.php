@@ -32,7 +32,7 @@ function render_user_notifications($pdo, $member_id) {
 
     // 1. AUSSTEHENDE ABSTIMMUNGEN (ANTRÄGE) - GANZ OBEN
     // Prüfe offene Abstimmungen für aktuellen User in antraege-Tabelle
-    $pending_stmt = $pdo->query("SELECT * FROM antraege WHERE antrnr LIKE 'B%'");
+    $pending_stmt = $pdo->query("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr LIKE 'B%'");
     $b_antraege = $pending_stmt->fetchAll();
     $pending_votes = [];
     foreach ($b_antraege as $a) {

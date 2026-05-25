@@ -41,7 +41,7 @@ $stmt = $pdo->prepare("
            b.Vorname, b.Name, b.KurzN as AntragstellerKurz,
            r1.Ressort as ressort1_name,
            r2.Ressort as ressort2_name
-    FROM antraege a
+    FROM " . TABLE_ANTRAEGE . " a
     LEFT JOIN berechtigte b ON a.antrst = b.ID
     LEFT JOIN svressorts r1 ON a.ressort1 = r1.ID
     LEFT JOIN svressorts r2 ON a.ressort2 = r2.ID

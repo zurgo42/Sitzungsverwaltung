@@ -768,7 +768,7 @@ foreach ($agenda_items as $item):
         <?php if ($item['antrnr']): ?>
             <?php
             // Antragsdaten laden
-            $antrag_stmt = $pdo->prepare("SELECT titel, beschluss FROM antraege WHERE antrnr = ?");
+            $antrag_stmt = $pdo->prepare("SELECT titel, beschluss FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
             $antrag_stmt->execute([$item['antrnr']]);
             $antrag_data = $antrag_stmt->fetch(PDO::FETCH_ASSOC);
             ?>

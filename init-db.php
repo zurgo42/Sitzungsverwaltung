@@ -473,7 +473,8 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     COMMENT='Anträge - Bewährte VTool-Struktur mit modernen Erweiterungen'";
 
-    // Beschlüsse-Tabelle (für Clean-Installationen ohne Adapter)
+    // Beschlüsse-Tabelle (für Clean-Installationen ohne VTool)
+    // Kompatibel mit VTool-Struktur, erweitert um abstimmregel
     $tables[] = "CREATE TABLE IF NOT EXISTS svbeschluesse (
         antrnr VARCHAR(12) NOT NULL PRIMARY KEY,
         fertig VARCHAR(1) DEFAULT NULL,
@@ -491,18 +492,12 @@ try {
         dagegen TEXT DEFAULT NULL,
         enthaltungen TEXT DEFAULT NULL,
         anmerkungen TEXT DEFAULT NULL,
-        -- Neue Felder für moderne Funktionen
-        status CHAR(1) DEFAULT 'F' COMMENT 'Status: F=Finalized',
-        abstimmregel VARCHAR(20) DEFAULT 'einfach' COMMENT 'Abstimmungsregel',
-        beschlussdatum DATE DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        abstimmregel VARCHAR(20) DEFAULT 'einfach' COMMENT 'Abstimmungsregel (einfach, 2/3, etc.)',
         INDEX idx_ressort (ressort(100)),
-        INDEX idx_status (status),
         INDEX idx_wichtig (wichtig),
         INDEX idx_fertig (fertig)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    COMMENT='Beschlüsse - Bewährte VTool-Struktur mit modernen Erweiterungen'";
+    COMMENT='Beschlüsse - VTool-kompatible Struktur mit Abstimmregel'";
 
     // =========================================================
     // TERMINPLANUNG-TABELLEN
@@ -1116,6 +1111,28 @@ try {
         echo "<p>Füge Spalte 'voting_question' zu svvotings hinzu...</p>";
         $pdo->exec("ALTER TABLE svvotings ADD COLUMN voting_question VARCHAR(500) DEFAULT NULL COMMENT 'Frage bei Stimmungsbild (wenn kein Antrag)' AFTER initiated_by_member_id");
         echo ".";
+    }
+
+    // Migration: abstimmregel zu beschluesse hinzufügen (falls Tabelle existiert)
+    $table_check = $pdo->query("SHOW TABLES LIKE 'beschluesse'");
+    if ($table_check->fetch()) {
+        $stmt = $pdo->query("SHOW COLUMNS FROM beschluesse LIKE 'abstimmregel'");
+        if (!$stmt->fetch()) {
+            echo "<p>Füge Spalte 'abstimmregel' zu beschluesse hinzu...</p>";
+            $pdo->exec("ALTER TABLE beschluesse ADD COLUMN abstimmregel VARCHAR(20) DEFAULT 'einfach' COMMENT 'Abstimmungsregel (einfach, 2/3, etc.)'");
+            echo ".";
+        }
+    }
+
+    // Migration: abstimmregel zu svbeschluesse hinzufügen (falls Tabelle existiert)
+    $table_check = $pdo->query("SHOW TABLES LIKE 'svbeschluesse'");
+    if ($table_check->fetch()) {
+        $stmt = $pdo->query("SHOW COLUMNS FROM svbeschluesse LIKE 'abstimmregel'");
+        if (!$stmt->fetch()) {
+            echo "<p>Füge Spalte 'abstimmregel' zu svbeschluesse hinzu...</p>";
+            $pdo->exec("ALTER TABLE svbeschluesse ADD COLUMN abstimmregel VARCHAR(20) DEFAULT 'einfach' COMMENT 'Abstimmungsregel (einfach, 2/3, etc.)'");
+            echo ".";
+        }
     }
 
     echo "<p style='color: green;'>✓ Migrations abgeschlossen!</p>";

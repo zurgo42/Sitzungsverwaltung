@@ -271,13 +271,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_remarks'])) {
     if ($antrnr && $abstimmend > 0 && $abstimmend <= 6) {
         try {
             // Prüfen ob User berechtigt ist
-            $check_stmt = $pdo->prepare("SELECT VName$abstimmend FROM antraege WHERE antrnr = ?");
+            $check_stmt = $pdo->prepare("SELECT VName$abstimmend FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
             $check_stmt->execute([$antrnr]);
             $vname = $check_stmt->fetchColumn();
 
             if ($vname == $user['ID']) {
                 // Nur Bemerkungen speichern (Votum bleibt unverändert)
-                $update_sql = "UPDATE antraege SET
+                $update_sql = "UPDATE " . TABLE_ANTRAEGE . " SET
                     VBegr$abstimmend = ?,
                     VProt$abstimmend = ?
                     WHERE antrnr = ?";
@@ -313,13 +313,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['votum_action'])) {
     if ($antrnr && $abstimmend > 0 && $abstimmend <= 6) {
         try {
             // Prüfen ob User berechtigt ist
-            $check_stmt = $pdo->prepare("SELECT VName$abstimmend FROM antraege WHERE antrnr = ?");
+            $check_stmt = $pdo->prepare("SELECT VName$abstimmend FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
             $check_stmt->execute([$antrnr]);
             $vname = $check_stmt->fetchColumn();
 
             if ($vname == $user['ID']) {
                 // Votum speichern
-                $update_sql = "UPDATE antraege SET
+                $update_sql = "UPDATE " . TABLE_ANTRAEGE . " SET
                     Votum$abstimmend = ?,
                     VDat$abstimmend = NOW(),
                     VBegr$abstimmend = ?,
@@ -358,7 +358,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_hinweis'])) {
     $neuer_hinweis = $_POST['neuerhinweis'] ?? '';
 
     if ($antrnr && $neuer_hinweis) {
-        $stmt = $pdo->prepare("SELECT hinweis FROM antraege WHERE antrnr = ?");
+        $stmt = $pdo->prepare("SELECT hinweis FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
         $stmt->execute([$antrnr]);
         $antrag = $stmt->fetch();
 
@@ -366,7 +366,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_hinweis'])) {
         if ($hinweis) $hinweis .= "\n---\n";
         $hinweis .= date('d.m.Y H:i') . ' (' . $user['KurzN'] . '): ' . $neuer_hinweis;
 
-        $pdo->prepare("UPDATE antraege SET hinweis = ? WHERE antrnr = ?")->execute([$hinweis, $antrnr]);
+        $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET hinweis = ? WHERE antrnr = ?")->execute([$hinweis, $antrnr]);
 
         header("Location: abstimmungen.php?antrnr=" . urlencode($antrnr) . "&msg=hinweis");
         exit;
@@ -378,14 +378,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zurueckziehen'])) {
     $antrnr = $_POST['antrnr'] ?? '';
 
     if ($antrnr) {
-        $stmt = $pdo->prepare("SELECT antrst FROM antraege WHERE antrnr = ?");
+        $stmt = $pdo->prepare("SELECT antrst FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
         $stmt->execute([$antrnr]);
         $antrag = $stmt->fetch();
 
         if ($antrag['antrst'] == $user['ID']) {
             // Z-Präfix für zurückgezogen
             $neue_nr = 'Z' . substr($antrnr, 1);
-            $pdo->prepare("UPDATE antraege SET antrnr = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr]);
+            $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr]);
 
             header("Location: abstimmungen.php?msg=withdrawn");
             exit;
@@ -395,7 +395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zurueckziehen'])) {
 
 // Funktion: Abstimmung auswerten
 function auswerten_abstimmung($pdo, $antrnr) {
-    $stmt = $pdo->prepare("SELECT * FROM antraege WHERE antrnr = ?");
+    $stmt = $pdo->prepare("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
     $stmt->execute([$antrnr]);
     $antrag = $stmt->fetch();
 
@@ -472,7 +472,7 @@ function auswerten_abstimmung($pdo, $antrnr) {
 // Funktion: Beschluss annehmen (B → VS)
 function beschluss_annehmen($pdo, $antrnr, $antrag) {
     $neue_nr = 'VS' . date('ymd') . substr($antrnr, 7);
-    $pdo->prepare("UPDATE antraege SET antrnr = ?, warantrag = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr, $antrnr]);
+    $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ?, warantrag = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr, $antrnr]);
 
     // TODO: Email-Benachrichtigung (später)
 }
@@ -480,7 +480,7 @@ function beschluss_annehmen($pdo, $antrnr, $antrag) {
 // Funktion: Beschluss ablehnen (B → X)
 function beschluss_ablehnen($pdo, $antrnr) {
     $neue_nr = 'X' . substr($antrnr, 1);
-    $pdo->prepare("UPDATE antraege SET antrnr = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr]);
+    $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr]);
 
     // TODO: Email-Benachrichtigung (später)
 }
@@ -490,7 +490,7 @@ $antrnr = $_GET['antrnr'] ?? '';
 $show_detail = !empty($antrnr);
 
 if ($show_detail) {
-    $stmt = $pdo->prepare("SELECT * FROM antraege WHERE antrnr = ?");
+    $stmt = $pdo->prepare("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
     $stmt->execute([$antrnr]);
     $antrag = $stmt->fetch();
 
@@ -503,7 +503,7 @@ if ($show_detail) {
 // Alle B-Anträge laden
 $antraege_stmt = $pdo->query("
     SELECT a.*, b.Vorname, b.Name, b.KurzN
-    FROM antraege a
+    FROM " . TABLE_ANTRAEGE . " a
     LEFT JOIN berechtigte b ON a.antrst = b.ID
     WHERE a.antrnr LIKE 'B%'
     ORDER BY a.antrnr DESC

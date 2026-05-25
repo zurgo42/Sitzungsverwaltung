@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_permanent']) &
 
     // Nur X und Z Anträge dürfen permanent gelöscht werden
     if ($antrnr_to_delete && (substr($antrnr_to_delete, 0, 1) === 'X' || substr($antrnr_to_delete, 0, 1) === 'Z')) {
-        $delete_stmt = $pdo->prepare("DELETE FROM antraege WHERE antrnr = ?");
+        $delete_stmt = $pdo->prepare("DELETE FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
         $delete_stmt->execute([$antrnr_to_delete]);
 
         header('Location: index.php?tab=proposals&show_deleted=1&msg=deleted');
@@ -36,7 +36,7 @@ $search = $_GET['search'] ?? '';
 $show_deleted = isset($_GET['show_deleted']) && $ist_admin;
 
 // SQL-Abfrage für offene Anträge
-$sql = "SELECT a.*, b.Vorname, b.Name, b.KurzN FROM antraege a
+$sql = "SELECT a.*, b.Vorname, b.Name, b.KurzN FROM " . TABLE_ANTRAEGE . " a
         LEFT JOIN berechtigte b ON a.antrst = b.ID
         WHERE 1=1";
 
@@ -85,7 +85,7 @@ $antraege = $stmt->fetchAll();
 
 // Liste der Antragsteller für Filter
 $antragsteller_stmt = $pdo->query("SELECT DISTINCT a.antrst, b.Vorname, b.Name, b.KurzN
-                                   FROM antraege a
+                                   FROM " . TABLE_ANTRAEGE . " a
                                    JOIN berechtigte b ON a.antrst = b.ID
                                    WHERE a.antrnr NOT LIKE 'VS%'
                                    ORDER BY b.Name");

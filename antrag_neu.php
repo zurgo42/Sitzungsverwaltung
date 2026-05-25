@@ -59,7 +59,7 @@ function generiereAntragsnummer($pdo, $prefix = 'A', $date = '') {
     // Suche nach bestehenden Anträgen mit diesem Präfix
     $stmt = $pdo->prepare("
         SELECT antrnr
-        FROM antraege
+        FROM " . TABLE_ANTRAEGE . "
         WHERE antrnr LIKE ?
         ORDER BY antrnr DESC
         LIMIT 1
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Neuen Antrag in Datenbank erstellen (Minimalversion im Status A = Editing)
         $stmt = $pdo->prepare("
-            INSERT INTO antraege (
+            INSERT INTO " . TABLE_ANTRAEGE . " (
                 antrnr,
                 antrst,
                 bart,

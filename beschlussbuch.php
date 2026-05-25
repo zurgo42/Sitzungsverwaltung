@@ -105,7 +105,7 @@ $view_mode = $_POST['view_mode'] ?? ($_GET['view_mode'] ?? 'table');
 $limit = (int)($_POST['limit'] ?? ($_GET['limit'] ?? 25));
 
 // SQL für VS-Beschlüsse aus beschluesse-Tabelle
-$sql = "SELECT b.* FROM beschluesse b WHERE b.antrnr LIKE 'VS%'";
+$sql = "SELECT b.* FROM " . TABLE_BESCHLUESSE . " b WHERE b.antrnr LIKE 'VS%'";
 
 // Sichtbarkeits-Filter für nicht-berechtigte User
 if (!$kann_intern_sehen) {
@@ -149,7 +149,7 @@ $beschluesse = $stmt->fetchAll();
 // Ursprungsantrag aus antraege-Tabelle holen (gleiche Nummer)
 foreach ($beschluesse as &$b) {
     // Der Ursprungsantrag hat die gleiche antrnr in der antraege-Tabelle
-    $check_stmt = $pdo->prepare("SELECT COUNT(*) FROM antraege WHERE antrnr = ?");
+    $check_stmt = $pdo->prepare("SELECT COUNT(*) FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
     $check_stmt->execute([$b['antrnr']]);
     $b['ursprung_exists'] = ($check_stmt->fetchColumn() > 0);
 
@@ -182,19 +182,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
     $alt_antrnr = $_POST['antrnr'] ?? '';
 
     // Original aus beschluesse-Tabelle laden (dort stehen die redaktionell bearbeiteten Texte)
-    $orig_stmt = $pdo->prepare("SELECT * FROM beschluesse WHERE antrnr = ?");
+    $orig_stmt = $pdo->prepare("SELECT * FROM " . TABLE_BESCHLUESSE . " WHERE antrnr = ?");
     $orig_stmt->execute([$alt_antrnr]);
     $orig_beschluss = $orig_stmt->fetch();
 
     // Zusätzlich aus antraege-Tabelle laden für Ressorts, Verantwortliche, wichtig/verf1/verf2
-    $orig_antrag_stmt = $pdo->prepare("SELECT * FROM antraege WHERE antrnr = ?");
+    $orig_antrag_stmt = $pdo->prepare("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
     $orig_antrag_stmt->execute([$alt_antrnr]);
     $orig_antrag = $orig_antrag_stmt->fetch();
 
     if ($orig_beschluss && $orig_antrag) {
         // Neue Antragsnummer generieren: A + YYMMDD + laufende Nummer
         $heute = date('ymd');
-        $count_stmt = $pdo->prepare("SELECT COUNT(*) FROM antraege WHERE antrnr LIKE ?");
+        $count_stmt = $pdo->prepare("SELECT COUNT(*) FROM " . TABLE_ANTRAEGE . " WHERE antrnr LIKE ?");
         $count_stmt->execute(["A{$heute}%"]);
         $count = $count_stmt->fetchColumn();
         $neue_nr = 'A' . $heute . sprintf('%02d', $count + 1);
@@ -222,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
         }
 
         // Duplikat erstellen mit Daten aus beschluesse und antraege (ohne Hinweise)
-        $insert_sql = "INSERT INTO antraege (
+        $insert_sql = "INSERT INTO " . TABLE_ANTRAEGE . " (
             antrnr, titel, beschluss, begr, fin, fintext, pers, sach, bart,
             ressort1, ressort2, verant, antrst, int_ext, wichtig, verf1, verf2,
             hinweis, lzugriff

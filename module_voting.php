@@ -605,21 +605,21 @@ function save_voting_result_to_beschluesse($pdo, $voting_id, $item) {
     // Antragsdaten aus antraege-Tabelle laden
     $stmt = $pdo->prepare("
         SELECT titel, beschluss, ressort1, int_ext, begr, fintext, pers, sach
-        FROM antraege
+        FROM " . TABLE_ANTRAEGE . "
         WHERE antrnr = ?
     ");
     $stmt->execute([$item['antrnr']]);
     $antrag = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$antrag) {
-        error_log("save_voting_result_to_beschluesse: Antrag {$item['antrnr']} nicht in antraege-Tabelle gefunden");
+        error_log("save_voting_result_to_beschluesse: Antrag {$item['antrnr']} nicht in " . TABLE_ANTRAEGE . "-Tabelle gefunden");
         return false;
     }
 
-    // In beschluesse einfügen oder updaten (VTool-Tabelle)
+    // In beschluesse einfügen oder updaten
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO beschluesse (
+            INSERT INTO " . TABLE_BESCHLUESSE . " (
                 antrnr, fertig, titel, beschluss, begr,
                 fintext, pers, sach, ressort, int_ext,
                 dafuer, dagegen, enthaltungen
@@ -654,10 +654,10 @@ function save_voting_result_to_beschluesse($pdo, $voting_id, $item) {
             $enthaltungen_str
         ]);
 
-        error_log("✓ Voting result saved to beschluesse for antrnr {$item['antrnr']}: Yes={$counts['yes']}, No={$counts['no']}, Abstain={$counts['abstain']}");
+        error_log("✓ Voting result saved to " . TABLE_BESCHLUESSE . " for antrnr {$item['antrnr']}: Yes={$counts['yes']}, No={$counts['no']}, Abstain={$counts['abstain']}");
 
         // Antrag als bearbeitet markieren (praesenz=2 bedeutet: abgestimmt)
-        $stmt = $pdo->prepare("UPDATE antraege SET praesenz = 2 WHERE antrnr = ?");
+        $stmt = $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET praesenz = 2 WHERE antrnr = ?");
         $stmt->execute([$item['antrnr']]);
 
         error_log("✓ Antrag {$item['antrnr']} als abgestimmt markiert (praesenz=2)");

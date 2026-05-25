@@ -43,7 +43,7 @@ function generiereAntragsnummer($pdo, $prefix = 'A', $date = '') {
 
     $stmt = $pdo->prepare("
         SELECT antrnr
-        FROM antraege
+        FROM " . TABLE_ANTRAEGE . "
         WHERE antrnr LIKE ?
         ORDER BY antrnr DESC
         LIMIT 1
@@ -167,7 +167,7 @@ if (isset($_POST['add_agenda_item'])) {
 
                 // Antrag in antraege-Tabelle einfügen
                 $stmt_antrag = $pdo->prepare("
-                    INSERT INTO antraege (
+                    INSERT INTO " . TABLE_ANTRAEGE . " (
                         antrnr, antrst, bart, titel, beschluss, begr,
                         fin, fintext, pers, sach,
                         ressort1, ressort2, verant, verein, int_ext,
@@ -1701,7 +1701,7 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
 
                 // Antrag in antraege-Tabelle einfügen
                 $stmt_antrag = $pdo->prepare("
-                    INSERT INTO antraege (
+                    INSERT INTO " . TABLE_ANTRAEGE . " (
                         antrnr, antrst, bart, titel, beschluss, begr,
                         fin, fintext, pers, sach,
                         ressort1, ressort2, verant, verein, int_ext,
@@ -2686,7 +2686,7 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
         if ($item && !empty($item['antrnr'])) {
             // ANTRAGSABSTIMMUNG: Besseres Format für Protokoll
             // Antragsdaten aus antraege-Tabelle laden
-            $stmt_antrag = $pdo->prepare("SELECT titel FROM antraege WHERE antrnr = ?");
+            $stmt_antrag = $pdo->prepare("SELECT titel FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
             $stmt_antrag->execute([$item['antrnr']]);
             $antrag = $stmt_antrag->fetch(PDO::FETCH_ASSOC);
 

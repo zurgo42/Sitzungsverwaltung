@@ -65,6 +65,13 @@ define('SESSION_TIMEOUT', 3600);  // in Sekunden (1 Stunde)
 // Tabs aktivieren/deaktivieren
 define('ENABLE_DOCUMENTS_TAB', true);  // Dokumenten-Verwaltung aktivieren/deaktivieren
 
+// ============= TABELLENNAMEN-KONFIGURATION =============
+// Für Systeme MIT vorhandenem VTool: 'antraege' und 'beschluesse' (empfohlen)
+// Für Clean-Installationen OHNE VTool: 'svantraege' und 'svbeschluesse'
+// Dies ermöglicht nahtlose Migration und Kompatibilität mit bestehenden Systemen
+define('TABLE_ANTRAEGE', 'antraege');      // Tabelle für Anträge
+define('TABLE_BESCHLUESSE', 'beschluesse'); // Tabelle für Beschlüsse
+
 // ============= VOREINSTELLUNGEN FÜR MEETINGS =============
 define('DEFAULT_MEETING_NAME', 'Vorstandssitzung');
 define('DEFAULT_LOCATION', 'Online per Jitsi');

@@ -776,7 +776,7 @@ if (isset($_POST['delete_ressort'])) {
             } else {
                 // Prüfen ob Ressort in Anträgen verwendet wird
                 $usage_stmt = $pdo->prepare("
-                    SELECT COUNT(*) FROM antraege
+                    SELECT COUNT(*) FROM " . TABLE_ANTRAEGE . "
                     WHERE ressort1 = ? OR ressort2 = ?
                 ");
                 $usage_stmt->execute([$ressort_id, $ressort_id]);

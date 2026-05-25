@@ -99,7 +99,7 @@ function berechneMonatssumme($pdo, $member_id, $antrnr) {
     $jahr_monat = substr($antrnr, 1, 4); // JJMM
     $stmt = $pdo->prepare("
         SELECT SUM(fin) as summe
-        FROM antraege
+        FROM " . TABLE_ANTRAEGE . "
         WHERE antrst = ?
         AND fin < 600
         AND SUBSTRING(antrnr, 2, 4) = ?
@@ -123,7 +123,7 @@ if (!$antrnr) die("Keine Antragsnummer angegeben.");
 // Antrag laden mit Antragsteller-Daten
 $stmt = $pdo->prepare("
     SELECT a.*, b.Vorname, b.Name, b.KurzN as AntragstellerKurz
-    FROM antraege a
+    FROM " . TABLE_ANTRAEGE . " a
     LEFT JOIN berechtigte b ON a.antrst = b.ID
     WHERE a.antrnr = ?
 ");
@@ -315,7 +315,7 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     }
 
     $update = $pdo->prepare("
-        UPDATE antraege SET
+        UPDATE " . TABLE_ANTRAEGE . " SET
             antrst = ?, titel = ?, beschluss = ?, begr = ?, pers = ?, sach = ?,
             fintext = ?, fin = ?, bart = ?, verant = ?,
             ressort1 = ?, ressort2 = ?, wichtig = ?,
@@ -357,7 +357,7 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     speichereAntrag($pdo, $antrnr, $post_save, $antrag, $user);
 
     // Antrag neu laden
-    $stmt = $pdo->prepare("SELECT * FROM antraege WHERE antrnr = ?");
+    $stmt = $pdo->prepare("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
     $stmt->execute([$antrnr]);
     $antrag = $stmt->fetch();
 
@@ -436,7 +436,7 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 
     $update_values[] = $antrnr; // WHERE-Bedingung
 
-    $sql = "UPDATE antraege SET " . implode(', ', $update_parts) . " WHERE antrnr = ?";
+    $sql = "UPDATE " . TABLE_ANTRAEGE . " SET " . implode(', ', $update_parts) . " WHERE antrnr = ?";
     $update = $pdo->prepare($sql);
     $update->execute($update_values);
 
@@ -457,7 +457,7 @@ function verwerfenAntrag($pdo, $antrnr, $antrag, $user) {
 
     // Antragsnummer zu X ändern (zurückgezogen)
     $neue_antrnr = 'X' . substr($antrnr, 1);
-    $pdo->prepare("UPDATE antraege SET antrnr = ? WHERE antrnr = ?")->execute([$neue_antrnr, $antrnr]);
+    $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ? WHERE antrnr = ?")->execute([$neue_antrnr, $antrnr]);
 }
 
 // Wartezeitverkürzung
@@ -470,10 +470,10 @@ function wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user) {
     $verk2 = $antrag['verk2'] ?? 0;
 
     if (!$verk1) {
-        $update = $pdo->prepare("UPDATE antraege SET verk1 = ? WHERE antrnr = ?");
+        $update = $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET verk1 = ? WHERE antrnr = ?");
         $update->execute([$user['ID'], $antrnr]);
     } elseif (!$verk2 && $verk1 != $user['ID']) {
-        $update = $pdo->prepare("UPDATE antraege SET verk2 = ? WHERE antrnr = ?");
+        $update = $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET verk2 = ? WHERE antrnr = ?");
         $update->execute([$user['ID'], $antrnr]);
     } else {
         throw new Exception("Wartezeitverkürzung bereits vollständig.");
