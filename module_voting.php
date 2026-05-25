@@ -564,17 +564,73 @@ function save_voting_result_to_beschluesse($pdo, $voting_id, $item) {
     $votes = get_votes_with_members($pdo, $voting_id);
     $counts = get_vote_counts($pdo, $voting_id);
 
-    // Ergebnis bestimmen
-    $result = 'abgelehnt';
-    if ($counts['yes'] > $counts['no']) {
-        $result = 'angenommen';
+    // Namentliche Listen erstellen (wie bei Online-Abstimmungen)
+    $dafuer_list = [];
+    $dagegen_list = [];
+    $enthaltungen_list = [];
+
+    foreach ($votes as $v) {
+        $name = $v['first_name'] . ' ' . $v['last_name'];
+
+        if ($v['vote'] === 'yes') {
+            $dafuer_list[] = $name;
+        } elseif ($v['vote'] === 'no') {
+            $dagegen_list[] = $name;
+        } else {
+            $enthaltungen_list[] = $name;
+        }
     }
 
-    // In beschluesse-Tabelle eintragen
-    // TODO: Schema der beschluesse-Tabelle prüfen und entsprechend anpassen
-    // Für jetzt: Log-Eintrag
-    error_log("Voting result for antrnr {$item['antrnr']}: Yes={$counts['yes']}, No={$counts['no']}, Abstain={$counts['abstain']}, Result=$result");
+    // Antragsdaten aus antraege-Tabelle laden
+    $stmt = $pdo->prepare("
+        SELECT titel, beschluss, ressort1, int_ext, begr, fintext, pers, sach
+        FROM antraege
+        WHERE antrnr = ?
+    ");
+    $stmt->execute([$item['antrnr']]);
+    $antrag = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Optional: Antrag-Status aktualisieren basierend auf Ergebnis
-    // Dies hängt vom vorhandenen Workflow ab
+    if (!$antrag) return;
+
+    // In svbeschluesse einfügen oder updaten
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO svbeschluesse (
+                antrnr, fertig, titel, beschluss, begr,
+                fintext, pers, sach, ressort, int_ext,
+                dafuer, dagegen, enthaltungen,
+                status, beschlussdatum, created_at
+            ) VALUES (?, 'F', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'F', CURDATE(), NOW())
+            ON DUPLICATE KEY UPDATE
+                dafuer = VALUES(dafuer),
+                dagegen = VALUES(dagegen),
+                enthaltungen = VALUES(enthaltungen),
+                beschlussdatum = VALUES(beschlussdatum),
+                updated_at = NOW()
+        ");
+
+        $stmt->execute([
+            $item['antrnr'],
+            $antrag['titel'],
+            $antrag['beschluss'],
+            $antrag['begr'],
+            $antrag['fintext'],
+            $antrag['pers'],
+            $antrag['sach'],
+            $antrag['ressort1'],
+            $antrag['int_ext'],
+            implode(', ', $dafuer_list),
+            implode(', ', $dagegen_list),
+            implode(', ', $enthaltungen_list)
+        ]);
+
+        error_log("Voting result saved to svbeschluesse for antrnr {$item['antrnr']}: Yes={$counts['yes']}, No={$counts['no']}, Abstain={$counts['abstain']}");
+
+        // Antrag als bearbeitet markieren (praesenz=2 bedeutet: abgestimmt)
+        $stmt = $pdo->prepare("UPDATE antraege SET praesenz = 2 WHERE antrnr = ?");
+        $stmt->execute([$item['antrnr']]);
+
+    } catch (PDOException $e) {
+        error_log("Error saving voting result to beschluesse: " . $e->getMessage());
+    }
 }
