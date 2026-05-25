@@ -753,7 +753,7 @@ if ($user['aktiv'] >= 19) {
 
                         <div class="form-group">
                             <label for="praesenz">Abstimmung</label>
-                            <select id="praesenz" name="praesenz">
+                            <select id="praesenz" name="praesenz" onchange="toggleFinalizeButton()">
                                 <option value="0" <?= ($antrag['praesenz'] ?? 0) == 0 ? 'selected' : '' ?>>Online</option>
                                 <option value="1" <?= ($antrag['praesenz'] ?? 0) == 1 ? 'selected' : '' ?>>Präsenzsitzung</option>
                             </select>
@@ -763,6 +763,27 @@ if ($user['aktiv'] >= 19) {
                                     (von Vorstand festgelegt)
                                 <?php endif; ?>
                             </div>
+                            <?php if (!empty($antrag['meeting_id'])): ?>
+                                <?php
+                                // Sitzung und TOP laden
+                                $meeting_stmt = $pdo->prepare("SELECT meeting_name, meeting_date FROM svmeetings WHERE meeting_id = ?");
+                                $meeting_stmt->execute([$antrag['meeting_id']]);
+                                $meeting_info = $meeting_stmt->fetch(PDO::FETCH_ASSOC);
+
+                                $top_stmt = $pdo->prepare("SELECT top_number, title FROM svagenda_items WHERE antrnr = ?");
+                                $top_stmt->execute([$antrnr]);
+                                $top_info = $top_stmt->fetch(PDO::FETCH_ASSOC);
+                                ?>
+                                <?php if ($meeting_info): ?>
+                                    <div style="margin-top: 8px; padding: 8px; background: #e3f2fd; border-left: 3px solid #2196f3; border-radius: 4px;">
+                                        <strong>📅 Sitzung:</strong> <?= htmlspecialchars($meeting_info['meeting_name']) ?><br>
+                                        <small><?= date('d.m.Y H:i', strtotime($meeting_info['meeting_date'])) ?> Uhr</small>
+                                        <?php if ($top_info): ?>
+                                            <br><strong>📋 TOP <?= $top_info['top_number'] ?>:</strong> <?= htmlspecialchars($top_info['title']) ?>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endif; ?>
                         </div>
                         <div class="form-group">
                             <!-- Leer -->
@@ -1099,7 +1120,7 @@ if ($user['aktiv'] >= 19) {
                     <button type="submit" name="action" value="save" class="btn btn-primary">💾 Speichern</button>
 
                     <?php if ($kann_finalisieren): ?>
-                        <button type="submit" name="action" value="finalize" class="btn btn-success"
+                        <button type="submit" name="action" value="finalize" class="btn btn-success" id="finalizeButton"
                                 onclick="return confirm('Antrag verbindlich einstellen? Nicht mehr änderbar!');">
                             ✅ Verbindlich einstellen
                         </button>
@@ -1227,6 +1248,26 @@ document.addEventListener('DOMContentLoaded', function() {
             textarea.style.minHeight = '50px';
         }
     });
+});
+
+// Toggle Finalize Button visibility based on praesenz value
+function toggleFinalizeButton() {
+    const praesenzSelect = document.getElementById('praesenz');
+    const finalizeButton = document.getElementById('finalizeButton');
+
+    if (praesenzSelect && finalizeButton) {
+        // Hide button wenn Präsenzsitzung (value="1") ausgewählt ist
+        if (praesenzSelect.value === '1') {
+            finalizeButton.style.display = 'none';
+        } else {
+            finalizeButton.style.display = '';
+        }
+    }
+}
+
+// Initial state setzen beim Laden der Seite
+document.addEventListener('DOMContentLoaded', function() {
+    toggleFinalizeButton();
 });
 </script>
 </body>

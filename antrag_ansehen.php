@@ -306,6 +306,29 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                     <div class="compact-value">Präsenzsitzung</div>
                 </div>
                 <?php endif; ?>
+                <?php if (!empty($antrag['meeting_id'])): ?>
+                    <?php
+                    // Sitzung und TOP laden
+                    $meeting_stmt = $pdo->prepare("SELECT meeting_name, meeting_date FROM svmeetings WHERE meeting_id = ?");
+                    $meeting_stmt->execute([$antrag['meeting_id']]);
+                    $meeting_info = $meeting_stmt->fetch(PDO::FETCH_ASSOC);
+
+                    $top_stmt = $pdo->prepare("SELECT top_number, title FROM svagenda_items WHERE antrnr = ?");
+                    $top_stmt->execute([$antrnr]);
+                    $top_info = $top_stmt->fetch(PDO::FETCH_ASSOC);
+                    ?>
+                    <?php if ($meeting_info): ?>
+                <div class="compact-row" style="background: #e3f2fd; margin-top: 8px; padding: 8px; border-left: 3px solid #2196f3; border-radius: 4px;">
+                    <div style="grid-column: 1 / -1;">
+                        <strong>📅 Sitzung:</strong> <?= htmlspecialchars($meeting_info['meeting_name']) ?><br>
+                        <small><?= date('d.m.Y H:i', strtotime($meeting_info['meeting_date'])) ?> Uhr</small>
+                        <?php if ($top_info): ?>
+                            <br><strong>📋 TOP <?= $top_info['top_number'] ?>:</strong> <?= htmlspecialchars($top_info['title']) ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                    <?php endif; ?>
+                <?php endif; ?>
                 <?php if ($antrag['thread']): ?>
                 <div class="compact-row">
                     <div class="compact-label">Forum:</div>
