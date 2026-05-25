@@ -545,29 +545,13 @@ foreach ($antraege as $a) {
         })();
     </script>
     <style>
-        /* Breiteres Layout für Abstimmungsseite - überschreibt style.css .container */
-        body {
-            background: #f8f9fa;
-            color: #333;
-        }
-
-        /* Dark Mode */
-        html.dark-mode body {
-            background: #1a1a1a !important;
-            color: #e0e0e0 !important;
-        }
-
+        /* Page-spezifische Styles für Abstimmungsseite */
         body .container-wide {
             width: 95% !important;
             max-width: 1600px !important;
             margin: 0 auto !important;
             padding: 20px !important;
             box-sizing: border-box !important;
-            background: white;
-        }
-
-        html.dark-mode .container-wide {
-            background: #2d2d2d !important;
         }
 
         /* Iframe für Antragsanzeige */
@@ -577,12 +561,7 @@ foreach ($antraege as $a) {
             -webkit-overflow-scrolling: touch;
         }
 
-        /* Lange URLs und Wörter umbrechen */
-        .votum-box, textarea, input, a {
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
+        /* Mobile Optimierung */
         @media (max-width: 768px) {
             body .container-wide {
                 width: 100% !important;
@@ -599,90 +578,9 @@ foreach ($antraege as $a) {
                 max-height: 70vh !important;
             }
 
-            /* Textbereiche auf Smartphone */
             textarea {
                 font-size: 14px !important;
             }
-        }
-
-        /* Dark Mode Overrides für inline Styles */
-        html.dark-mode .antraege-liste {
-            background: #2d2d2d !important;
-        }
-
-        html.dark-mode .antraege-liste table {
-            background: #2d2d2d !important;
-        }
-
-        html.dark-mode .antraege-liste th {
-            background: #1a1a1a !important;
-            color: #e0e0e0 !important;
-        }
-
-        html.dark-mode .antraege-liste td {
-            color: #e0e0e0 !important;
-            border-bottom-color: #444 !important;
-        }
-
-        html.dark-mode .antraege-liste tr:hover {
-            background: #333 !important;
-        }
-
-        html.dark-mode .votum-box {
-            background: #2d2d2d !important;
-            border-color: #444 !important;
-        }
-
-        html.dark-mode .header {
-            background: #2d2d2d !important;
-            border-color: #444 !important;
-        }
-
-        html.dark-mode .header h1 {
-            color: #e0e0e0 !important;
-        }
-
-        html.dark-mode .header p {
-            color: #b0b0b0 !important;
-        }
-
-        /* Inline Styles Overrides */
-        html.dark-modediv[style*="background: white"],
-        html.dark-modediv[style*="background: #fff"] {
-            background: #2d2d2d !important;
-        }
-
-        html.dark-modediv[style*="background: #f8f9fa"] {
-            background: #1a1a1a !important;
-        }
-
-        html.dark-modediv[style*="color: #333"],
-        html.dark-modediv[style*="color: #666"],
-        html.dark-modediv[style*="color: #000"] {
-            color: #e0e0e0 !important;
-        }
-
-        html.dark-modestrong {
-            color: #e0e0e0 !important;
-        }
-
-        html.dark-modeh1, body.dark-mode h2, body.dark-mode h3 {
-            color: #e0e0e0 !important;
-        }
-
-        html.dark-mode .form-section,
-        html.dark-mode .section-compact {
-            background: #2d2d2d !important;
-            border-color: #444 !important;
-        }
-
-        html.dark-modeinput[type="text"],
-        html.dark-modeinput[type="date"],
-        html.dark-modetextarea,
-        html.dark-modeselect {
-            background: #1a1a1a !important;
-            color: #e0e0e0 !important;
-            border-color: #444 !important;
         }
     </style>
     <script>

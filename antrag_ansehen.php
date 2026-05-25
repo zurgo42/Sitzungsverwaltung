@@ -131,18 +131,12 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         })();
     </script>
     <style>
+        /* Page-spezifische Styles für Antragsansicht */
         body {
             font-size: 13px;
             line-height: 1.4;
-            background: #f8f9fa;
-            color: #333;
         }
 
-        /* Dark Mode */
-        html.dark-mode body {
-            background: #1a1a1a !important;
-            color: #e0e0e0 !important;
-        }
         .compact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 20px; margin-bottom: 15px; }
         .compact-row { display: flex; gap: 8px; margin-bottom: 8px; font-size: 13px; padding: 6px; background: rgba(0, 85, 150, 0.03); border-radius: 4px; }
         .compact-label { font-weight: 600; color: #005596; min-width: 120px; flex-shrink: 0; }
@@ -156,34 +150,19 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         .accordion.active::before { content: '▼ '; }
         .acc-content { display: none; padding: 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px; font-size: 13px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.6; border: 1px solid #ddd; }
         .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .compact-value { word-wrap: break-word; overflow-wrap: break-word; }
-        a { word-wrap: break-word; overflow-wrap: break-word; }
-        h1 { color: #333; }
 
-        /* Dark Mode Overrides */
-        html.dark-mode .container {
-            background: #2d2d2d !important;
-        }
-
-        html.dark-mode h1 {
-            color: #e0e0e0 !important;
-        }
-
+        /* Dark Mode für page-spezifische Klassen */
         html.dark-mode .compact-label {
             color: #8ECAF6 !important;
         }
 
-        html.dark-mode .compact-value {
-            color: #e0e0e0 !important;
+        html.dark-mode .compact-row {
+            background: rgba(142, 202, 246, 0.05) !important;
         }
 
         html.dark-mode .section-compact {
             background: #2d2d2d !important;
             border-color: #8ECAF6 !important;
-        }
-
-        html.dark-mode .compact-row {
-            background: rgba(142, 202, 246, 0.05) !important;
         }
 
         html.dark-mode .section-title {
@@ -212,16 +191,6 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
         html.dark-mode .acc-content {
             background: #1a1a1a !important;
             border-color: #444 !important;
-        }
-
-        html.dark-mode div[style*="color: #000"],
-        html.dark-mode div[style*="color: #333"],
-        html.dark-mode div[style*="color: #666"] {
-            color: #e0e0e0 !important;
-        }
-
-        html.dark-mode div[style*="background: #ffebee"] {
-            background: rgba(211, 47, 47, 0.2) !important;
         }
 
         @media (max-width: 1024px) {
