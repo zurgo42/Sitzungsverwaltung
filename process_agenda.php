@@ -1417,9 +1417,9 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
                     $resubmit_note = "Wiedervorlage aus Sitzung vom {$meeting_date_formatted}, TOP {$current_item['top_number']}";
                     
                     $stmt = $pdo->prepare("
-                        INSERT INTO svagenda_items 
-                        (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO svagenda_items
+                        (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
                     $stmt->execute([
                         $target_meeting_id,
@@ -1428,6 +1428,7 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
                         $current_item['description'],
                         $current_item['category'],
                         $current_item['proposal_text'],
+                        $current_item['antrnr'], // Antrag mitübertragen
                         $current_item['priority'],
                         $current_item['estimated_duration'],
                         $is_confidential_resubmit,
@@ -1858,9 +1859,9 @@ if (isset($_POST['save_all_protocols']) && $is_secretary && $meeting['status'] =
                     $resubmit_note = "Wiedervorlage aus Sitzung vom {$meeting_date_formatted}, TOP {$current_item['top_number']}";
                     
                     $stmt = $pdo->prepare("
-                        INSERT INTO svagenda_items 
-                        (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO svagenda_items
+                        (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
                     $stmt->execute([
                         $target_meeting_id,
@@ -1869,6 +1870,7 @@ if (isset($_POST['save_all_protocols']) && $is_secretary && $meeting['status'] =
                         $current_item['description'],
                         $current_item['category'],
                         $current_item['proposal_text'],
+                        $current_item['antrnr'], // Antrag mitübertragen
                         $current_item['priority'],
                         $current_item['estimated_duration'],
                         $is_confidential_resubmit,
