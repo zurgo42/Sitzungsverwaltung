@@ -1435,7 +1435,14 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
                         $current_user['member_id'],
                         $resubmit_note
                     ]);
-                    
+
+                    // Wenn Antrag verknüpft ist, Antrag der neuen Sitzung zuordnen
+                    if (!empty($current_item['antrnr'])) {
+                        $stmt = $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET meeting_id = ? WHERE antrnr = ?");
+                        $stmt->execute([$target_meeting_id, $current_item['antrnr']]);
+                        error_log("Wiedervorlage: Antrag {$current_item['antrnr']} wurde Sitzung {$target_meeting_id} zugeordnet");
+                    }
+
                     $_SESSION['resubmit_success'] = "Wiedervorlage erfolgreich angelegt!";
                 }
             }
@@ -1877,7 +1884,14 @@ if (isset($_POST['save_all_protocols']) && $is_secretary && $meeting['status'] =
                         $current_user['member_id'],
                         $resubmit_note
                     ]);
-                    
+
+                    // Wenn Antrag verknüpft ist, Antrag der neuen Sitzung zuordnen
+                    if (!empty($current_item['antrnr'])) {
+                        $stmt = $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET meeting_id = ? WHERE antrnr = ?");
+                        $stmt->execute([$target_meeting_id, $current_item['antrnr']]);
+                        error_log("Wiedervorlage: Antrag {$current_item['antrnr']} wurde Sitzung {$target_meeting_id} zugeordnet");
+                    }
+
                     $_SESSION['resubmit_success'] = "Wiedervorlage erfolgreich angelegt!";
                 }
             }
