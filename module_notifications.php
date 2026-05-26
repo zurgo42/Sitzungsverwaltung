@@ -309,8 +309,12 @@ function render_user_notifications($pdo, $member_id) {
     }
 
     if (!empty($all_absences)) {
+        $total_absences = count($all_absences);
+        // Nur die ersten 4 Abwesenheiten anzeigen
+        $display_absences = array_slice($all_absences, 0, 4);
+
         $absence_items = [];
-        foreach ($all_absences as $abs) {
+        foreach ($display_absences as $abs) {
             // Zeitraum (strong) + Doppelpunkt
             $dates = '<strong>' . date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date'])) . ':</strong>';
 
@@ -337,12 +341,15 @@ function render_user_notifications($pdo, $member_id) {
             }
         }
 
+        // Link-Text: "Details" wenn 4 oder weniger, "weitere..." wenn mehr als 4
+        $link_text = ($total_absences <= 4) ? 'Details' : 'weitere...';
+
         $notifications[] = [
             'type' => 'absences',
             'icon' => '🏖️',
             'text' => implode(' <span style="color: #ffc107; font-weight: 900; font-size: 18px;">•</span> ', $absence_items),
             'link' => '?tab=vertretung',
-            'link_text' => 'Details',
+            'link_text' => $link_text,
             'button' => true
         ];
     }

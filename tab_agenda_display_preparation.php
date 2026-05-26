@@ -31,12 +31,12 @@ usort($all_absences, function($a, $b) {
     return strtotime($a['start_date']) - strtotime($b['start_date']);
 });
 
-// Nur die nächsten 3 Termine anzeigen
+// Nur die nächsten 4 Termine anzeigen
 // Abwesenheitsanzeige (nur wenn Abwesenheiten vorhanden)
 if (!empty($all_absences)) {
     $total_count = count($all_absences);
-    $display_absences = array_slice($all_absences, 0, 3);
-    $remaining_absences = array_slice($all_absences, 3);
+    $display_absences = array_slice($all_absences, 0, 4);
+    $remaining_absences = array_slice($all_absences, 4);
 
     $absence_items = [];
     foreach ($display_absences as $abs) {
