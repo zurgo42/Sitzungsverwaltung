@@ -265,7 +265,7 @@ function render_user_notifications($pdo, $member_id) {
         if (!array_key_exists($key, $seen)) {
             $seen[$key] = true;
             $upcoming[] = $item;
-            if (count($upcoming) >= 6) break; // Max 6 Einträge
+            if (count($upcoming) >= 3) break; // Max 3 Einträge
         }
     }
 

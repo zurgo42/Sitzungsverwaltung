@@ -223,11 +223,7 @@ if ($can_move_tops) {
                                 <?php echo htmlspecialchars($cp['first_name'] . ' ' . $cp['last_name'] . ' (' . $cp['role'] . ')'); ?>
                                 <?php if ($has_absence): ?>
                                     <br><small style="color: #856404;">
-                                        <?php
-                                        // Nur die nächsten 3 Abwesenheiten pro Person anzeigen
-                                        $member_abs_limited = array_slice($member_absences[$cp['member_id']], 0, 3);
-                                        foreach ($member_abs_limited as $abs):
-                                        ?>
+                                        <?php foreach ($member_absences[$cp['member_id']] as $abs): ?>
                                             🏖️ <?php echo date('d.m.', strtotime($abs['start_date'])); ?> - <?php echo date('d.m.', strtotime($abs['end_date'])); ?>
                                             <?php if ($abs['substitute_member_id']): ?>
                                                 (Vertr.: <?php echo htmlspecialchars($abs['sub_first_name'] . ' ' . $abs['sub_last_name']); ?>)
