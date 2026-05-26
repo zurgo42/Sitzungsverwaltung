@@ -50,6 +50,7 @@ if (!empty($all_absences)) {
     </div>
     <?php
 }
+?>
 
 <!-- Direktlink zur Sitzung -->
 <?php
