@@ -20,11 +20,19 @@ require_once 'module_comments.php';
 // Nutzt Adapter-kompatible Funktion statt direktem JOIN auf svmembers
 $all_absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
 
-// is_current Flag hinzufügen
+// is_current Flag hinzufügen und sortieren nach start_date
 foreach ($all_absences as &$abs) {
     $abs['is_current'] = (strtotime('today') >= strtotime($abs['start_date']) &&
                           strtotime('today') <= strtotime($abs['end_date'])) ? 1 : 0;
 }
+
+// Nach Startdatum sortieren
+usort($all_absences, function($a, $b) {
+    return strtotime($a['start_date']) - strtotime($b['start_date']);
+});
+
+// Nur die nächsten 3 Termine anzeigen
+$all_absences = array_slice($all_absences, 0, 3);
 
 // Abwesenheitsanzeige (nur wenn Abwesenheiten vorhanden)
 if (!empty($all_absences)) {
@@ -44,9 +52,13 @@ if (!empty($all_absences)) {
     }
     ?>
     <div style="background: #f9f9f9; padding: 8px 12px; margin-bottom: 15px; border-radius: 4px; font-size: 13px; color: #666;">
-        <strong style="color: #333;">🏖️ Abwesenheiten:</strong>
-        <?php echo implode(' • ', $absence_items); ?>
-        <a href="?tab=vertretung" style="margin-left: 10px; color: #2196f3; text-decoration: none; font-size: 12px;">→ Details</a>
+        <strong style="color: #333;">🏖️ Abwesenheiten (nächste 3):</strong>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
+            <?php foreach ($absence_items as $item): ?>
+                <div style="flex: 1; min-width: 200px;"><?php echo $item; ?></div>
+            <?php endforeach; ?>
+        </div>
+        <a href="?tab=vertretung" style="margin-left: 0; margin-top: 5px; display: inline-block; color: #2196f3; text-decoration: none; font-size: 12px;">→ Alle Details</a>
     </div>
     <?php
 }
