@@ -100,6 +100,7 @@ function copyDirectLink() {
 }
 </script>
 
+<?php
 // Übersicht mit Bewertungs-Tabelle anzeigen (EINMALIG am Anfang)
 render_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
 
