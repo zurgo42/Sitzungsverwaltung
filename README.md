@@ -79,6 +79,10 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
    - Prioritäten und Zeitschätzungen
    - Vertrauliche TOPs markieren
    - TOP-Gruppierungen
+   - 🆕 **Wiedervorlage-System:** TOPs zu künftigen Sitzungen verschieben
+     - Anträge werden automatisch mitverschoben
+     - Dokumentation in beiden Sitzungen
+     - Für Einladende, Protokollant und Sitzungsleiter
 
 3. **Kollaborative Vorbereitung:**
    - Kommentare zu jedem TOP
@@ -89,7 +93,12 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 4. **Meeting durchführen:**
    - Sitzungsleitung und Protokollführung festlegen
    - TOPs aktivieren und abarbeiten
-   - Abstimmungen dokumentieren
+   - 🆕 **Verbesserte Abstimmungen:**
+     - Meinungsbilder mit freier Fragestellung
+     - Beschlussabstimmungen mit Antrags-Integration
+     - Offene oder geheime Abstimmung
+     - Kompakte Ergebnisdarstellung
+     - Automatische Protokoll-Formatierung
    - Echtzeit-Protokollierung
 
 5. **Nachbereitung:**
@@ -187,12 +196,16 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
   - Desktop: Tabellenansicht mit allen Details
   - Smartphone: Card-Layout für bessere Lesbarkeit
   - Farbliche Kennzeichnung (aktuell, zukünftig, vergangen)
+  - 🆕 **Intelligente Limitierung:** Zeigt die 4 nächsten Abwesenheiten
+  - 🆕 **Kollapsible Ansicht:** "weitere..." Link bei mehr als 4 Einträgen
+  - 🆕 **Benachrichtigungen:** Gelbe Infobox zeigt relevante Abwesenheiten kompakt
 
 - **Funktionen:**
   - Eigene Abwesenheiten verwalten
   - Aktuelle Vertretungen einsehen
   - Löschen von zukünftigen Abwesenheiten
   - Automatische Filterung nach Zeitraum
+  - Responsive Layout für mobile Geräte
 
 **Ideal für:** Urlaubsplanung, Vertretungsregelungen, Abwesenheitskalender
 
