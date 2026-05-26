@@ -32,12 +32,14 @@ usort($all_absences, function($a, $b) {
 });
 
 // Nur die nächsten 3 Termine anzeigen
-$all_absences = array_slice($all_absences, 0, 3);
-
 // Abwesenheitsanzeige (nur wenn Abwesenheiten vorhanden)
 if (!empty($all_absences)) {
+    $total_count = count($all_absences);
+    $display_absences = array_slice($all_absences, 0, 3);
+    $remaining_absences = array_slice($all_absences, 3);
+
     $absence_items = [];
-    foreach ($all_absences as $abs) {
+    foreach ($display_absences as $abs) {
         $name = $abs['first_name'] . ' ' . $abs['last_name'];
         $dates = date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date']));
         $vertr = $abs['sub_first_name'] ? ' Vertr.: ' . $abs['sub_first_name'] . ' ' . $abs['sub_last_name'] : '';
@@ -50,14 +52,46 @@ if (!empty($all_absences)) {
             $absence_items[] = $text;
         }
     }
+
+    // Weitere Abwesenheiten (wenn mehr als 3)
+    $remaining_items = [];
+    foreach ($remaining_absences as $abs) {
+        $name = $abs['first_name'] . ' ' . $abs['last_name'];
+        $dates = date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date']));
+        $vertr = $abs['sub_first_name'] ? ' Vertr.: ' . $abs['sub_first_name'] . ' ' . $abs['sub_last_name'] : '';
+
+        $text = $name . ' (' . $dates . ')' . $vertr;
+        if ($abs['is_current']) {
+            $remaining_items[] = '<span style="color: #d32f2f; font-weight: 600;">' . $text . '</span>';
+        } else {
+            $remaining_items[] = $text;
+        }
+    }
     ?>
     <div style="background: #f9f9f9; padding: 8px 12px; margin-bottom: 15px; border-radius: 4px; font-size: 13px; color: #666;">
-        <strong style="color: #333;">🏖️ Abwesenheiten (nächste 3):</strong>
+        <strong style="color: #333;">🏖️ Abwesenheiten (<?php echo $total_count; ?>):</strong>
         <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
             <?php foreach ($absence_items as $item): ?>
                 <div style="flex: 1; min-width: 200px;"><?php echo $item; ?></div>
             <?php endforeach; ?>
         </div>
+
+        <?php if (count($remaining_absences) > 0): ?>
+            <details style="margin-top: 8px;">
+                <summary style="cursor: pointer; color: #2196f3; font-size: 12px; list-style: none; user-select: none;">
+                    <span style="display: inline-block; transition: transform 0.2s;">▶</span> weitere (<?php echo count($remaining_absences); ?>)...
+                </summary>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; padding-left: 10px;">
+                    <?php foreach ($remaining_items as $item): ?>
+                        <div style="flex: 1; min-width: 200px;"><?php echo $item; ?></div>
+                    <?php endforeach; ?>
+                </div>
+            </details>
+            <style>
+                details[open] summary span { transform: rotate(90deg); }
+            </style>
+        <?php endif; ?>
+
         <a href="?tab=vertretung" style="margin-left: 0; margin-top: 5px; display: inline-block; color: #2196f3; text-decoration: none; font-size: 12px;">→ Alle Details</a>
     </div>
     <?php
