@@ -106,6 +106,66 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
    - Änderungsanfragen verwalten
    - TODOs erfassen und zuweisen
 
+### 📋 Antrags- und Beschluss-System
+
+**Professionelles Workflow-Management für Anträge und Vorstandsbeschlüsse:**
+
+**🆕 Vollständig integriertes System mit VTool-Kompatibilität**
+
+- **Automatische Nummernvergabe:**
+  - Format: Präfix + Datum + Laufnummer (z.B. A26051401)
+  - Verschiedene Typen: Anträge (A), Vorstandsbeschlüsse (B), Beschlüsse (VS)
+  - Bis zu 99 Einträge pro Tag
+  
+- **Antragsverwaltung:**
+  - Übersicht aller offenen Anträge
+  - Filter nach Status, Typ, Antragsteller
+  - Volltextsuche in Nummer, Titel und Beschlusstext
+  - Mobile-responsive Darstellung
+  
+- **Vollständiges Formular:**
+  - **Stammdaten**: Ressort, Verantwortlicher, Verein/Stiftung, Sichtbarkeit (extern/intern/nicht öffentlich)
+  - **Antrag**: Titel, Beschlusstext, Begründung, finanzielle Auswirkungen
+  - **Unterlagen**: Bis zu 4 Datei-Uploads mit Beschreibungen
+  - **Freigabe**: Konfigurierbare Freigabeprozesse und Betragsgrenzwerte
+  - **Auswirkungen**: Finanzielle, personelle und sachliche Konsequenzen
+  
+- **Konfigurierbare Antragstypen:**
+  - V (Vorlage), R (Ressort), B (Vorstandsbeschluss)
+  - Individuelle Voting-Regeln pro Typ (Einstimmig, Mehrheit, etc.)
+  - Admin-konfigurierbare Betragsgrenzwerte
+  
+- **Integration mit Meetings:**
+  - Anträge direkt aus Tagesordnungspunkten erstellen
+  - Kategorie "Antrag/Beschluss" beim TOP
+  - Verknüpfung mit Sitzungsprotokollen
+  - Automatische Überführung in Beschlussbuch
+  
+- **Abstimmungs-Integration:**
+  - Direkte Abstimmung in Sitzungen
+  - Status: ANGENOMMEN/ABGELEHNT/VERTAGT
+  - Integration mit beschluesse-Tabelle
+  - Automatische Protokollierung
+  
+- **Beschlussbuch:**
+  - Alle angenommenen Beschlüsse (VS-Präfix)
+  - Suchfunktion mit Highlighting
+  - Dark Mode Support
+  - URL-Erkennung in Texten
+  
+- **Berechtigungssystem:**
+  - Rollenbasiert nach VTool-Standard (aktiv-Level)
+  - Interne vs. externe Sichtbarkeit
+  - Admin-Funktionen (Level 19+)
+  
+- **Workflow-Features:**
+  - Antrag duplizieren
+  - Wiedervorlage zu anderen Sitzungen
+  - Wartezeit-Verwaltung (Expedite)
+  - Versionshistorie
+
+**Ideal für:** Vorstandsbeschlüsse, Ressortan­träge, Finanzfreigaben, Vereinsbeschlüsse
+
 ### ✅ Aufgaben-Management (TODOs)
 
 **Nachverfolgung von Beschlüssen und Aufgaben:**
@@ -325,7 +385,9 @@ Nach dem Login sehen Sie:
 7. **🏖️ Vertretungen:** Abwesenheits- und Vertretungsverwaltung
 8. **🗳️ Meinungsbild:** Umfragen und Abstimmungen
 9. **📁 Dokumente:** Zentrale Dokumentenverwaltung
-10. **⚙️ Admin:** Verwaltung und Systemeinstellungen (nur für Admins)
+10. **📋 Anträge:** Antrags- und Beschlussverwaltung (🆕 Vollständiges Workflow-System)
+11. **📖 Beschlussbuch:** Alle beschlossenen Anträge (VS-Nummer)
+12. **⚙️ Admin:** Verwaltung und Systemeinstellungen (nur für Admins)
 
 ## Typische Anwendungsszenarien
 

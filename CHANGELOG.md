@@ -8,6 +8,90 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### 📋 Vollständiges Antrags- und Beschluss-System (2026-05-20 bis 2026-05-22)
+**Ein komplettes Workflow-System für Anträge und Vorstandsbeschlüsse mit VTool-Integration**
+
+##### Kernfunktionen:
+- **Automatische Antragsnummern-Vergabe**: 
+  - Format: `A + YYMMDD + lfd. Nr.` (z.B. A26051401)
+  - Bis zu 99 Anträge pro Tag
+  - Verschiedene Präfixe: A (Antrag), B (Vorstandsbeschluss), VS (Beschlossen)
+  
+- **Antragsverwaltung** (`tab_proposals.php`):
+  - Übersicht aller offenen Anträge
+  - Filter nach Status, Präfix, Antragstyp
+  - Volltextsuche (Nummer, Titel, Beschluss)
+  - Mobile-responsive Design
+  
+- **Beschlussbuch** (`beschlussbuch.php`):
+  - Alle beschlossenen Anträge (VS-Präfix)
+  - Suchfunktion mit Highlighting
+  - URL-Erkennung in Texten
+  - Dark Mode Support
+  
+- **Vollständiges Antragsformular**:
+  - **Stammdaten**: Ressort, Verantwortlicher, Verein/Stiftung, Sichtbarkeit
+  - **Antrag**: Titel, Beschlusstext, Begründung, Betrag
+  - **Auswirkungen**: Finanziell, Personell, Sachlich
+  - **Angebote/Unterlagen**: Bis zu 4 Datei-Uploads mit Beschreibung
+  - **Vereinfachte Freigabe**: Sofort-Überweisung, Vorprüfung
+  - **Bemerkungen**: Hinweise mit Zeitstempel
+  
+- **Konfigurierbare Antragstypen**:
+  - V (Vorlage), R (Ressort), B (Vorstandsbeschluss)
+  - Individuelle Voting-Regeln pro Typ
+  - Betragsgrenzwerte konfigurierbar
+  - Verwaltung über Admin-Bereich
+  
+- **Berechtigungssystem**:
+  - Basierend auf `aktiv`-Level aus VTool berechtigte-Tabelle
+  - Level 18+: Interne Anträge sichtbar
+  - Level 19+: Admin-Funktionen (permanentes Löschen)
+  - Funktionsbasiert: VA (Vorstandsassistenz) hat erweiterte Rechte
+  
+- **Integration mit Meetings**:
+  - Anträge direkt aus TOPs erstellen
+  - Kategorie "Antrag/Beschluss" beim TOP-Anlegen
+  - Vollständiges Formular in der Sitzungsvorbereitung
+  - Automatische Verknüpfung mit Tagesordnung
+  - Meeting-ID wird im Antrag gespeichert
+  
+- **Voting/Abstimmungs-Integration**:
+  - Direkte Abstimmung über Anträge in Sitzungen
+  - Integration mit `beschluesse`-Tabelle
+  - ANGENOMMEN/ABGELEHNT-Status
+  - Automatische Überführung in Beschlussbuch bei Annahme
+  - Protokoll-Formatierung für Abstimmungsergebnisse
+  
+- **Workflow-Features**:
+  - Antrag duplizieren (mit allen Daten)
+  - Wiedervorlage zu anderen Sitzungen
+  - Wartezeit-Anzeige (Expedite-Verfahren)
+  - Originalantrag-Referenz bei Duplikaten
+  - Permanentes Löschen nur für X/Z-Präfixe
+
+##### Technische Details:
+- **Neue Tabellen**: `svantraege`, `svbeschluesse` (optional), `svressorts`, `svconfig`, `antragstypen_config`, `aktiv_level_config`
+- **VTool-Integration**: Nutzt optional existierende VTool-Tabellen (`antraege`, `beschluesse`)
+- **Konstanten**: `TABLE_ANTRAEGE`, `TABLE_BESCHLUESSE` für flexible Tabellenzuordnung
+- **Helper**: `antragstypen_helper.php` für Konfigurationsverwaltung
+
+##### Neue Dateien:
+- `antrag_neu.php` - Neuen Antrag erstellen
+- `antrag_bearbeiten.php` - Antrag bearbeiten (63KB)
+- `antrag_ansehen.php` - Antrag ansehen
+- `tab_proposals.php` - Antragsverwaltung-Tab
+- `beschlussbuch.php` - Beschlussbuch (VS-Anträge)
+- `includes/antragstypen_helper.php` - Konfigurationsfunktionen
+- `apply_meeting_decisions_migration.php` - Migrations-Tool
+
+##### UI-Features:
+- **Dark Mode**: Vollständige Unterstützung auf allen Antragsseiten
+- **Mobile-optimiert**: Responsive Design für Smartphones/Tablets
+- **URL-Erkennung**: Automatisch klickbare Links in Texten
+- **Syntax-Highlighting**: Suchbegriffe werden hervorgehoben
+- **Accordion-Views**: Platzsparende Darstellung langer Inhalte
+
 #### Wiedervorlage-System für TOPs (2026-05-26)
 - **TOP-Verschiebung mit Antragsverfolgung**: TOPs können zu künftigen Sitzungen verschoben werden
 - Automatische Übertragung verknüpfter Anträge (antrnr) beim Verschieben
@@ -152,7 +236,24 @@ Alte feingranulare Levels (Projektleitung, Ressortleitung) entfernt.
 
 **Datenbank-Migration erforderlich:**
 
-1. **Voting-Question Spalte** (2026-05-25):
+1. **Antrags- und Beschluss-System** (2026-05-20 bis 2026-05-22):
+```sql
+-- Wird automatisch durch init-db.php ausgeführt
+-- Neue Tabellen:
+CREATE TABLE svantraege (...);  -- Optional (nutzt ggf. VTool antraege)
+CREATE TABLE svbeschluesse (...);  -- Optional (nutzt ggf. VTool beschluesse)
+CREATE TABLE svressorts (...);
+CREATE TABLE svconfig (...);
+CREATE TABLE antragstypen_config (...);
+CREATE TABLE aktiv_level_config (...);
+
+-- Neue Spalten in svmeetings:
+ALTER TABLE svmeetings ADD COLUMN allow_decisions TINYINT(1) DEFAULT 1;
+
+-- Siehe auch: apply_meeting_decisions_migration.php
+```
+
+2. **Voting-Question Spalte** (2026-05-25):
 ```sql
 -- Wird automatisch durch init-db.php ausgeführt
 ALTER TABLE svvotings 
@@ -161,7 +262,7 @@ COMMENT 'Frage bei Stimmungsbild (wenn kein Antrag)'
 AFTER initiated_by_member_id;
 ```
 
-2. **Externe Teilnehmer** (2025-12-23):
+3. **Externe Teilnehmer** (2025-12-23):
 ```sql
 -- Siehe: migrations/add_external_participants.sql
 CREATE TABLE svexternal_participants (...);
@@ -203,10 +304,20 @@ ALTER TABLE svdocuments MODIFY COLUMN filepath VARCHAR(500) NULL;
 
 ### Datenbankschema-Änderungen
 
-**Neue Tabellen**:
+**Neue Tabellen (Antrags-System)** (2026-05-20 bis 2026-05-22):
+- `svantraege` - Antragsverwaltung (optional, nutzt ggf. VTool `antraege`)
+- `svbeschluesse` - Beschlussverwaltung (optional, nutzt ggf. VTool `beschluesse`)
+- `svressorts` - Ressort-/Abteilungsverwaltung
+- `svconfig` - Systemkonfiguration (Betragsgrenzwerte, etc.)
+- `antragstypen_config` - Konfiguration der Antragstypen (V, R, B)
+- `aktiv_level_config` - Konfiguration der Berechtigungslevel
+
+**Neue Tabellen (Sonstige)**:
 - `svexternal_participants` - Externe Teilnehmer für Meinungsbilder (2025-12-23)
 
 **Neue Spalten**:
+- `svmeetings.allow_decisions` (TINYINT 1, DEFAULT 1) - Beschlüsse in Meeting erlauben (2026-05-20)
+- `svagenda_items.antrnr` (VARCHAR 20, NULL) - Verknüpfung mit Antrag (2026-05-20)
 - `svvotings.voting_question` (VARCHAR 500, NULL) - Frage bei Stimmungsbild ohne Antrag (2026-05-25)
 - `svdocuments.external_url` (VARCHAR 1000, NULL) - Externe Dokument-Links (2025-12-23)
 - `svopinion_responses.external_participant_id` (INT, NULL) - Zuordnung zu externen Teilnehmern (2025-12-23)
@@ -219,6 +330,22 @@ ALTER TABLE svdocuments MODIFY COLUMN filepath VARCHAR(500) NULL;
 **Konstanten für Tabellennamen** (2026-05-25):
 - `TABLE_ANTRAEGE` - Konfigurierbar: `antraege` (Standard/VTool) oder `antraege` (eigenständig)
 - `TABLE_BESCHLUESSE` - Konfigurierbar: `beschluesse` (VTool) oder `svbeschluesse` (eigenständig)
+
+### Neue Dateien (Antrags-System) (2026-05-20 bis 2026-05-22)
+
+**Hauptdateien**:
+- `antrag_neu.php` - Neuen Antrag erstellen (automatische Nummernvergabe)
+- `antrag_bearbeiten.php` - Antrag bearbeiten (vollständiges Formular, 63KB)
+- `antrag_ansehen.php` - Antrag ansehen (Detailansicht)
+- `tab_proposals.php` - Antragsverwaltung-Tab (Filter, Suche, Verwaltung)
+- `beschlussbuch.php` - Beschlussbuch (alle VS-Beschlüsse)
+
+**Helper & Tools**:
+- `includes/antragstypen_helper.php` - Konfigurationsfunktionen für Antragstypen
+- `apply_meeting_decisions_migration.php` - Migrations-Tool für Datenbankschema
+
+**Styles**:
+- `css/antrag-styles.css` - Styling für Antragsseiten (inkl. Dark Mode)
 
 ### API-Endpunkte (neu)
 
