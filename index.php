@@ -1,15 +1,19 @@
 <?php
 /**
  * index.php - Hauptdatei der Sitzungsverwaltung
- * 
+ *
  * Diese Datei ist der zentrale Einstiegspunkt der Anwendung und koordiniert:
  * - Login/Logout-Verwaltung
  * - Session-Handling
  * - Routing zwischen verschiedenen Tabs
  * - Einbindung der Processing- und Presentation-Dateien
- * 
+ *
  * Letzte Aktualisierung: 28.10.2025 MEZ
  */
+
+// Fehleranzeige aktivieren (Debug-Modus)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 // Session-Konfiguration laden (VOR session_start!)
 require_once 'session_config.php';
@@ -21,10 +25,12 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Konfiguration laden
-require_once 'config.php';           // Datenbankverbindung und Konstanten
-require_once 'config_adapter.php';   // Konfiguration für Mitgliederquelle
-require_once 'member_functions.php'; // Prozedurale Wrapper-Funktionen für Mitglieder
-require_once 'functions.php';        // Wiederverwendbare Funktionen
+require_once 'config.php';                    // Datenbankverbindung und Konstanten
+require_once 'config_adapter.php';            // Konfiguration für Mitgliederquelle
+require_once 'member_functions.php';          // Prozedurale Wrapper-Funktionen für Mitglieder
+require_once 'functions.php';                 // Wiederverwendbare Funktionen
+require_once 'includes/antragstypen_helper.php'; // Antragstypen-Konfiguration
+require_once 'includes/voting_helper.php';    // Abstimmungsregeln
 
 // ============================================
 // GLOBALES MEMBERS-ARRAY (für SSO und Standard-Modus)
@@ -36,6 +42,17 @@ $GLOBALS['members_by_id'] = [];
 foreach ($GLOBALS['all_members'] as $member) {
     $GLOBALS['members_by_id'][$member['member_id']] = $member;
 }
+
+// ============================================
+// ANTRAGSTYPEN-KONFIGURATION
+// ============================================
+// Einmal laden und global verfügbar machen
+$GLOBALS['bart_config'] = lade_antragstypen_config($pdo);
+
+// ============================================
+// ABSTIMMUNGSREGELN-KONFIGURATION
+// ============================================
+$GLOBALS['voting_config'] = lade_voting_config($pdo);
 
 /**
  * Hilfsfunktion: Holt Member-Daten nach ID aus dem globalen Array
@@ -301,9 +318,9 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
     } else {
         // Keine Mitgliedsnummer übergeben
         show_access_denied_page(
-            'SSO-Fehler',
-            'Es wurde keine Mitgliedsnummer übergeben. Bitte versuche es über das VTool erneut.',
-            'Technischer Hinweis: SSO_SOURCE ist auf "' . SSO_SOURCE . '" konfiguriert'
+            'Bitte Zugriff verifizieren',
+            'Es wurde keine Mitgliedsnummer übergeben. Bitte authentifiziere dich über das VTool.',
+            ''
         );
     }
 }
@@ -403,6 +420,18 @@ $active_tab = $_GET['tab'] ?? 'meetings';
 $current_meeting_id = isset($_GET['meeting_id']) ? intval($_GET['meeting_id']) : null;
 
 // ============================================
+// REDIRECT: PROPOSALS TAB
+// ============================================
+// Anträge & Beschlüsse werden nun direkt in index.php eingebunden (tab_proposals.php)
+// Redirect deaktiviert für einheitliche Darstellung
+/*
+if ($active_tab === 'proposals') {
+    header('Location: antragsliste.php');
+    exit;
+}
+*/
+
+// ============================================
 // DEMO-MODUS: DYNAMISCHE DATUMSANPASSUNG
 // ============================================
 if (defined('DEMO_MODE_ENABLED') && DEMO_MODE_ENABLED) {
@@ -452,8 +481,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'todos') {
 }
 
 // PROCESS ADMIN
-// Wird bei POST-Requests auf dem Admin-Tab eingebunden
-// Dies geschieht bereits in der Presentation-Datei (tab_admin.php)
+// Wird für Admin-Tab und Admin-Init-Tab geladen
+// WICHTIG: Muss VOR HTML-Output geladen werden wegen header() Redirects
+if ($active_tab === 'admin' || $active_tab === 'admin_init') {
+    require_once 'process_admin.php';
+}
 
 // ============================================
 // DISPLAY-MODUS ERKENNUNG
@@ -761,9 +793,11 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
     
     <!-- NAVIGATION / TABS -->
     <div class="navigation">
-        <!-- Termine-Tab (immer sichtbar) -->
-        <a href="?tab=termine" class="<?php echo $active_tab === 'termine' ? 'active' : ''; ?>">
-            📆 Termine
+        <!-- 1. ZEILE -->
+
+        <!-- Anträge & Beschlüsse-Tab (immer sichtbar) -->
+        <a href="?tab=proposals" class="<?php echo $active_tab === 'proposals' ? 'active' : ''; ?>">
+            📋 Anträge/Beschlüsse
         </a>
 
         <!-- Sitzungen-Tab (immer sichtbar) -->
@@ -779,6 +813,40 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             </a>
         <?php endif; ?>
 
+        <!-- Protokolle-Tab (immer sichtbar) -->
+        <a href="?tab=protokolle" class="<?php echo $active_tab === 'protokolle' ? 'active' : ''; ?>">
+            📋 Protokolle
+        </a>
+
+        <!-- Termin finden-Tab (immer sichtbar) -->
+        <a href="?tab=termine" class="<?php echo $active_tab === 'termine' ? 'active' : ''; ?>">
+            📆 Termin finden
+        </a>
+
+        <!-- ToDo/Erledigen-Tab (immer sichtbar) -->
+        <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
+            ✅ ToDo/Erledigen
+        </a>
+
+        <!-- Meinungsbild-Tab (immer sichtbar) -->
+        <a href="?tab=opinion" class="<?php echo $active_tab === 'opinion' ? 'active' : ''; ?>">
+            📊 Meinungsbild
+        </a>
+
+        <!-- 2. ZEILE -->
+
+        <!-- Dokumente-Tab (optional, siehe config.php) -->
+        <?php if (defined('ENABLE_DOCUMENTS_TAB') && ENABLE_DOCUMENTS_TAB): ?>
+        <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
+            📁 Dokumente
+        </a>
+        <?php endif; ?>
+
+        <!-- MV-Beschlüsse -->
+        <a href="?tab=mv_beschluesse" class="<?php echo $active_tab === 'mv_beschluesse' ? 'active' : ''; ?>">
+            📜 MV-Beschlüsse
+        </a>
+
         <!-- Textbearbeitung-Tab (nur für Vorstand/GF/Assistenz/Führungsteam, NICHT für Mitglied) -->
         <?php
         // Prüfen ob User Zugriff hat (Mitglieder niemals)
@@ -793,16 +861,6 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         </a>
         <?php endif; ?>
 
-        <!-- Protokolle-Tab (immer sichtbar) -->
-        <a href="?tab=protokolle" class="<?php echo $active_tab === 'protokolle' ? 'active' : ''; ?>">
-            📋 Protokolle
-        </a>
-
-        <!-- Erledigen-Tab (immer sichtbar) -->
-        <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
-            ✅ Erledigen
-        </a>
-
         <!-- Abwesenheiten-Tab (nur für Leadership) -->
         <?php if (in_array(strtolower($current_user['role']), ['vorstand', 'gf', 'assistenz', 'führungsteam'])): ?>
         <a href="?tab=vertretung" class="<?php echo $active_tab === 'vertretung' ? 'active' : ''; ?>">
@@ -810,29 +868,15 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         </a>
         <?php endif; ?>
 
-        <!-- Meinungsbild-Tab (immer sichtbar) -->
-        <a href="?tab=opinion" class="<?php echo $active_tab === 'opinion' ? 'active' : ''; ?>">
-            📊 Meinungsbild
-        </a>
+        <!-- Benachrichtigungs-Center -->
+        <?php include 'notification_center.php'; ?>
 
-        <!-- Dokumente-Tab (optional, siehe config.php) -->
-        <?php if (defined('ENABLE_DOCUMENTS_TAB') && ENABLE_DOCUMENTS_TAB): ?>
-        <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
-            📁 Dokumente
-        </a>
-        <?php endif; ?>
-
-        <!-- Admin-Tab (nur für Vorstand und GF sichtbar) -->
-        <?php //if (in_array($current_user['role'], ['vorstand', 'gf'])):
-		if ($current_user['is_admin']):
-		?>
+        <!-- Admin-Tab (nur für Admins sichtbar) -->
+        <?php if ($current_user['is_admin']): ?>
             <a href="?tab=admin" class="<?php echo $active_tab === 'admin' ? 'active' : ''; ?>">
                 ⚙️ Admin
             </a>
         <?php endif; ?>
-
-        <!-- Benachrichtigungs-Center -->
-        <?php include 'notification_center.php'; ?>
     </div>
     
     <!-- HAUPTINHALT / CONTENT -->
@@ -864,6 +908,16 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                 include 'tab_opinion.php';
                 break;
 
+            case 'proposals':
+                // Anträge & Beschlüsse - direkt eingebunden für einheitliche Darstellung
+                include 'tab_proposals.php';
+                break;
+
+            case 'mv_beschluesse':
+                // MV-Beschlüsse anzeigen
+                include 'tab_mv_beschluesse.php';
+                break;
+
             case 'todos':
                 // ToDo-Liste anzeigen
                 include 'tab_todos.php';
@@ -892,8 +946,7 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             case 'admin':
                 // Admin-Panel anzeigen (nur für berechtigte Benutzer)
                 if ($current_user['is_admin']) {
-                    // process_admin.php verarbeitet Admin-Aktionen
-                    include 'process_admin.php';
+                    // process_admin.php wurde bereits VOR HTML-Output geladen
                     // tab_admin.php zeigt das Admin-Panel an
                     include 'tab_admin.php';
                 } else {
@@ -904,7 +957,19 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                     echo '</div>';
                 }
                 break;
-            
+
+            case 'admin_init':
+                // Grundkonfiguration / Initialisierung (nur für Admins mit Bestätigung)
+                if ($current_user['is_admin']) {
+                    include 'tab_admin_init.php';
+                } else {
+                    echo '<div style="max-width: 600px; margin: 40px auto; padding: 30px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
+                    echo '<h3 style="color: #856404; margin: 0 0 12px 0; font-size: 18px;">🔒 Zugriff nicht möglich</h3>';
+                    echo '<p style="color: #856404; margin: 0; line-height: 1.6;">Dieser Bereich ist nur für Administratoren zugänglich.</p>';
+                    echo '</div>';
+                }
+                break;
+
             default:
                 // Fallback: Bei unbekanntem Tab wird Sitzungen angezeigt
                 include 'tab_meetings.php';

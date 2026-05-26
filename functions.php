@@ -16,8 +16,8 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
-    // VIEW svmembers erstellen/aktualisieren (für SSO-Modus mit berechtigte-Tabelle)
-    ensure_svmembers_view($pdo);
+    // VIEW svmembers erstellen/aktualisieren (DEAKTIVIERT - wir nutzen BerechtigteAdapter)
+    // ensure_svmembers_view($pdo);
 
 } catch (PDOException $e) {
     if (DEBUG_MODE) {

@@ -11,7 +11,7 @@
 
 // Module laden
 require_once 'module_categories.php';
-require_once 'module_proposals.php';
+// require_once 'module_proposals.php'; // Entfernt - alte Proposals nicht mehr verwendet
 require_once 'module_comments.php';
 require_once 'module_helpers.php';
 require_once 'module_protocol.php';
@@ -213,6 +213,15 @@ $can_edit_meeting = ($is_secretary || $is_chairman);
                 case 'top_deleted':
                     echo '✅ TOP erfolgreich gelöscht!';
                     break;
+                case 'voting_started':
+                    echo '✅ Abstimmung wurde gestartet!';
+                    break;
+                case 'vote_submitted':
+                    echo '✅ Ihre Stimme wurde registriert!';
+                    break;
+                case 'voting_closed':
+                    echo '✅ Abstimmung wurde abgeschlossen!';
+                    break;
                 default:
                     echo '✅ Aktion erfolgreich durchgeführt!';
             }
@@ -228,7 +237,7 @@ $can_edit_meeting = ($is_secretary || $is_chairman);
                     echo '❌ TOP nicht gefunden.';
                     break;
                 case 'no_permission':
-                    echo '❌ Keine Berechtigung für diese Aktion. Nur Einladende, Protokollant und Sitzungsleiter dürfen TOPs verschieben.';
+                    echo '❌ Keine Berechtigung für diese Aktion.';
                     break;
                 case 'wrong_status':
                     echo '❌ TOPs können nur während der Vorbereitungsphase verschoben werden.';
@@ -242,6 +251,33 @@ $can_edit_meeting = ($is_secretary || $is_chairman);
                 case 'missing_data':
                     echo '❌ Fehlende Daten. Bitte wählen Sie eine Zielsitzung aus.';
                     break;
+                case 'voting_already_active':
+                    echo '❌ Für diesen TOP läuft bereits eine Abstimmung.';
+                    break;
+                case 'not_eligible':
+                    echo '❌ Sie sind bei dieser Abstimmung nicht stimmberechtigt.';
+                    break;
+                case 'already_voted':
+                    echo '❌ Sie haben bereits abgestimmt.';
+                    break;
+                case 'voting_not_found':
+                    echo '❌ Abstimmung nicht gefunden oder bereits abgeschlossen.';
+                    break;
+                case 'vote_failed':
+                    echo '❌ Fehler beim Speichern der Stimme.';
+                    break;
+                case 'voting_start_failed':
+                    echo '❌ Fehler beim Starten der Abstimmung.';
+                    break;
+                case 'voting_close_failed':
+                    echo '❌ Fehler beim Abschließen der Abstimmung.';
+                    break;
+                case 'target_already_voted':
+                    echo '❌ Diese Person hat bereits abgestimmt.';
+                    break;
+                case 'target_not_eligible':
+                    echo '❌ Diese Person ist nicht stimmberechtigt.';
+                    break;
                 default:
                     echo '❌ Ein Fehler ist aufgetreten.';
             }
@@ -250,35 +286,35 @@ $can_edit_meeting = ($is_secretary || $is_chairman);
     <?php endif; ?>
 
     <?php
+    // JavaScript für Module laden (VOR den Display-Dateien, damit inline-Handler funktionieren)
+    render_category_javascript();
+    ?>
+
+    <?php
     // ============================================
     // 4. FORMULARE JE NACH STATUS
     // ============================================
-    
+
     if ($meeting['status'] === 'preparation') {
         // VORBEREITUNG: TOPs anzeigen mit Bearbeitungsmöglichkeit
         // (Das Formular für neue TOPs ist bereits in der Display-Datei enthalten)
         include 'tab_agenda_display_preparation.php';
-        
+
     } elseif ($meeting['status'] === 'active') {
         // AKTIVE SITZUNG: TOPs mit Protokoll-Funktionen, Live-Kommentare
         include 'tab_agenda_display_active.php';
-        
+
     } elseif ($meeting['status'] === 'ended') {
         // SITZUNG BEENDET: Protokollant editiert, Teilnehmer kommentieren nach
         include 'tab_agenda_display_ended.php';
-        
+
     } elseif ($meeting['status'] === 'protocol_ready') {
         // PROTOKOLL BEREIT: Warten auf Genehmigung durch Sitzungsleiter
         include 'tab_agenda_display_protocol_ready.php';
-        
+
     } else {
         // ARCHIVED: Nur Ansicht
         include 'tab_agenda_display_readonly.php';
     }
     ?>
 </div>
-
-<?php
-// JavaScript für Module laden
-render_category_javascript();
-?>

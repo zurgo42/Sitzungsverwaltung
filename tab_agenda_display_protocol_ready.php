@@ -140,9 +140,7 @@ foreach ($agenda_items as $item):
                 <span class="badge" style="background: #f39c12; color: white;">🔒 Vertraulich</span>
             <?php endif; ?>
         </div>
-        
-        <?php render_proposal_display($item['proposal_text']); ?>
-        
+
         <!-- Beschreibung -->
         <?php if ($item['description']): ?>
             <div style="color: #666; margin: 8px 0; font-size: 14px;">
@@ -246,7 +244,15 @@ foreach ($agenda_items as $item):
                 <div style="margin-top: 6px; color: #333; font-size: 14px; line-height: 1.6;">
                     <?php echo nl2br(linkify_text($item['protocol_notes'])); ?>
                 </div>
-                <?php render_voting_result($item); ?>
+                <?php if (!empty($item['vote_result'])): ?>
+                    <div style="margin-top: 10px; padding: 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+                        <strong>Abstimmung:</strong>
+                        Ja: <?= (int)($item['vote_yes'] ?? 0) ?> |
+                        Nein: <?= (int)($item['vote_no'] ?? 0) ?> |
+                        Enthaltungen: <?= (int)($item['vote_abstain'] ?? 0) ?> →
+                        <strong><?= htmlspecialchars($item['vote_result']) ?></strong>
+                    </div>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 

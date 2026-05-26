@@ -148,6 +148,49 @@ $type_icons = [
     text-align: center;
     color: #999;
 }
+
+/* Dark Mode */
+body.dark-mode .notification-bell {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .notification-bell:hover {
+    background: var(--hover-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .notification-dropdown {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .notification-header {
+    background: var(--primary-light) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .notification-item {
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .notification-item:hover {
+    background: var(--hover-bg) !important;
+}
+
+body.dark-mode .notification-item-title {
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .notification-item-message {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-mode .notification-footer {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border-color) !important;
+}
 </style>
 
 <!-- Notification Bell -->

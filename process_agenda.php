@@ -17,6 +17,9 @@
 // Persönliche Notizen-Funktionen laden
 require_once __DIR__ . '/personal_notes_functions.php';
 
+// Voting-Funktionen laden
+require_once __DIR__ . '/module_voting.php';
+
 // Hilfsfunktion: Vollständigen Link zur Sitzung generieren
 function get_full_meeting_link($meeting_id) {
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
@@ -25,7 +28,52 @@ function get_full_meeting_link($meeting_id) {
     return $protocol . $host . $script . "?tab=agenda&meeting_id=" . $meeting_id;
 }
 
-// Berechtigungen ermitteln (falls Meeting geladen)
+/**
+ * Generiert eine neue Antragsnummer
+ * Format: A + YYMMDD + laufende Nummer (01-99)
+ */
+function generiereAntragsnummer($pdo, $prefix = 'A', $date = '') {
+    if ($date === '') {
+        $date_part = date('ymd');
+    } else {
+        $date_part = $date;
+    }
+
+    $prefix_pattern = $prefix . $date_part;
+
+    $stmt = $pdo->prepare("
+        SELECT antrnr
+        FROM " . TABLE_ANTRAEGE . "
+        WHERE antrnr LIKE ?
+        ORDER BY antrnr DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$prefix_pattern . '%']);
+    $existing = $stmt->fetch();
+
+    if (!$existing) {
+        return $prefix_pattern . '01';
+    }
+
+    $last_number = (int)substr($existing['antrnr'], -2);
+    $new_number = $last_number + 1;
+
+    if ($new_number > 99) {
+        throw new Exception("Tageslimit für Anträge erreicht (max. 99 pro Tag)");
+    }
+
+    return $prefix_pattern . str_pad($new_number, 2, '0', STR_PAD_LEFT);
+}
+
+// ============================================
+// BERECHTIGUNGEN ERMITTELN (WICHTIG: VOR DEN HANDLERN!)
+// ============================================
+// Falls Meeting noch nicht geladen: hier laden
+if (!isset($meeting) && isset($current_meeting_id)) {
+    $meeting = get_meeting_details($pdo, $current_meeting_id);
+}
+
+// Berechtigungen ermitteln
 $is_secretary = false;
 $is_chairman = false;
 if (isset($meeting) && $meeting) {
@@ -55,7 +103,6 @@ if (isset($_POST['add_agenda_item'])) {
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $category = $_POST['category'] ?? 'information';
-    $proposal_text = ($category === 'antrag_beschluss') ? trim($_POST['proposal_text'] ?? '') : '';
     $priority = floatval($_POST['priority'] ?? 5.0);
     $duration = intval($_POST['duration'] ?? 15);
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
@@ -65,14 +112,109 @@ if (isset($_POST['add_agenda_item'])) {
             // Transaktion starten für atomare Operation
             $pdo->beginTransaction();
 
+            $antrnr = null;
+            $proposal_text = '';
+
+            // Wenn Kategorie "antrag_beschluss" und Beschlusstext vorhanden: Vollständigen Antrag erstellen
+            if ($category === 'antrag_beschluss' && !empty($_POST['proposal_beschluss'])) {
+                // Validierung der Pflichtfelder
+                $validation_errors = [];
+                if (empty(trim($_POST['proposal_beschluss']))) {
+                    $validation_errors[] = "Beschlusstext ist erforderlich";
+                }
+                if (empty(trim($_POST['proposal_ressort1']))) {
+                    $validation_errors[] = "Ressort ist erforderlich";
+                }
+                if (empty(trim($_POST['proposal_verant']))) {
+                    $validation_errors[] = "Verantwortlicher ist erforderlich";
+                }
+
+                if (!empty($validation_errors)) {
+                    throw new Exception("Pflichtfelder fehlen: " . implode(", ", $validation_errors));
+                }
+
+                $antrnr = generiereAntragsnummer($pdo);
+
+                // Sofort-Wert ermitteln
+                $sofort = 0;
+                if (isset($_POST['proposal_sofort_1'])) $sofort = 1;
+                elseif (isset($_POST['proposal_sofort_2'])) $sofort = 2;
+
+                // Hinweis mit Zeitstempel erstellen
+                $hinweis = '';
+                if (!empty($_POST['proposal_hinweis'])) {
+                    $hinweis = date('d.m.Y H:i') . ' (' . ($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? '') . '): ' . trim($_POST['proposal_hinweis']);
+                }
+
+                // File-Upload-Handling
+                $file_paths = ['', '', '', ''];
+                $file_texts = ['', '', '', ''];
+                for ($i = 1; $i <= 4; $i++) {
+                    $file_field = "proposal_file$i";
+                    if (isset($_FILES[$file_field]) && $_FILES[$file_field]['error'] === UPLOAD_ERR_OK) {
+                        $upload_dir = __DIR__ . '/uploads/antraege/';
+                        if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
+
+                        $filename = $antrnr . '_f' . $i . '_' . basename($_FILES[$file_field]['name']);
+                        $filepath = $upload_dir . $filename;
+
+                        if (move_uploaded_file($_FILES[$file_field]['tmp_name'], $filepath)) {
+                            $file_paths[$i-1] = 'uploads/antraege/' . $filename;
+                        }
+                    }
+                    $file_texts[$i-1] = trim($_POST["proposal_filetext$i"] ?? '');
+                }
+
+                // Antrag in antraege-Tabelle einfügen
+                $stmt_antrag = $pdo->prepare("
+                    INSERT INTO " . TABLE_ANTRAEGE . " (
+                        antrnr, antrst, bart, titel, beschluss, begr,
+                        fin, fintext, pers, sach,
+                        ressort1, ressort2, verant, verein, int_ext,
+                        sofort, durch, zufin, hinweis,
+                        file1, file2, file3, file4,
+                        filetext1, filetext2, filetext3, filetext4,
+                        praesenz, meeting_id, lzugriff
+                    ) VALUES (?, ?, 'B', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW())
+                ");
+                $stmt_antrag->execute([
+                    $antrnr,
+                    $current_user['member_id'],
+                    trim($_POST['proposal_titel'] ?? $title),        // titel (eigener oder TOP-Titel)
+                    trim($_POST['proposal_beschluss']),              // beschluss
+                    trim($_POST['proposal_begr'] ?? ''),             // begr
+                    floatval($_POST['proposal_fin'] ?? 0),           // fin
+                    trim($_POST['proposal_fintext'] ?? ''),          // fintext
+                    trim($_POST['proposal_pers'] ?? ''),             // pers
+                    trim($_POST['proposal_sach'] ?? ''),             // sach
+                    trim($_POST['proposal_ressort1'] ?? ''),         // ressort1
+                    !empty($_POST['proposal_ressort2']) ? trim($_POST['proposal_ressort2']) : null,  // ressort2
+                    trim($_POST['proposal_verant'] ?? ''),           // verant (jetzt Textfeld)
+                    $_POST['proposal_verein'] ?? 'V',                // verein
+                    $_POST['proposal_int_ext'] ?? 'e',               // int_ext (e=Extern als Standard)
+                    $sofort,                                         // sofort
+                    trim($_POST['proposal_durch'] ?? ''),            // durch
+                    isset($_POST['proposal_zufin']) ? 1 : 0,        // zufin
+                    $hinweis,                                        // hinweis
+                    $file_paths[0], $file_paths[1], $file_paths[2], $file_paths[3],  // file1-4
+                    $file_texts[0], $file_texts[1], $file_texts[2], $file_texts[3],  // filetext1-4
+                    $current_meeting_id                              // meeting_id
+                ]);
+
+                error_log("Created proposal $antrnr (Vorstandsbeschluss) for meeting $current_meeting_id");
+            } elseif ($category === 'antrag_beschluss') {
+                // Einfacher Antragstext ohne vollständigen Antrag (wenn allow_decisions=0)
+                $proposal_text = trim($_POST['proposal_text'] ?? '');
+            }
+
             // TOP-Nummer automatisch vergeben
             $top_number = get_next_top_number($pdo, $current_meeting_id, $is_confidential);
 
             // TOP in Datenbank einfügen
             $stmt = $pdo->prepare("
                 INSERT INTO svagenda_items
-                (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $current_meeting_id,
@@ -81,6 +223,7 @@ if (isset($_POST['add_agenda_item'])) {
                 $description,
                 $category,
                 $proposal_text,
+                $antrnr,
                 $priority,
                 $duration,
                 $is_confidential,
@@ -107,13 +250,16 @@ if (isset($_POST['add_agenda_item'])) {
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
             exit;
 
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             // Rollback bei Fehler
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
             error_log("FEHLER beim Hinzufügen des TOP: " . $e->getMessage() . " | Stack: " . $e->getTraceAsString());
-            $error = "Fehler beim Hinzufügen des TOP: " . $e->getMessage();
+
+            // Fehler an User anzeigen
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=" . urlencode($e->getMessage()));
+            exit;
         }
     }
 }
@@ -1110,16 +1256,16 @@ if (isset($_POST['save_protocol'])) {
                 'due_date' => $_POST['todo_due_date'] ?? [],
                 'private' => $_POST['todo_private'] ?? []
             ];
-            
-            if (isset($todo_arrays['assigned_to'][$item_id]) && 
-                $todo_arrays['assigned_to'][$item_id] && 
+
+            if (isset($todo_arrays['assigned_to'][$item_id]) &&
+                $todo_arrays['assigned_to'][$item_id] &&
                 !empty($todo_arrays['description'][$item_id])) {
-                
+
                 $assigned_to = intval($todo_arrays['assigned_to'][$item_id]);
                 $todo_desc = trim($todo_arrays['description'][$item_id]);
                 $due_date = $todo_arrays['due_date'][$item_id] ?? null;
                 $is_private = isset($todo_arrays['private'][$item_id]) && $todo_arrays['private'][$item_id] == 1 ? 1 : 0;
-                
+
                 // ToDo in Protokoll-Text einfügen
                 // Mitglied über Wrapper-Funktion laden
                 $member = get_member_by_id($pdo, $assigned_to);
@@ -1142,22 +1288,29 @@ if (isset($_POST['save_protocol'])) {
                     // ToDo-Beschreibung mit Meeting-Link erweitern
                     $todo_description_with_link = $todo_desc . "\n\nLink zur Sitzung: " . get_full_meeting_link($current_meeting_id);
 
-                    // ToDo in Datenbank speichern
-                    $stmt = $pdo->prepare("
-                        INSERT INTO svtodos
-                        (meeting_id, item_id, assigned_to_member_id, title, description, status, is_private, due_date, entry_date, created_by_member_id)
-                        VALUES (?, ?, ?, ?, ?, 'open', ?, ?, CURDATE(), ?)
-                    ");
-                    $stmt->execute([
-                        $current_meeting_id,
-                        $item_id,
-                        $assigned_to,
-                        $todo_desc,
-                        $todo_description_with_link,
-                        $is_private,
-                        $due_date,
-                        $current_user['member_id']
-                    ]);
+                    try {
+                        // ToDo in Datenbank speichern
+                        $stmt = $pdo->prepare("
+                            INSERT INTO svtodos
+                            (meeting_id, item_id, assigned_to_member_id, title, description, status, is_private, due_date, entry_date, created_by_member_id)
+                            VALUES (?, ?, ?, ?, ?, 'open', ?, ?, CURDATE(), ?)
+                        ");
+                        $stmt->execute([
+                            $current_meeting_id,
+                            $item_id,
+                            $assigned_to,
+                            $todo_desc,
+                            $todo_description_with_link,
+                            $is_private,
+                            $due_date,
+                            $current_user['member_id']
+                        ]);
+
+                        $todo_id = $pdo->lastInsertId();
+                    } catch (PDOException $e) {
+                        error_log("Agenda TODO Insert Error: " . $e->getMessage());
+                        throw $e; // Re-throw für weitere Fehlerbehandlung
+                    }
                 }
             }
             
@@ -1264,9 +1417,9 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
                     $resubmit_note = "Wiedervorlage aus Sitzung vom {$meeting_date_formatted}, TOP {$current_item['top_number']}";
                     
                     $stmt = $pdo->prepare("
-                        INSERT INTO svagenda_items 
-                        (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO svagenda_items
+                        (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
                     $stmt->execute([
                         $target_meeting_id,
@@ -1275,13 +1428,47 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
                         $current_item['description'],
                         $current_item['category'],
                         $current_item['proposal_text'],
+                        $current_item['antrnr'], // Antrag mitübertragen
                         $current_item['priority'],
                         $current_item['estimated_duration'],
                         $is_confidential_resubmit,
                         $current_user['member_id'],
                         $resubmit_note
                     ]);
-                    
+
+                    $new_item_id = $pdo->lastInsertId();
+
+                    // Wenn Antrag verknüpft ist, Antrag der neuen Sitzung zuordnen
+                    if (!empty($current_item['antrnr'])) {
+                        $stmt = $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET meeting_id = ? WHERE antrnr = ?");
+                        $stmt->execute([$target_meeting_id, $current_item['antrnr']]);
+                        error_log("Wiedervorlage: Antrag {$current_item['antrnr']} wurde Sitzung {$target_meeting_id} zugeordnet");
+                    }
+
+                    // Ziel-Sitzungsdatum laden für Dokumentation
+                    $stmt = $pdo->prepare("SELECT meeting_date FROM svmeetings WHERE meeting_id = ?");
+                    $stmt->execute([$target_meeting_id]);
+                    $target_meeting_date = $stmt->fetchColumn();
+                    $target_date_formatted = date('d.m.Y', strtotime($target_meeting_date));
+
+                    // 1. In ABGEBENDER Sitzung: Wiedervorlage im Protokoll dokumentieren
+                    $source_protocol_note = "\n\nDieser TOP wurde zur Wiedervorlage in der Sitzung am {$target_date_formatted} neu angelegt.";
+                    $stmt = $pdo->prepare("
+                        UPDATE svagenda_items
+                        SET protocol_notes = CONCAT(COALESCE(protocol_notes, ''), ?)
+                        WHERE item_id = ?
+                    ");
+                    $stmt->execute([$source_protocol_note, $item_id]);
+
+                    // 2. In EMPFANGENDER Sitzung: Kommentar hinzufügen
+                    $source_date_formatted = date('d.m.Y', strtotime($current_item['meeting_date']));
+                    $target_comment = "Dieser TOP wurde als Wiedervorlage aus der Sitzung am {$source_date_formatted} hier neu angelegt.";
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svagenda_comments (item_id, member_id, comment_text, created_at)
+                        VALUES (?, ?, ?, NOW())
+                    ");
+                    $stmt->execute([$new_item_id, $current_user['member_id'], $target_comment]);
+
                     $_SESSION['resubmit_success'] = "Wiedervorlage erfolgreich angelegt!";
                 }
             }
@@ -1484,13 +1671,109 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $category = $_POST['category'] ?? 'information';
-    $proposal_text = ($category === 'antrag_beschluss') ? trim($_POST['proposal_text'] ?? '') : '';
+    $priority = floatval($_POST['priority'] ?? 5.0);
+    $duration = intval($_POST['duration'] ?? 10);
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
 
     if ($title) {
         try {
             // Transaktion starten für atomare Operation
             $pdo->beginTransaction();
+
+            $antrnr = null;
+            $proposal_text = '';
+
+            // Wenn Kategorie "antrag_beschluss" und Beschlusstext vorhanden: Vollständigen Antrag erstellen
+            if ($category === 'antrag_beschluss' && !empty($_POST['proposal_beschluss'])) {
+                // Validierung der Pflichtfelder
+                $validation_errors = [];
+                if (empty(trim($_POST['proposal_beschluss']))) {
+                    $validation_errors[] = "Beschlusstext ist erforderlich";
+                }
+                if (empty(trim($_POST['proposal_ressort1']))) {
+                    $validation_errors[] = "Ressort ist erforderlich";
+                }
+                if (empty(trim($_POST['proposal_verant']))) {
+                    $validation_errors[] = "Verantwortlicher ist erforderlich";
+                }
+
+                if (!empty($validation_errors)) {
+                    throw new Exception("Pflichtfelder fehlen: " . implode(", ", $validation_errors));
+                }
+
+                $antrnr = generiereAntragsnummer($pdo);
+
+                // Sofort-Wert ermitteln
+                $sofort = 0;
+                if (isset($_POST['proposal_sofort_1'])) $sofort = 1;
+                elseif (isset($_POST['proposal_sofort_2'])) $sofort = 2;
+
+                // Hinweis mit Zeitstempel erstellen
+                $hinweis = '';
+                if (!empty($_POST['proposal_hinweis'])) {
+                    $hinweis = date('d.m.Y H:i') . ' (' . ($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? '') . '): ' . trim($_POST['proposal_hinweis']);
+                }
+
+                // File-Upload-Handling
+                $file_paths = ['', '', '', ''];
+                $file_texts = ['', '', '', ''];
+                for ($i = 1; $i <= 4; $i++) {
+                    $file_field = "proposal_file$i";
+                    if (isset($_FILES[$file_field]) && $_FILES[$file_field]['error'] === UPLOAD_ERR_OK) {
+                        $upload_dir = __DIR__ . '/uploads/antraege/';
+                        if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
+
+                        $filename = $antrnr . '_f' . $i . '_' . basename($_FILES[$file_field]['name']);
+                        $filepath = $upload_dir . $filename;
+
+                        if (move_uploaded_file($_FILES[$file_field]['tmp_name'], $filepath)) {
+                            $file_paths[$i-1] = 'uploads/antraege/' . $filename;
+                        }
+                    }
+                    $file_texts[$i-1] = trim($_POST["proposal_filetext$i"] ?? '');
+                }
+
+                // Antrag in antraege-Tabelle einfügen
+                $stmt_antrag = $pdo->prepare("
+                    INSERT INTO " . TABLE_ANTRAEGE . " (
+                        antrnr, antrst, bart, titel, beschluss, begr,
+                        fin, fintext, pers, sach,
+                        ressort1, ressort2, verant, verein, int_ext,
+                        sofort, durch, zufin, hinweis,
+                        file1, file2, file3, file4,
+                        filetext1, filetext2, filetext3, filetext4,
+                        praesenz, meeting_id, lzugriff
+                    ) VALUES (?, ?, 'B', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW())
+                ");
+                $stmt_antrag->execute([
+                    $antrnr,
+                    $current_user['member_id'],
+                    trim($_POST['proposal_titel'] ?? $title),        // titel (eigener oder TOP-Titel)
+                    trim($_POST['proposal_beschluss']),              // beschluss
+                    trim($_POST['proposal_begr'] ?? ''),             // begr
+                    floatval($_POST['proposal_fin'] ?? 0),           // fin
+                    trim($_POST['proposal_fintext'] ?? ''),          // fintext
+                    trim($_POST['proposal_pers'] ?? ''),             // pers
+                    trim($_POST['proposal_sach'] ?? ''),             // sach
+                    trim($_POST['proposal_ressort1'] ?? ''),         // ressort1
+                    !empty($_POST['proposal_ressort2']) ? trim($_POST['proposal_ressort2']) : null,  // ressort2
+                    trim($_POST['proposal_verant'] ?? ''),           // verant (jetzt Textfeld)
+                    $_POST['proposal_verein'] ?? 'V',                // verein
+                    $_POST['proposal_int_ext'] ?? 'e',               // int_ext (e=Extern als Standard)
+                    $sofort,                                         // sofort
+                    trim($_POST['proposal_durch'] ?? ''),            // durch
+                    isset($_POST['proposal_zufin']) ? 1 : 0,        // zufin
+                    $hinweis,                                        // hinweis
+                    $file_paths[0], $file_paths[1], $file_paths[2], $file_paths[3],  // file1-4
+                    $file_texts[0], $file_texts[1], $file_texts[2], $file_texts[3],  // filetext1-4
+                    $current_meeting_id                              // meeting_id
+                ]);
+
+                error_log("Created proposal $antrnr (Vorstandsbeschluss) for active meeting $current_meeting_id");
+            } elseif ($category === 'antrag_beschluss') {
+                // Einfacher Antragstext ohne vollständigen Antrag (wenn allow_decisions=0)
+                $proposal_text = trim($_POST['proposal_text'] ?? '');
+            }
 
             error_log("Adding TOP (active meeting): meeting_id=$current_meeting_id, confidential=$is_confidential, title=$title");
 
@@ -1499,8 +1782,8 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
 
             $stmt = $pdo->prepare("
                 INSERT INTO svagenda_items
-                (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id)
-                VALUES (?, ?, ?, ?, ?, ?, 5, 10, ?, ?)
+                (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $current_meeting_id,
@@ -1509,6 +1792,9 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
                 $description,
                 $category,
                 $proposal_text,
+                $antrnr,
+                $priority,
+                $duration,
                 $is_confidential,
                 $current_user['member_id']
             ]);
@@ -1522,12 +1808,16 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
             exit;
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             // Rollback bei Fehler
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
             error_log("FEHLER beim Hinzufügen des TOP (active): " . $e->getMessage() . " | Stack: " . $e->getTraceAsString());
+
+            // Fehler an User anzeigen
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=" . urlencode($e->getMessage()));
+            exit;
         }
     }
 }
@@ -1602,9 +1892,9 @@ if (isset($_POST['save_all_protocols']) && $is_secretary && $meeting['status'] =
                     $resubmit_note = "Wiedervorlage aus Sitzung vom {$meeting_date_formatted}, TOP {$current_item['top_number']}";
                     
                     $stmt = $pdo->prepare("
-                        INSERT INTO svagenda_items 
-                        (meeting_id, top_number, title, description, category, proposal_text, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO svagenda_items
+                        (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
                     $stmt->execute([
                         $target_meeting_id,
@@ -1613,13 +1903,47 @@ if (isset($_POST['save_all_protocols']) && $is_secretary && $meeting['status'] =
                         $current_item['description'],
                         $current_item['category'],
                         $current_item['proposal_text'],
+                        $current_item['antrnr'], // Antrag mitübertragen
                         $current_item['priority'],
                         $current_item['estimated_duration'],
                         $is_confidential_resubmit,
                         $current_user['member_id'],
                         $resubmit_note
                     ]);
-                    
+
+                    $new_item_id = $pdo->lastInsertId();
+
+                    // Wenn Antrag verknüpft ist, Antrag der neuen Sitzung zuordnen
+                    if (!empty($current_item['antrnr'])) {
+                        $stmt = $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET meeting_id = ? WHERE antrnr = ?");
+                        $stmt->execute([$target_meeting_id, $current_item['antrnr']]);
+                        error_log("Wiedervorlage: Antrag {$current_item['antrnr']} wurde Sitzung {$target_meeting_id} zugeordnet");
+                    }
+
+                    // Ziel-Sitzungsdatum laden für Dokumentation
+                    $stmt = $pdo->prepare("SELECT meeting_date FROM svmeetings WHERE meeting_id = ?");
+                    $stmt->execute([$target_meeting_id]);
+                    $target_meeting_date = $stmt->fetchColumn();
+                    $target_date_formatted = date('d.m.Y', strtotime($target_meeting_date));
+
+                    // 1. In ABGEBENDER Sitzung: Wiedervorlage im Protokoll dokumentieren
+                    $source_protocol_note = "\n\nDieser TOP wurde zur Wiedervorlage in der Sitzung am {$target_date_formatted} neu angelegt.";
+                    $stmt = $pdo->prepare("
+                        UPDATE svagenda_items
+                        SET protocol_notes = CONCAT(COALESCE(protocol_notes, ''), ?)
+                        WHERE item_id = ?
+                    ");
+                    $stmt->execute([$source_protocol_note, $item_id]);
+
+                    // 2. In EMPFANGENDER Sitzung: Kommentar hinzufügen
+                    $source_date_formatted = date('d.m.Y', strtotime($current_item['meeting_date']));
+                    $target_comment = "Dieser TOP wurde als Wiedervorlage aus der Sitzung am {$source_date_formatted} hier neu angelegt.";
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svagenda_comments (item_id, member_id, comment_text, created_at)
+                        VALUES (?, ?, ?, NOW())
+                    ");
+                    $stmt->execute([$new_item_id, $current_user['member_id'], $target_comment]);
+
                     $_SESSION['resubmit_success'] = "Wiedervorlage erfolgreich angelegt!";
                 }
             }
@@ -1736,6 +2060,8 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
  */
 if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
     try {
+        $changes_saved = false;
+
         // Protokoll speichern (nur Sekretär)
         if ($is_secretary) {
             $protocol_texts = $_POST['protocol_text'] ?? [];
@@ -1799,6 +2125,7 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
                     ");
                     $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
                 }
+                $changes_saved = true;
             } else {
                 // Leerer Text = Kommentar löschen
                 $stmt = $pdo->prepare("
@@ -1809,10 +2136,12 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
             }
         }
 
-        header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=ended_saved");
         exit;
     } catch (PDOException $e) {
-        error_log("Fehler beim Speichern: " . $e->getMessage());
+        error_log("Fehler beim Speichern (ended): " . $e->getMessage());
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=save_failed&msg=" . urlencode($e->getMessage()));
+        exit;
     }
 }
 
@@ -2164,13 +2493,16 @@ if (isset($_POST['save_participant_comment']) && $meeting['status'] === 'protoco
  * Redirect: ?tab=agenda&meeting_id=X#top-ITEM_ID (falls item_id angegeben)
  */
 if (isset($_POST['quick_todo_create'])) {
-    $todo_title = trim($_POST['todo_title'] ?? '');
-    $todo_description = trim($_POST['todo_description'] ?? '');
-    $todo_due_date = !empty($_POST['todo_due_date']) ? $_POST['todo_due_date'] : null;
-    $item_id = !empty($_POST['item_id']) ? intval($_POST['item_id']) : null;
+    // Item-ID kommt jetzt aus dem Button-Value (nicht mehr aus hidden field)
+    $item_id = !empty($_POST['quick_todo_create']) ? intval($_POST['quick_todo_create']) : null;
+
+    // Feldnamen haben jetzt item_id als Suffix (wegen Mehrfachformular)
+    $todo_title = trim($_POST["todo_title_$item_id"] ?? '');
+    $todo_description = trim($_POST["todo_description_$item_id"] ?? '');
+    $todo_due_date = !empty($_POST["todo_due_date_$item_id"]) ? $_POST["todo_due_date_$item_id"] : null;
 
     // Zuweisung: Wenn assigned_to_member_id gesetzt (Protokollführer), verwende diesen, sonst sich selbst
-    $assigned_to = !empty($_POST['assigned_to_member_id']) ? intval($_POST['assigned_to_member_id']) : $current_user['member_id'];
+    $assigned_to = !empty($_POST["todo_assigned_to_$item_id"]) ? intval($_POST["todo_assigned_to_$item_id"]) : $current_user['member_id'];
 
     if (!empty($todo_title)) {
         try {
@@ -2214,6 +2546,271 @@ if (isset($_POST['quick_todo_create'])) {
     } else {
         $redirect_anchor = $item_id ? "#top-$item_id" : '';
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=todo_title_required$redirect_anchor");
+        exit;
+    }
+}
+
+/**
+ * =========================================================
+ * VOTING / ABSTIMMUNGS-FUNKTIONEN
+ * =========================================================
+ */
+
+/**
+ * Abstimmung initiieren
+ */
+if (isset($_POST['initiate_voting']) && $meeting['status'] === 'active') {
+    $item_id = intval($_POST['item_id'] ?? 0);
+    $voting_type = $_POST['voting_type'] ?? 'open'; // 'open' oder 'secret'
+    $eligible_voters = $_POST['eligible_voters'] ?? 'board'; // 'board' oder 'all'
+    $voting_question = trim($_POST['voting_question'] ?? ''); // Frage bei Stimmungsbild
+    $vote_on_proposal = isset($_POST['vote_on_proposal']) && $_POST['vote_on_proposal'] == '1'; // Checkbox für Antragsabstimmung
+
+    // Wenn Checkbox "Abstimmung über den Antrag" aktiviert ist, voting_question leer setzen
+    if ($vote_on_proposal) {
+        $voting_question = '';
+    }
+
+    if (!$item_id) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=invalid_item");
+        exit;
+    }
+
+    // Prüfen ob User berechtigt ist (Sitzungsleiter, Protokollführer, Admin)
+    if (!can_initiate_voting($current_user, $meeting)) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=no_permission#top-$item_id");
+        exit;
+    }
+
+    // Prüfen ob bereits aktive Abstimmung existiert
+    $existing = get_active_voting($pdo, $item_id);
+    if ($existing) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=voting_already_active#top-$item_id");
+        exit;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO svvotings (item_id, initiated_by_member_id, voting_question, voting_type, eligible_voters, status, created_at)
+            VALUES (?, ?, ?, ?, ?, 'active', NOW())
+        ");
+        $stmt->execute([$item_id, $current_user['member_id'], $voting_question ?: null, $voting_type, $eligible_voters]);
+
+        error_log("Voting initiated for item $item_id by member {$current_user['member_id']} (type: $voting_type, eligible: $eligible_voters)");
+
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=voting_started#top-$item_id");
+        exit;
+    } catch (PDOException $e) {
+        error_log("Error initiating voting: " . $e->getMessage());
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=voting_start_failed#top-$item_id");
+        exit;
+    }
+}
+
+/**
+ * Stimme abgeben
+ */
+if (isset($_POST['submit_vote']) && $meeting['status'] === 'active') {
+    $voting_id = intval($_POST['voting_id'] ?? 0);
+    $vote = $_POST['vote'] ?? ''; // 'yes', 'no', 'abstain'
+    $item_id = intval($_POST['item_id'] ?? 0);
+
+    if (!$voting_id || !in_array($vote, ['yes', 'no', 'abstain'])) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=invalid_vote#top-$item_id");
+        exit;
+    }
+
+    // Voting-Daten laden
+    $stmt = $pdo->prepare("SELECT * FROM svvotings WHERE voting_id = ? AND status = 'active'");
+    $stmt->execute([$voting_id]);
+    $voting = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$voting) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=voting_not_found#top-$item_id");
+        exit;
+    }
+
+    // Prüfen ob User stimmberechtigt ist
+    if (!is_eligible_to_vote($current_user, $voting['eligible_voters'])) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=not_eligible#top-$item_id");
+        exit;
+    }
+
+    // Prüfen ob bereits abgestimmt
+    if (has_voted($pdo, $voting_id, $current_user['member_id'])) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=already_voted#top-$item_id");
+        exit;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO svvotes (voting_id, member_id, vote, created_at)
+            VALUES (?, ?, ?, NOW())
+        ");
+        $stmt->execute([$voting_id, $current_user['member_id'], $vote]);
+
+        error_log("Vote submitted: voting_id=$voting_id, member_id={$current_user['member_id']}, vote=$vote");
+
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=vote_submitted#top-$item_id");
+        exit;
+    } catch (PDOException $e) {
+        error_log("Error submitting vote: " . $e->getMessage());
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=vote_failed#top-$item_id");
+        exit;
+    }
+}
+
+/**
+ * Protokollführer gibt Stimme für Teilnehmer ab
+ */
+if (isset($_POST['submit_vote_for_member']) && $is_secretary && $meeting['status'] === 'active') {
+    $voting_id = intval($_POST['voting_id'] ?? 0);
+    $for_member_id = intval($_POST['for_member_id'] ?? 0);
+    $vote = $_POST['vote'] ?? '';
+    $item_id = intval($_POST['item_id'] ?? 0);
+
+    if (!$voting_id || !$for_member_id || !in_array($vote, ['yes', 'no', 'abstain'])) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=invalid_vote#top-$item_id");
+        exit;
+    }
+
+    // Voting-Daten laden
+    $stmt = $pdo->prepare("SELECT * FROM svvotings WHERE voting_id = ? AND status = 'active'");
+    $stmt->execute([$voting_id]);
+    $voting = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$voting) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=voting_not_found#top-$item_id");
+        exit;
+    }
+
+    // Prüfen ob Zielperson stimmberechtigt ist
+    $target_member = get_member_by_id($pdo, $for_member_id);
+    if (!$target_member || !is_eligible_to_vote($target_member, $voting['eligible_voters'])) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=target_not_eligible#top-$item_id");
+        exit;
+    }
+
+    // Prüfen ob bereits abgestimmt
+    if (has_voted($pdo, $voting_id, $for_member_id)) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=target_already_voted#top-$item_id");
+        exit;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO svvotes (voting_id, member_id, vote, submitted_by_member_id, created_at)
+            VALUES (?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([$voting_id, $for_member_id, $vote, $current_user['member_id']]);
+
+        error_log("Vote submitted by secretary: voting_id=$voting_id, for_member_id=$for_member_id, vote=$vote, submitted_by={$current_user['member_id']}");
+
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=vote_submitted#top-$item_id");
+        exit;
+    } catch (PDOException $e) {
+        error_log("Error submitting vote for member: " . $e->getMessage());
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=vote_failed#top-$item_id");
+        exit;
+    }
+}
+
+/**
+ * Abstimmung abschließen
+ */
+if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
+    $voting_id = intval($_POST['voting_id'] ?? 0);
+    $item_id = intval($_POST['item_id'] ?? 0);
+
+    if (!$voting_id) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=invalid_voting#top-$item_id");
+        exit;
+    }
+
+    // Prüfen ob User berechtigt ist
+    if (!can_close_voting($current_user, $meeting)) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=no_permission#top-$item_id");
+        exit;
+    }
+
+    // Voting-Daten laden
+    $stmt = $pdo->prepare("SELECT * FROM svvotings WHERE voting_id = ? AND status = 'active'");
+    $stmt->execute([$voting_id]);
+    $voting = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$voting) {
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=voting_not_found#top-$item_id");
+        exit;
+    }
+
+    try {
+        // TOP-Daten laden (brauchen wir für antrnr-Check)
+        $stmt = $pdo->prepare("SELECT * FROM svagenda_items WHERE item_id = ?");
+        $stmt->execute([$voting['item_id']]);
+        $item = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Stimmen zählen
+        $counts = get_vote_counts($pdo, $voting_id);
+
+        // Ergebnis-Zusammenfassung und Protokolltext erstellen
+        $result_summary = "";
+        $protocol_entry = "";
+        $beschluss_saved = false;
+
+        // Unterscheidung: Antragsabstimmung (voting_question leer + antrnr vorhanden) vs. Stimmungsbild
+        $is_proposal_vote = ($item && !empty($item['antrnr']) && empty($voting['voting_question']));
+
+        if ($is_proposal_vote) {
+            // ANTRAGSABSTIMMUNG: Kompaktes Format
+            // Ergebnis ermitteln - bei Gleichstand ist Antrag abgelehnt
+            $result_text = "";
+            if ($counts['yes'] > $counts['no']) {
+                $result_text = "angenommen";
+            } else {
+                // Bei Gleichstand oder weniger Ja-Stimmen: nicht angenommen
+                $result_text = "nicht angenommen";
+            }
+
+            $result_summary = "Antrag {$item['antrnr']} - {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung - {$result_text}";
+
+            // In beschluesse-Tabelle speichern
+            $beschluss_saved = save_voting_result_to_beschluesse($pdo, $voting_id, $item);
+
+            // Protokolltext für Antrag - kompakt in 1 Zeile mit Präfix "Antrag:"
+            $protocol_entry = "\n\nAntrag: Abstimmung über den Antrag: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung ({$result_text})";
+        } else {
+            // STIMMUNGSBILD: Kompaktes Format - alles in 1 Zeile
+            $question = !empty($voting['voting_question']) ? $voting['voting_question'] : 'Keine Frage angegeben';
+
+            $result_summary = "Stimmungsbild: {$question} - {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung";
+            $protocol_entry = "\n\nStimmungsbild: {$question} Ergebnis: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung";
+        }
+
+        // Voting abschließen
+        $stmt = $pdo->prepare("
+            UPDATE svvotings
+            SET status = 'closed', closed_at = NOW(), closed_by_member_id = ?, result_summary = ?
+            WHERE voting_id = ?
+        ");
+        $stmt->execute([$current_user['member_id'], $result_summary, $voting_id]);
+
+        // Ergebnis automatisch ins Protokoll einfügen
+        if ($item) {
+            $stmt = $pdo->prepare("
+                UPDATE svagenda_items
+                SET protocol_notes = CONCAT(COALESCE(protocol_notes, ''), ?)
+                WHERE item_id = ?
+            ");
+            $stmt->execute([$protocol_entry, $item['item_id']]);
+        }
+
+        error_log("Voting closed: voting_id=$voting_id, result=$result_summary");
+
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=voting_closed#top-$item_id");
+        exit;
+    } catch (PDOException $e) {
+        error_log("Error closing voting: " . $e->getMessage());
+        header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=voting_close_failed#top-$item_id");
         exit;
     }
 }

@@ -103,13 +103,56 @@ function can_delete_meeting($meeting, $current_user) {
  * @param int $meeting_id
  * @param int $creator_member_id
  */
-function create_default_tops($pdo, $meeting_id, $creator_member_id) {
+function create_default_tops($pdo, $meeting_id, $creator_member_id, $chairman_member_id = null, $secretary_member_id = null) {
+    // Namen für Vorschlag laden
+    $chairman_name = '';
+    $secretary_name = '';
+
+    if ($chairman_member_id) {
+        $stmt = $pdo->prepare("SELECT first_name, last_name FROM svmembers WHERE member_id = ?");
+        $stmt->execute([$chairman_member_id]);
+        $chairman = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($chairman) {
+            $chairman_name = $chairman['first_name'] . ' ' . $chairman['last_name'];
+        }
+    }
+
+    if ($secretary_member_id) {
+        $stmt = $pdo->prepare("SELECT first_name, last_name FROM svmembers WHERE member_id = ?");
+        $stmt->execute([$secretary_member_id]);
+        $secretary = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($secretary) {
+            $secretary_name = $secretary['first_name'] . ' ' . $secretary['last_name'];
+        }
+    }
+
+    // Vorschlag-Text erstellen
+    $vorschlag_comment = '';
+    if ($chairman_name || $secretary_name) {
+        $vorschlag_comment = "Vorschlag:\n";
+        if ($chairman_name) {
+            $vorschlag_comment .= "Sitzungsleitung: " . $chairman_name . "\n";
+        }
+        if ($secretary_name) {
+            $vorschlag_comment .= "Protokollführer: " . $secretary_name;
+        }
+
+        // Als Kommentar von creator hinzufügen
+        $stmt = $pdo->prepare("
+            INSERT INTO svagenda_comments (item_id, member_id, comment_text, created_at)
+            SELECT item_id, ?, ?, NOW()
+            FROM svagenda_items
+            WHERE meeting_id = ? AND top_number = 0
+        ");
+    }
+
     // TOP 0: Wahl der Sitzungsleitung und Protokollführung - Kategorie: wahl
+    // Priorität: 9.9, Dauer: 5 Min
     $stmt = $pdo->prepare("
         INSERT INTO svagenda_items
         (meeting_id, top_number, title, description, category, priority, estimated_duration,
          is_confidential, is_active, created_by_member_id, created_at)
-        VALUES (?, 0, ?, ?, 'wahl', NULL, NULL, 0, 0, ?, NOW())
+        VALUES (?, 0, ?, ?, 'wahl', 9.9, 5, 0, 0, ?, NOW())
     ");
     $stmt->execute([
         $meeting_id,
@@ -118,12 +161,24 @@ function create_default_tops($pdo, $meeting_id, $creator_member_id) {
         $creator_member_id
     ]);
 
+    // Kommentar für TOP 0 hinzufügen (falls Vorschlag vorhanden)
+    if ($vorschlag_comment) {
+        $stmt = $pdo->prepare("
+            INSERT INTO svagenda_comments (item_id, member_id, comment_text, created_at)
+            SELECT item_id, ?, ?, NOW()
+            FROM svagenda_items
+            WHERE meeting_id = ? AND top_number = 0
+        ");
+        $stmt->execute([$creator_member_id, $vorschlag_comment, $meeting_id]);
+    }
+
     // TOP 99: Verschiedenes - Kategorie: sonstiges
+    // Priorität: 0.1, Dauer: 0 Min
     $stmt = $pdo->prepare("
         INSERT INTO svagenda_items
         (meeting_id, top_number, title, description, category, priority, estimated_duration,
          is_confidential, is_active, created_by_member_id, created_at)
-        VALUES (?, 99, ?, ?, 'sonstiges', NULL, NULL, 0, 0, ?, NOW())
+        VALUES (?, 99, ?, ?, 'sonstiges', 0.1, 0, 0, 0, ?, NOW())
     ");
     $stmt->execute([
         $meeting_id,
@@ -192,6 +247,7 @@ if (isset($_POST['create_meeting'])) {
     $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
     $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
+    $allow_decisions = isset($_POST['allow_decisions']) ? 1 : 0;
 
     // Validierung
     if (empty($meeting_name) || empty($meeting_date)) {
@@ -216,8 +272,8 @@ if (isset($_POST['create_meeting'])) {
         $stmt = $pdo->prepare("
             INSERT INTO svmeetings
             (meeting_name, meeting_date, expected_end_date, submission_deadline, location, video_link,
-             chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
+             chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, allow_decisions, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
         ");
         $stmt->execute([
             $meeting_name,
@@ -229,14 +285,15 @@ if (isset($_POST['create_meeting'])) {
             $chairman_member_id,
             $secretary_member_id,
             $current_user['member_id'],
-            $visibility_type
+            $visibility_type,
+            $allow_decisions
         ]);
         
         $meeting_id = $pdo->lastInsertId();
-        
+
         // 2. Standard-TOPs erstellen
-        create_default_tops($pdo, $meeting_id, $current_user['member_id']);
-        
+        create_default_tops($pdo, $meeting_id, $current_user['member_id'], $chairman_member_id, $secretary_member_id);
+
         // 3. Teilnehmer hinzufügen
         add_participants($pdo, $meeting_id, $participant_ids);
         
@@ -312,6 +369,7 @@ if (isset($_POST['edit_meeting'])) {
     $secretary_member_id = !empty($_POST['secretary_member_id']) ? intval($_POST['secretary_member_id']) : null;
     $participant_ids = $_POST['participant_ids'] ?? [];
     $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
+    $allow_decisions = isset($_POST['allow_decisions']) ? 1 : 0;
 
     // Datetime-Format konvertieren: 2026-05-01T17:00 -> 2026-05-01 17:00:00
     if (!empty($meeting_date)) {
@@ -361,7 +419,7 @@ if (isset($_POST['edit_meeting'])) {
         $stmt = $pdo->prepare("
             UPDATE svmeetings
             SET meeting_name = ?, meeting_date = ?, expected_end_date = ?, submission_deadline = ?,
-                location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?, visibility_type = ?
+                location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?, visibility_type = ?, allow_decisions = ?
             WHERE meeting_id = ?
         ");
         $stmt->execute([
@@ -374,6 +432,7 @@ if (isset($_POST['edit_meeting'])) {
             $chairman_member_id,
             $secretary_member_id,
             $visibility_type,
+            $allow_decisions,
             $meeting_id
         ]);
 

@@ -149,6 +149,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
                 due_date, status, is_private, entry_date
             ) VALUES (?, ?, ?, ?, ?, 'open', ?, NOW())
         ");
+
         $stmt->execute([
             $title,
             $description,
@@ -169,7 +170,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
         exit;
     } catch (PDOException $e) {
         error_log('Todo Create Error: ' . $e->getMessage());
-        $_SESSION['error'] = 'Fehler beim Erstellen des ToDos';
+        $_SESSION['error'] = 'Fehler beim Erstellen des ToDos: ' . $e->getMessage();
         header('Location: index.php?tab=todos');
         exit;
     }

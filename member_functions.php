@@ -304,6 +304,32 @@ function ensure_svmembers_view($pdo) {
             return false;
         }
 
+        // Prüfen ob svmembers als TABELLE existiert (nicht als VIEW)
+        $check = $pdo->query("
+            SELECT TABLE_TYPE
+            FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'svmembers'
+        ");
+        $result = $check->fetch(PDO::FETCH_ASSOC);
+
+        if ($result && $result['TABLE_TYPE'] === 'BASE TABLE') {
+            // svmembers ist eine Tabelle - umbenennen zur Sicherheit
+            error_log("INFO: svmembers existiert als Tabelle, benenne um zu svmembers_old");
+            try {
+                $pdo->exec("RENAME TABLE svmembers TO svmembers_old");
+            } catch (PDOException $e) {
+                error_log("WARNUNG: Konnte svmembers nicht umbenennen: " . $e->getMessage());
+                // Versuche zu droppen stattdessen
+                try {
+                    $pdo->exec("DROP TABLE IF EXISTS svmembers");
+                } catch (PDOException $e2) {
+                    error_log("FEHLER: Konnte svmembers weder umbenennen noch droppen: " . $e2->getMessage());
+                    return false;
+                }
+            }
+        }
+
         // VIEW erstellen oder ersetzen
         // Mapping entsprechend BerechtigteAdapter
         $sql = "

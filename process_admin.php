@@ -24,6 +24,34 @@ $success_message = '';
 $error_message = '';
 
 // ============================================
+// INITIALISIERUNGS-BEREICH: Session-Handling
+// ============================================
+
+// Bestätigung setzen
+if (isset($_POST['confirm_init_access'])) {
+    $_SESSION['init_confirmed'] = true;
+    $_SESSION['init_confirmed_at'] = time();
+    header('Location: ?tab=admin_init');
+    exit;
+}
+
+// Bestätigung zurücksetzen (nach 30 Minuten automatisch)
+$init_confirmed = isset($_SESSION['init_confirmed']) && $_SESSION['init_confirmed'] === true;
+if ($init_confirmed && (time() - ($_SESSION['init_confirmed_at'] ?? 0)) > 1800) {
+    unset($_SESSION['init_confirmed']);
+    unset($_SESSION['init_confirmed_at']);
+    $init_confirmed = false;
+}
+
+// Manuelle Abmeldung
+if (isset($_GET['reset_init'])) {
+    unset($_SESSION['init_confirmed']);
+    unset($_SESSION['init_confirmed_at']);
+    header('Location: ?tab=admin');
+    exit;
+}
+
+// ============================================
 // HILFSFUNKTIONEN
 // ============================================
 
@@ -209,6 +237,78 @@ if (isset($_POST['edit_meeting'])) {
         } catch (PDOException $e) {
             error_log("Admin: Fehler beim Meeting-Aktualisieren: " . $e->getMessage());
             $error_message = "❌ Fehler beim Aktualisieren: " . $e->getMessage();
+        }
+    }
+}
+
+/**
+ * Meeting manuell beenden (Admin-Funktion)
+ *
+ * POST-Parameter:
+ * - admin_end_meeting: 1
+ * - meeting_id: Int (required)
+ * - end_time: DateTime (required)
+ *
+ * Aktion:
+ * - Status auf 'ended' setzen
+ * - end_time setzen
+ * - Admin-Aktion protokollieren
+ */
+if (isset($_POST['admin_end_meeting'])) {
+    $meeting_id = intval($_POST['meeting_id'] ?? 0);
+    $end_time = $_POST['end_time'] ?? '';
+
+    if (!$meeting_id) {
+        $error_message = "Ungültige Meeting-ID.";
+    } elseif (empty($end_time)) {
+        $error_message = "Endzeitpunkt muss angegeben werden.";
+    } else {
+        try {
+            // Datetime-Format konvertieren
+            if (!empty($end_time)) {
+                $end_time = str_replace('T', ' ', $end_time) . ':00';
+            }
+
+            // Alte Daten für Log abrufen
+            $stmt = $pdo->prepare("SELECT meeting_name, status, end_time FROM svmeetings WHERE meeting_id = ?");
+            $stmt->execute([$meeting_id]);
+            $old_meeting = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$old_meeting) {
+                $error_message = "Meeting nicht gefunden.";
+            } else {
+                // Meeting beenden
+                $stmt = $pdo->prepare("
+                    UPDATE svmeetings
+                    SET status = 'ended',
+                        end_time = ?
+                    WHERE meeting_id = ?
+                ");
+                $stmt->execute([$end_time, $meeting_id]);
+
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'meeting_admin_end',
+                    "Meeting manuell beendet: {$old_meeting['meeting_name']}",
+                    'meeting',
+                    $meeting_id,
+                    [
+                        'status' => $old_meeting['status'],
+                        'end_time' => $old_meeting['end_time'] ?? 'NULL'
+                    ],
+                    [
+                        'status' => 'ended',
+                        'end_time' => $end_time
+                    ]
+                );
+
+                $success_message = "✅ Sitzung wurde erfolgreich beendet.";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim manuellen Beenden der Sitzung: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Beenden: " . $e->getMessage();
         }
     }
 }
@@ -518,6 +618,643 @@ if (isset($_POST['delete_member'])) {
         } catch (PDOException $e) {
             error_log("Admin: Fehler beim Mitglied-Löschen: " . $e->getMessage());
             $error_message = "❌ Fehler beim Löschen: " . $e->getMessage();
+        }
+    }
+}
+
+// ============================================
+// 2A. RESSORT-VERWALTUNG
+// ============================================
+
+/**
+ * Neues Ressort hinzufügen
+ *
+ * POST-Parameter:
+ * - add_ressort: 1
+ * - ressort_name: String (required)
+ * - reihenfolge: Int
+ * - aktiv: 1 oder nicht gesetzt
+ */
+if (isset($_POST['add_ressort'])) {
+    $ressort_name = trim($_POST['ressort_name'] ?? '');
+    $reihenfolge = intval($_POST['reihenfolge'] ?? 100);
+    $aktiv = isset($_POST['aktiv']) ? 1 : 0;
+
+    if (empty($ressort_name)) {
+        $error_message = "Ressort-Name darf nicht leer sein.";
+    } else {
+        try {
+            // Prüfen ob Ressort bereits existiert
+            $check_stmt = $pdo->prepare("SELECT ID FROM svressorts WHERE Ressort = ?");
+            $check_stmt->execute([$ressort_name]);
+
+            if ($check_stmt->fetch()) {
+                $error_message = "Ein Ressort mit diesem Namen existiert bereits.";
+            } else {
+                // Ressort hinzufügen
+                $stmt = $pdo->prepare("
+                    INSERT INTO svressorts (Ressort, Reihenfolge, aktiv, created_at)
+                    VALUES (?, ?, ?, NOW())
+                ");
+                $stmt->execute([$ressort_name, $reihenfolge, $aktiv]);
+                $new_id = $pdo->lastInsertId();
+
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'ressort_add',
+                    "Ressort hinzugefügt: " . $ressort_name,
+                    'ressort',
+                    $new_id,
+                    null,
+                    ['Ressort' => $ressort_name, 'Reihenfolge' => $reihenfolge, 'aktiv' => $aktiv]
+                );
+
+                header('Location: ?tab=admin&msg=ressort_added');
+                exit;
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Ressort-Hinzufügen: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Hinzufügen: " . $e->getMessage();
+        }
+    }
+}
+
+/**
+ * Ressort bearbeiten
+ *
+ * POST-Parameter:
+ * - edit_ressort: 1
+ * - ressort_id: Int (required)
+ * - ressort_name: String (required)
+ * - reihenfolge: Int
+ * - aktiv: 1 oder nicht gesetzt
+ */
+if (isset($_POST['edit_ressort'])) {
+    $ressort_id = intval($_POST['ressort_id'] ?? 0);
+    $ressort_name = trim($_POST['ressort_name'] ?? '');
+    $reihenfolge = intval($_POST['reihenfolge'] ?? 100);
+    $aktiv = isset($_POST['aktiv']) ? 1 : 0;
+
+    if (!$ressort_id) {
+        $error_message = "Ungültige Ressort-ID.";
+    } elseif (empty($ressort_name)) {
+        $error_message = "Ressort-Name darf nicht leer sein.";
+    } else {
+        try {
+            // Alte Daten für Log abrufen
+            $stmt = $pdo->prepare("SELECT * FROM svressorts WHERE ID = ?");
+            $stmt->execute([$ressort_id]);
+            $old_ressort = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$old_ressort) {
+                $error_message = "Ressort nicht gefunden.";
+            } else {
+                // Prüfen ob Name bereits von anderem Ressort verwendet wird
+                $check_stmt = $pdo->prepare("SELECT ID FROM svressorts WHERE Ressort = ? AND ID != ?");
+                $check_stmt->execute([$ressort_name, $ressort_id]);
+
+                if ($check_stmt->fetch()) {
+                    $error_message = "Ein anderes Ressort mit diesem Namen existiert bereits.";
+                } else {
+                    // Ressort aktualisieren
+                    $stmt = $pdo->prepare("
+                        UPDATE svressorts
+                        SET Ressort = ?, Reihenfolge = ?, aktiv = ?, updated_at = NOW()
+                        WHERE ID = ?
+                    ");
+                    $stmt->execute([$ressort_name, $reihenfolge, $aktiv, $ressort_id]);
+
+                    // Admin-Log
+                    log_admin_action(
+                        $pdo,
+                        $current_user['member_id'],
+                        'ressort_edit',
+                        "Ressort bearbeitet: " . $ressort_name,
+                        'ressort',
+                        $ressort_id,
+                        ['Ressort' => $old_ressort['Ressort'], 'Reihenfolge' => $old_ressort['Reihenfolge'], 'aktiv' => $old_ressort['aktiv'] ?? 1],
+                        ['Ressort' => $ressort_name, 'Reihenfolge' => $reihenfolge, 'aktiv' => $aktiv]
+                    );
+
+                    header('Location: ?tab=admin&msg=ressort_updated');
+                    exit;
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Ressort-Bearbeiten: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Bearbeiten: " . $e->getMessage();
+        }
+    }
+}
+
+/**
+ * Ressort löschen
+ *
+ * POST-Parameter:
+ * - delete_ressort: 1
+ * - ressort_id: Int (required)
+ *
+ * WICHTIG: Löscht nur das Ressort, nicht die zugeordneten Anträge
+ * Bestehende Anträge behalten ihre ressort1/ressort2 IDs
+ */
+if (isset($_POST['delete_ressort'])) {
+    $ressort_id = intval($_POST['ressort_id'] ?? 0);
+
+    if (!$ressort_id) {
+        $error_message = "Ungültige Ressort-ID.";
+    } else {
+        try {
+            // Alte Daten für Log abrufen
+            $stmt = $pdo->prepare("SELECT * FROM svressorts WHERE ID = ?");
+            $stmt->execute([$ressort_id]);
+            $old_ressort = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$old_ressort) {
+                $error_message = "Ressort nicht gefunden.";
+            } else {
+                // Prüfen ob Ressort in Anträgen verwendet wird
+                $usage_stmt = $pdo->prepare("
+                    SELECT COUNT(*) FROM " . TABLE_ANTRAEGE . "
+                    WHERE ressort1 = ? OR ressort2 = ?
+                ");
+                $usage_stmt->execute([$ressort_id, $ressort_id]);
+                $usage_count = $usage_stmt->fetchColumn();
+
+                if ($usage_count > 0) {
+                    $error_message = "Ressort wird noch in {$usage_count} Antrag/Anträgen verwendet und kann nicht gelöscht werden. Bitte setze es stattdessen auf 'Inaktiv'.";
+                } else {
+                    // Ressort löschen
+                    $stmt = $pdo->prepare("DELETE FROM svressorts WHERE ID = ?");
+                    $stmt->execute([$ressort_id]);
+
+                    // Admin-Log
+                    log_admin_action(
+                        $pdo,
+                        $current_user['member_id'],
+                        'ressort_delete',
+                        "Ressort gelöscht: " . $old_ressort['Ressort'],
+                        'ressort',
+                        $ressort_id,
+                        ['Ressort' => $old_ressort['Ressort'], 'Reihenfolge' => $old_ressort['Reihenfolge']],
+                        null
+                    );
+
+                    header('Location: ?tab=admin&msg=ressort_deleted');
+                    exit;
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Ressort-Löschen: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Löschen: " . $e->getMessage();
+        }
+    }
+}
+
+// ============================================
+// 2B. TERMINOLOGIE-KONFIGURATION
+// ============================================
+
+/**
+ * Terminologie speichern
+ *
+ * POST-Parameter:
+ * - save_terminology: 1
+ * - config: Array mit config_key => config_value
+ */
+if (isset($_POST['save_terminology'])) {
+    $configs = $_POST['config'] ?? [];
+
+    if (empty($configs)) {
+        $error_message = "Keine Konfigurationswerte übermittelt.";
+    } else {
+        try {
+            $updated_count = 0;
+            $old_values = [];
+            $new_values = [];
+
+            foreach ($configs as $key => $value) {
+                // Alten Wert für Log abrufen
+                $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                $stmt->execute([$key]);
+                $old_value = $stmt->fetchColumn();
+
+                if ($old_value !== $value) {
+                    // Wert aktualisieren
+                    $update_stmt = $pdo->prepare("
+                        UPDATE svconfig
+                        SET config_value = ?, updated_by = ?, updated_at = NOW()
+                        WHERE config_key = ?
+                    ");
+                    $update_stmt->execute([$value, $current_user['member_id'], $key]);
+
+                    $old_values[$key] = $old_value;
+                    $new_values[$key] = $value;
+                    $updated_count++;
+                }
+            }
+
+            if ($updated_count > 0) {
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'terminology_update',
+                    "Terminologie aktualisiert: $updated_count Begriffe geändert",
+                    'config',
+                    null,
+                    $old_values,
+                    $new_values
+                );
+
+                header('Location: ?tab=admin_init&msg=terminology_saved');
+                exit;
+            } else {
+                $success_message = "Keine Änderungen vorgenommen.";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Terminologie-Speichern: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Speichern: " . $e->getMessage();
+        }
+    }
+}
+
+/**
+ * AKTIV-LEVEL SPEICHERN
+ *
+ * POST-Parameter:
+ * - save_aktiv_levels: 1
+ * - level: Array mit level_num => bezeichnung
+ */
+if (isset($_POST['save_aktiv_levels'])) {
+    $levels = $_POST['level'] ?? [];
+
+    if (empty($levels)) {
+        $error_message = "Keine Level-Werte übermittelt.";
+    } else {
+        try {
+            $updated_count = 0;
+            $old_values = [];
+            $new_values = [];
+
+            foreach ($levels as $level_num => $bezeichnung) {
+                $config_key = 'aktiv_level_' . (int)$level_num;
+
+                // Alten Wert für Log abrufen
+                $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                $stmt->execute([$config_key]);
+                $old_value = $stmt->fetchColumn();
+
+                if ($old_value !== $bezeichnung) {
+                    // Wert aktualisieren oder einfügen
+                    $update_stmt = $pdo->prepare("
+                        INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                        VALUES (?, ?, 'text', ?, 'aktiv_levels', ?)
+                        ON DUPLICATE KEY UPDATE
+                            config_value = VALUES(config_value),
+                            updated_by = VALUES(updated_by),
+                            updated_at = NOW()
+                    ");
+                    $update_stmt->execute([
+                        $config_key,
+                        $bezeichnung,
+                        "Berechtigung für Level $level_num",
+                        $current_user['member_id']
+                    ]);
+
+                    $old_values["Level $level_num"] = $old_value ?: '(leer)';
+                    $new_values["Level $level_num"] = $bezeichnung;
+                    $updated_count++;
+                }
+            }
+
+            if ($updated_count > 0) {
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'aktiv_levels_update',
+                    "aktiv-Level aktualisiert: $updated_count Level geändert",
+                    'config',
+                    null,
+                    $old_values,
+                    $new_values
+                );
+
+                header('Location: ?tab=admin_init&msg=levels_saved');
+                exit;
+            } else {
+                $success_message = "Keine Änderungen vorgenommen.";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim aktiv-Level-Speichern: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Speichern: " . $e->getMessage();
+        }
+    }
+}
+
+/**
+ * ANTRAGSTYPEN SPEICHERN
+ *
+ * POST-Parameter:
+ * - save_antragstypen: 1
+ * - bart: Array mit Typ-Konfigurationen
+ */
+if (isset($_POST['save_antragstypen'])) {
+    $bart_data = $_POST['bart'] ?? [];
+
+    if (empty($bart_data)) {
+        $error_message = "Keine Antragstypen-Daten übermittelt.";
+    } else {
+        try {
+            $updated_count = 0;
+            $old_values = [];
+            $new_values = [];
+
+            // Die drei Typen durchgehen
+            $typen = ['V', 'R', 'B'];
+            foreach ($typen as $typ) {
+                if (!isset($bart_data[$typ])) {
+                    continue;
+                }
+
+                $typ_data = $bart_data[$typ];
+
+                // Alle Felder für diesen Typ
+                $fields = [
+                    'aktiv' => isset($typ_data['aktiv']) ? '1' : '0',
+                    'bezeichnung' => $typ_data['bezeichnung'] ?? '',
+                    'beschreibung' => $typ_data['beschreibung'] ?? '',
+                    'betrag_aktiv' => isset($typ_data['betrag_aktiv']) ? '1' : '0',
+                    'betrag_limit' => intval($typ_data['betrag_limit'] ?? 0),
+                    'wartezeit_aktiv' => isset($typ_data['wartezeit_aktiv']) ? '1' : '0',
+                    'wartezeit_tage' => intval($typ_data['wartezeit_tage'] ?? 0),
+                    'freigabe_vereinfacht' => isset($typ_data['freigabe_vereinfacht']) ? '1' : '0'
+                ];
+
+                foreach ($fields as $field => $value) {
+                    $config_key = "bart_{$typ}_{$field}";
+                    $config_type = is_numeric($value) ? 'number' : (in_array($value, ['0', '1']) ? 'boolean' : 'text');
+
+                    // Alten Wert abrufen
+                    $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                    $stmt->execute([$config_key]);
+                    $old_value = $stmt->fetchColumn();
+
+                    if ($old_value != $value) {
+                        // Wert aktualisieren oder einfügen
+                        $update_stmt = $pdo->prepare("
+                            INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                            VALUES (?, ?, ?, ?, 'antragstypen', ?)
+                            ON DUPLICATE KEY UPDATE
+                                config_value = VALUES(config_value),
+                                updated_by = VALUES(updated_by),
+                                updated_at = NOW()
+                        ");
+                        $update_stmt->execute([
+                            $config_key,
+                            $value,
+                            $config_type,
+                            "Typ $typ - $field",
+                            $current_user['member_id']
+                        ]);
+
+                        $old_values[$config_key] = $old_value ?: '(leer)';
+                        $new_values[$config_key] = $value;
+                        $updated_count++;
+                    }
+                }
+            }
+
+            // Globale Einstellungen
+            if (isset($bart_data['global'])) {
+                $global_fields = [
+                    'show_betrag_in_liste' => isset($bart_data['global']['show_betrag_in_liste']) ? '1' : '0',
+                    'pflicht_bei_betrag' => intval($bart_data['global']['pflicht_bei_betrag'] ?? 100),
+                    'verfuegung_monatslimit' => intval($bart_data['global']['verfuegung_monatslimit'] ?? 2000)
+                ];
+
+                foreach ($global_fields as $field => $value) {
+                    $config_key = "bart_{$field}";
+                    $config_type = is_numeric($value) && !in_array($value, ['0', '1']) ? 'number' : 'boolean';
+
+                    $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                    $stmt->execute([$config_key]);
+                    $old_value = $stmt->fetchColumn();
+
+                    if ($old_value != $value) {
+                        $update_stmt = $pdo->prepare("
+                            INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                            VALUES (?, ?, ?, ?, 'antragstypen', ?)
+                            ON DUPLICATE KEY UPDATE
+                                config_value = VALUES(config_value),
+                                updated_by = VALUES(updated_by),
+                                updated_at = NOW()
+                        ");
+                        $update_stmt->execute([
+                            $config_key,
+                            $value,
+                            $config_type,
+                            "Global - $field",
+                            $current_user['member_id']
+                        ]);
+
+                        $old_values[$config_key] = $old_value ?: '(leer)';
+                        $new_values[$config_key] = $value;
+                        $updated_count++;
+                    }
+                }
+            }
+
+            if ($updated_count > 0) {
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'antragstypen_update',
+                    "Antragstypen aktualisiert: $updated_count Einstellungen geändert",
+                    'config',
+                    null,
+                    $old_values,
+                    $new_values
+                );
+
+                header('Location: ?tab=admin_init&msg=antragstypen_saved');
+                exit;
+            } else {
+                $success_message = "Keine Änderungen vorgenommen.";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Antragstypen-Speichern: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Speichern: " . $e->getMessage();
+        }
+    }
+}
+
+/**
+ * ABSTIMMUNGSREGELN SPEICHERN
+ *
+ * POST-Parameter:
+ * - save_voting_rules: 1
+ * - voting: Array mit Regel-Konfigurationen
+ */
+if (isset($_POST['save_voting_rules'])) {
+    $voting_data = $_POST['voting'] ?? [];
+
+    if (empty($voting_data)) {
+        $error_message = "Keine Voting-Daten übermittelt.";
+    } else {
+        try {
+            $updated_count = 0;
+            $old_values = [];
+            $new_values = [];
+
+            // Standard-Regel
+            if (isset($voting_data['default_rule'])) {
+                $config_key = 'voting_default_rule';
+                $value = $voting_data['default_rule'];
+
+                $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                $stmt->execute([$config_key]);
+                $old_value = $stmt->fetchColumn();
+
+                if ($old_value != $value) {
+                    $update_stmt = $pdo->prepare("
+                        INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                        VALUES (?, ?, 'text', 'Standard-Abstimmungsregel', 'voting', ?)
+                        ON DUPLICATE KEY UPDATE
+                            config_value = VALUES(config_value),
+                            updated_by = VALUES(updated_by),
+                            updated_at = NOW()
+                    ");
+                    $update_stmt->execute([$config_key, $value, $current_user['member_id']]);
+
+                    $old_values[$config_key] = $old_value ?: '(leer)';
+                    $new_values[$config_key] = $value;
+                    $updated_count++;
+                }
+            }
+
+            // Regel-Aktivierungen und Labels/Beschreibungen
+            $rule_keys = ['einfach', 'absolut', 'mehrheit_stimmber', 'zweidrittel', 'einstimmig'];
+            foreach ($rule_keys as $key) {
+                // Aktivierung
+                $enable_key = "enable_{$key}";
+                $config_key = "voting_{$enable_key}";
+                $value = isset($voting_data[$enable_key]) ? '1' : '0';
+
+                $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                $stmt->execute([$config_key]);
+                $old_value = $stmt->fetchColumn();
+
+                if ($old_value != $value) {
+                    $update_stmt = $pdo->prepare("
+                        INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                        VALUES (?, ?, 'boolean', ?, 'voting', ?)
+                        ON DUPLICATE KEY UPDATE
+                            config_value = VALUES(config_value),
+                            updated_by = VALUES(updated_by),
+                            updated_at = NOW()
+                    ");
+                    $update_stmt->execute([
+                        $config_key,
+                        $value,
+                        ucfirst($key) . " aktiviert",
+                        $current_user['member_id']
+                    ]);
+
+                    $old_values[$config_key] = $old_value ?: '(leer)';
+                    $new_values[$config_key] = $value;
+                    $updated_count++;
+                }
+
+                // Label
+                $label_key = "rule_{$key}_label";
+                if (isset($voting_data[$label_key])) {
+                    $config_key = "voting_{$label_key}";
+                    $value = $voting_data[$label_key];
+
+                    $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                    $stmt->execute([$config_key]);
+                    $old_value = $stmt->fetchColumn();
+
+                    if ($old_value != $value) {
+                        $update_stmt = $pdo->prepare("
+                            INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                            VALUES (?, ?, 'text', ?, 'voting', ?)
+                            ON DUPLICATE KEY UPDATE
+                                config_value = VALUES(config_value),
+                                updated_by = VALUES(updated_by),
+                                updated_at = NOW()
+                        ");
+                        $update_stmt->execute([
+                            $config_key,
+                            $value,
+                            "Label für {$key}",
+                            $current_user['member_id']
+                        ]);
+
+                        $old_values[$config_key] = $old_value ?: '(leer)';
+                        $new_values[$config_key] = $value;
+                        $updated_count++;
+                    }
+                }
+
+                // Beschreibung
+                $desc_key = "rule_{$key}_desc";
+                if (isset($voting_data[$desc_key])) {
+                    $config_key = "voting_{$desc_key}";
+                    $value = $voting_data[$desc_key];
+
+                    $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                    $stmt->execute([$config_key]);
+                    $old_value = $stmt->fetchColumn();
+
+                    if ($old_value != $value) {
+                        $update_stmt = $pdo->prepare("
+                            INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                            VALUES (?, ?, 'text', ?, 'voting', ?)
+                            ON DUPLICATE KEY UPDATE
+                                config_value = VALUES(config_value),
+                                updated_by = VALUES(updated_by),
+                                updated_at = NOW()
+                        ");
+                        $update_stmt->execute([
+                            $config_key,
+                            $value,
+                            "Beschreibung für {$key}",
+                            $current_user['member_id']
+                        ]);
+
+                        $old_values[$config_key] = $old_value ?: '(leer)';
+                        $new_values[$config_key] = $value;
+                        $updated_count++;
+                    }
+                }
+            }
+
+            if ($updated_count > 0) {
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'voting_rules_update',
+                    "Abstimmungsregeln aktualisiert: $updated_count Einstellungen geändert",
+                    'config',
+                    null,
+                    $old_values,
+                    $new_values
+                );
+
+                header('Location: ?tab=admin_init&msg=voting_rules_saved');
+                exit;
+            } else {
+                $success_message = "Keine Änderungen vorgenommen.";
+            }
+        } catch (PDOException $e) {
+            error_log("Admin: Fehler beim Voting-Rules-Speichern: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Speichern: " . $e->getMessage();
         }
     }
 }
@@ -949,6 +1686,77 @@ if (isset($_POST['admin_delete_todo'])) {
         } catch (PDOException $e) {
             error_log('Admin Todo Delete Error: ' . $e->getMessage());
             $error_message = '❌ Fehler beim Löschen: ' . $e->getMessage();
+        }
+    }
+}
+
+/**
+ * Terminabfrage löschen (Admin-Funktion)
+ *
+ * POST-Parameter:
+ * - admin_delete_poll: 1
+ * - poll_id: Int (required)
+ *
+ * Aktion:
+ * - Alle Antworten löschen
+ * - Alle Optionen löschen
+ * - Umfrage löschen
+ * - Admin-Aktion protokollieren
+ */
+if (isset($_POST['admin_delete_poll'])) {
+    $poll_id = intval($_POST['poll_id'] ?? 0);
+
+    if (!$poll_id) {
+        $error_message = "Ungültige Umfrage-ID.";
+    } else {
+        try {
+            $pdo->beginTransaction();
+
+            // Umfrage-Daten für Log abrufen
+            $stmt = $pdo->prepare("SELECT * FROM svpolls WHERE poll_id = ?");
+            $stmt->execute([$poll_id]);
+            $poll = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$poll) {
+                $error_message = "Terminabfrage nicht gefunden.";
+            } else {
+                // 1. Antworten löschen
+                $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ?");
+                $stmt->execute([$poll_id]);
+
+                // 2. Terminvorschläge (dates) löschen
+                $stmt = $pdo->prepare("DELETE FROM svpoll_dates WHERE poll_id = ?");
+                $stmt->execute([$poll_id]);
+
+                // 3. Teilnehmer löschen
+                $stmt = $pdo->prepare("DELETE FROM svpoll_participants WHERE poll_id = ?");
+                $stmt->execute([$poll_id]);
+
+                // 4. Umfrage löschen
+                $stmt = $pdo->prepare("DELETE FROM svpolls WHERE poll_id = ?");
+                $stmt->execute([$poll_id]);
+
+                $pdo->commit();
+
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'poll_delete',
+                    "Terminabfrage gelöscht: {$poll['title']}",
+                    'poll',
+                    $poll_id,
+                    $poll,
+                    null
+                );
+
+                header('Location: ?tab=admin&msg=poll_deleted');
+                exit;
+            }
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            error_log("Admin: Fehler beim Löschen der Terminabfrage: " . $e->getMessage());
+            $error_message = "❌ Fehler beim Löschen: " . $e->getMessage();
         }
     }
 }

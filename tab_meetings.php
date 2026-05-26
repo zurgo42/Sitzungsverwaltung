@@ -185,6 +185,16 @@ require_once 'module_notifications.php';
             </div>
 
             <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" name="allow_decisions" value="1" checked style="width: auto;">
+                    <span>Beschlüsse in dieser Sitzung ermöglichen</span>
+                </label>
+                <small style="display: block; margin-top: 5px; color: #666;">
+                    Wenn aktiviert, können bei Tagesordnungspunkten Anträge erstellt und direkt in der Sitzung abgestimmt werden.
+                </small>
+            </div>
+
+            <div class="form-group">
                 <label>Teilnehmer auswählen:</label>
                 <div class="participant-buttons">
                     <button type="button" onclick="toggleAllParticipants(true)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">✓ Alle auswählen</button>
@@ -435,6 +445,16 @@ require_once 'module_notifications.php';
                                 • <strong>Nur Eingeladene:</strong> Nur die bei Anlegen der Sitzung (oder später hinzugefügte) ausgewählten Teilnehmer sehen die Sitzung, können kommentieren und sehen später das Protokoll<br>
                                 • <strong>Alle angemeldeten:</strong> Das Führungsteam einschl. Vorstand, GF und Assistenz sehen die Sitzung, können kommentieren und sehen später das Protokoll<br>
                                 • <strong>Öffentlich:</strong> Alle im System eingeloggten User sehen die Tagesordnung (read only) und das Protokoll
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" name="allow_decisions" value="1" <?php echo ($m['allow_decisions'] ?? 1) ? 'checked' : ''; ?> style="width: auto;">
+                                <span>Beschlüsse in dieser Sitzung ermöglichen</span>
+                            </label>
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                Wenn aktiviert, können bei Tagesordnungspunkten Anträge erstellt und direkt in der Sitzung abgestimmt werden.
                             </small>
                         </div>
 
