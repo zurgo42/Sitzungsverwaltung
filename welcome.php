@@ -224,6 +224,10 @@ if (isset($_GET['demo_email'])) {
                     <span class="text"><strong>Tagesordnung:</strong> TOPs mit Kategorien, Kommentare zur Vorbereitung, Live-Diskussion während Sitzung, Abstimmungsverwaltung</span>
                 </div>
                 <div class="feature-item">
+                    <span class="icon">📜</span>
+                    <span class="text"><strong>Anträge & Beschlüsse:</strong> Vollständiges Workflow-System für Vorstandsbeschlüsse und Anträge, automatische Nummernvergabe, konfigurierbare Antragstypen, Voting-Integration, Beschlussbuch für alle beschlossenen Anträge</span>
+                </div>
+                <div class="feature-item">
                     <span class="icon">✍️</span>
                     <span class="text"><strong>Textbearbeitung:</strong> Gemeinsames Erstellen von Texten (Pressemitteilungen, Stellungnahmen), absatzweise Bearbeitung mit Lock-System, Online-User-Anzeige, Versionierung</span>
                 </div>
