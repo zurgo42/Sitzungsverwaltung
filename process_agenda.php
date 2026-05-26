@@ -1436,12 +1436,38 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
                         $resubmit_note
                     ]);
 
+                    $new_item_id = $pdo->lastInsertId();
+
                     // Wenn Antrag verknüpft ist, Antrag der neuen Sitzung zuordnen
                     if (!empty($current_item['antrnr'])) {
                         $stmt = $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET meeting_id = ? WHERE antrnr = ?");
                         $stmt->execute([$target_meeting_id, $current_item['antrnr']]);
                         error_log("Wiedervorlage: Antrag {$current_item['antrnr']} wurde Sitzung {$target_meeting_id} zugeordnet");
                     }
+
+                    // Ziel-Sitzungsdatum laden für Dokumentation
+                    $stmt = $pdo->prepare("SELECT meeting_date FROM svmeetings WHERE meeting_id = ?");
+                    $stmt->execute([$target_meeting_id]);
+                    $target_meeting_date = $stmt->fetchColumn();
+                    $target_date_formatted = date('d.m.Y', strtotime($target_meeting_date));
+
+                    // 1. In ABGEBENDER Sitzung: Wiedervorlage im Protokoll dokumentieren
+                    $source_protocol_note = "\n\nDieser TOP wurde zur Wiedervorlage in der Sitzung am {$target_date_formatted} neu angelegt.";
+                    $stmt = $pdo->prepare("
+                        UPDATE svagenda_items
+                        SET protocol_notes = CONCAT(COALESCE(protocol_notes, ''), ?)
+                        WHERE item_id = ?
+                    ");
+                    $stmt->execute([$source_protocol_note, $item_id]);
+
+                    // 2. In EMPFANGENDER Sitzung: Kommentar hinzufügen
+                    $source_date_formatted = date('d.m.Y', strtotime($current_item['meeting_date']));
+                    $target_comment = "Dieser TOP wurde als Wiedervorlage aus der Sitzung am {$source_date_formatted} hier neu angelegt.";
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svagenda_comments (item_id, member_id, comment_text, created_at)
+                        VALUES (?, ?, ?, NOW())
+                    ");
+                    $stmt->execute([$new_item_id, $current_user['member_id'], $target_comment]);
 
                     $_SESSION['resubmit_success'] = "Wiedervorlage erfolgreich angelegt!";
                 }
@@ -1885,12 +1911,38 @@ if (isset($_POST['save_all_protocols']) && $is_secretary && $meeting['status'] =
                         $resubmit_note
                     ]);
 
+                    $new_item_id = $pdo->lastInsertId();
+
                     // Wenn Antrag verknüpft ist, Antrag der neuen Sitzung zuordnen
                     if (!empty($current_item['antrnr'])) {
                         $stmt = $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET meeting_id = ? WHERE antrnr = ?");
                         $stmt->execute([$target_meeting_id, $current_item['antrnr']]);
                         error_log("Wiedervorlage: Antrag {$current_item['antrnr']} wurde Sitzung {$target_meeting_id} zugeordnet");
                     }
+
+                    // Ziel-Sitzungsdatum laden für Dokumentation
+                    $stmt = $pdo->prepare("SELECT meeting_date FROM svmeetings WHERE meeting_id = ?");
+                    $stmt->execute([$target_meeting_id]);
+                    $target_meeting_date = $stmt->fetchColumn();
+                    $target_date_formatted = date('d.m.Y', strtotime($target_meeting_date));
+
+                    // 1. In ABGEBENDER Sitzung: Wiedervorlage im Protokoll dokumentieren
+                    $source_protocol_note = "\n\nDieser TOP wurde zur Wiedervorlage in der Sitzung am {$target_date_formatted} neu angelegt.";
+                    $stmt = $pdo->prepare("
+                        UPDATE svagenda_items
+                        SET protocol_notes = CONCAT(COALESCE(protocol_notes, ''), ?)
+                        WHERE item_id = ?
+                    ");
+                    $stmt->execute([$source_protocol_note, $item_id]);
+
+                    // 2. In EMPFANGENDER Sitzung: Kommentar hinzufügen
+                    $source_date_formatted = date('d.m.Y', strtotime($current_item['meeting_date']));
+                    $target_comment = "Dieser TOP wurde als Wiedervorlage aus der Sitzung am {$source_date_formatted} hier neu angelegt.";
+                    $stmt = $pdo->prepare("
+                        INSERT INTO svagenda_comments (item_id, member_id, comment_text, created_at)
+                        VALUES (?, ?, ?, NOW())
+                    ");
+                    $stmt->execute([$new_item_id, $current_user['member_id'], $target_comment]);
 
                     $_SESSION['resubmit_success'] = "Wiedervorlage erfolgreich angelegt!";
                 }
