@@ -648,7 +648,7 @@ if ($user['aktiv'] >= 19) {
                         <select name="antrst" style="display: inline-block; width: auto; padding: 2px 6px; font-size: 13px; margin-left: 5px;">
                             <?php foreach ($alle_antragsteller as $ast): ?>
                                 <option value="<?= $ast['ID'] ?>" <?= $antrag['antrst'] == $ast['ID'] ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($ast['KurzN']) ?> (<?= htmlspecialchars($ast['Vorname'] . ' ' . $ast['Name']) ?>)
+                                    <?= htmlspecialchars($ast['Vorname'] . ' ' . $ast['Name']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
