@@ -51,6 +51,55 @@ if (!empty($all_absences)) {
     <?php
 }
 
+<!-- Direktlink zur Sitzung -->
+<?php
+$protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'];
+$path = dirname($_SERVER['PHP_SELF']);
+
+// Im SSO-Modus: sso_direct.php Link, sonst: normaler index.php Link
+if (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt') {
+    $direct_link = $protocol . '://' . $host . $path . '/sso_direct.php?meeting_id=' . $current_meeting_id;
+    $link_description = 'Direktlink zur Sitzung (SSO):';
+} else {
+    $direct_link = $protocol . '://' . $host . $path . '/index.php?tab=agenda&meeting_id=' . $current_meeting_id;
+    $link_description = 'Link zur Sitzung:';
+}
+?>
+<div style="margin: 15px 0; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+    <strong style="color: #1976d2;">🔗 <?php echo $link_description; ?></strong>
+    <div style="margin-top: 8px; display: flex; gap: 10px; align-items: center;">
+        <input type="text" id="directLinkInput" readonly value="<?php echo htmlspecialchars($direct_link); ?>"
+               style="flex: 1; padding: 6px 10px; border: 1px solid #2196f3; border-radius: 4px; font-family: monospace; font-size: 13px;">
+        <button onclick="copyDirectLink()"
+                style="padding: 6px 16px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+            📋 Kopieren
+        </button>
+    </div>
+    <div style="margin-top: 6px; font-size: 12px; color: #666;">
+        Teile diesen Link mit Teilnehmern für direkten Zugriff auf diese Sitzung.
+    </div>
+</div>
+<script>
+function copyDirectLink() {
+    const input = document.getElementById('directLinkInput');
+    input.select();
+    input.setSelectionRange(0, 99999); // Für Mobile
+
+    try {
+        document.execCommand('copy');
+        alert('✅ Link wurde in die Zwischenablage kopiert!');
+    } catch (err) {
+        // Fallback für moderne Browser
+        navigator.clipboard.writeText(input.value).then(() => {
+            alert('✅ Link wurde in die Zwischenablage kopiert!');
+        }).catch(() => {
+            alert('❌ Kopieren fehlgeschlagen. Bitte manuell kopieren.');
+        });
+    }
+}
+</script>
+
 // Übersicht mit Bewertungs-Tabelle anzeigen (EINMALIG am Anfang)
 render_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
 
@@ -109,55 +158,6 @@ if ($can_move_tops) {
     $future_meetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
-
-<!-- Direktlink zur Sitzung -->
-<?php
-$protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-$host = $_SERVER['HTTP_HOST'];
-$path = dirname($_SERVER['PHP_SELF']);
-
-// Im SSO-Modus: sso_direct.php Link, sonst: normaler index.php Link
-if (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt') {
-    $direct_link = $protocol . '://' . $host . $path . '/sso_direct.php?meeting_id=' . $current_meeting_id;
-    $link_description = 'Direktlink zur Sitzung (SSO):';
-} else {
-    $direct_link = $protocol . '://' . $host . $path . '/index.php?tab=agenda&meeting_id=' . $current_meeting_id;
-    $link_description = 'Link zur Sitzung:';
-}
-?>
-<div style="margin: 15px 0; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
-    <strong style="color: #1976d2;">🔗 <?php echo $link_description; ?></strong>
-    <div style="margin-top: 8px; display: flex; gap: 10px; align-items: center;">
-        <input type="text" id="directLinkInput" readonly value="<?php echo htmlspecialchars($direct_link); ?>"
-               style="flex: 1; padding: 6px 10px; border: 1px solid #2196f3; border-radius: 4px; font-family: monospace; font-size: 13px;">
-        <button onclick="copyDirectLink()"
-                style="padding: 6px 16px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap;">
-            📋 Kopieren
-        </button>
-    </div>
-    <div style="margin-top: 6px; font-size: 12px; color: #666;">
-        Teile diesen Link mit Teilnehmern für direkten Zugriff auf diese Sitzung.
-    </div>
-</div>
-<script>
-function copyDirectLink() {
-    const input = document.getElementById('directLinkInput');
-    input.select();
-    input.setSelectionRange(0, 99999); // Für Mobile
-
-    try {
-        document.execCommand('copy');
-        alert('✅ Link wurde in die Zwischenablage kopiert!');
-    } catch (err) {
-        // Fallback für moderne Browser
-        navigator.clipboard.writeText(input.value).then(() => {
-            alert('✅ Link wurde in die Zwischenablage kopiert!');
-        }).catch(() => {
-            alert('❌ Kopieren fehlgeschlagen. Bitte manuell kopieren.');
-        });
-    }
-}
-</script>
 
 <!-- Teilnehmer hinzufügen (nur für Admins) -->
 <?php if ($is_admin): ?>
@@ -853,8 +853,8 @@ foreach ($agenda_items as $item):
         </details>
         <?php endif; ?>
 
-        <!-- TOP verschieben (nur für Einladende, Protokollant, Sitzungsleiter) -->
-        <?php if ($can_move_tops && !empty($future_meetings)): ?>
+        <!-- TOP verschieben (nur für Einladende, Protokollant, Sitzungsleiter; nicht für TOP 0 und 99) -->
+        <?php if ($can_move_tops && !empty($future_meetings) && !in_array($item['top_number'], [0, 99])): ?>
         <details style="margin-bottom: 15px; border: 1px solid #ff9800; border-radius: 5px; padding: 10px; background: #fff8f0;">
             <summary style="cursor: pointer; font-weight: bold; color: #e65100;">
                 📤 TOP zu künftiger Sitzung verschieben

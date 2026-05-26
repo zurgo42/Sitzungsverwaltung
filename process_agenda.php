@@ -2496,6 +2496,12 @@ if (isset($_POST['initiate_voting']) && $meeting['status'] === 'active') {
     $voting_type = $_POST['voting_type'] ?? 'open'; // 'open' oder 'secret'
     $eligible_voters = $_POST['eligible_voters'] ?? 'board'; // 'board' oder 'all'
     $voting_question = trim($_POST['voting_question'] ?? ''); // Frage bei Stimmungsbild
+    $vote_on_proposal = isset($_POST['vote_on_proposal']) && $_POST['vote_on_proposal'] == '1'; // Checkbox für Antragsabstimmung
+
+    // Wenn Checkbox "Abstimmung über den Antrag" aktiviert ist, voting_question leer setzen
+    if ($vote_on_proposal) {
+        $voting_question = '';
+    }
 
     if (!$item_id) {
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=invalid_item");
@@ -2683,16 +2689,18 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
         $protocol_entry = "";
         $beschluss_saved = false;
 
-        if ($item && !empty($item['antrnr'])) {
+        // Unterscheidung: Antragsabstimmung (voting_question leer + antrnr vorhanden) vs. Stimmungsbild
+        $is_proposal_vote = ($item && !empty($item['antrnr']) && empty($voting['voting_question']));
+
+        if ($is_proposal_vote) {
             // ANTRAGSABSTIMMUNG: Kompaktes Format
-            // Ergebnis ermitteln
+            // Ergebnis ermitteln - bei Gleichstand ist Antrag abgelehnt
             $result_text = "";
             if ($counts['yes'] > $counts['no']) {
                 $result_text = "angenommen";
-            } elseif ($counts['no'] > $counts['yes']) {
-                $result_text = "nicht angenommen";
             } else {
-                $result_text = "unentschieden";
+                // Bei Gleichstand oder weniger Ja-Stimmen: nicht angenommen
+                $result_text = "nicht angenommen";
             }
 
             $result_summary = "Antrag {$item['antrnr']} - {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung - {$result_text}";
@@ -2700,8 +2708,8 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
             // In beschluesse-Tabelle speichern
             $beschluss_saved = save_voting_result_to_beschluesse($pdo, $voting_id, $item);
 
-            // Protokolltext für Antrag - kompakt in 1 Zeile
-            $protocol_entry = "\n\nAbstimmung über den Antrag: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung ({$result_text})";
+            // Protokolltext für Antrag - kompakt in 1 Zeile mit Präfix "Antrag:"
+            $protocol_entry = "\n\nAntrag: Abstimmung über den Antrag: {$counts['yes']} Ja, {$counts['no']} Nein, {$counts['abstain']} Enthaltung ({$result_text})";
         } else {
             // STIMMUNGSBILD: Kompaktes Format - alles in 1 Zeile
             $question = !empty($voting['voting_question']) ? $voting['voting_question'] : 'Keine Frage angegeben';
