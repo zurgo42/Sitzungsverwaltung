@@ -412,23 +412,20 @@ function auswerten_abstimmung($pdo, $antrnr) {
             $votum = (int)($antrag["Votum$i"] ?? 0);
 
             if ($votum > 0) {
-                $abgestimmt++;
                 switch ($votum) {
-                    case 1: $ja++; break;
-                    case 2: $nein++; break;
-                    case 3: $enthaltung++; break;
-                    case 4: $rueckverweis++; break;
-                    case 5: $bedenkzeit++; break;
+                    case 1: $ja++; $abgestimmt++; break;
+                    case 2: $nein++; $abgestimmt++; break;
+                    case 3: $enthaltung++; $abgestimmt++; break;
+                    case 4: $rueckverweis++; $nein++; $abgestimmt++; break; // Rückverweis zählt als Nein
+                    case 5: $bedenkzeit++; break; // Bedenkzeit zählt nicht als abgestimmt
                     case 6: $befangen++; break;
                 }
             }
         }
     }
 
-    // Wenn Bedenkzeit oder Rückverweis: nicht abschließen
-    if ($bedenkzeit > 0 || $rueckverweis > 0) {
-        return;
-    }
+    // Bedenkzeit blockiert nicht mehr - Rückverweis wird als Nein gewertet
+    // (Alte Logik entfernt: if ($bedenkzeit > 0 || $rueckverweis > 0) return;)
 
     // Prüfen ob alle abgestimmt haben
     if ($abgestimmt < $abstimmende) {
@@ -879,7 +876,7 @@ foreach ($antraege as $a) {
                     $voter = $voter_stmt->fetch();
 
                     $votum = (int)($antrag["Votum$i"] ?? 0);
-                    $votum_text = ['', 'Ja', 'Nein', 'Enthaltung', 'Rückverweis', 'Bedenkzeit', 'Befangen'];
+                    $votum_text = ['', 'Ja', 'Nein', 'Enthaltung', 'Rückverweis (zählt als Nein)', 'Bedenkzeit', 'Befangen'];
                     $votum_colors = ['white', '#d4edda', '#f8d7da', '#fff3cd', '#e1bee7', '#fff8dc', '#e0e0e0'];
 
                     echo '<div style="padding: 10px; margin-bottom: 8px; background: ' . $votum_colors[$votum] . '; border-radius: 4px;">';
@@ -937,7 +934,7 @@ foreach ($antraege as $a) {
                                 </label>
                                 <label>
                                     <input type="radio" name="Votum" value="4">
-                                    <strong>Rückverweis</strong> - Noch nicht abstimmungsreif
+                                    <strong>Rückverweis</strong> (zählt als Nein-Stimme) - Noch nicht abstimmungsreif
                                 </label>
                                 <label style="display: flex; flex-direction: column; align-items: flex-start;">
                                     <div>

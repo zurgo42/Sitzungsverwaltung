@@ -499,16 +499,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duplizieren']) && $ka
         }
     </script>
 
-    <?php
-    // Dynamischer Zurück-Link zur aufrufenden Seite
-    $referer = $_SERVER['HTTP_REFERER'] ?? 'index.php?tab=proposals';
-    // Sicherstellen, dass der Referer zur gleichen Domain gehört
-    if (parse_url($referer, PHP_URL_HOST) !== $_SERVER['HTTP_HOST']) {
-        $referer = 'index.php?tab=proposals';
-    }
-    ?>
     <div style="margin-bottom: 20px;">
-        <a href="<?= h($referer) ?>" class="btn btn-secondary" style="display: inline-block;">← Zurück</a>
+        <a href="index.php?tab=proposals" class="btn btn-secondary" style="display: inline-block;">← Zurück</a>
     </div>
 
     <div class="header">

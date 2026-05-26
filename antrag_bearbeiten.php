@@ -805,6 +805,7 @@ if ($user['aktiv'] >= 19) {
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                        <small style="display: block; margin-top: 3px; color: #d32f2f; font-size: 11px;">Pflichtangabe</small>
                     </div>
                     <div class="form-group">
                         <label for="ressort2">Mitwirkendes Ressort</label>
@@ -820,6 +821,7 @@ if ($user['aktiv'] >= 19) {
                     <div class="form-group">
                         <label for="verant">Verantwortlich für die Umsetzung <span class="required">*</span></label>
                         <input type="text" id="verant" name="verant" value="<?= htmlspecialchars($antrag['verant'] ?? '') ?>" required>
+                        <small style="display: block; margin-top: 3px; color: #d32f2f; font-size: 11px;">Pflichtangabe</small>
                     </div>
                 </div>
 
@@ -889,6 +891,7 @@ if ($user['aktiv'] >= 19) {
                     <div class="form-group">
                         <label for="titel">Titel <span class="required">*</span></label>
                         <input type="text" id="titel" name="titel" value="<?= htmlspecialchars($antrag['titel']) ?>" required>
+                        <small style="display: block; margin-top: 3px; color: #d32f2f; font-size: 11px;">Pflichtangabe</small>
                     </div>
                 </div>
 
@@ -897,6 +900,7 @@ if ($user['aktiv'] >= 19) {
                     <div class="form-group">
                         <label for="beschluss">Beschlusstext <span class="required">*</span></label>
                         <textarea id="beschluss" name="beschluss" required style="min-height: 50px; resize: vertical;"><?= htmlspecialchars($antrag['beschluss']) ?></textarea>
+                        <small style="display: block; margin-top: 3px; color: #d32f2f; font-size: 11px;">Pflichtangabe</small>
                     </div>
                 </div>
 
