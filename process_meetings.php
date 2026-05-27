@@ -104,23 +104,19 @@ function can_delete_meeting($meeting, $current_user) {
  * @param int $creator_member_id
  */
 function create_default_tops($pdo, $meeting_id, $creator_member_id, $chairman_member_id = null, $secretary_member_id = null) {
-    // Namen für Vorschlag laden
+    // Namen für Vorschlag laden (via Adapter)
     $chairman_name = '';
     $secretary_name = '';
 
     if ($chairman_member_id) {
-        $stmt = $pdo->prepare("SELECT first_name, last_name FROM svmembers WHERE member_id = ?");
-        $stmt->execute([$chairman_member_id]);
-        $chairman = $stmt->fetch(PDO::FETCH_ASSOC);
+        $chairman = get_member_by_id($pdo, $chairman_member_id);
         if ($chairman) {
             $chairman_name = $chairman['first_name'] . ' ' . $chairman['last_name'];
         }
     }
 
     if ($secretary_member_id) {
-        $stmt = $pdo->prepare("SELECT first_name, last_name FROM svmembers WHERE member_id = ?");
-        $stmt->execute([$secretary_member_id]);
-        $secretary = $stmt->fetch(PDO::FETCH_ASSOC);
+        $secretary = get_member_by_id($pdo, $secretary_member_id);
         if ($secretary) {
             $secretary_name = $secretary['first_name'] . ' ' . $secretary['last_name'];
         }

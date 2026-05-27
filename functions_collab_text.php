@@ -69,14 +69,19 @@ function createCollabText($pdo, $meeting_id, $initiator_member_id, $title, $init
             ");
             $stmt->execute([$text_id, $meeting_id]);
         } else {
-            // ALLGEMEIN-MODUS: Alle Vorstand, GF, Assistenz als Participants
+            // ALLGEMEIN-MODUS: Alle Vorstand, GF, Assistenz als Participants (via Adapter)
+            $all_members = get_all_members($pdo);
+            $leadership_members = array_filter($all_members, function($m) {
+                return in_array(strtolower($m['role']), ['vorstand', 'gf', 'assistenz']);
+            });
+
             $stmt = $pdo->prepare("
                 INSERT INTO svcollab_text_participants (text_id, member_id, last_seen)
-                SELECT ?, member_id, NOW()
-                FROM svmembers
-                WHERE role IN ('vorstand', 'gf', 'assistenz')
+                VALUES (?, ?, NOW())
             ");
-            $stmt->execute([$text_id]);
+            foreach ($leadership_members as $member) {
+                $stmt->execute([$text_id, $member['member_id']]);
+            }
         }
 
         $pdo->commit();

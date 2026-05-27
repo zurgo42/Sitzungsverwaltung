@@ -6,6 +6,32 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Changed (Geändert)
+
+#### Migration zu reiner Adapter-Architektur (2026-05-27)
+- **VIEW-System vollständig entfernt** - Keine "magischen" VIEWs mehr
+- **Alle Member-Zugriffe über Adapter-Funktionen** - Expliziter, nachvollziehbarer Code
+- **7 verbleibende SQL-JOINs gefixed** - Konvertiert zu Adapter-Calls
+- **Gründe:** Bessere Wartbarkeit, Klarheit für künftige Admins, kein verstecktes VIEW-System
+
+**Betroffene Dateien:**
+- process_meetings.php - Name-Lookups über `get_member_by_id()`
+- tab_agenda_display_protocol_ready.php - Kommentare ohne JOINs
+- tab_agenda_display_ended.php - Kommentare ohne JOINs  
+- functions_collab_text.php - Leadership-Members über `get_all_members()`
+- tab_admin.php - Poll-Creator über Adapter
+- external_participant_register.php - Vereinfachte Membership-Check
+- debug_post_comments.php - Debug-Queries über Adapter
+- member_functions.php - `ensure_svmembers_view()` entfernt
+- functions.php - VIEW-Call entfernt
+- sql/create_members_view.sql - Als DEPRECATED markiert
+
+**Vorteile:**
+- ✅ Kein verstecktes VIEW-System mehr
+- ✅ Explizite Adapter-Calls statt "Magie"
+- ✅ Einfacher zu debuggen für künftige Admins
+- ✅ Konsistent: Überall gleiche Adapter-Funktionen
+
 ### Added (Neu)
 
 #### 📋 Vollständiges Antrags- und Beschluss-System (2026-05-20 bis 2026-05-22)

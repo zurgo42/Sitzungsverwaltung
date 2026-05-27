@@ -153,25 +153,39 @@ foreach ($agenda_items as $item):
         // Alle Kommentare laden
         $prep_comments = get_item_comments($pdo, $item['item_id']);
 
+        // Live-Kommentare laden und Member-Daten über Adapter hinzufügen
         $stmt = $pdo->prepare("
-            SELECT alc.*, m.first_name, m.last_name
+            SELECT alc.*
             FROM svagenda_live_comments alc
-            JOIN svmembers m ON alc.member_id = m.member_id
             WHERE alc.item_id = ?
             ORDER BY alc.created_at ASC
         ");
         $stmt->execute([$item['item_id']]);
         $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        foreach ($live_comments as &$lc) {
+            $member = get_member_by_id($pdo, $lc['member_id']);
+            $lc['first_name'] = $member ? $member['first_name'] : 'Unbekannt';
+            $lc['last_name'] = $member ? $member['last_name'] : '';
+        }
+        unset($lc);
+
+        // Post-Kommentare laden und Member-Daten über Adapter hinzufügen
         $stmt = $pdo->prepare("
-            SELECT apc.*, m.first_name, m.last_name
+            SELECT apc.*
             FROM svagenda_post_comments apc
-            JOIN svmembers m ON apc.member_id = m.member_id
             WHERE apc.item_id = ?
             ORDER BY apc.created_at ASC
         ");
         $stmt->execute([$item['item_id']]);
         $post_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($post_comments as &$pc) {
+            $member = get_member_by_id($pdo, $pc['member_id']);
+            $pc['first_name'] = $member ? $member['first_name'] : 'Unbekannt';
+            $pc['last_name'] = $member ? $member['last_name'] : '';
+        }
+        unset($pc);
 
         // Nur anzeigen wenn mindestens eine Kommentarart vorhanden
         if (!empty($prep_comments) || !empty($live_comments) || !empty($post_comments)):

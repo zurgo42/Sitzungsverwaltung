@@ -758,17 +758,28 @@ document.addEventListener('DOMContentLoaded', function() {
         </p>
 
         <?php
-        // Alle Umfragen laden
+        // Alle Umfragen laden (Member-Daten über Adapter)
         $polls_stmt = $pdo->query("
             SELECT p.*,
-                   m.first_name, m.last_name,
                    (SELECT COUNT(*) FROM svpoll_dates WHERE poll_id = p.poll_id) as option_count,
                    (SELECT COUNT(DISTINCT member_id) FROM svpoll_responses WHERE poll_id = p.poll_id) as response_count
             FROM svpolls p
-            LEFT JOIN svmembers m ON p.created_by_member_id = m.member_id
             ORDER BY p.created_at DESC
         ");
         $polls = $polls_stmt->fetchAll();
+
+        // Member-Namen über Adapter hinzufügen
+        foreach ($polls as &$poll) {
+            if ($poll['created_by_member_id']) {
+                $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
+                $poll['first_name'] = $creator ? $creator['first_name'] : 'Unbekannt';
+                $poll['last_name'] = $creator ? $creator['last_name'] : '';
+            } else {
+                $poll['first_name'] = 'System';
+                $poll['last_name'] = '';
+            }
+        }
+        unset($poll);
         ?>
 
         <?php if (empty($polls)): ?>

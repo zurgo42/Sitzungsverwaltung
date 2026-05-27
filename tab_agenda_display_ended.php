@@ -195,15 +195,22 @@ foreach ($agenda_items as $item):
         
         <!-- Live-Kommentare (zugeklappt, falls vorhanden) -->
         <?php
+        // Live-Kommentare laden und Member-Daten über Adapter hinzufügen
         $stmt = $pdo->prepare("
-            SELECT alc.*, m.first_name, m.last_name
+            SELECT alc.*
             FROM svagenda_live_comments alc
-            JOIN svmembers m ON alc.member_id = m.member_id
             WHERE alc.item_id = ?
             ORDER BY alc.created_at ASC
         ");
         $stmt->execute([$item['item_id']]);
         $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($live_comments as &$lc) {
+            $member = get_member_by_id($pdo, $lc['member_id']);
+            $lc['first_name'] = $member ? $member['first_name'] : 'Unbekannt';
+            $lc['last_name'] = $member ? $member['last_name'] : '';
+        }
+        unset($lc);
         
         if (!empty($live_comments)):
         ?>

@@ -72,37 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
             $member = null;
             if (!empty($mnr)) {
                 // Member aus Datenbank laden (über Adapter)
-                // Lade Member nach Mitgliedsnummer
-                $stmt = $pdo->prepare("
-                    SELECT * FROM svmembers
-                    WHERE membership_number = ?
-                    LIMIT 1
-                ");
-                $stmt->execute([$mnr]);
-                $member = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                // Falls nicht in svmembers, versuche berechtigte-Tabelle
-                if (!$member && defined('MEMBER_SOURCE') && MEMBER_SOURCE === 'berechtigte') {
-                    $stmt = $pdo->prepare("
-                        SELECT ID as member_id, MNr as membership_number,
-                               Vorname as first_name, Name as last_name,
-                               eMail as email
-                        FROM berechtigte
-                        WHERE MNr = ?
-                        LIMIT 1
-                    ");
-                    $stmt->execute([$mnr]);
-                    $ber = $stmt->fetch(PDO::FETCH_ASSOC);
-                    if ($ber) {
-                        $member = [
-                            'member_id' => $ber['member_id'],
-                            'membership_number' => $ber['membership_number'],
-                            'first_name' => $ber['first_name'],
-                            'last_name' => $ber['last_name'],
-                            'email' => $ber['email']
-                        ];
-                    }
-                }
+                // Lade Member nach Mitgliedsnummer (via Adapter)
+                $member = get_member_by_membership_number($pdo, $mnr);
             }
 
             // Wenn Mitglied gefunden: Als interner User behandeln
