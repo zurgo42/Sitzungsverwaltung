@@ -7,6 +7,8 @@
 require_once 'session_config.php';
 session_start();
 require_once 'config.php';
+require_once 'config_adapter.php';
+require_once 'member_functions.php';
 require_once 'includes/antragstypen_helper.php';
 require_once 'includes/voting_helper.php';
 
@@ -28,21 +30,19 @@ $bart_config = lade_antragstypen_config($pdo);
 // Voting-Config laden
 $voting_config = lade_voting_config($pdo);
 
-$user_stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
-$user_stmt->execute([$_SESSION['member_id']]);
-$user = $user_stmt->fetch();
+// User über Adapter laden
+$user = get_member_by_id($pdo, $_SESSION['member_id']);
+if (!$user) die("Benutzer nicht gefunden.");
 
 $antrnr = $_GET['antrnr'] ?? '';
 if (!$antrnr) die("Keine Antragsnummer angegeben.");
 
-// Antrag laden
+// Antrag laden (ohne JOIN auf berechtigte)
 $stmt = $pdo->prepare("
     SELECT a.*,
-           b.Vorname, b.Name, b.KurzN as AntragstellerKurz,
            r1.Ressort as ressort1_name,
            r2.Ressort as ressort2_name
     FROM " . TABLE_ANTRAEGE . " a
-    LEFT JOIN berechtigte b ON a.antrst = b.ID
     LEFT JOIN svressorts r1 ON a.ressort1 = r1.ID
     LEFT JOIN svressorts r2 ON a.ressort2 = r2.ID
     WHERE a.antrnr = ?
@@ -51,39 +51,44 @@ $stmt->execute([$antrnr]);
 $antrag = $stmt->fetch();
 if (!$antrag) die("Antrag nicht gefunden.");
 
+// Antragsteller über Adapter laden
+$antragsteller = get_member_by_id($pdo, $antrag['antrst']);
+if ($antragsteller) {
+    $antrag['Vorname'] = $antragsteller['first_name'];
+    $antrag['Name'] = $antragsteller['last_name'];
+    $antrag['AntragstellerKurz'] = substr($antragsteller['first_name'], 0, 1) . '. ' . $antragsteller['last_name'];
+} else {
+    $antrag['Vorname'] = 'Unbekannt';
+    $antrag['Name'] = '';
+    $antrag['AntragstellerKurz'] = 'Unbekannt';
+}
+
 // Berechtigungen
-$kann_intern_sehen = ($user['aktiv'] > 17 || $user['Funktion'] === 'VA' || $user['is_admin'] == 1);
+$kann_intern_sehen = ($user['aktiv'] > 17 || ($user['funktion'] ?? '') === 'VA' || $user['is_admin'] == 1);
 if ($antrag['int_ext'] === 'i' && !$kann_intern_sehen) {
     die("Keine Berechtigung.");
 }
 
-// Verfügungsberechtigte
+// Verfügungsberechtigte über Adapter laden
 $verf1_name = $verf2_name = '';
 if ($antrag['verf1']) {
-    $v = $pdo->prepare("SELECT Vorname, Name, KurzN FROM berechtigte WHERE ID = ?")->execute([$antrag['verf1']]);
-    $v = $pdo->prepare("SELECT Vorname, Name, KurzN FROM berechtigte WHERE ID = ?");
-    $v->execute([$antrag['verf1']]);
-    $vd = $v->fetch();
-    $verf1_name = $vd ? $vd['KurzN'] : '';
+    $verf1_member = get_member_by_id($pdo, $antrag['verf1']);
+    $verf1_name = $verf1_member ? (substr($verf1_member['first_name'], 0, 1) . '. ' . $verf1_member['last_name']) : '';
 }
 if ($antrag['verf2']) {
-    $v = $pdo->prepare("SELECT Vorname, Name, KurzN FROM berechtigte WHERE ID = ?");
-    $v->execute([$antrag['verf2']]);
-    $vd = $v->fetch();
-    $verf2_name = $vd ? $vd['KurzN'] : '';
+    $verf2_member = get_member_by_id($pdo, $antrag['verf2']);
+    $verf2_name = $verf2_member ? (substr($verf2_member['first_name'], 0, 1) . '. ' . $verf2_member['last_name']) : '';
 }
 
-// Wartezeitverkürzer
+// Wartezeitverkürzer über Adapter laden
 $verk1_name = $verk2_name = '';
 if ($antrag['verk1']) {
-    $v = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
-    $v->execute([$antrag['verk1']]);
-    $verk1_name = $v->fetchColumn() ?: '';
+    $verk1_member = get_member_by_id($pdo, $antrag['verk1']);
+    $verk1_name = $verk1_member ? (substr($verk1_member['first_name'], 0, 1) . '. ' . $verk1_member['last_name']) : '';
 }
 if ($antrag['verk2']) {
-    $v = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
-    $v->execute([$antrag['verk2']]);
-    $verk2_name = $v->fetchColumn() ?: '';
+    $verk2_member = get_member_by_id($pdo, $antrag['verk2']);
+    $verk2_name = $verk2_member ? (substr($verk2_member['first_name'], 0, 1) . '. ' . $verk2_member['last_name']) : '';
 }
 
 $prefix = substr($antrnr, 0, 1);
@@ -92,7 +97,7 @@ $ist_admin = ((int)($user['aktiv'] ?? 0) >= 19 || ($user['is_admin'] ?? 0) == 1)
 // Berechtigungsprüfung
 if ($prefix === 'A') {
     // A-Anträge: Antragsteller oder Vorstand darf bearbeiten
-    $kann_bearbeiten = (($user['aktiv'] > 10) && ($antrag['antrst'] == $user['ID'] || $user['aktiv'] >= 18));
+    $kann_bearbeiten = (($user['aktiv'] > 10) && ($antrag['antrst'] == $user['member_id'] || $user['aktiv'] >= 18));
 } else {
     // B/VS/X/Z-Anträge: Nur Admins dürfen bearbeiten
     $kann_bearbeiten = $ist_admin;

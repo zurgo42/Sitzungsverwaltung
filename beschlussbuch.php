@@ -8,6 +8,8 @@
 require_once 'session_config.php';
 session_start();
 require_once 'config.php';
+require_once 'config_adapter.php';
+require_once 'member_functions.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php');
@@ -54,10 +56,9 @@ function make_urls_clickable($text) {
     return $text;
 }
 
-// User laden
-$user_stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
-$user_stmt->execute([$_SESSION['member_id']]);
-$user = $user_stmt->fetch();
+// User über Adapter laden
+$user = get_member_by_id($pdo, $_SESSION['member_id']);
+if (!$user) die("Benutzer nicht gefunden.");
 
 // Prüfen, ob der Aufruf über vtool.php erfolgt ist
 $isVTool = (strpos($_SERVER['PHP_SELF'], 'vtool.php') !== false);

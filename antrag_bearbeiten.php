@@ -7,6 +7,8 @@
 require_once 'session_config.php';
 session_start();
 require_once 'config.php';
+require_once 'config_adapter.php';
+require_once 'member_functions.php';
 require_once 'includes/antragstypen_helper.php';
 require_once 'includes/voting_helper.php';
 
@@ -29,28 +31,45 @@ $bart_config = lade_antragstypen_config($pdo);
 $voting_config = lade_voting_config($pdo);
 
 // Hilfsfunktionen
-function getUserData($pdo, $member_id) {
-    $stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
-    $stmt->execute([$member_id]);
-    return $stmt->fetch();
-}
-
 function getVerfuegungsberechtigte($pdo) {
-    $stmt = $pdo->query("SELECT ID, KurzN, Vorname, Funktion FROM berechtigte WHERE aktiv >= 18 ORDER BY aktiv DESC, Vorname ASC");
-    return $stmt->fetchAll();
+    // Über Adapter: Alle mit aktiv >= 18
+    $all_members = get_all_members($pdo);
+    $verfuegungsberechtigte = array_filter($all_members, function($m) {
+        return isset($m['aktiv']) && $m['aktiv'] >= 18;
+    });
+
+    // Nach aktiv DESC, dann Vorname sortieren
+    usort($verfuegungsberechtigte, function($a, $b) {
+        $aktiv_diff = ($b['aktiv'] ?? 0) - ($a['aktiv'] ?? 0);
+        if ($aktiv_diff != 0) return $aktiv_diff;
+        return strcmp($a['first_name'] ?? '', $b['first_name'] ?? '');
+    });
+
+    // Felder anpassen für Kompatibilität
+    return array_map(function($m) {
+        return [
+            'ID' => $m['member_id'],
+            'KurzN' => substr($m['first_name'], 0, 1) . '. ' . $m['last_name'],
+            'Vorname' => $m['first_name'],
+            'Funktion' => $m['funktion'] ?? ''
+        ];
+    }, $verfuegungsberechtigte);
 }
 
 function getAbstimmungsberechtigte($pdo, $bart, $antrst) {
+    $all_members = get_all_members($pdo);
+
     // Für V und R: aktiv >= 14
     if ($bart === 'V' || $bart === 'R') {
-        $members = $pdo->query("SELECT ID, KurzN, Vorname, Funktion FROM berechtigte WHERE aktiv >= 14 ORDER BY aktiv DESC, Vorname ASC")->fetchAll();
+        $members = array_filter($all_members, function($m) {
+            return isset($m['aktiv']) && $m['aktiv'] >= 14;
+        });
 
         // Für R: zusätzlich FVo oder FVv
         if ($bart === 'R') {
             // Prüfen ob Antragsteller FVo ist
-            $antrst_data = $pdo->prepare("SELECT Funktion FROM berechtigte WHERE ID = ?");
-            $antrst_data->execute([$antrst]);
-            $antrst_funktion = $antrst_data->fetchColumn();
+            $antrst_member = get_member_by_id($pdo, $antrst);
+            $antrst_funktion = $antrst_member['funktion'] ?? '';
 
             if ($antrst_funktion === 'FVo') {
                 // FVv als zweiten Abstimmenden
@@ -60,9 +79,14 @@ function getAbstimmungsberechtigte($pdo, $bart, $antrst) {
                 $zusatz = 'FVo';
             }
 
-            $vorstand = $pdo->prepare("SELECT ID, KurzN, Funktion FROM berechtigte WHERE Funktion = ?");
-            $vorstand->execute([$zusatz]);
-            $vorstand_member = $vorstand->fetch();
+            // Suche Vorstandsmitglied mit passender Funktion
+            $vorstand_member = null;
+            foreach ($all_members as $m) {
+                if (($m['funktion'] ?? '') === $zusatz) {
+                    $vorstand_member = $m;
+                    break;
+                }
+            }
 
             if ($vorstand_member) {
                 // FVo/FVv als erstes Element hinzufügen
@@ -70,11 +94,43 @@ function getAbstimmungsberechtigte($pdo, $bart, $antrst) {
             }
         }
 
-        return $members;
+        // Sortieren und formatieren
+        $members = array_values($members);
+        usort($members, function($a, $b) {
+            $aktiv_diff = ($b['aktiv'] ?? 0) - ($a['aktiv'] ?? 0);
+            if ($aktiv_diff != 0) return $aktiv_diff;
+            return strcmp($a['first_name'] ?? '', $b['first_name'] ?? '');
+        });
+
+        return array_map(function($m) {
+            return [
+                'ID' => $m['member_id'],
+                'KurzN' => substr($m['first_name'], 0, 1) . '. ' . $m['last_name'],
+                'Vorname' => $m['first_name'],
+                'Funktion' => $m['funktion'] ?? ''
+            ];
+        }, $members);
     }
 
     // Für B: alle mit aktiv >= 18 (Vorstand)
-    return $pdo->query("SELECT ID, KurzN, Vorname, Funktion FROM berechtigte WHERE aktiv >= 18 ORDER BY aktiv DESC, Vorname ASC")->fetchAll();
+    $members = array_filter($all_members, function($m) {
+        return isset($m['aktiv']) && $m['aktiv'] >= 18;
+    });
+
+    usort($members, function($a, $b) {
+        $aktiv_diff = ($b['aktiv'] ?? 0) - ($a['aktiv'] ?? 0);
+        if ($aktiv_diff != 0) return $aktiv_diff;
+        return strcmp($a['first_name'] ?? '', $b['first_name'] ?? '');
+    });
+
+    return array_map(function($m) {
+        return [
+            'ID' => $m['member_id'],
+            'KurzN' => substr($m['first_name'], 0, 1) . '. ' . $m['last_name'],
+            'Vorname' => $m['first_name'],
+            'Funktion' => $m['funktion'] ?? ''
+        ];
+    }, $members);
 }
 
 function berechneWartezeit($antrnr, $bart, $bart_config) {
@@ -109,8 +165,11 @@ function berechneMonatssumme($pdo, $member_id, $antrnr) {
     return (float)($stmt->fetchColumn() ?? 0);
 }
 
-// Benutzer-Daten
-$user = getUserData($pdo, $_SESSION['member_id']);
+// Benutzer-Daten über Adapter
+$user = get_member_by_id($pdo, $_SESSION['member_id']);
+if (!$user) {
+    die("Benutzer nicht gefunden.");
+}
 $user_aktiv = (int)($user['aktiv'] ?? 0);
 
 if ($user_aktiv <= 10) {
@@ -120,16 +179,23 @@ if ($user_aktiv <= 10) {
 $antrnr = $_GET['antrnr'] ?? '';
 if (!$antrnr) die("Keine Antragsnummer angegeben.");
 
-// Antrag laden mit Antragsteller-Daten
-$stmt = $pdo->prepare("
-    SELECT a.*, b.Vorname, b.Name, b.KurzN as AntragstellerKurz
-    FROM " . TABLE_ANTRAEGE . " a
-    LEFT JOIN berechtigte b ON a.antrst = b.ID
-    WHERE a.antrnr = ?
-");
+// Antrag laden (ohne JOIN auf berechtigte)
+$stmt = $pdo->prepare("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
 $stmt->execute([$antrnr]);
 $antrag = $stmt->fetch();
 if (!$antrag) die("Antrag nicht gefunden.");
+
+// Antragsteller-Daten über Adapter laden
+$antragsteller = get_member_by_id($pdo, $antrag['antrst']);
+if ($antragsteller) {
+    $antrag['Vorname'] = $antragsteller['first_name'];
+    $antrag['Name'] = $antragsteller['last_name'];
+    $antrag['AntragstellerKurz'] = substr($antragsteller['first_name'], 0, 1) . '. ' . $antragsteller['last_name'];
+} else {
+    $antrag['Vorname'] = 'Unbekannt';
+    $antrag['Name'] = '';
+    $antrag['AntragstellerKurz'] = 'Unbekannt';
+}
 
 // Berechtigungsprüfung je nach Status
 $prefix = substr($antrnr, 0, 1);
@@ -137,7 +203,7 @@ $ist_admin = ($user_aktiv >= 19 || ($user['is_admin'] ?? 0) == 1);
 
 if ($prefix === 'A') {
     // A-Anträge: Antragsteller oder Vorstand darf bearbeiten
-    $darf_bearbeiten = ($antrag['antrst'] == $user['ID'] || $user_aktiv >= 18);
+    $darf_bearbeiten = ($antrag['antrst'] == $user['member_id'] || $user_aktiv >= 18);
 } else {
     // B/VS/X/Z-Anträge: Nur Admins dürfen bearbeiten
     $darf_bearbeiten = $ist_admin;
@@ -166,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Wartezeitverkürzung verarbeiten
                 if (isset($_POST['wartezeit_verkuerzen']) && $_POST['wartezeit_verkuerzen'] == 1) {
-                    if ($user['aktiv'] >= 18 && $antrag['antrst'] != $user['ID']) {
+                    if ($user['aktiv'] >= 18 && $antrag['antrst'] != $user['member_id']) {
                         wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user);
                     }
                 }
@@ -251,8 +317,8 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         // Wenn wichtig_escalate gesetzt ist (neu oder weiterhin)
         elseif (isset($post['wichtig_escalate']) && !isset($post['wichtig_reset'])) {
             // Auch Antragsteller (aktiv < 18) darf Vorstandsbeschluss anfordern
-            $wichtig = $user['ID'];
-            error_log("DEBUG: wichtig auf " . $user['ID'] . " gesetzt (escalate)");
+            $wichtig = $user['member_id'];
+            error_log("DEBUG: wichtig auf " . $user['member_id'] . " gesetzt (escalate)");
         } elseif (!isset($post['wichtig_escalate']) && !isset($post['wichtig_reset'])) {
             // Checkbox nicht gesetzt und kein Reset -> wichtig löschen
             $wichtig = 0;
@@ -374,9 +440,16 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     $vname_fields = [];
 
     if ($antrag['bart'] === 'V') {
-        // Verfügung: Alle mit Verfügungsberechtigung (aktiv >= 14)
-        $verfuegungsber_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE aktiv >= 14 ORDER BY aktiv DESC, Vorname ASC LIMIT 6");
-        $verfuegungsber = $verfuegungsber_stmt->fetchAll(PDO::FETCH_COLUMN);
+        // Verfügung: Alle mit Verfügungsberechtigung (aktiv >= 14) über Adapter
+        $all_members = get_all_members($pdo);
+        $verfuegungsber_members = array_filter($all_members, function($m) {
+            return isset($m['aktiv']) && $m['aktiv'] >= 14;
+        });
+        usort($verfuegungsber_members, function($a, $b) {
+            $diff = ($b['aktiv'] ?? 0) - ($a['aktiv'] ?? 0);
+            return $diff != 0 ? $diff : strcmp($a['first_name'] ?? '', $b['first_name'] ?? '');
+        });
+        $verfuegungsber = array_slice(array_column($verfuegungsber_members, 'member_id'), 0, 6);
 
         if (empty($verfuegungsber)) {
             throw new Exception("Keine Verfügungsberechtigten gefunden.");
@@ -390,17 +463,30 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         // Ressortbeschluss: Antragsteller + FVo (oder FVv wenn FVo = Antragsteller)
         $vname_fields['VName1'] = $antrag['antrst'];
 
-        // FVo holen
-        $fvo_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE Funktion = 'FVo' AND aktiv >= 18 LIMIT 1");
-        $fvo = $fvo_stmt->fetchColumn();
+        // FVo holen über Adapter
+        $all_members = get_all_members($pdo);
+        $fvo_member = null;
+        foreach ($all_members as $m) {
+            if (($m['funktion'] ?? '') === 'FVo' && ($m['aktiv'] ?? 0) >= 18) {
+                $fvo_member = $m;
+                break;
+            }
+        }
+        $fvo = $fvo_member ? $fvo_member['member_id'] : null;
 
         if ($fvo && $fvo != $antrag['antrst']) {
             // FVo ist nicht der Antragsteller -> FVo als VName2
             $vname_fields['VName2'] = $fvo;
         } else {
             // FVo ist Antragsteller oder nicht vorhanden -> FVv als VName2
-            $fvv_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE Funktion = 'FVv' AND aktiv >= 18 LIMIT 1");
-            $fvv = $fvv_stmt->fetchColumn();
+            $fvv_member = null;
+            foreach ($all_members as $m) {
+                if (($m['funktion'] ?? '') === 'FVv' && ($m['aktiv'] ?? 0) >= 18) {
+                    $fvv_member = $m;
+                    break;
+                }
+            }
+            $fvv = $fvv_member ? $fvv_member['member_id'] : null;
             if ($fvv) {
                 $vname_fields['VName2'] = $fvv;
             } else {
@@ -409,9 +495,16 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         }
 
     } elseif ($antrag['bart'] === 'B') {
-        // Vorstandsbeschluss: Nur Vorstandsmitglieder (aktiv >= 18)
-        $vorstand_stmt = $pdo->query("SELECT ID FROM berechtigte WHERE aktiv >= 18 ORDER BY aktiv DESC, Vorname ASC LIMIT 6");
-        $vorstand = $vorstand_stmt->fetchAll(PDO::FETCH_COLUMN);
+        // Vorstandsbeschluss: Nur Vorstandsmitglieder (aktiv >= 18) über Adapter
+        $all_members = get_all_members($pdo);
+        $vorstand_members = array_filter($all_members, function($m) {
+            return isset($m['aktiv']) && $m['aktiv'] >= 18;
+        });
+        usort($vorstand_members, function($a, $b) {
+            $diff = ($b['aktiv'] ?? 0) - ($a['aktiv'] ?? 0);
+            return $diff != 0 ? $diff : strcmp($a['first_name'] ?? '', $b['first_name'] ?? '');
+        });
+        $vorstand = array_slice(array_column($vorstand_members, 'member_id'), 0, 6);
 
         if (empty($vorstand)) {
             throw new Exception("Keine Vorstandsmitglieder gefunden.");
@@ -448,8 +541,8 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 // Löschen-Funktion
 function verwerfenAntrag($pdo, $antrnr, $antrag, $user) {
     // Nur Antragsteller, Vorstand oder GF dürfen verwerfen
-    $ist_antragsteller = ($antrag['antrst'] == $user['ID']);
-    $ist_vorstand_gf = ($user['aktiv'] >= 19 || $user['Funktion'] === 'GF');
+    $ist_antragsteller = ($antrag['antrst'] == $user['member_id']);
+    $ist_vorstand_gf = ($user['aktiv'] >= 19 || $user['funktion'] === 'GF');
 
     if (!$ist_antragsteller && !$ist_vorstand_gf) {
         throw new Exception("Nur Antragsteller, Vorstand und GF dürfen Anträge verwerfen.");
@@ -462,7 +555,7 @@ function verwerfenAntrag($pdo, $antrnr, $antrag, $user) {
 
 // Wartezeitverkürzung
 function wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user) {
-    if ($user['aktiv'] < 18 || $antrag['antrst'] == $user['ID']) {
+    if ($user['aktiv'] < 18 || $antrag['antrst'] == $user['member_id']) {
         throw new Exception("Antragsteller darf nicht der Wartezeitverkürzung zustimmen.");
     }
 
@@ -471,10 +564,10 @@ function wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user) {
 
     if (!$verk1) {
         $update = $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET verk1 = ? WHERE antrnr = ?");
-        $update->execute([$user['ID'], $antrnr]);
-    } elseif (!$verk2 && $verk1 != $user['ID']) {
+        $update->execute([$user['member_id'], $antrnr]);
+    } elseif (!$verk2 && $verk1 != $user['member_id']) {
         $update = $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET verk2 = ? WHERE antrnr = ?");
-        $update->execute([$user['ID'], $antrnr]);
+        $update->execute([$user['member_id'], $antrnr]);
     } else {
         throw new Exception("Wartezeitverkürzung bereits vollständig.");
     }
@@ -509,41 +602,53 @@ if ($antrag['bart'] === 'R') {
 }
 
 $kann_finalisieren = !$blockiert && $wartezeit_erfuellt && substr($antrnr, 0, 1) === 'A' &&
-                     ($antrag['antrst'] == $user['ID'] || $user['aktiv'] >= 18);
-$kann_verwerfen = ($antrag['antrst'] == $user['ID'] || $user['aktiv'] >= 19 || $user['Funktion'] === 'GF');
-$kann_verkuerzen = ($user['aktiv'] >= 18 && $antrag['antrst'] != $user['ID'] &&
-                    (!$antrag['verk1'] || (!$antrag['verk2'] && $antrag['verk1'] != $user['ID'])));
+                     ($antrag['antrst'] == $user['member_id'] || $user['aktiv'] >= 18);
+$kann_verwerfen = ($antrag['antrst'] == $user['member_id'] || $user['aktiv'] >= 19 || $user['funktion'] === 'GF');
+$kann_verkuerzen = ($user['aktiv'] >= 18 && $antrag['antrst'] != $user['member_id'] &&
+                    (!$antrag['verk1'] || (!$antrag['verk2'] && $antrag['verk1'] != $user['member_id'])));
 
-// Verf-Namen holen
+// Verf-Namen holen über Adapter
 $verf1_name = $verf2_name = '';
 if ($antrag['verf1']) {
-    $stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
-    $stmt->execute([$antrag['verf1']]);
-    $verf1_name = $stmt->fetchColumn() ?: '';
+    $verf1_member = get_member_by_id($pdo, $antrag['verf1']);
+    $verf1_name = $verf1_member ? (substr($verf1_member['first_name'], 0, 1) . '. ' . $verf1_member['last_name']) : '';
 }
 if ($antrag['verf2']) {
-    $stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
-    $stmt->execute([$antrag['verf2']]);
-    $verf2_name = $stmt->fetchColumn() ?: '';
+    $verf2_member = get_member_by_id($pdo, $antrag['verf2']);
+    $verf2_name = $verf2_member ? (substr($verf2_member['first_name'], 0, 1) . '. ' . $verf2_member['last_name']) : '';
 }
 
-// Verk-Namen holen (Wartezeitverkürzung)
+// Verk-Namen holen (Wartezeitverkürzung) über Adapter
 $verk1_name = $verk2_name = '';
 if ($antrag['verk1']) {
-    $stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
-    $stmt->execute([$antrag['verk1']]);
-    $verk1_name = $stmt->fetchColumn() ?: '';
+    $verk1_member = get_member_by_id($pdo, $antrag['verk1']);
+    $verk1_name = $verk1_member ? (substr($verk1_member['first_name'], 0, 1) . '. ' . $verk1_member['last_name']) : '';
 }
 if ($antrag['verk2']) {
-    $stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
-    $stmt->execute([$antrag['verk2']]);
-    $verk2_name = $stmt->fetchColumn() ?: '';
+    $verk2_member = get_member_by_id($pdo, $antrag['verk2']);
+    $verk2_name = $verk2_member ? (substr($verk2_member['first_name'], 0, 1) . '. ' . $verk2_member['last_name']) : '';
 }
 
-// Alle User mit aktiv>=9 für Admin-Antragsteller-Auswahl
+// Alle User mit aktiv>=9 für Admin-Antragsteller-Auswahl über Adapter
 $alle_antragsteller = [];
 if ($user['aktiv'] >= 19) {
-    $alle_antragsteller = $pdo->query("SELECT ID, KurzN, Vorname, Name FROM berechtigte WHERE aktiv >= 9 ORDER BY aktiv DESC, Vorname ASC")->fetchAll();
+    $all_members = get_all_members($pdo);
+    $filtered = array_filter($all_members, function($m) {
+        return isset($m['aktiv']) && $m['aktiv'] >= 9;
+    });
+    usort($filtered, function($a, $b) {
+        $diff = ($b['aktiv'] ?? 0) - ($a['aktiv'] ?? 0);
+        return $diff != 0 ? $diff : strcmp($a['first_name'] ?? '', $b['first_name'] ?? '');
+    });
+    // Format anpassen für Kompatibilität
+    $alle_antragsteller = array_map(function($m) {
+        return [
+            'ID' => $m['member_id'],
+            'KurzN' => substr($m['first_name'], 0, 1) . '. ' . $m['last_name'],
+            'Vorname' => $m['first_name'],
+            'Name' => $m['last_name']
+        ];
+    }, $filtered);
 }
 ?>
 <!DOCTYPE html>
@@ -985,7 +1090,7 @@ if ($user['aktiv'] >= 19) {
 
                 <?php
                 // Prüfen ob User FVo oder FVv ist
-                $ist_finanzvorstand = ($user['Funktion'] === 'FVo' || $user['Funktion'] === 'FVv');
+                $ist_finanzvorstand = ($user['funktion'] === 'FVo' || $user['funktion'] === 'FVv');
                 $sofort_aktiv = (($antrag['sofort'] ?? 0) > 0);
                 $vorher_erteilt = (($antrag['vorher'] ?? 0) == 1);
                 ?>
@@ -1089,7 +1194,7 @@ if ($user['aktiv'] >= 19) {
                     <div style="background: #fff8dc; padding: 10px; margin-bottom: 12px; border-radius: 4px; border-left: 3px solid #ffa500;">
                         <div class="checkbox-inline">
                             <input type="checkbox" id="wartezeit_verkuerzen" name="wartezeit_verkuerzen" value="1"
-                                   <?= ($antrag['verk1'] == $user['ID'] || $antrag['verk2'] == $user['ID']) ? 'checked' : '' ?>>
+                                   <?= ($antrag['verk1'] == $user['member_id'] || $antrag['verk2'] == $user['member_id']) ? 'checked' : '' ?>>
                             <label for="wartezeit_verkuerzen" style="margin: 0; font-size: 12px; font-weight: 600;">Wartezeit aufheben</label>
                         </div>
                         <div style="font-size: 11px; color: #666; margin-top: 4px;">

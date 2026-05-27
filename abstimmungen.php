@@ -9,6 +9,8 @@
 require_once 'session_config.php';
 session_start();
 require_once 'config.php';
+require_once 'config_adapter.php';
+require_once 'member_functions.php';
 require_once 'includes/voting_helper.php';
 
 if (!isset($_SESSION['member_id'])) {
@@ -23,10 +25,9 @@ $pdo = new PDO(
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
 );
 
-// User-Daten laden
-$user_stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
-$user_stmt->execute([$_SESSION['member_id']]);
-$user = $user_stmt->fetch();
+// User-Daten über Adapter laden
+$user = get_member_by_id($pdo, $_SESSION['member_id']);
+if (!$user) die("Benutzer nicht gefunden.");
 
 $user_aktiv = (int)($user['aktiv'] ?? 0);
 
@@ -37,9 +38,13 @@ $user_aktiv = (int)($user['aktiv'] ?? 0);
 /*
 function render_antrag_detail($pdo, $antrag) {
     // Antragsteller laden
-    $antrst_stmt = $pdo->prepare("SELECT Vorname, Name, KurzN FROM berechtigte WHERE ID = ?");
-    $antrst_stmt->execute([$antrag['antrst']]);
-    $antrst = $antrst_stmt->fetch();
+    $antrst = get_member_by_id($pdo, $antrag['antrst']);
+    if (!$antrst) $antrst = ['Vorname' => 'Unbekannt', 'Name' => '', 'KurzN' => 'Unbekannt'];
+    else {
+        $antrst['Vorname'] = $antrst['first_name'];
+        $antrst['Name'] = $antrst['last_name'];
+        $antrst['KurzN'] = substr($antrst['first_name'], 0, 1) . '. ' . $antrst['last_name'];
+    }
 
     // Ressorts laden
     $ressort1_name = $ressort2_name = '';
@@ -497,21 +502,35 @@ if ($show_detail) {
     }
 }
 
-// Alle B-Anträge laden
+// Alle B-Anträge laden (ohne JOIN auf berechtigte)
 $antraege_stmt = $pdo->query("
-    SELECT a.*, b.Vorname, b.Name, b.KurzN
+    SELECT a.*
     FROM " . TABLE_ANTRAEGE . " a
-    LEFT JOIN berechtigte b ON a.antrst = b.ID
     WHERE a.antrnr LIKE 'B%'
     ORDER BY a.antrnr DESC
 ");
 $antraege = $antraege_stmt->fetchAll();
 
+// Antragsteller-Namen über Adapter laden
+foreach ($antraege as &$antrag) {
+    $antrst = get_member_by_id($pdo, $antrag['antrst']);
+    if ($antrst) {
+        $antrag['Vorname'] = $antrst['first_name'];
+        $antrag['Name'] = $antrst['last_name'];
+        $antrag['KurzN'] = substr($antrst['first_name'], 0, 1) . '. ' . $antrst['last_name'];
+    } else {
+        $antrag['Vorname'] = 'Unbekannt';
+        $antrag['Name'] = '';
+        $antrag['KurzN'] = 'Unbekannt';
+    }
+}
+unset($antrag);
+
 // Prüfen ob User offene Abstimmungen hat
 $pending_votes = [];
 foreach ($antraege as $a) {
     for ($i = 1; $i <= 6; $i++) {
-        if ($a["VName$i"] == $user['ID'] && empty($a["Votum$i"])) {
+        if ($a["VName$i"] == $user['member_id'] && empty($a["Votum$i"])) {
             $pending_votes[] = $a;
             break;
         }
@@ -727,9 +746,8 @@ foreach ($antraege as $a) {
             <?php
             // Wichtig-Hinweis anzeigen wenn gesetzt
             if (!empty($antrag['wichtig']) && $antrag['bart'] === 'B') {
-                $wichtig_user_stmt = $pdo->prepare("SELECT KurzN FROM berechtigte WHERE ID = ?");
-                $wichtig_user_stmt->execute([$antrag['wichtig']]);
-                $wichtig_kurzn = $wichtig_user_stmt->fetchColumn();
+                $wichtig_user = get_member_by_id($pdo, $antrag['wichtig']);
+                $wichtig_kurzn = $wichtig_user ? (substr($wichtig_user['first_name'], 0, 1) . '. ' . $wichtig_user['last_name']) : null;
                 if ($wichtig_kurzn) {
                     echo '<div class="info-box" style="margin-bottom: 20px; background: rgba(250, 170, 0, 0.15); border-color: #FAAA00;">';
                     echo '<strong>ℹ️ Hinweis:</strong> Vorstandsabstimmung auf Anlass von <strong>' . htmlspecialchars($wichtig_kurzn) . '</strong>';
@@ -739,9 +757,13 @@ foreach ($antraege as $a) {
 
             // Basisdaten immer sichtbar anzeigen
             // Antragsteller laden
-            $antrst_stmt = $pdo->prepare("SELECT Vorname, Name, KurzN FROM berechtigte WHERE ID = ?");
-            $antrst_stmt->execute([$antrag['antrst']]);
-            $antrst = $antrst_stmt->fetch();
+            $antrst = get_member_by_id($pdo, $antrag['antrst']);
+    if (!$antrst) $antrst = ['Vorname' => 'Unbekannt', 'Name' => '', 'KurzN' => 'Unbekannt'];
+    else {
+        $antrst['Vorname'] = $antrst['first_name'];
+        $antrst['Name'] = $antrst['last_name'];
+        $antrst['KurzN'] = substr($antrst['first_name'], 0, 1) . '. ' . $antrst['last_name'];
+    }
 
             // Ressorts laden
             $ressort1_name = $ressort2_name = '';
@@ -871,9 +893,12 @@ foreach ($antraege as $a) {
                 for ($i = 1; $i <= 6; $i++) {
                     if (empty($antrag["VName$i"])) continue;
 
-                    $voter_stmt = $pdo->prepare("SELECT Vorname, Name, KurzN FROM berechtigte WHERE ID = ?");
-                    $voter_stmt->execute([$antrag["VName$i"]]);
-                    $voter = $voter_stmt->fetch();
+                    $voter_member = get_member_by_id($pdo, $antrag["VName$i"]);
+                    $voter = $voter_member ? [
+                        'Vorname' => $voter_member['first_name'],
+                        'Name' => $voter_member['last_name'],
+                        'KurzN' => substr($voter_member['first_name'], 0, 1) . '. ' . $voter_member['last_name']
+                    ] : ['Vorname' => 'Unbekannt', 'Name' => '', 'KurzN' => 'Unbekannt'];
 
                     $votum = (int)($antrag["Votum$i"] ?? 0);
                     $votum_text = ['', 'Ja', 'Nein', 'Enthaltung', 'Rückverweis (zählt als Nein)', 'Bedenkzeit', 'Befangen'];
