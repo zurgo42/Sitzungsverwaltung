@@ -42,8 +42,8 @@ try {
         first_name VARCHAR(100) NOT NULL,
         last_name VARCHAR(100) NOT NULL,
         role ENUM('vorstand', 'gf', 'assistenz', 'fuehrungsteam', 'Mitglied') NOT NULL,
-        aktiv INT DEFAULT 1 COMMENT 'Berechtigungslevel 0-19 (kompatibel mit VTool berechtigte.aktiv)',
-        funktion VARCHAR(10) DEFAULT NULL COMMENT 'Funktion/Ressort (GF, SV, VA, RL, AD, FP - kompatibel mit VTool)',
+        aktiv INT DEFAULT 1 COMMENT 'Berechtigungslevel 0-19: 0=öffentlich, 10=Aktive, 15=RL, 18=GF, 19=Vorstand (siehe PERMISSIONS.md)',
+        funktion VARCHAR(10) DEFAULT NULL COMMENT 'Funktion: Vo,FVo,FVv,GF,VA,RL,PL,JT,TM,FP,SV,MB,Ka,Orga,AD,Rx,Vx,Xx (siehe PERMISSIONS.md)',
         is_admin TINYINT(1) DEFAULT 0,
         is_active TINYINT(1) DEFAULT 1,
         is_confidential TINYINT UNSIGNED DEFAULT NULL,
@@ -1035,10 +1035,11 @@ try {
     }
 
     // Migration: aktiv zu svmembers hinzufügen (VTool-Kompatibilität)
+    // Details siehe PERMISSIONS.md
     $stmt = $pdo->query("SHOW COLUMNS FROM svmembers LIKE 'aktiv'");
     if (!$stmt->fetch()) {
         echo "<p>Füge Spalte 'aktiv' zu members hinzu (Berechtigungslevel 0-19)...</p>";
-        $pdo->exec("ALTER TABLE svmembers ADD COLUMN aktiv INT DEFAULT 1 COMMENT 'Berechtigungslevel 0-19 (kompatibel mit VTool berechtigte.aktiv)' AFTER role");
+        $pdo->exec("ALTER TABLE svmembers ADD COLUMN aktiv INT DEFAULT 1 COMMENT 'Berechtigungslevel 0-19: 0=öffentlich, 10=Aktive, 15=RL, 18=GF, 19=Vorstand (siehe PERMISSIONS.md)' AFTER role");
         // Index hinzufügen
         try {
             $pdo->exec("ALTER TABLE svmembers ADD INDEX idx_aktiv (aktiv)");
@@ -1049,10 +1050,11 @@ try {
     }
 
     // Migration: funktion zu svmembers hinzufügen (VTool-Kompatibilität)
+    // Details siehe PERMISSIONS.md
     $stmt = $pdo->query("SHOW COLUMNS FROM svmembers LIKE 'funktion'");
     if (!$stmt->fetch()) {
-        echo "<p>Füge Spalte 'funktion' zu members hinzu (GF, SV, VA, RL, AD, FP)...</p>";
-        $pdo->exec("ALTER TABLE svmembers ADD COLUMN funktion VARCHAR(10) DEFAULT NULL COMMENT 'Funktion/Ressort (GF, SV, VA, RL, AD, FP - kompatibel mit VTool)' AFTER aktiv");
+        echo "<p>Füge Spalte 'funktion' zu members hinzu (Vo, GF, VA, RL, etc.)...</p>";
+        $pdo->exec("ALTER TABLE svmembers ADD COLUMN funktion VARCHAR(10) DEFAULT NULL COMMENT 'Funktion: Vo,FVo,FVv,GF,VA,RL,PL,JT,TM,FP,SV,MB,Ka,Orga,AD,Rx,Vx,Xx (siehe PERMISSIONS.md)' AFTER aktiv");
         // Index hinzufügen
         try {
             $pdo->exec("ALTER TABLE svmembers ADD INDEX idx_funktion (funktion)");

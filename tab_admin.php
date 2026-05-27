@@ -638,19 +638,39 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="form-row">
                 <div class="form-group">
                     <label>Berechtigungslevel (aktiv):</label>
-                    <input type="number" name="aktiv" value="1" min="0" max="19" title="0-19: Höhere Werte = mehr Rechte. 18=Vorstand, 19=GF/Admin">
-                    <small style="color: #666;">0-19 (18=Vorstand, 19=GF/Admin)</small>
+                    <input type="number" name="aktiv" value="1" min="0" max="19" title="0-19: 0=öffentlich, 10=Aktive, 15=Ressortleitung, 18=GF, 19=Vorstand">
+                    <small style="color: #666;">0-19 (siehe Dokumentation für Details)</small>
                 </div>
                 <div class="form-group">
                     <label>Funktion/Ressort:</label>
                     <select name="funktion">
                         <option value="">Keine</option>
-                        <option value="GF">GF - Geschäftsführung</option>
-                        <option value="SV">SV - Stellv. Vorsitzende/r</option>
-                        <option value="VA">VA - Vorstandsassistenz</option>
-                        <option value="RL">RL - Ressortleitung</option>
-                        <option value="AD">AD - Admin</option>
-                        <option value="FP">FP - Fachperson</option>
+                        <optgroup label="Vorstand">
+                            <option value="Vo">Vo - Vorstandsmitglied</option>
+                            <option value="FVo">FVo - Vorstand Finanzen (Kassenwart)</option>
+                            <option value="FVv">FVv - Vorstand + Vertreter Finanzvorstand</option>
+                            <option value="GF">GF - Geschäftsführer</option>
+                            <option value="VA">VA - Vorstandsassistenz</option>
+                        </optgroup>
+                        <optgroup label="Leitungsfunktionen">
+                            <option value="RL">RL - Ressortleiter</option>
+                            <option value="PL">PL - Projektleiter</option>
+                            <option value="JT">JT - Organisator Jahrestreffen</option>
+                            <option value="TM">TM - Teamleiter</option>
+                            <option value="FP">FP - Finanzprüfer/Kassenprüfer</option>
+                        </optgroup>
+                        <optgroup label="Unterstützung">
+                            <option value="SV">SV - Sekretariat Vorstand</option>
+                            <option value="MB">MB - Mitgliederbetreuung</option>
+                            <option value="Ka">Ka - Kassenführung</option>
+                            <option value="Orga">Orga - Hilfsfunktion Antragstellung</option>
+                            <option value="AD">AD - Technischer Admin</option>
+                        </optgroup>
+                        <optgroup label="Ehemalige (Aufbewahrungsfrist)">
+                            <option value="Rx">Rx - ehemalige Ressortleitung</option>
+                            <option value="Vx">Vx - ehemaliges Vorstandsmitglied</option>
+                            <option value="Xx">Xx - früher berechtigtes sonstiges Mitglied</option>
+                        </optgroup>
                     </select>
                 </div>
             </div>
@@ -751,19 +771,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="form-row">
                     <div class="form-group">
                         <label>Berechtigungslevel (aktiv):</label>
-                        <input type="number" name="aktiv" id="edit_aktiv" min="0" max="19" title="0-19: Höhere Werte = mehr Rechte. 18=Vorstand, 19=GF/Admin">
-                        <small style="color: #666;">0-19 (18=Vorstand, 19=GF/Admin)</small>
+                        <input type="number" name="aktiv" id="edit_aktiv" min="0" max="19" title="0-19: 0=öffentlich, 10=Aktive, 15=Ressortleitung, 18=GF, 19=Vorstand">
+                        <small style="color: #666;">0-19 (siehe Dokumentation für Details)</small>
                     </div>
                     <div class="form-group">
                         <label>Funktion/Ressort:</label>
                         <select name="funktion" id="edit_funktion">
                             <option value="">Keine</option>
-                            <option value="GF">GF - Geschäftsführung</option>
-                            <option value="SV">SV - Stellv. Vorsitzende/r</option>
-                            <option value="VA">VA - Vorstandsassistenz</option>
-                            <option value="RL">RL - Ressortleitung</option>
-                            <option value="AD">AD - Admin</option>
-                            <option value="FP">FP - Fachperson</option>
+                            <optgroup label="Vorstand">
+                                <option value="Vo">Vo - Vorstandsmitglied</option>
+                                <option value="FVo">FVo - Vorstand Finanzen (Kassenwart)</option>
+                                <option value="FVv">FVv - Vorstand + Vertreter Finanzvorstand</option>
+                                <option value="GF">GF - Geschäftsführer</option>
+                                <option value="VA">VA - Vorstandsassistenz</option>
+                            </optgroup>
+                            <optgroup label="Leitungsfunktionen">
+                                <option value="RL">RL - Ressortleiter</option>
+                                <option value="PL">PL - Projektleiter</option>
+                                <option value="JT">JT - Organisator Jahrestreffen</option>
+                                <option value="TM">TM - Teamleiter</option>
+                                <option value="FP">FP - Finanzprüfer/Kassenprüfer</option>
+                            </optgroup>
+                            <optgroup label="Unterstützung">
+                                <option value="SV">SV - Sekretariat Vorstand</option>
+                                <option value="MB">MB - Mitgliederbetreuung</option>
+                                <option value="Ka">Ka - Kassenführung</option>
+                                <option value="Orga">Orga - Hilfsfunktion Antragstellung</option>
+                                <option value="AD">AD - Technischer Admin</option>
+                            </optgroup>
+                            <optgroup label="Ehemalige (Aufbewahrungsfrist)">
+                                <option value="Rx">Rx - ehemalige Ressortleitung</option>
+                                <option value="Vx">Vx - ehemaliges Vorstandsmitglied</option>
+                                <option value="Xx">Xx - früher berechtigtes sonstiges Mitglied</option>
+                            </optgroup>
                         </select>
                     </div>
                 </div>

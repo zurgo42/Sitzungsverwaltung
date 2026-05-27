@@ -199,29 +199,55 @@ class BerechtigteAdapter implements MemberAdapterInterface {
      * WICHTIG: Gibt die gleichen Werte wie svmembers zurück (lowercase, Kurzformen)
      * damit JavaScript-Funktionen für Teilnehmerauswahl konsistent funktionieren
      *
-     * Regeln:
-     * - aktiv=19 → vorstand
-     * - Funktion=GF → gf
-     * - Funktion=SV → assistenz
-     * - Funktion=VA → assistenz (Vorstandsassistenz, gleiche Rechte wie SV)
-     * - Funktion=RL → fuehrungsteam (OHNE Umlaut!)
-     * - Funktion=AD → mitglied
-     * - Funktion=FP → mitglied
+     * Regeln (Priorität von oben nach unten):
+     * 1. aktiv=19 → vorstand (Vorstandsmitglied)
+     * 2. aktiv=18 → gf (Geschäftsführung/Admin)
+     * 3. Funktion bestimmt Rolle:
+     *    - Vo, FVo, FVv → vorstand
+     *    - GF → gf
+     *    - VA → assistenz (Vorstandsassistenz mit Vorstandsrechten außer Abstimmung)
+     *    - RL, PL, JT, TM → fuehrungsteam (Leitungsfunktionen)
+     *    - SV, MB, Ka, Orga → assistenz (Support-Funktionen)
+     *    - AD, FP → mitglied (Admin/Prüfer)
+     *    - Rx, Vx, Xx → mitglied (ehemalige, Aufbewahrungsfrist)
      */
     private function mapRole($funktion, $aktiv) {
-        // Vorstand hat höchste Priorität
+        // Vorstand hat höchste Priorität (aktiv=19)
         if ($aktiv == 19) {
             return 'vorstand';
         }
 
+        // Geschäftsführung/Admin (aktiv=18)
+        if ($aktiv == 18) {
+            return 'gf';
+        }
+
         // Dann Funktions-basierte Rollen (lowercase, Kurzformen wie in svmembers)
         $roleMapping = [
+            // Vorstand
+            'Vo' => 'vorstand',
+            'FVo' => 'vorstand',
+            'FVv' => 'vorstand',
+            // Geschäftsführung
             'GF' => 'gf',
-            'SV' => 'assistenz',
-            'VA' => 'assistenz',  // Vorstandsassistenz (gleiche Rechte wie SV)
-            'RL' => 'fuehrungsteam',  // OHNE Umlaut!
-            'AD' => 'mitglied',
-            'FP' => 'mitglied'
+            // Assistenz/Support
+            'VA' => 'assistenz',  // Vorstandsassistenz
+            'SV' => 'assistenz',  // Sekretariat Vorstand
+            'MB' => 'assistenz',  // Mitgliederbetreuung
+            'Ka' => 'assistenz',  // Kassenführung
+            'Orga' => 'assistenz',  // Hilfsfunktion Antragstellung
+            // Leitungsfunktionen
+            'RL' => 'fuehrungsteam',  // Ressortleiter
+            'PL' => 'fuehrungsteam',  // Projektleiter
+            'JT' => 'fuehrungsteam',  // Organisator Jahrestreffen
+            'TM' => 'fuehrungsteam',  // Teamleiter
+            // Admin/Prüfer
+            'AD' => 'mitglied',  // Technischer Admin
+            'FP' => 'mitglied',  // Finanzprüfer/Kassenprüfer
+            // Ehemalige (Aufbewahrungsfrist)
+            'Rx' => 'mitglied',  // ehemalige Ressortleitung
+            'Vx' => 'mitglied',  // ehemaliges Vorstandsmitglied
+            'Xx' => 'mitglied'   // früher berechtigtes sonstiges Mitglied
         ];
 
         return $roleMapping[$funktion] ?? 'mitglied';
