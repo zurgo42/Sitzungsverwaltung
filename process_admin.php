@@ -425,6 +425,8 @@ if (isset($_POST['add_member'])) {
     $email = trim($_POST['email'] ?? '');
     $membership_number = trim($_POST['membership_number'] ?? '');
     $role = $_POST['role'] ?? '';
+    $aktiv = isset($_POST['aktiv']) ? (int)$_POST['aktiv'] : 1;
+    $funktion = trim($_POST['funktion'] ?? '');
     $is_admin = isset($_POST['is_admin']) ? 1 : 0;
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
     $password = $_POST['password'] ?? '';
@@ -443,12 +445,16 @@ if (isset($_POST['add_member'])) {
                 'last_name' => $last_name,
                 'email' => $email,
                 'role' => $role,
+                'aktiv' => $aktiv,
                 'is_admin' => $is_admin,
                 'is_confidential' => $is_confidential,
                 'password_hash' => $password_hash
             ];
             if ($membership_number !== '') {
                 $data['membership_number'] = $membership_number;
+            }
+            if ($funktion !== '') {
+                $data['funktion'] = $funktion;
             }
             $new_member_id = create_member($pdo, $data);
 
@@ -466,6 +472,8 @@ if (isset($_POST['add_member'])) {
                     'last_name' => $last_name,
                     'email' => $email,
                     'role' => $role,
+                    'aktiv' => $aktiv,
+                    'funktion' => $funktion,
                     'is_admin' => $is_admin,
                     'is_confidential' => $is_confidential
                 ]
@@ -504,6 +512,8 @@ if (isset($_POST['edit_member'])) {
     $email = trim($_POST['email'] ?? '');
     $membership_number = trim($_POST['membership_number'] ?? '');
     $role = $_POST['role'] ?? '';
+    $aktiv = isset($_POST['aktiv']) ? (int)$_POST['aktiv'] : 1;
+    $funktion = trim($_POST['funktion'] ?? '');
     $is_admin = isset($_POST['is_admin']) ? 1 : 0;
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
 
@@ -525,6 +535,8 @@ if (isset($_POST['edit_member'])) {
                     'email' => $email,
                     'membership_number' => $membership_number,
                     'role' => $role,
+                    'aktiv' => $aktiv,
+                    'funktion' => $funktion !== '' ? $funktion : null,
                     'is_admin' => $is_admin,
                     'is_confidential' => $is_confidential
                 ];
@@ -545,6 +557,8 @@ if (isset($_POST['edit_member'])) {
                     'last_name' => $last_name,
                     'email' => $email,
                     'role' => $role,
+                    'aktiv' => $aktiv,
+                    'funktion' => $funktion,
                     'is_admin' => $is_admin,
                     'is_confidential' => $is_confidential,
                     'password_changed' => $password_changed

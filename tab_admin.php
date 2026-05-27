@@ -635,6 +635,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     </label>
                 </div>
             </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Berechtigungslevel (aktiv):</label>
+                    <input type="number" name="aktiv" value="1" min="0" max="19" title="0-19: Höhere Werte = mehr Rechte. 18=Vorstand, 19=GF/Admin">
+                    <small style="color: #666;">0-19 (18=Vorstand, 19=GF/Admin)</small>
+                </div>
+                <div class="form-group">
+                    <label>Funktion/Ressort:</label>
+                    <select name="funktion">
+                        <option value="">Keine</option>
+                        <option value="GF">GF - Geschäftsführung</option>
+                        <option value="SV">SV - Stellv. Vorsitzende/r</option>
+                        <option value="VA">VA - Vorstandsassistenz</option>
+                        <option value="RL">RL - Ressortleitung</option>
+                        <option value="AD">AD - Admin</option>
+                        <option value="FP">FP - Fachperson</option>
+                    </select>
+                </div>
+            </div>
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" name="is_confidential" value="1">
@@ -657,6 +676,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <th>Name</th>
                 <th>E-Mail</th>
                 <th>Rolle</th>
+                <th>Berechtigung</th>
+                <th>Funktion</th>
                 <th>Admin</th>
                 <th>Vertraulich</th>
                 <th>Aktionen</th>
@@ -669,6 +690,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></td>
                     <td><?php echo htmlspecialchars($member['email']); ?></td>
                     <td><?php echo htmlspecialchars($member['role']); ?></td>
+                    <td><?php echo isset($member['aktiv']) ? $member['aktiv'] : '1'; ?></td>
+                    <td><?php echo isset($member['funktion']) && $member['funktion'] ? htmlspecialchars($member['funktion']) : '-'; ?></td>
                     <td><?php echo $member['is_admin'] ? '✅' : '❌'; ?></td>
                     <td><?php echo $member['is_confidential'] ? '✅' : '❌'; ?></td>
                     <td class="action-buttons">
@@ -723,6 +746,25 @@ document.addEventListener('DOMContentLoaded', function() {
                             <input type="checkbox" name="is_admin" id="edit_is_admin">
                             <span>Admin-Rechte</span>
                         </label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Berechtigungslevel (aktiv):</label>
+                        <input type="number" name="aktiv" id="edit_aktiv" min="0" max="19" title="0-19: Höhere Werte = mehr Rechte. 18=Vorstand, 19=GF/Admin">
+                        <small style="color: #666;">0-19 (18=Vorstand, 19=GF/Admin)</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Funktion/Ressort:</label>
+                        <select name="funktion" id="edit_funktion">
+                            <option value="">Keine</option>
+                            <option value="GF">GF - Geschäftsführung</option>
+                            <option value="SV">SV - Stellv. Vorsitzende/r</option>
+                            <option value="VA">VA - Vorstandsassistenz</option>
+                            <option value="RL">RL - Ressortleitung</option>
+                            <option value="AD">AD - Admin</option>
+                            <option value="FP">FP - Fachperson</option>
+                        </select>
                     </div>
                 </div>
                 <div class="form-group">
@@ -1677,6 +1719,8 @@ function editMember(memberId) {
         document.getElementById('edit_email').value = member.email;
         document.getElementById('edit_membership_number').value = member.membership_number || '';
         document.getElementById('edit_role').value = member.role;
+        document.getElementById('edit_aktiv').value = member.aktiv || 1;
+        document.getElementById('edit_funktion').value = member.funktion || '';
         document.getElementById('edit_is_admin').checked = member.is_admin == 1;
         document.getElementById('edit_is_confidential').checked = member.is_confidential == 1;
         document.getElementById('edit_password').value = '';

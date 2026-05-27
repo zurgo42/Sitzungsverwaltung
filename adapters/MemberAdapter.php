@@ -83,8 +83,8 @@ class StandardMemberAdapter implements MemberAdapterInterface {
         // membership_number ist optional
         if (isset($data['membership_number']) && $data['membership_number'] !== '') {
             $stmt = $this->pdo->prepare("
-                INSERT INTO svmembers (first_name, last_name, email, membership_number, password_hash, role, is_admin, is_confidential)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO svmembers (first_name, last_name, email, membership_number, password_hash, role, aktiv, funktion, is_admin, is_confidential)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $data['first_name'],
@@ -93,13 +93,15 @@ class StandardMemberAdapter implements MemberAdapterInterface {
                 $data['membership_number'],
                 $data['password_hash'],
                 $data['role'],
+                $data['aktiv'] ?? 1,
+                $data['funktion'] ?? null,
                 $data['is_admin'] ?? 0,
                 $data['is_confidential'] ?? 0
             ]);
         } else {
             $stmt = $this->pdo->prepare("
-                INSERT INTO svmembers (first_name, last_name, email, password_hash, role, is_admin, is_confidential)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO svmembers (first_name, last_name, email, password_hash, role, aktiv, funktion, is_admin, is_confidential)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $data['first_name'],
@@ -107,6 +109,8 @@ class StandardMemberAdapter implements MemberAdapterInterface {
                 $data['email'],
                 $data['password_hash'],
                 $data['role'],
+                $data['aktiv'] ?? 1,
+                $data['funktion'] ?? null,
                 $data['is_admin'] ?? 0,
                 $data['is_confidential'] ?? 0
             ]);
@@ -117,7 +121,7 @@ class StandardMemberAdapter implements MemberAdapterInterface {
     public function updateMember($id, $data) {
         $stmt = $this->pdo->prepare("
             UPDATE svmembers
-            SET first_name = ?, last_name = ?, email = ?, membership_number = ?, role = ?, is_admin = ?, is_confidential = ?
+            SET first_name = ?, last_name = ?, email = ?, membership_number = ?, role = ?, aktiv = ?, funktion = ?, is_admin = ?, is_confidential = ?
             WHERE member_id = ?
         ");
         return $stmt->execute([
@@ -126,6 +130,8 @@ class StandardMemberAdapter implements MemberAdapterInterface {
             $data['email'],
             $data['membership_number'] ?? null,
             $data['role'],
+            $data['aktiv'] ?? 1,
+            $data['funktion'] ?? null,
             $data['is_admin'] ?? 0,
             $data['is_confidential'] ?? 0,
             $id
@@ -176,6 +182,8 @@ class BerechtigteAdapter implements MemberAdapterInterface {
             'email' => $row['eMail'],
             'role' => $role_code,  // Interner Code (lowercase): 'gf', 'vorstand', etc.
             'role_display' => $this->getRoleDisplayName($role_code),  // Display-Name: 'Geschäftsführung', etc.
+            'aktiv' => $aktiv,  // Berechtigungslevel 0-19 (direkt aus berechtigte)
+            'funktion' => $funktion,  // Funktionscode (GF, SV, VA, RL, AD, FP)
             'is_admin' => $this->isAdmin($funktion, $row['MNr']),
             'is_confidential' => $this->isConfidential($funktion, $aktiv),
             'is_active' => ($aktiv > 17) ? 1 : 0, // Aktiv wenn shouldInclude() true zurückgibt
