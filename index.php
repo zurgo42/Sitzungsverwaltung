@@ -896,6 +896,11 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                             <strong>Ihre Anmerkungen:</strong><br>
                             <small>Ihre Eingaben werden automatisch gespeichert und sind nur für Sie und Admins sichtbar.</small>
                         </p>
+                        <!-- Name und Datum-Anzeige -->
+                        <div id="user-feedback-header" style="padding: 8px 10px; background: #e8f4f8; border-left: 3px solid #2196F3; margin-bottom: 10px; border-radius: 3px; font-size: 0.9em; color: #555;">
+                            <strong><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?></strong>
+                            <span id="user-feedback-date" style="margin-left: 10px; color: #777;"></span>
+                        </div>
                         <textarea
                             id="user-feedback-text"
                             placeholder="Fehlermeldungen, Verbesserungsvorschläge, Anmerkungen..."
@@ -1164,6 +1169,11 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                     if (feedbackTextarea) {
                         feedbackTextarea.value = data.feedback || '';
                     }
+                    // Datum im Header aktualisieren
+                    const dateElement = document.getElementById('user-feedback-date');
+                    if (dateElement && data.updated_at) {
+                        dateElement.textContent = '(zuletzt geändert: ' + data.updated_at + ')';
+                    }
                     if (feedbackStatus) {
                         feedbackStatus.textContent = data.updated_at
                             ? 'Zuletzt gespeichert: ' + data.updated_at
@@ -1221,6 +1231,12 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             if (data.success && feedbackStatus) {
                 feedbackStatus.textContent = '✓ Gespeichert um ' + data.timestamp;
                 feedbackStatus.style.color = '#28a745';
+
+                // Datum im Header aktualisieren
+                const dateElement = document.getElementById('user-feedback-date');
+                if (dateElement) {
+                    dateElement.textContent = '(zuletzt geändert: ' + data.timestamp + ')';
+                }
             } else if (feedbackStatus) {
                 const errorMsg = data.error || 'Fehler beim Speichern';
                 const hint = data.hint ? ' (' + data.hint + ')' : '';
@@ -1270,14 +1286,17 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                                 </div>
                                 <textarea
                                     id="admin-feedback-${fb.id}"
-                                    style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;"
-                                    onchange="updateFeedback(${fb.id})"
+                                    style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; resize: vertical;"
                                 >${fb.feedback_text}</textarea>
-                                <div style="margin-top: 8px; text-align: right;">
+                                <div style="margin-top: 8px; text-align: right; display: flex; gap: 8px; justify-content: flex-end;">
+                                    <button
+                                        onclick="updateFeedback(${fb.id})"
+                                        style="padding: 6px 15px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;"
+                                    >💾 Speichern</button>
                                     <button
                                         onclick="deleteFeedback(${fb.id})"
-                                        style="padding: 5px 12px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;"
-                                    >Löschen</button>
+                                        style="padding: 6px 15px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;"
+                                    >🗑️ Löschen</button>
                                 </div>
                             </div>
                         `;
@@ -1299,6 +1318,9 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         const textarea = document.getElementById('admin-feedback-' + id);
         if (!textarea) return;
 
+        // Visuelles Feedback während des Speicherns
+        textarea.style.borderColor = '#ffc107';
+
         const formData = new FormData();
         formData.append('action', 'update_single');
         formData.append('id', id);
@@ -1311,11 +1333,29 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Erfolgreich: Grüner Border kurz anzeigen
                 textarea.style.borderColor = '#28a745';
-                setTimeout(() => { textarea.style.borderColor = '#ddd'; }, 1000);
+                textarea.style.backgroundColor = '#f0fff0';
+                setTimeout(() => {
+                    textarea.style.borderColor = '#ddd';
+                    textarea.style.backgroundColor = 'white';
+                    loadAllFeedbacks(); // Neu laden um aktualisiertes Datum zu zeigen
+                }, 1500);
             } else {
-                alert('Fehler beim Speichern');
+                // Fehler: Roten Border
+                textarea.style.borderColor = '#dc3545';
+                textarea.style.backgroundColor = '#fff5f5';
+                alert('Fehler beim Speichern: ' + (data.error || 'Unbekannter Fehler'));
+                setTimeout(() => {
+                    textarea.style.borderColor = '#ddd';
+                    textarea.style.backgroundColor = 'white';
+                }, 2000);
             }
+        })
+        .catch(error => {
+            textarea.style.borderColor = '#dc3545';
+            alert('Netzwerkfehler: ' + error.message);
+            setTimeout(() => { textarea.style.borderColor = '#ddd'; }, 2000);
         });
     }
 
