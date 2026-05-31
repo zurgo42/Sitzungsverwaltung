@@ -16,7 +16,40 @@
  * php fix_missing_beschluesse.php --fix     # Mit Eintragung nach Bestätigung
  */
 
-require_once __DIR__ . '/config.php';
+// Config laden wenn vorhanden, sonst Credentials als Parameter
+if (file_exists(__DIR__ . '/config.php')) {
+    require_once __DIR__ . '/config.php';
+    $db_host = DB_HOST;
+    $db_name = DB_NAME;
+    $db_user = DB_USER;
+    $db_pass = DB_PASS;
+} else {
+    // Standalone-Modus: Credentials als CLI-Parameter
+    // Verwendung: php fix_missing_beschluesse.php HOST DB USER PASS [--fix] [--yes]
+    $db_host = null;
+    $db_name = null;
+    $db_user = null;
+    $db_pass = null;
+
+    foreach ($argv ?? [] as $i => $arg) {
+        if ($i === 0) continue; // Script-Name überspringen
+        if (in_array($arg, ['--fix', '--yes'])) continue;
+        if ($db_host === null) { $db_host = $arg; continue; }
+        if ($db_name === null) { $db_name = $arg; continue; }
+        if ($db_user === null) { $db_user = $arg; continue; }
+        if ($db_pass === null) { $db_pass = $arg; continue; }
+    }
+
+    if (!$db_host || !$db_name || !$db_user) {
+        die("VERWENDUNG:\n" .
+            "  Mit config.php:    php fix_missing_beschluesse.php [--fix] [--yes]\n" .
+            "  Ohne config.php:   php fix_missing_beschluesse.php HOST DB USER PASS [--fix] [--yes]\n\n" .
+            "BEISPIEL:\n" .
+            "  php fix_missing_beschluesse.php localhost vtool vtool_user 'password' --fix\n\n");
+    }
+
+    if ($db_pass === null) $db_pass = ''; // Leeres Passwort falls nicht angegeben
+}
 
 // Kommandozeilen-Parameter
 $do_fix = in_array('--fix', $argv ?? []);
@@ -25,9 +58,9 @@ $auto_yes = in_array('--yes', $argv ?? []);
 // Datenbankverbindung
 try {
     $pdo = new PDO(
-        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
-        DB_USER,
-        DB_PASS,
+        "mysql:host=" . $db_host . ";dbname=" . $db_name . ";charset=utf8mb4",
+        $db_user,
+        $db_pass,
         [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
@@ -65,20 +98,63 @@ echo "✓ Tabellen gefunden:\n";
 echo "  - Anträge: $antraege_table\n";
 echo "  - Beschlüsse: $beschluesse_table\n\n";
 
-// 1. ALLE VS-ANTRÄGE LADEN
-echo "Schritt 1: Lade alle VS-Anträge aus $antraege_table...\n";
-$stmt = $pdo->query("
-    SELECT *
-    FROM $antraege_table
-    WHERE antrnr LIKE 'VS%'
-    ORDER BY antrnr
-");
-$vs_antraege = $stmt->fetchAll();
+// 1. BESCHLOSSENE ANTRÄGE LADEN
+// Verschiedene Kriterien testen
+echo "Schritt 1: Suche beschlossene Anträge in $antraege_table...\n\n";
 
-echo "  → " . count($vs_antraege) . " VS-Anträge gefunden\n\n";
+// Zuerst prüfen: Gibt es die Spalte 'praesenz'?
+$columns = $pdo->query("SHOW COLUMNS FROM $antraege_table")->fetchAll(PDO::FETCH_COLUMN);
+$has_praesenz = in_array('praesenz', $columns);
 
-if (empty($vs_antraege)) {
-    echo "✓ Keine VS-Anträge in der Datenbank. Script beendet.\n";
+$beschlossene = [];
+
+// Strategie 1: Über praesenz='Schriftlich' (typisch für VTool)
+if ($has_praesenz) {
+    echo "  → Prüfe praesenz='Schriftlich'...\n";
+    $stmt = $pdo->query("
+        SELECT *
+        FROM $antraege_table
+        WHERE praesenz LIKE '%schrift%'
+        ORDER BY antrnr
+    ");
+    $beschlossene = $stmt->fetchAll();
+    echo "    Gefunden: " . count($beschlossene) . "\n";
+}
+
+// Strategie 2: Über antrnr LIKE 'VS%' (falls Spalte praesenz nicht hilft)
+if (empty($beschlossene)) {
+    echo "  → Prüfe antrnr LIKE 'VS%'...\n";
+    $stmt = $pdo->query("
+        SELECT *
+        FROM $antraege_table
+        WHERE antrnr LIKE 'VS%'
+        ORDER BY antrnr
+    ");
+    $beschlossene = $stmt->fetchAll();
+    echo "    Gefunden: " . count($beschlossene) . "\n";
+}
+
+// Strategie 3: Über antrnr LIKE 'B%' (Beschlussanträge)
+if (empty($beschlossene)) {
+    echo "  → Prüfe antrnr LIKE 'B%'...\n";
+    $stmt = $pdo->query("
+        SELECT *
+        FROM $antraege_table
+        WHERE antrnr LIKE 'B%'
+        ORDER BY antrnr
+    ");
+    $beschlossene = $stmt->fetchAll();
+    echo "    Gefunden: " . count($beschlossene) . "\n";
+}
+
+echo "\n  ✓ Insgesamt " . count($beschlossene) . " beschlossene Anträge gefunden\n\n";
+
+if (empty($beschlossene)) {
+    echo "ℹ️  Keine beschlossenen Anträge gefunden.\n\n";
+    echo "Bitte prüfen Sie:\n";
+    echo "  1. Gibt es überhaupt Anträge in der Tabelle?\n";
+    echo "  2. Wie sind beschlossene Anträge markiert?\n";
+    echo "  3. Führen Sie diagnose_antraege.php aus für Details.\n\n";
     exit(0);
 }
 
@@ -86,7 +162,7 @@ if (empty($vs_antraege)) {
 echo "Schritt 2: Prüfe welche in $beschluesse_table fehlen...\n";
 $missing = [];
 
-foreach ($vs_antraege as $antrag) {
+foreach ($beschlossene as $antrag) {
     $stmt = $pdo->prepare("SELECT COUNT(*) as cnt FROM $beschluesse_table WHERE antrnr = ?");
     $stmt->execute([$antrag['antrnr']]);
     $exists = $stmt->fetchColumn() > 0;
@@ -241,7 +317,7 @@ foreach ($missing as $i => $antrag) {
 echo "\n====================================================================\n";
 echo "  ZUSAMMENFASSUNG\n";
 echo "====================================================================\n\n";
-echo "Gefunden:     " . count($vs_antraege) . " VS-Anträge\n";
+echo "Gefunden:     " . count($beschlossene) . " VS-Anträge\n";
 echo "Fehlend:      " . count($missing) . " Einträge\n";
 echo "Eingetragen:  $success_count Einträge\n";
 echo "Fehler:       $error_count Einträge\n\n";
