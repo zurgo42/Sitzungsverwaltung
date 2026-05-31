@@ -7,7 +7,7 @@
  *
  * VERWENDUNG:
  * - Im Browser: fix_missing_beschluesse.php
- * - Mit Eintragung: fix_missing_beschluesse.php?fix=1
+ * - Mit Eintragung: fix_missing_beschluesse.php?fix
  * - CLI: php fix_missing_beschluesse.php [--fix]
  */
 
@@ -192,7 +192,7 @@ if (!$is_cli) {
     if (!$do_fix) {
         echo "<h3>Aktion erforderlich</h3>";
         echo "<p>Um die fehlenden Einträge einzutragen:</p>";
-        echo "<a href='?fix=1' class='btn btn-success'>✓ Jetzt eintragen (" . count($missing) . " Einträge)</a>";
+        echo "<a href='?fix' class='btn btn-success'>✓ Jetzt eintragen (" . count($missing) . " Einträge)</a>";
     }
     echo "</div>";
 
