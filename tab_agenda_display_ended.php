@@ -4,6 +4,17 @@
  * Protokollant kann editieren, Teilnehmer können nachträgliche Kommentare hinzufügen
  */
 
+// DEBUG: Prüfe ob Datei geladen wird
+if (isset($_GET['debug_feedback'])) {
+    echo '<div style="background: #fffacd; padding: 15px; margin: 15px 0; border: 2px solid #ffc107;">';
+    echo '<strong>DEBUG: tab_agenda_display_ended.php geladen</strong><br>';
+    echo 'Is Secretary: ' . ($is_secretary ? 'JA' : 'NEIN') . '<br>';
+    echo 'Current User: ' . htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']) . '<br>';
+    echo 'User ID: ' . $current_user['member_id'] . '<br>';
+    echo 'Anzahl TOPs: ' . count($agenda_items ?? []) . '<br>';
+    echo '</div>';
+}
+
 // Voting-Modul laden
 require_once 'module_voting.php';
 
