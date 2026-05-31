@@ -5,20 +5,36 @@
  * Ermöglicht Speichern und Laden von Feedback-Einträgen
  */
 
-// Fehlerbehandlung aktivieren
+// WICHTIG: JSON-Header als allererstes setzen
+header('Content-Type: application/json; charset=utf-8');
+
+// Output-Buffering starten um ungewollte Ausgaben zu verhindern
+ob_start();
+
+// Fehlerbehandlung: Keine HTML-Ausgaben
 error_reporting(E_ALL);
-ini_set('display_errors', 0); // Nicht direkt ausgeben, sondern in JSON
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 
-// Session starten
-require_once 'session_config.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// JSON-Header setzen
-header('Content-Type: application/json');
+// Eigene Error-Handler für JSON-Ausgabe
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    ob_clean();
+    echo json_encode([
+        'success' => false,
+        'error' => "PHP Error: $errstr",
+        'file' => basename($errfile),
+        'line' => $errline
+    ]);
+    exit;
+});
 
 try {
+    // Session starten
+    require_once 'session_config.php';
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
     // Konfiguration laden
     require_once 'config.php';
     require_once 'config_adapter.php';
@@ -26,25 +42,23 @@ try {
 
     // Prüfen ob eingeloggt
     if (!isset($_SESSION['member_id'])) {
+        ob_clean();
         echo json_encode(['success' => false, 'error' => 'Nicht eingeloggt']);
         exit;
     }
 
     // Prüfen ob Feedback-System aktiviert ist
     if (!defined('ENABLE_FEEDBACK_SYSTEM') || !ENABLE_FEEDBACK_SYSTEM) {
+        ob_clean();
         echo json_encode(['success' => false, 'error' => 'Feedback-System nicht aktiviert']);
         exit;
     }
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => 'Konfigurationsfehler: ' . $e->getMessage()]);
-    exit;
-}
 
-$member_id = $_SESSION['member_id'];
-$current_user = get_member_by_id($pdo, $member_id);
+    $member_id = $_SESSION['member_id'];
+    $current_user = get_member_by_id($pdo, $member_id);
 
-// Aktion bestimmen
-$action = $_POST['action'] ?? $_GET['action'] ?? '';
+    // Aktion bestimmen
+    $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 switch ($action) {
     case 'save':
@@ -78,12 +92,14 @@ switch ($action) {
                 $stmt->execute([$member_id, $feedback_text]);
             }
 
+            ob_clean();
             echo json_encode([
                 'success' => true,
                 'message' => 'Feedback gespeichert',
                 'timestamp' => date('d.m.Y H:i')
             ]);
         } catch (PDOException $e) {
+            ob_clean();
             echo json_encode([
                 'success' => false,
                 'error' => 'Datenbankfehler: ' . $e->getMessage(),
@@ -104,12 +120,14 @@ switch ($action) {
             $stmt->execute([$member_id]);
             $feedback = $stmt->fetch();
 
+            ob_clean();
             echo json_encode([
                 'success' => true,
                 'feedback' => $feedback ? $feedback['feedback_text'] : '',
                 'updated_at' => $feedback ? date('d.m.Y H:i', strtotime($feedback['updated_at'])) : null
             ]);
         } catch (PDOException $e) {
+            ob_clean();
             echo json_encode([
                 'success' => false,
                 'error' => 'Datenbankfehler beim Laden: ' . $e->getMessage()
@@ -121,6 +139,7 @@ switch ($action) {
         try {
             // Alle Feedbacks laden (nur für Admins)
             if (!$current_user['is_admin']) {
+                ob_clean();
                 echo json_encode(['success' => false, 'error' => 'Keine Berechtigung']);
                 exit;
             }
@@ -153,11 +172,13 @@ switch ($action) {
                 ];
             }
 
+            ob_clean();
             echo json_encode([
                 'success' => true,
                 'feedbacks' => $result
             ]);
         } catch (Exception $e) {
+            ob_clean();
             echo json_encode([
                 'success' => false,
                 'error' => 'Fehler beim Laden: ' . $e->getMessage()
@@ -168,6 +189,7 @@ switch ($action) {
     case 'update_single':
         // Einzelnes Feedback bearbeiten (nur für Admins)
         if (!$current_user['is_admin']) {
+            ob_clean();
             echo json_encode(['success' => false, 'error' => 'Keine Berechtigung']);
             exit;
         }
@@ -182,6 +204,7 @@ switch ($action) {
         ");
         $stmt->execute([$feedback_text, $feedback_id]);
 
+        ob_clean();
         echo json_encode([
             'success' => true,
             'message' => 'Feedback aktualisiert'
@@ -191,6 +214,7 @@ switch ($action) {
     case 'delete_single':
         // Einzelnes Feedback löschen (nur für Admins)
         if (!$current_user['is_admin']) {
+            ob_clean();
             echo json_encode(['success' => false, 'error' => 'Keine Berechtigung']);
             exit;
         }
@@ -204,6 +228,7 @@ switch ($action) {
         ");
         $stmt->execute([$feedback_id]);
 
+        ob_clean();
         echo json_encode([
             'success' => true,
             'message' => 'Feedback gelöscht'
@@ -211,5 +236,20 @@ switch ($action) {
         break;
 
     default:
+        ob_clean();
         echo json_encode(['success' => false, 'error' => 'Unbekannte Aktion']);
 }
+
+} catch (Exception $e) {
+    // Globaler Fehler-Handler
+    ob_clean();
+    echo json_encode([
+        'success' => false,
+        'error' => 'Systemfehler: ' . $e->getMessage(),
+        'file' => basename($e->getFile()),
+        'line' => $e->getLine()
+    ]);
+}
+
+// Output-Buffer leeren und nur JSON ausgeben
+ob_end_flush();
