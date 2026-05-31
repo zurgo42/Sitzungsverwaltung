@@ -1277,12 +1277,21 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                     let html = '';
                     data.feedbacks.forEach(fb => {
                         html += `
-                            <div style="background: white; padding: 15px; margin-bottom: 15px; border-radius: 5px; border-left: 4px solid #2196F3;">
-                                <div style="margin-bottom: 10px;">
-                                    <strong style="color: #333;">${fb.member_name}</strong>
-                                    <span style="color: #999; font-size: 0.85em; margin-left: 10px;">
-                                        Erstellt: ${fb.created_at} | Geändert: ${fb.updated_at}
-                                    </span>
+                            <div style="background: white; padding: 15px; margin-bottom: 15px; border-radius: 5px; border-left: 4px solid #2196F3; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                <div style="background: #f8f9fa; padding: 10px; margin: -15px -15px 15px -15px; border-radius: 5px 5px 0 0; border-bottom: 1px solid #dee2e6;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                                        <div>
+                                            <strong style="color: #333; font-size: 1.05em;">👤 ${fb.member_name}</strong>
+                                        </div>
+                                        <div style="font-size: 0.85em; color: #666;">
+                                            <span style="display: inline-block; margin-right: 15px;">
+                                                <strong>📅 Erstellt:</strong> ${fb.created_at}
+                                            </span>
+                                            <span style="display: inline-block;">
+                                                <strong>✏️ Geändert:</strong> ${fb.updated_at}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <textarea
                                     id="admin-feedback-${fb.id}"
