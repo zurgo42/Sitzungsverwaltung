@@ -68,16 +68,19 @@ if (!$is_cli) {
 $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
 $antraege_table = null;
 $beschluesse_table = null;
+$ressorts_table = null;
 
 foreach ($tables as $table) {
     if (strtolower($table) === 'antraege') $antraege_table = $table;
     if (strtolower($table) === 'beschluesse') $beschluesse_table = $table;
+    if (strtolower($table) === 'ressorts') $ressorts_table = $table;
 }
 
 if (!$antraege_table || !$beschluesse_table) {
     foreach ($tables as $table) {
         if (!$antraege_table && preg_match('/antraege$/i', $table)) $antraege_table = $table;
         if (!$beschluesse_table && preg_match('/beschluesse$/i', $table)) $beschluesse_table = $table;
+        if (!$ressorts_table && preg_match('/ressorts$/i', $table)) $ressorts_table = $table;
     }
 }
 
@@ -218,8 +221,8 @@ if ($do_fix) {
         try {
             // Ressort-Namen laden
             $ressort_text = '';
-            if (!empty($a['ressort1'])) {
-                $stmt = $pdo->prepare("SELECT Ressort FROM svressorts WHERE Code = ? OR ID = ?");
+            if (!empty($a['ressort1']) && $ressorts_table) {
+                $stmt = $pdo->prepare("SELECT Ressort FROM $ressorts_table WHERE Code = ? OR ID = ?");
                 $stmt->execute([$a['ressort1'], $a['ressort1']]);
                 $ressort_text = $stmt->fetchColumn() ?: "Ressort-{$a['ressort1']}";
 
@@ -227,6 +230,12 @@ if ($do_fix) {
                     $stmt->execute([$a['ressort2'], $a['ressort2']]);
                     $r2 = $stmt->fetchColumn() ?: "Ressort-{$a['ressort2']}";
                     $ressort_text .= ' + ' . $r2;
+                }
+            } elseif (!empty($a['ressort1'])) {
+                // Ressorts-Tabelle nicht gefunden - verwende Code direkt
+                $ressort_text = "Ressort-{$a['ressort1']}";
+                if (!empty($a['ressort2'])) {
+                    $ressort_text .= ' + ' . "Ressort-{$a['ressort2']}";
                 }
             }
 
