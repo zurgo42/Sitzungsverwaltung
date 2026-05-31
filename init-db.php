@@ -983,6 +983,23 @@ try {
         FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Persönliche Notizen von Teilnehmern zu Agenda Items'";
 
+    // =========================================================
+    // FEEDBACK-SYSTEM (für Testphase)
+    // =========================================================
+
+    // Feedback-Tabelle für Benutzer-Rückmeldungen während Testphase
+    $tables[] = "CREATE TABLE IF NOT EXISTS feedback (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        member_id INT NOT NULL,
+        feedback_text TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        is_deleted TINYINT(1) DEFAULT 0,
+        INDEX idx_member_id (member_id),
+        INDEX idx_created_at (created_at),
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Feedback und Fehlermeldungen für Testphase'";
+
 
     // Tabellen erstellen
     echo "<p>Erstelle " . count($tables) . " Tabellen...</p>";
