@@ -975,6 +975,45 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                 include 'tab_meetings.php';
         }
         ?>
+
+        <?php if (defined('ENABLE_FEEDBACK_SYSTEM') && ENABLE_FEEDBACK_SYSTEM): ?>
+        <!-- FEEDBACK-AKKORDEON für Testphase -->
+        <div style="margin-top: 30px; border-top: 2px solid #e0e0e0; padding-top: 20px;">
+            <button class="accordion-button" onclick="toggleAccordion(this)" style="background: #f0f8ff; border-left: 4px solid #2196F3;">
+                <strong>💬 Meldungen an den Admin</strong>
+                <span style="font-size: 0.9em; color: #666; margin-left: 10px;">(Feedback für Testphase)</span>
+            </button>
+            <div class="accordion-content" style="display: none;">
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 5px;">
+                    <!-- User-Feedback -->
+                    <div id="user-feedback-section">
+                        <p style="margin-bottom: 10px; color: #555;">
+                            <strong>Ihre Anmerkungen:</strong><br>
+                            <small>Ihre Eingaben werden automatisch gespeichert und sind nur für Sie und Admins sichtbar.</small>
+                        </p>
+                        <textarea
+                            id="user-feedback-text"
+                            placeholder="Fehlermeldungen, Verbesserungsvorschläge, Anmerkungen..."
+                            style="width: 100%; min-height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; resize: vertical;"
+                        ></textarea>
+                        <div style="margin-top: 10px; font-size: 0.85em; color: #666;">
+                            <span id="feedback-status">Lädt...</span>
+                        </div>
+                    </div>
+
+                    <?php if ($current_user['is_admin']): ?>
+                    <!-- Admin-Ansicht: Alle Feedbacks -->
+                    <div id="admin-feedback-section" style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd;">
+                        <h3 style="color: #d9534f; margin-bottom: 15px;">🔐 Admin-Ansicht: Alle Rückmeldungen</h3>
+                        <div id="all-feedbacks-container">
+                            <p style="text-align: center; color: #999;">Lädt Feedbacks...</p>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
     
     <!-- JAVASCRIPT für Client-seitige Funktionen -->
@@ -1101,6 +1140,195 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
     } else {
         initDarkMode();
     }
+
+    <?php if (defined('ENABLE_FEEDBACK_SYSTEM') && ENABLE_FEEDBACK_SYSTEM): ?>
+    /**
+     * FEEDBACK-SYSTEM
+     * Autosave für User-Feedback und Admin-Ansicht
+     */
+    let feedbackSaveTimeout;
+    const feedbackTextarea = document.getElementById('user-feedback-text');
+    const feedbackStatus = document.getElementById('feedback-status');
+
+    // Feedback laden beim Seitenaufruf
+    function loadUserFeedback() {
+        fetch('ajax_feedback.php?action=load')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (feedbackTextarea) {
+                        feedbackTextarea.value = data.feedback || '';
+                    }
+                    if (feedbackStatus) {
+                        feedbackStatus.textContent = data.updated_at
+                            ? 'Zuletzt gespeichert: ' + data.updated_at
+                            : 'Noch keine Eingaben';
+                        feedbackStatus.style.color = '#28a745';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Fehler beim Laden:', error);
+                if (feedbackStatus) {
+                    feedbackStatus.textContent = 'Fehler beim Laden';
+                    feedbackStatus.style.color = '#dc3545';
+                }
+            });
+    }
+
+    // Autosave bei Eingabe
+    if (feedbackTextarea) {
+        feedbackTextarea.addEventListener('input', function() {
+            // Status während der Eingabe
+            if (feedbackStatus) {
+                feedbackStatus.textContent = 'Speichert...';
+                feedbackStatus.style.color = '#ffc107';
+            }
+
+            // Debounce: 2 Sekunden warten nach letzter Eingabe
+            clearTimeout(feedbackSaveTimeout);
+            feedbackSaveTimeout = setTimeout(() => {
+                saveFeedback();
+            }, 2000);
+        });
+    }
+
+    function saveFeedback() {
+        const formData = new FormData();
+        formData.append('action', 'save');
+        formData.append('feedback', feedbackTextarea.value);
+
+        fetch('ajax_feedback.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && feedbackStatus) {
+                feedbackStatus.textContent = '✓ Gespeichert um ' + data.timestamp;
+                feedbackStatus.style.color = '#28a745';
+            } else if (feedbackStatus) {
+                feedbackStatus.textContent = '✗ Fehler beim Speichern';
+                feedbackStatus.style.color = '#dc3545';
+            }
+        })
+        .catch(error => {
+            console.error('Fehler:', error);
+            if (feedbackStatus) {
+                feedbackStatus.textContent = '✗ Netzwerkfehler';
+                feedbackStatus.style.color = '#dc3545';
+            }
+        });
+    }
+
+    <?php if ($current_user['is_admin']): ?>
+    // Admin: Alle Feedbacks laden
+    function loadAllFeedbacks() {
+        const container = document.getElementById('all-feedbacks-container');
+        if (!container) return;
+
+        fetch('ajax_feedback.php?action=load_all')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.feedbacks.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: #999;">Noch keine Feedbacks vorhanden</p>';
+                        return;
+                    }
+
+                    let html = '';
+                    data.feedbacks.forEach(fb => {
+                        html += `
+                            <div style="background: white; padding: 15px; margin-bottom: 15px; border-radius: 5px; border-left: 4px solid #2196F3;">
+                                <div style="margin-bottom: 10px;">
+                                    <strong style="color: #333;">${fb.member_name}</strong>
+                                    <span style="color: #999; font-size: 0.85em; margin-left: 10px;">
+                                        Erstellt: ${fb.created_at} | Geändert: ${fb.updated_at}
+                                    </span>
+                                </div>
+                                <textarea
+                                    id="admin-feedback-${fb.id}"
+                                    style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                    onchange="updateFeedback(${fb.id})"
+                                >${fb.feedback_text}</textarea>
+                                <div style="margin-top: 8px; text-align: right;">
+                                    <button
+                                        onclick="deleteFeedback(${fb.id})"
+                                        style="padding: 5px 12px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;"
+                                    >Löschen</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+                }
+            })
+            .catch(error => {
+                console.error('Fehler:', error);
+                container.innerHTML = '<p style="color: #dc3545;">Fehler beim Laden der Feedbacks</p>';
+            });
+    }
+
+    function updateFeedback(id) {
+        const textarea = document.getElementById('admin-feedback-' + id);
+        if (!textarea) return;
+
+        const formData = new FormData();
+        formData.append('action', 'update_single');
+        formData.append('id', id);
+        formData.append('feedback', textarea.value);
+
+        fetch('ajax_feedback.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                textarea.style.borderColor = '#28a745';
+                setTimeout(() => { textarea.style.borderColor = '#ddd'; }, 1000);
+            } else {
+                alert('Fehler beim Speichern');
+            }
+        });
+    }
+
+    function deleteFeedback(id) {
+        if (!confirm('Dieses Feedback wirklich löschen?')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'delete_single');
+        formData.append('id', id);
+
+        fetch('ajax_feedback.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadAllFeedbacks(); // Neu laden
+            } else {
+                alert('Fehler beim Löschen');
+            }
+        });
+    }
+
+    // Admin-Feedbacks beim Laden initialisieren
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadAllFeedbacks);
+    } else {
+        loadAllFeedbacks();
+    }
+    <?php endif; ?>
+
+    // User-Feedback beim Laden initialisieren
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadUserFeedback);
+    } else {
+        loadUserFeedback();
+    }
+    <?php endif; ?>
     </script>
 
     <!-- Externes JavaScript für Hamburger-Menü -->

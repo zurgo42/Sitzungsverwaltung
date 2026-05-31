@@ -65,6 +65,11 @@ define('SESSION_TIMEOUT', 3600);  // in Sekunden (1 Stunde)
 // Tabs aktivieren/deaktivieren
 define('ENABLE_DOCUMENTS_TAB', true);  // Dokumenten-Verwaltung aktivieren/deaktivieren
 
+// ============= FEEDBACK-SYSTEM (für Testphase) =============
+// Zeigt ein Akkordeon auf allen Seiten, in dem Benutzer Fehlermeldungen/Anmerkungen eintragen können
+// Admins sehen alle Einträge, normale User nur ihre eigenen
+define('ENABLE_FEEDBACK_SYSTEM', false);  // Auf true setzen während der Testphase
+
 // ============= TABELLENNAMEN-KONFIGURATION =============
 // Für Systeme MIT vorhandenem VTool: 'antraege' und 'beschluesse' (empfohlen)
 // Für Clean-Installationen OHNE VTool: 'svantraege' und 'svbeschluesse'
