@@ -878,9 +878,48 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             </a>
         <?php endif; ?>
     </div>
-    
+
     <!-- HAUPTINHALT / CONTENT -->
     <div class="container">
+        <?php if (defined('ENABLE_FEEDBACK_SYSTEM') && ENABLE_FEEDBACK_SYSTEM): ?>
+        <!-- FEEDBACK-AKKORDEON für Testphase -->
+        <div style="margin-bottom: 20px;">
+            <button class="accordion-button" onclick="toggleAccordion(this)" style="background: #003366; color: #FFEB3B; border: none; font-weight: bold;">
+                <strong>💬 Meldungen an den Admin</strong>
+                <span style="font-size: 0.9em; opacity: 0.9; margin-left: 10px;">(Feedback für Testphase)</span>
+            </button>
+            <div class="accordion-content" style="display: none;">
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 5px;">
+                    <!-- User-Feedback -->
+                    <div id="user-feedback-section">
+                        <p style="margin-bottom: 10px; color: #555;">
+                            <strong>Ihre Anmerkungen:</strong><br>
+                            <small>Ihre Eingaben werden automatisch gespeichert und sind nur für Sie und Admins sichtbar.</small>
+                        </p>
+                        <textarea
+                            id="user-feedback-text"
+                            placeholder="Fehlermeldungen, Verbesserungsvorschläge, Anmerkungen..."
+                            style="width: 100%; min-height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; resize: vertical;"
+                        ></textarea>
+                        <div style="margin-top: 10px; font-size: 0.85em; color: #666;">
+                            <span id="feedback-status">Lädt...</span>
+                        </div>
+                    </div>
+
+                    <?php if ($current_user['is_admin']): ?>
+                    <!-- Admin-Ansicht: Alle Feedbacks -->
+                    <div id="admin-feedback-section" style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd;">
+                        <h3 style="color: #d9534f; margin-bottom: 15px;">🔐 Admin-Ansicht: Alle Rückmeldungen</h3>
+                        <div id="all-feedbacks-container">
+                            <p style="text-align: center; color: #999;">Lädt Feedbacks...</p>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <?php
         /**
          * TAB-ROUTING
@@ -975,45 +1014,6 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                 include 'tab_meetings.php';
         }
         ?>
-
-        <?php if (defined('ENABLE_FEEDBACK_SYSTEM') && ENABLE_FEEDBACK_SYSTEM): ?>
-        <!-- FEEDBACK-AKKORDEON für Testphase -->
-        <div style="margin-top: 30px; border-top: 2px solid #e0e0e0; padding-top: 20px;">
-            <button class="accordion-button" onclick="toggleAccordion(this)" style="background: #f0f8ff; border-left: 4px solid #2196F3;">
-                <strong>💬 Meldungen an den Admin</strong>
-                <span style="font-size: 0.9em; color: #666; margin-left: 10px;">(Feedback für Testphase)</span>
-            </button>
-            <div class="accordion-content" style="display: none;">
-                <div style="background: #f9f9f9; padding: 20px; border-radius: 5px;">
-                    <!-- User-Feedback -->
-                    <div id="user-feedback-section">
-                        <p style="margin-bottom: 10px; color: #555;">
-                            <strong>Ihre Anmerkungen:</strong><br>
-                            <small>Ihre Eingaben werden automatisch gespeichert und sind nur für Sie und Admins sichtbar.</small>
-                        </p>
-                        <textarea
-                            id="user-feedback-text"
-                            placeholder="Fehlermeldungen, Verbesserungsvorschläge, Anmerkungen..."
-                            style="width: 100%; min-height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; resize: vertical;"
-                        ></textarea>
-                        <div style="margin-top: 10px; font-size: 0.85em; color: #666;">
-                            <span id="feedback-status">Lädt...</span>
-                        </div>
-                    </div>
-
-                    <?php if ($current_user['is_admin']): ?>
-                    <!-- Admin-Ansicht: Alle Feedbacks -->
-                    <div id="admin-feedback-section" style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd;">
-                        <h3 style="color: #d9534f; margin-bottom: 15px;">🔐 Admin-Ansicht: Alle Rückmeldungen</h3>
-                        <div id="all-feedbacks-container">
-                            <p style="text-align: center; color: #999;">Lädt Feedbacks...</p>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
     </div>
     
     <!-- JAVASCRIPT für Client-seitige Funktionen -->
@@ -1153,7 +1153,12 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
     // Feedback laden beim Seitenaufruf
     function loadUserFeedback() {
         fetch('ajax_feedback.php?action=load')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     if (feedbackTextarea) {
@@ -1165,12 +1170,16 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                             : 'Noch keine Eingaben';
                         feedbackStatus.style.color = '#28a745';
                     }
+                } else if (feedbackStatus) {
+                    feedbackStatus.textContent = '✗ ' + (data.error || 'Fehler beim Laden');
+                    feedbackStatus.style.color = '#dc3545';
+                    console.error('Feedback-Ladefehler:', data);
                 }
             })
             .catch(error => {
                 console.error('Fehler beim Laden:', error);
                 if (feedbackStatus) {
-                    feedbackStatus.textContent = 'Fehler beim Laden';
+                    feedbackStatus.textContent = 'Fehler beim Laden: ' + error.message;
                     feedbackStatus.style.color = '#dc3545';
                 }
             });
@@ -1202,20 +1211,28 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success && feedbackStatus) {
                 feedbackStatus.textContent = '✓ Gespeichert um ' + data.timestamp;
                 feedbackStatus.style.color = '#28a745';
             } else if (feedbackStatus) {
-                feedbackStatus.textContent = '✗ Fehler beim Speichern';
+                const errorMsg = data.error || 'Fehler beim Speichern';
+                const hint = data.hint ? ' (' + data.hint + ')' : '';
+                feedbackStatus.textContent = '✗ ' + errorMsg + hint;
                 feedbackStatus.style.color = '#dc3545';
+                console.error('Feedback-Fehler:', data);
             }
         })
         .catch(error => {
             console.error('Fehler:', error);
             if (feedbackStatus) {
-                feedbackStatus.textContent = '✗ Netzwerkfehler';
+                feedbackStatus.textContent = '✗ Netzwerkfehler: ' + error.message;
                 feedbackStatus.style.color = '#dc3545';
             }
         });
@@ -1228,7 +1245,12 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         if (!container) return;
 
         fetch('ajax_feedback.php?action=load_all')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     if (data.feedbacks.length === 0) {
@@ -1261,11 +1283,15 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                         `;
                     });
                     container.innerHTML = html;
+                } else {
+                    const errorMsg = data.error || 'Unbekannter Fehler';
+                    container.innerHTML = '<p style="color: #dc3545;">Fehler: ' + errorMsg + '</p>';
+                    console.error('Admin-Feedback-Fehler:', data);
                 }
             })
             .catch(error => {
                 console.error('Fehler:', error);
-                container.innerHTML = '<p style="color: #dc3545;">Fehler beim Laden der Feedbacks</p>';
+                container.innerHTML = '<p style="color: #dc3545;">Fehler beim Laden: ' + error.message + '</p>';
             });
     }
 
