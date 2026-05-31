@@ -32,13 +32,27 @@ echo "  DIAGNOSE: ANTRÄGE UND BESCHLÜSSE\n";
 echo "====================================================================\n\n";
 
 // Tabellen finden
+// Priorität: Exakte Namen (VTool) vor Präfix-Varianten (Login-System)
 $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
 $antraege_table = null;
 $beschluesse_table = null;
 
+// 1. Zuerst exakte Namen suchen (VTool/Adapter-System)
 foreach ($tables as $table) {
-    if (preg_match('/antraege$/i', $table)) $antraege_table = $table;
-    if (preg_match('/beschluesse$/i', $table)) $beschluesse_table = $table;
+    if (strtolower($table) === 'antraege') $antraege_table = $table;
+    if (strtolower($table) === 'beschluesse') $beschluesse_table = $table;
+}
+
+// 2. Falls nicht gefunden: Mit Präfix suchen (Login-System)
+if (!$antraege_table || !$beschluesse_table) {
+    foreach ($tables as $table) {
+        if (!$antraege_table && preg_match('/antraege$/i', $table)) {
+            $antraege_table = $table;
+        }
+        if (!$beschluesse_table && preg_match('/beschluesse$/i', $table)) {
+            $beschluesse_table = $table;
+        }
+    }
 }
 
 echo "Tabellen:\n";
