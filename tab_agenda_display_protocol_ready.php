@@ -244,11 +244,12 @@ foreach ($agenda_items as $item):
                               style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
                 </div>
                 
-                <?php 
+                <?php
                 // Abstimmungsfelder bei Antrag/Beschluss
-                if ($item['category'] === 'antrag_beschluss') {
-                    render_voting_fields($item['item_id'], $item);
-                }
+                // TODO: render_voting_fields() muss noch implementiert werden
+                // if ($item['category'] === 'antrag_beschluss') {
+                //     render_voting_fields($item['item_id'], $item);
+                // }
                 ?>
             </div>
         <?php elseif (!empty($item['protocol_notes'])): ?>

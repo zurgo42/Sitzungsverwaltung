@@ -253,9 +253,10 @@ foreach ($agenda_items as $item):
 
                 <?php
                 // Abstimmungsfelder bei Antrag/Beschluss
-                if ($item['category'] === 'antrag_beschluss') {
-                    render_voting_fields($item['item_id'], $item);
-                }
+                // TODO: render_voting_fields() muss noch implementiert werden
+                // if ($item['category'] === 'antrag_beschluss') {
+                //     render_voting_fields($item['item_id'], $item);
+                // }
                 ?>
 
                 <!-- TOP löschen (nur für Protokollant) -->
