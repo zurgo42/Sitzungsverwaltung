@@ -8,6 +8,18 @@
 session_start();
 require_once 'config.php';
 require_once 'functions.php';
+require_once 'member_functions.php';
+
+// PDO-Verbindung aufbauen
+$pdo = new PDO(
+    "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+    DB_USER,
+    DB_PASS,
+    [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]
+);
 
 header('Content-Type: application/json');
 
@@ -165,7 +177,7 @@ for ($i = 0; $i < $file_count; $i++) {
     } catch (PDOException $e) {
         // Bei DB-Fehler: Datei löschen
         unlink($filepath);
-        $errors[] = "$file_name: Datenbankfehler";
+        $errors[] = "$file_name: Datenbankfehler - " . $e->getMessage();
         error_log("Attachment DB Error: " . $e->getMessage());
     }
 }
