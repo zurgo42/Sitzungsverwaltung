@@ -7,13 +7,11 @@
  * Alle Funktionen beibehalten, Layout und Rechte an System angepasst
  */
 
-// Berechtigungen prüfen
-$user_berecht_stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
-$user_berecht_stmt->execute([$current_user['member_id']]);
-$user_berecht = $user_berecht_stmt->fetch();
-$user_aktiv = $user_berecht['aktiv'] ?? 0;
+// Berechtigungen prüfen (über Adapter - funktioniert in beiden Modi)
+// $current_user kommt von get_member_by_id() und enthält bereits aktiv, funktion, is_admin
+$user_aktiv = $current_user['aktiv'] ?? 0;
 
-// Admin-Check: Wie im Original-Skript
+// Admin-Check: is_admin Flag ODER aktiv >= 19 (Vorstand)
 $isAdmin = ($current_user['is_admin'] ?? 0) == 1 || $user_aktiv >= 19;
 
 // Basis-URL für interne Verlinkung
@@ -116,10 +114,12 @@ if ($edit_mode) {
 
     $orderBy = ($order_mode == 'old') ? "antrnr ASC" : "antrnr DESC";
     $sql = "SELECT b.*,
-            (SELECT COUNT(*) FROM mverhalten v WHERE v.antrnr = b.antrnr AND v.MNr = :mnr) as user_voted
+            0 as user_voted
             FROM " . TABLE_MVBESCHLUESSE . " b
             WHERE " . implode(" AND ", $filter) . "
             ORDER BY $orderBy";
+    // Hinweis: user_voted wurde auf 0 gesetzt (mverhalten-Tabelle nur im VTool vorhanden)
+    // TODO: Implementierung für Login-System falls benötigt
     $stmt = $pdo->prepare($sql);
     $stmt->execute($queryParams);
 }
