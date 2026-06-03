@@ -95,7 +95,7 @@ if ($edit_mode) {
     $stmt = $pdo->prepare("SELECT * FROM " . TABLE_MVBESCHLUESSE . " WHERE antrnr = :target");
     $stmt->execute([':target' => $edit_mode]);
 } else {
-    $queryParams = [':mnr' => $current_user['member_id']];
+    $queryParams = [];  // mnr parameter nicht mehr benötigt (mverhalten-Subquery entfernt)
     $filter = ["1=1"];
 
     if ($gueltig == 1) {
