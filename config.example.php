@@ -155,5 +155,27 @@ define('FOOTER_COPYRIGHT', '&copy; Dr. Hermann Meier, Horstmannsmühle 1a, 42781
 define('FOOTER_IMPRESSUM_URL', 'https://geschäftsordnung.com/?page_id=53');
 define('FOOTER_DATENSCHUTZ_URL', 'https://geschäftsordnung.com/?page_id=54');
 
+// ============= PDO-DATENBANKVERBINDUNG =============
+// Zentrale PDO-Verbindung für alle Skripte
+// Vermeidet redundante Definitionen in einzelnen Dateien
+try {
+    $pdo = new PDO(
+        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+        DB_USER,
+        DB_PASS,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ]
+    );
+} catch (PDOException $e) {
+    // Fehlerbehandlung: Im Produktivbetrieb generische Meldung
+    if (defined('DEBUG_MODE') && DEBUG_MODE) {
+        die("Datenbankverbindung fehlgeschlagen: " . $e->getMessage());
+    } else {
+        die("Datenbankverbindung fehlgeschlagen. Bitte kontaktieren Sie den Administrator.");
+    }
+}
 
 ?>

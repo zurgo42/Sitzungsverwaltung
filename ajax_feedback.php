@@ -35,7 +35,7 @@ try {
         session_start();
     }
 
-    // Konfiguration laden
+    // Konfiguration laden (beinhaltet jetzt $pdo)
     require_once 'config.php';
     require_once 'config_adapter.php';
     require_once 'member_functions.php';

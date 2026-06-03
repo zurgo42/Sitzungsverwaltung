@@ -21,27 +21,35 @@ function lade_antragstypen_config($pdo) {
         return $config;
     }
 
-    $stmt = $pdo->query("
-        SELECT config_key, config_value, config_type
-        FROM svconfig
-        WHERE category = 'antragstypen'
-    ");
+    try {
+        $stmt = $pdo->query("
+            SELECT config_key, config_value, config_type
+            FROM svconfig
+            WHERE category = 'antragstypen'
+        ");
 
-    $config = [];
-    while ($row = $stmt->fetch()) {
-        $value = $row['config_value'];
+        $config = [];
+        while ($row = $stmt->fetch()) {
+            $value = $row['config_value'];
 
-        // Typ-Konvertierung
-        if ($row['config_type'] === 'boolean') {
-            $value = ($value === '1' || $value === 'true');
-        } elseif ($row['config_type'] === 'number') {
-            $value = is_numeric($value) ? (float)$value : 0;
+            // Typ-Konvertierung
+            if ($row['config_type'] === 'boolean') {
+                $value = ($value === '1' || $value === 'true');
+            } elseif ($row['config_type'] === 'number') {
+                $value = is_numeric($value) ? (float)$value : 0;
+            }
+
+            $config[$row['config_key']] = $value;
         }
 
-        $config[$row['config_key']] = $value;
-    }
+        return $config;
 
-    return $config;
+    } catch (PDOException $e) {
+        // Tabelle existiert nicht (z.B. altes Login-System ohne svconfig)
+        // Rückgabe leere Config - System arbeitet mit Defaults
+        error_log("antragstypen_helper: svconfig Tabelle nicht gefunden - verwende Defaults");
+        return [];
+    }
 }
 
 /**
