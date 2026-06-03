@@ -31,7 +31,7 @@ $pureBaseUrl = "https://" . $_SERVER['HTTP_HOST'] . "/Sitzungsverwaltung/index.p
 
 // --- LÖSCH-LOGIK ---
 if ($isAdmin && isset($_GET['delete'])) {
-    $stmt = $pdo->prepare("DELETE FROM mvbeschluesse WHERE antrnr = ?");
+    $stmt = $pdo->prepare("DELETE FROM " . TABLE_MVBESCHLUESSE . " WHERE antrnr = ?");
     $stmt->execute([$_GET['delete']]);
     header("Location: " . $baseUrl . $filterQuery);
     exit;
@@ -43,10 +43,10 @@ if ($isAdmin && isset($_POST['save_mv'])) {
     $new_antrnr = trim($_POST['antrnr_save']);
 
     if (!empty($old_antrnr) && $old_antrnr !== $new_antrnr) {
-        $pdo->prepare("DELETE FROM mvbeschluesse WHERE antrnr = ?")->execute([$old_antrnr]);
+        $pdo->prepare("DELETE FROM " . TABLE_MVBESCHLUESSE . " WHERE antrnr = ?")->execute([$old_antrnr]);
     }
 
-    $sql_save = "REPLACE INTO mvbeschluesse
+    $sql_save = "REPLACE INTO " . TABLE_MVBESCHLUESSE . "
                  SET antrnr = :antrnr, titel = :titel, text = :txt, begr = :begr,
                      ergebnis = :ergebnis, dafuer = :dafuer, dagegen = :dagegen,
                      enth = :enth, Relevant = :relevant, kategorie = :kat";
@@ -94,7 +94,7 @@ $edit_mode = ($isAdmin && isset($_GET['edit'])) ? $_GET['edit'] : null;
 $add_mode = ($isAdmin && isset($_GET['add']));
 
 if ($edit_mode) {
-    $stmt = $pdo->prepare("SELECT * FROM mvbeschluesse WHERE antrnr = :target");
+    $stmt = $pdo->prepare("SELECT * FROM " . TABLE_MVBESCHLUESSE . " WHERE antrnr = :target");
     $stmt->execute([':target' => $edit_mode]);
 } else {
     $queryParams = [':mnr' => $current_user['member_id']];
@@ -117,7 +117,7 @@ if ($edit_mode) {
     $orderBy = ($order_mode == 'old') ? "antrnr ASC" : "antrnr DESC";
     $sql = "SELECT b.*,
             (SELECT COUNT(*) FROM mverhalten v WHERE v.antrnr = b.antrnr AND v.MNr = :mnr) as user_voted
-            FROM mvbeschluesse b
+            FROM " . TABLE_MVBESCHLUESSE . " b
             WHERE " . implode(" AND ", $filter) . "
             ORDER BY $orderBy";
     $stmt = $pdo->prepare($sql);

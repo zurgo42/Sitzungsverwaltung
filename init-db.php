@@ -1000,6 +1000,30 @@ try {
         FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Feedback und Fehlermeldungen für Testphase'";
 
+    // =========================================================
+    // MV-BESCHLÜSSE (Mitgliederversammlungs-Beschlüsse)
+    // =========================================================
+
+    // MV-Beschlüsse Tabelle (für Login-System)
+    // Im Adapter-System wird die VTool-Tabelle 'mvbeschluesse' verwendet
+    $tables[] = "CREATE TABLE IF NOT EXISTS svmvbeschluesse (
+        antrnr VARCHAR(50) PRIMARY KEY COMMENT 'Antragsnummer (eindeutig)',
+        titel VARCHAR(500) DEFAULT NULL COMMENT 'Titel des Beschlusses',
+        text TEXT DEFAULT NULL COMMENT 'Beschlusstext',
+        begr TEXT DEFAULT NULL COMMENT 'Begründung',
+        ergebnis VARCHAR(100) DEFAULT NULL COMMENT 'Ergebnis (angenommen/abgelehnt)',
+        dafuer INT DEFAULT 0 COMMENT 'Ja-Stimmen',
+        dagegen INT DEFAULT 0 COMMENT 'Nein-Stimmen',
+        enth INT DEFAULT 0 COMMENT 'Enthaltungen',
+        Relevant TINYINT(1) DEFAULT 1 COMMENT 'Ist der Beschluss noch relevant?',
+        kategorie VARCHAR(100) DEFAULT NULL COMMENT 'Kategorie/Themenbereich',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_kategorie (kategorie),
+        INDEX idx_relevant (Relevant),
+        INDEX idx_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MV-Beschlüsse (Mitgliederversammlung)'";
+
 
     // Tabellen erstellen
     echo "<p>Erstelle " . count($tables) . " Tabellen...</p>";

@@ -71,11 +71,12 @@ define('ENABLE_DOCUMENTS_TAB', true);  // Dokumenten-Verwaltung aktivieren/deakt
 define('ENABLE_FEEDBACK_SYSTEM', false);  // Auf true setzen während der Testphase
 
 // ============= TABELLENNAMEN-KONFIGURATION =============
-// Für Systeme MIT vorhandenem VTool: 'antraege' und 'beschluesse' (empfohlen)
-// Für Clean-Installationen OHNE VTool: 'svantraege' und 'svbeschluesse'
+// Für Systeme MIT vorhandenem VTool: 'antraege', 'beschluesse', 'mvbeschluesse' (empfohlen)
+// Für Clean-Installationen OHNE VTool: 'svantraege', 'svbeschluesse', 'svmvbeschluesse'
 // Dies ermöglicht nahtlose Migration und Kompatibilität mit bestehenden Systemen
-define('TABLE_ANTRAEGE', 'antraege');      // Tabelle für Anträge
-define('TABLE_BESCHLUESSE', 'beschluesse'); // Tabelle für Beschlüsse
+define('TABLE_ANTRAEGE', 'antraege');         // Tabelle für Anträge
+define('TABLE_BESCHLUESSE', 'beschluesse');   // Tabelle für Beschlüsse
+define('TABLE_MVBESCHLUESSE', 'mvbeschluesse'); // Tabelle für MV-Beschlüsse
 
 // ============= VOREINSTELLUNGEN FÜR MEETINGS =============
 define('DEFAULT_MEETING_NAME', 'Vorstandssitzung');
