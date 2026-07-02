@@ -513,19 +513,19 @@ $antraege_stmt = $pdo->query("
 $antraege = $antraege_stmt->fetchAll();
 
 // Antragsteller-Namen über Adapter laden
-foreach ($antraege as &$antrag) {
-    $antrst = get_member_by_id($pdo, $antrag['antrst']);
+foreach ($antraege as &$antrag_item) {
+    $antrst = get_member_by_id($pdo, $antrag_item['antrst']);
     if ($antrst) {
-        $antrag['Vorname'] = $antrst['first_name'];
-        $antrag['Name'] = $antrst['last_name'];
-        $antrag['KurzN'] = substr($antrst['first_name'], 0, 1) . '. ' . $antrst['last_name'];
+        $antrag_item['Vorname'] = $antrst['first_name'];
+        $antrag_item['Name'] = $antrst['last_name'];
+        $antrag_item['KurzN'] = substr($antrst['first_name'], 0, 1) . '. ' . $antrst['last_name'];
     } else {
-        $antrag['Vorname'] = 'Unbekannt';
-        $antrag['Name'] = '';
-        $antrag['KurzN'] = 'Unbekannt';
+        $antrag_item['Vorname'] = 'Unbekannt';
+        $antrag_item['Name'] = '';
+        $antrag_item['KurzN'] = 'Unbekannt';
     }
 }
-unset($antrag);
+unset($antrag_item);
 
 // Prüfen ob User offene Abstimmungen hat
 $pending_votes = [];
