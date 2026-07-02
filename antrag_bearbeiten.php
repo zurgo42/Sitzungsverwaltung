@@ -353,7 +353,8 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     $hinweis = $antrag['hinweis'] ?? '';
     if (!empty($post['neuerhinweis'])) {
         if (!empty($hinweis)) $hinweis .= "\n---\n";
-        $hinweis .= date('d.m.Y H:i') . ' (' . $user['KurzN'] . '): ' . $post['neuerhinweis'];
+        $user_kurzn = substr($user['first_name'] ?? '', 0, 1) . '. ' . ($user['last_name'] ?? '');
+        $hinweis .= date('d.m.Y H:i') . ' (' . $user_kurzn . '): ' . $post['neuerhinweis'];
     }
 
     // File-Upload-Handling

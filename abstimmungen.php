@@ -369,7 +369,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_hinweis'])) {
 
         $hinweis = $antrag['hinweis'] ?? '';
         if ($hinweis) $hinweis .= "\n---\n";
-        $hinweis .= date('d.m.Y H:i') . ' (' . $user['KurzN'] . '): ' . $neuer_hinweis;
+        $user_kurzn = substr($user['first_name'] ?? '', 0, 1) . '. ' . ($user['last_name'] ?? '');
+        $hinweis .= date('d.m.Y H:i') . ' (' . $user_kurzn . '): ' . $neuer_hinweis;
 
         $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET hinweis = ? WHERE antrnr = ?")->execute([$hinweis, $antrnr]);
 
@@ -383,14 +384,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zurueckziehen'])) {
     $antrnr = $_POST['antrnr'] ?? '';
 
     if ($antrnr) {
-        $stmt = $pdo->prepare("SELECT antrst FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
+        $stmt = $pdo->prepare("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
         $stmt->execute([$antrnr]);
-        $antrag = $stmt->fetch();
+        $antrag_data = $stmt->fetch();
 
-        if ($antrag['antrst'] == $user['member_id']) {
+        if ($antrag_data && $antrag_data['antrst'] == $user['member_id']) {
             // Z-Präfix für zurückgezogen
             $neue_nr = 'Z' . substr($antrnr, 1);
             $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr]);
+
+            // Neue Antragsnummer für Kopie generieren (A-Präfix, aktuelles Datum)
+            $date_part = date('ymd');
+            $stmt_nr = $pdo->prepare("SELECT antrnr FROM " . TABLE_ANTRAEGE . " WHERE antrnr LIKE ? ORDER BY antrnr DESC LIMIT 1");
+            $stmt_nr->execute(['A' . $date_part . '%']);
+            $ex = $stmt_nr->fetch();
+            if (!$ex) {
+                $copy_antrnr = 'A' . $date_part . '01';
+            } else {
+                $n = (int)substr($ex['antrnr'], -2) + 1;
+                $copy_antrnr = 'A' . $date_part . str_pad($n, 2, '0', STR_PAD_LEFT);
+            }
+
+            // Kopie als neuen Antrag (A-Präfix) einstellen
+            $abstimmregel_col = TABLE_ANTRAEGE_HAS_ABSTIMMREGEL ? ", abstimmregel" : "";
+            $abstimmregel_ph  = TABLE_ANTRAEGE_HAS_ABSTIMMREGEL ? ", ?" : "";
+            $copy_stmt = $pdo->prepare("
+                INSERT INTO " . TABLE_ANTRAEGE . "
+                    (antrnr, antrst, bart, titel, beschluss, begr, pers, sach, fintext, fin, verant,
+                     ressort1, ressort2, wichtig, int_ext, verein, hinweis, thread,
+                     file1, file2, file3, file4, filetext1, filetext2, filetext3, filetext4,
+                     sofort, durch, zufin, zbem, praesenz, verf1, verf2, vorher$abstimmregel_col, lzugriff)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?$abstimmregel_ph, DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i'))
+            ");
+            $copy_params = [
+                $copy_antrnr,
+                $antrag_data['antrst'],
+                $antrag_data['bart'],
+                $antrag_data['titel'],
+                $antrag_data['beschluss'],
+                $antrag_data['begr'] ?? null,
+                $antrag_data['pers'] ?? null,
+                $antrag_data['sach'] ?? null,
+                $antrag_data['fintext'] ?? null,
+                $antrag_data['fin'] ?? '0',
+                $antrag_data['verant'] ?? null,
+                $antrag_data['ressort1'] ?? null,
+                $antrag_data['ressort2'] ?? null,
+                $antrag_data['wichtig'] ?? 0,
+                $antrag_data['int_ext'] ?? null,
+                $antrag_data['verein'] ?? 'V',
+                $antrag_data['hinweis'] ?? null,
+                $antrag_data['thread'] ?? null,
+                $antrag_data['file1'] ?? null,
+                $antrag_data['file2'] ?? null,
+                $antrag_data['file3'] ?? null,
+                $antrag_data['file4'] ?? null,
+                $antrag_data['filetext1'] ?? null,
+                $antrag_data['filetext2'] ?? null,
+                $antrag_data['filetext3'] ?? null,
+                $antrag_data['filetext4'] ?? null,
+                $antrag_data['sofort'] ?? 0,
+                $antrag_data['durch'] ?? null,
+                $antrag_data['zufin'] ?? 0,
+                $antrag_data['zbem'] ?? null,
+                $antrag_data['praesenz'] ?? null,
+                $antrag_data['verf1'] ?? null,
+                $antrag_data['verf2'] ?? null,
+                $antrag_data['vorher'] ?? 0,
+            ];
+            if (TABLE_ANTRAEGE_HAS_ABSTIMMREGEL) {
+                $copy_params[] = $antrag_data['abstimmregel'] ?? null;
+            }
+            $copy_stmt->execute($copy_params);
 
             header("Location: abstimmungen.php?msg=withdrawn");
             exit;
