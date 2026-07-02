@@ -961,11 +961,10 @@ if ($user['aktiv'] >= 19) {
                     </div>
                 </div>
 
-                <!-- Zeile 6: Abstimmungsregel (nur für Admins änderbar und wenn mehrere Optionen) -->
+                <!-- Zeile 6: Abstimmungsregel (nur wenn Spalte vorhanden, für Admins und wenn mehrere Optionen) -->
                 <?php
                 $enabled_rules = get_enabled_voting_rules($voting_config);
-                // Nur anzeigen wenn mehr als eine Regel aktiviert ist
-                if ($user['aktiv'] >= 19 && count($enabled_rules) > 1):
+                if (TABLE_ANTRAEGE_HAS_ABSTIMMREGEL && $user['aktiv'] >= 19 && count($enabled_rules) > 1):
                 ?>
                     <div class="form-row">
                         <div class="form-group">
