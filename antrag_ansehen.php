@@ -43,8 +43,8 @@ $stmt = $pdo->prepare("
            r1.Ressort as ressort1_name,
            r2.Ressort as ressort2_name
     FROM " . TABLE_ANTRAEGE . " a
-    LEFT JOIN svressorts r1 ON a.ressort1 = r1.ID
-    LEFT JOIN svressorts r2 ON a.ressort2 = r2.ID
+    LEFT JOIN " . TABLE_RESSORTS . " r1 ON a.ressort1 = r1.Code
+    LEFT JOIN " . TABLE_RESSORTS . " r2 ON a.ressort2 = r2.Code
     WHERE a.antrnr = ?
 ");
 $stmt->execute([$antrnr]);
