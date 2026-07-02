@@ -280,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_remarks'])) {
             $check_stmt->execute([$antrnr]);
             $vname = $check_stmt->fetchColumn();
 
-            if ($vname == $user['ID']) {
+            if ($vname == $user['member_id']) {
                 // Nur Bemerkungen speichern (Votum bleibt unverändert)
                 $update_sql = "UPDATE " . TABLE_ANTRAEGE . " SET
                     VBegr$abstimmend = ?,
@@ -322,7 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['votum_action'])) {
             $check_stmt->execute([$antrnr]);
             $vname = $check_stmt->fetchColumn();
 
-            if ($vname == $user['ID']) {
+            if ($vname == $user['member_id']) {
                 // Votum speichern
                 $update_sql = "UPDATE " . TABLE_ANTRAEGE . " SET
                     Votum$abstimmend = ?,
@@ -387,7 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zurueckziehen'])) {
         $stmt->execute([$antrnr]);
         $antrag = $stmt->fetch();
 
-        if ($antrag['antrst'] == $user['ID']) {
+        if ($antrag['antrst'] == $user['member_id']) {
             // Z-Präfix für zurückgezogen
             $neue_nr = 'Z' . substr($antrnr, 1);
             $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr]);
@@ -490,6 +490,7 @@ function beschluss_ablehnen($pdo, $antrnr) {
 // Einzelnen Antrag anzeigen?
 $antrnr = $_GET['antrnr'] ?? '';
 $show_detail = !empty($antrnr);
+$antrag = null;
 
 if ($show_detail) {
     $stmt = $pdo->prepare("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
@@ -877,7 +878,7 @@ foreach ($antraege as $a) {
             // Prüfen ob User abstimmberechtigt ist
             $user_position = 0;
             for ($i = 1; $i <= 6; $i++) {
-                if ($antrag["VName$i"] == $user['ID']) {
+                if ($antrag["VName$i"] == $user['member_id']) {
                     $user_position = $i;
                     break;
                 }
@@ -1108,7 +1109,7 @@ foreach ($antraege as $a) {
             </div>
 
             <!-- Antrag zurückziehen (nur Antragsteller) -->
-            <?php if ($antrag['antrst'] == $user['ID']): ?>
+            <?php if ($antrag['antrst'] == $user['member_id']): ?>
                 <div class="votum-box" style="background: #fff3cd;">
                     <h3 style="margin-bottom: 10px; font-size: 16px; color: #856404;">Antrag zurückziehen</h3>
                     <p style="margin-bottom: 10px; color: #666;">
@@ -1154,7 +1155,7 @@ foreach ($antraege as $a) {
                                 $muss_abstimmen = false;
                                 $hat_abgestimmt = false;
                                 for ($i = 1; $i <= 6; $i++) {
-                                    if ($a["VName$i"] == $user['ID']) {
+                                    if ($a["VName$i"] == $user['member_id']) {
                                         $muss_abstimmen = true;
                                         $hat_abgestimmt = !empty($a["Votum$i"]);
                                         break;
