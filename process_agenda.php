@@ -2276,6 +2276,33 @@ if (isset($_POST['save_protocol_ready_changes']) && $is_secretary && $meeting['s
             }
         }
         
+        // Nachträgliche Anmerkungen des Protokollführers speichern
+        $post_comments = $_POST['post_comment'] ?? [];
+        foreach ($post_comments as $item_id => $comment_text) {
+            $item_id = intval($item_id);
+            $comment_text = trim($comment_text);
+
+            $stmt = $pdo->prepare("
+                SELECT comment_id FROM svagenda_post_comments
+                WHERE item_id = ? AND member_id = ?
+            ");
+            $stmt->execute([$item_id, $current_user['member_id']]);
+            $existing = $stmt->fetch();
+
+            if (!empty($comment_text)) {
+                if ($existing) {
+                    $stmt = $pdo->prepare("UPDATE svagenda_post_comments SET comment_text = ?, updated_at = NOW() WHERE comment_id = ?");
+                    $stmt->execute([$comment_text, $existing['comment_id']]);
+                } else {
+                    $stmt = $pdo->prepare("INSERT INTO svagenda_post_comments (item_id, member_id, comment_text, created_at) VALUES (?, ?, ?, NOW())");
+                    $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+                }
+            } else if ($existing) {
+                $stmt = $pdo->prepare("DELETE FROM svagenda_post_comments WHERE comment_id = ?");
+                $stmt->execute([$existing['comment_id']]);
+            }
+        }
+
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
     } catch (PDOException $e) {
