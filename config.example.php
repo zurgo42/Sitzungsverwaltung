@@ -77,7 +77,7 @@ define('ENABLE_FEEDBACK_SYSTEM', false);  // Auf true setzen während der Testph
 define('TABLE_ANTRAEGE', 'antraege');         // Tabelle für Anträge
 define('TABLE_BESCHLUESSE', 'beschluesse');   // Tabelle für Beschlüsse
 define('TABLE_MVBESCHLUESSE', 'mvbeschluesse'); // Tabelle für MV-Beschlüsse
-define('TABLE_RESSORTS', 'ressorts');         // Tabelle für Ressorts (VTool: 'ressorts', Login-System: 'svressorts')
+define('TABLE_RESSORTS', 'ressortliste');     // Tabelle für Ressorts (VTool: 'ressortliste', Login-System: 'svressorts')
 
 // ============= VOREINSTELLUNGEN FÜR MEETINGS =============
 define('DEFAULT_MEETING_NAME', 'Vorstandssitzung');
