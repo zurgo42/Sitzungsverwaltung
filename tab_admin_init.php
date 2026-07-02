@@ -226,7 +226,7 @@ body.dark-mode .init-danger-list {
                     // Ressorts laden mit Verwendungszähler
                     $ressorts_stmt = $pdo->query("
                         SELECT r.*,
-                               (SELECT COUNT(*) FROM " . TABLE_ANTRAEGE . " WHERE ressort1 = r.Code OR ressort2 = r.Code) as verwendung
+                               (SELECT COUNT(*) FROM " . TABLE_ANTRAEGE . " WHERE ressort1 = r." . TABLE_RESSORTS_KEY . " OR ressort2 = r." . TABLE_RESSORTS_KEY . ") as verwendung
                         FROM " . TABLE_RESSORTS . " r
                         ORDER BY r.Reihenfolge, r.ID
                     ");

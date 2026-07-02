@@ -78,6 +78,7 @@ define('TABLE_ANTRAEGE', 'antraege');         // Tabelle für Anträge
 define('TABLE_BESCHLUESSE', 'beschluesse');   // Tabelle für Beschlüsse
 define('TABLE_MVBESCHLUESSE', 'mvbeschluesse'); // Tabelle für MV-Beschlüsse
 define('TABLE_RESSORTS', 'ressortliste');     // Tabelle für Ressorts (VTool: 'ressortliste', Login-System: 'svressorts')
+define('TABLE_RESSORTS_KEY', 'ID');           // Schlüsselspalte mit Rnn-Kennung (VTool: 'ID', Login-System: 'Code')
 
 // ============= VOREINSTELLUNGEN FÜR MEETINGS =============
 define('DEFAULT_MEETING_NAME', 'Vorstandssitzung');
