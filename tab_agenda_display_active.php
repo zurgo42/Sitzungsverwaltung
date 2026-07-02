@@ -404,7 +404,8 @@ render_simple_agenda_overview($agenda_items, $current_user, $current_meeting_id,
             // Ressorts laden
             $ressorts = [];
             try {
-                $ressorts_stmt = $pdo->query("SELECT " . TABLE_RESSORTS_KEY . " as Code, Ressort FROM " . TABLE_RESSORTS . " ORDER BY Reihenfolge, Ressort");
+                $ressorts_where = TABLE_RESSORTS_AKTIV ? "WHERE aktiv = 1" : "";
+                $ressorts_stmt = $pdo->query("SELECT " . TABLE_RESSORTS_KEY . " as Code, Ressort FROM " . TABLE_RESSORTS . " $ressorts_where ORDER BY Reihenfolge, Ressort");
                 $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_ASSOC);
             } catch (PDOException $e) {
                 error_log("Fehler beim Laden der Ressorts: " . $e->getMessage());

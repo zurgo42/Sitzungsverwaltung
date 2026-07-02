@@ -574,7 +574,8 @@ function wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user) {
 }
 
 // Daten für UI
-$ressorts = $pdo->query("SELECT " . TABLE_RESSORTS_KEY . " as ressort, Ressort as klartext FROM " . TABLE_RESSORTS . " ORDER BY Reihenfolge, " . TABLE_RESSORTS_KEY)->fetchAll();
+$ressorts_where = TABLE_RESSORTS_AKTIV ? "WHERE aktiv = 1" : "";
+$ressorts = $pdo->query("SELECT " . TABLE_RESSORTS_KEY . " as ressort, Ressort as klartext FROM " . TABLE_RESSORTS . " $ressorts_where ORDER BY Reihenfolge, " . TABLE_RESSORTS_KEY)->fetchAll();
 $verfuegungsber = getVerfuegungsberechtigte($pdo);
 $abstimmende = getAbstimmungsberechtigte($pdo, $antrag['bart'], $antrag['antrst']);
 $wartezeit = berechneWartezeit($antrnr, $antrag['bart'], $bart_config);
