@@ -409,7 +409,7 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                     if ($prefix === 'V' && $letztes_votum): ?>
                 <div class="compact-row">
                     <div class="compact-label">Beschlossen am:</div>
-                    <div class="compact-value" style="font-weight: 600; color: var(--success);"><?= date('d.m.Y', strtotime($letztes_votum)) ?></div>
+                    <div class="compact-value" style="font-weight: 600; color: var(--success);"><?= date('d.m.Y H:i', strtotime($letztes_votum)) ?></div>
                 </div>
                     <?php endif;
                 endif; ?>
