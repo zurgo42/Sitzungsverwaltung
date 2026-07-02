@@ -78,7 +78,7 @@ define('TABLE_ANTRAEGE', 'antraege');         // Tabelle für Anträge
 define('TABLE_BESCHLUESSE', 'beschluesse');   // Tabelle für Beschlüsse
 define('TABLE_MVBESCHLUESSE', 'mvbeschluesse'); // Tabelle für MV-Beschlüsse
 define('TABLE_RESSORTS', 'ressortliste');     // Tabelle für Ressorts (VTool: 'ressortliste', Login-System: 'svressorts')
-define('TABLE_RESSORTS_KEY', 'ID');           // Schlüsselspalte mit Rnn-Kennung (VTool: 'ID', Login-System: 'Code')
+define('TABLE_RESSORTS_KEY', 'ID');           // Primärschlüssel der Ressort-Tabelle (VTool: 'ID' Rnn-String, Login-System: 'ID' Auto-Increment)
 define('TABLE_RESSORTS_AKTIV', false);        // Hat die Ressort-Tabelle eine aktiv-Spalte? (VTool: false, Login-System: true)
 define('TABLE_ANTRAEGE_HAS_ABSTIMMREGEL', false); // Hat die Anträge-Tabelle abstimmregel-Spalte? (VTool: false, Login-System: true)
 
