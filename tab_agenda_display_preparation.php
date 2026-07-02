@@ -501,7 +501,7 @@ if ($can_move_tops) {
                         <div class="form-group">
                             <label style="font-weight: 600;">Sichtbarkeit</label>
                             <select name="proposal_int_ext" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                                <option value="e" selected>Extern (alle Ms)</option>
+                                <option value="e" selected>Extern (alle Mitglieder)</option>
                                 <option value="n">Nicht öffentlich (Führung)</option>
                                 <option value="i">Intern (nur Vorstand)</option>
                             </select>

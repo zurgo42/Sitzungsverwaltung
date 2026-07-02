@@ -112,6 +112,7 @@ foreach (['V', 'R', 'B'] as $typ) {
     }
 }
 $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vorstand'];
+$second_entity = $bart_config['second_entity_name'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -301,10 +302,12 @@ $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vors
                     <div class="compact-label">Sichtbarkeit:</div>
                     <div class="compact-value"><?= $int_ext_text[$antrag['int_ext']] ?? 'Extern' ?></div>
                 </div>
+                <?php if ($second_entity): ?>
                 <div class="compact-row">
-                    <div class="compact-label">Verein/Stiftung:</div>
-                    <div class="compact-value"><?= $antrag['verein'] === 'S' ? 'Stiftung' : 'Verein' ?></div>
+                    <div class="compact-label">Verein/<?= htmlspecialchars($second_entity) ?>:</div>
+                    <div class="compact-value"><?= $antrag['verein'] === 'S' ? htmlspecialchars($second_entity) : 'Verein' ?></div>
                 </div>
+                <?php endif; ?>
                 <?php if (isset($antrag['praesenz']) && $antrag['praesenz'] == 1): ?>
                 <div class="compact-row">
                     <div class="compact-label">Abstimmungsform:</div>

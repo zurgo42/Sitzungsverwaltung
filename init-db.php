@@ -1360,6 +1360,7 @@ try {
             ['term_vorstand', 'Vorstand', 'text', 'Bezeichnung für Vorstand/Führungsgremium', 'terminology'],
             ['term_geschaeftsfuehrer', 'Geschäftsführer', 'text', 'Bezeichnung für Geschäftsführer', 'terminology'],
             ['term_ressortleiter', 'Ressortleiter', 'text', 'Bezeichnung für Ressortleiter/Abteilungsleiter', 'terminology'],
+            ['second_entity_name', '', 'text', 'Name der zweiten Einheit neben "Verein" (z.B. "Stiftung", leer = keine Differenzierung)', 'terminology'],
         ];
 
         $stmt = $pdo->prepare("

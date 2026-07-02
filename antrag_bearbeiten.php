@@ -263,6 +263,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $saved = true;
                 $message = "Wartezeitverkürzung gespeichert.";
                 break;
+
+            case 'request_verkuerzung':
+                if ($antrag['antrst'] == $user['member_id'] && substr($antrnr, 0, 1) === 'A') {
+                    $user_kurzn = substr($user['first_name'] ?? '', 0, 1) . '. ' . ($user['last_name'] ?? '');
+                    $hinweis_wz = $antrag['hinweis'] ?? '';
+                    if ($hinweis_wz) $hinweis_wz .= "\n---\n";
+                    $hinweis_wz .= date('d.m.Y H:i') . ' (' . $user_kurzn . '): Wartezeitverkürzung beantragt.';
+                    $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET hinweis = ? WHERE antrnr = ?")->execute([$hinweis_wz, $antrnr]);
+                    $saved = true;
+                    $message = "Wartezeitverkürzung beantragt. Zwei Vorstandsmitglieder müssen nun zustimmen.";
+                }
+                break;
         }
 
         // Antrag neu laden
@@ -585,6 +597,7 @@ $verfuegungsber = getVerfuegungsberechtigte($pdo);
 $abstimmende = getAbstimmungsberechtigte($pdo, $antrag['bart'], $antrag['antrst']);
 $wartezeit = berechneWartezeit($antrnr, $antrag['bart'], $bart_config);
 $wartezeit_erfuellt = ($wartezeit === 'erfüllt' || ($antrag['verk1'] && $antrag['verk2']));
+$second_entity = $bart_config['second_entity_name'] ?? '';
 $monatssumme = berechneMonatssumme($pdo, $antrag['antrst'], $antrnr);
 
 $blockiert = false;
@@ -936,19 +949,23 @@ if ($user['aktiv'] >= 19) {
                     </div>
                 </div>
 
-                <!-- Zeile 5: Verein/Stiftung - Sichtbarkeit - Forum-ID -->
+                <!-- Zeile 5: Verein/Zweite Einheit (optional) - Sichtbarkeit - Forum-ID -->
                 <div class="form-row">
+                    <?php if ($second_entity): ?>
                     <div class="form-group">
-                        <label for="verein">Verein/Stiftung</label>
+                        <label for="verein">Verein / <?= htmlspecialchars($second_entity) ?></label>
                         <select id="verein" name="verein">
                             <option value="V" <?= ($antrag['verein'] ?? 'V') === 'V' ? 'selected' : '' ?>>Verein</option>
-                            <option value="S" <?= ($antrag['verein'] ?? '') === 'S' ? 'selected' : '' ?>>Stiftung</option>
+                            <option value="S" <?= ($antrag['verein'] ?? '') === 'S' ? 'selected' : '' ?>><?= htmlspecialchars($second_entity) ?></option>
                         </select>
                     </div>
+                    <?php else: ?>
+                    <input type="hidden" name="verein" value="<?= htmlspecialchars($antrag['verein'] ?? 'V') ?>">
+                    <?php endif; ?>
                     <div class="form-group">
                         <label for="int_ext">Sichtbarkeit</label>
                         <select id="int_ext" name="int_ext">
-                            <option value="e" <?= ($antrag['int_ext'] ?? 'e') === 'e' ? 'selected' : '' ?>>Extern (alle Ms)</option>
+                            <option value="e" <?= ($antrag['int_ext'] ?? 'e') === 'e' ? 'selected' : '' ?>>Extern (alle Mitglieder)</option>
                             <option value="n" <?= ($antrag['int_ext'] ?? '') === 'n' ? 'selected' : '' ?>>Nicht öffentlich (Führung)</option>
                             <option value="i" <?= ($antrag['int_ext'] ?? '') === 'i' ? 'selected' : '' ?>>Intern (nur Vorstand)</option>
                         </select>
@@ -1195,15 +1212,29 @@ if ($user['aktiv'] >= 19) {
                     </div>
                 <?php endif; ?>
 
+                <?php if (substr($antrnr, 0, 1) === 'A' && $wartezeit && $wartezeit !== 'erfüllt' && !$antrag['verk1'] && !$antrag['verk2'] && $antrag['antrst'] == $user['member_id']): ?>
+                    <div style="background: #fff8dc; padding: 10px; margin-bottom: 12px; border-radius: 4px; border-left: 3px solid #ffa500;">
+                        <div style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">Wartezeitverkürzung beantragen</div>
+                        <div style="font-size: 11px; color: #555; margin-bottom: 8px;">
+                            Zwei Vorstandsmitglieder, die nicht selbst Antragsteller sind, können die Wartezeit vorzeitig aufheben.
+                        </div>
+                        <button type="submit" form="wz-request-form" class="btn btn-secondary" style="font-size: 11px; padding: 4px 10px;">
+                            ⏱ Wartezeitverkürzung anfordern
+                        </button>
+                    </div>
+                <?php endif; ?>
+
                 <?php if ($kann_verkuerzen && substr($antrnr, 0, 1) === 'A' && $wartezeit !== 'erfüllt'): ?>
                     <div style="background: #fff8dc; padding: 10px; margin-bottom: 12px; border-radius: 4px; border-left: 3px solid #ffa500;">
+                        <div style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">Wartezeitverkürzung bestätigen</div>
                         <div class="checkbox-inline">
-                            <input type="checkbox" id="wartezeit_verkuerzen" name="wartezeit_verkuerzen" value="1"
-                                   <?= ($antrag['verk1'] == $user['member_id'] || $antrag['verk2'] == $user['member_id']) ? 'checked' : '' ?>>
-                            <label for="wartezeit_verkuerzen" style="margin: 0; font-size: 12px; font-weight: 600;">Wartezeit aufheben</label>
+                            <input type="checkbox" id="wartezeit_verkuerzen" name="wartezeit_verkuerzen" value="1" form="wz-approve-form" checked>
+                            <label for="wartezeit_verkuerzen" style="margin: 0; font-size: 12px;">Ich stimme der Wartezeitverkürzung zu</label>
                         </div>
-                        <div style="font-size: 11px; color: #666; margin-top: 4px;">
-                            (Vorstandsmitglieder können der Verkürzung zustimmen)
+                        <div style="margin-top: 8px;">
+                            <button type="submit" form="wz-approve-form" class="btn btn-primary" style="font-size: 11px; padding: 4px 10px;">
+                                ✓ Zustimmung speichern
+                            </button>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -1255,6 +1286,15 @@ if ($user['aktiv'] >= 19) {
             </div>
 
         </form>
+
+        <!-- Mini-Formulare für Wartezeitverkürzung (außerhalb des Hauptformulars) -->
+        <form id="wz-request-form" method="post" action="">
+            <input type="hidden" name="action" value="request_verkuerzung">
+        </form>
+        <form id="wz-approve-form" method="post" action="">
+            <input type="hidden" name="action" value="verkuerzung">
+        </form>
+
     </div>
 
 <script>
