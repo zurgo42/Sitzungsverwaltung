@@ -287,6 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <option value="preparation">Vorbereitung</option>
                         <option value="active">Aktiv</option>
                         <option value="ended">Beendet</option>
+                        <option value="protocol_ready">Protokoll zur Genehmigung</option>
                         <option value="archived">Archiviert</option>
                     </select>
                 </div>
