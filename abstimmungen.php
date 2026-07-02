@@ -326,7 +326,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['votum_action'])) {
                 // Votum speichern
                 $update_sql = "UPDATE " . TABLE_ANTRAEGE . " SET
                     Votum$abstimmend = ?,
-                    VDat$abstimmend = NOW(),
+                    VDat$abstimmend = CURDATE(),
                     VBegr$abstimmend = ?,
                     VProt$abstimmend = ?";
 
@@ -910,7 +910,7 @@ foreach ($antraege as $a) {
                     if ($votum > 0) {
                         echo ' <span style="margin-left: 5px;">→ <strong>' . $votum_text[$votum] . '</strong></span>';
                         if (!empty($antrag["VDat$i"])) {
-                            echo ' <span style="color: #666; font-size: 12px;">(' . date('d.m.Y H:i', strtotime($antrag["VDat$i"])) . ')</span>';
+                            echo ' <span style="color: #666; font-size: 12px;">(' . date('d.m.Y', strtotime($antrag["VDat$i"])) . ')</span>';
                         }
                     } else {
                         echo '</div><div style="color: #d32f2f; font-size: 13px; margin-top: 3px;">→ Stimme steht noch aus</div>';
