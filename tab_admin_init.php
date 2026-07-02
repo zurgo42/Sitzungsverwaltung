@@ -737,6 +737,7 @@ body.dark-mode .init-danger-list {
     </div>
 
     <!-- 6. ABSTIMMUNGSREGELN -->
+    <?php if (TABLE_ANTRAEGE_HAS_ABSTIMMREGEL): ?>
     <div class="admin-section">
         <h3 class="admin-section-header init-section-header" onclick="toggleSection(this)">
             🗳️ Abstimmungsregeln
@@ -851,6 +852,7 @@ body.dark-mode .init-danger-list {
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- PLATZHALTER FÜR WEITERE BEREICHE -->
     <!-- Hier werden später weitere Konfigurationsbereiche hinzugefügt:
