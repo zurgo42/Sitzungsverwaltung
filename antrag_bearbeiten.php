@@ -374,12 +374,13 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         }
     }
 
-    // Abstimmungsregel (nur Admin kann ändern)
+    // Abstimmungsregel (nur Admin kann ändern, nur wenn Spalte vorhanden)
     $abstimmregel = $antrag['abstimmregel'] ?? 'einfach';
     if ($user['aktiv'] >= 19 && isset($post['abstimmregel'])) {
         $abstimmregel = $post['abstimmregel'];
     }
 
+    $abstimmregel_sql = TABLE_ANTRAEGE_HAS_ABSTIMMREGEL ? "abstimmregel = ?," : "";
     $update = $pdo->prepare("
         UPDATE " . TABLE_ANTRAEGE . " SET
             antrst = ?, titel = ?, beschluss = ?, begr = ?, pers = ?, sach = ?,
@@ -390,12 +391,12 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
             filetext1 = ?, filetext2 = ?, filetext3 = ?, filetext4 = ?,
             sofort = ?, durch = ?, zufin = ?, zbem = ?,
             praesenz = ?, verf1 = ?, verf2 = ?, vorher = ?,
-            abstimmregel = ?,
+            $abstimmregel_sql
             lzugriff = NOW()
         WHERE antrnr = ?
     ");
 
-    $update->execute([
+    $params = [
         $antrst, $post['titel'], $post['beschluss'], $post['begr'] ?? null,
         $post['pers'] ?? null, $post['sach'] ?? null, $post['fintext'] ?? null,
         $fin, $bart, $post['verant'] ?? null,
@@ -410,9 +411,12 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         !empty($post['verf1']) ? $post['verf1'] : null,
         !empty($post['verf2']) ? $post['verf2'] : null,
         isset($post['vorher']) ? 1 : 0,
-        $abstimmregel,
-        $antrnr
-    ]);
+    ];
+    if (TABLE_ANTRAEGE_HAS_ABSTIMMREGEL) {
+        $params[] = $abstimmregel;
+    }
+    $params[] = $antrnr;
+    $update->execute($params);
 }
 
 // Finalisieren-Funktion
