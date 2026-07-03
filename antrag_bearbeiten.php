@@ -592,7 +592,7 @@ function wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user) {
 
 // Daten für UI
 $ressorts_where = TABLE_RESSORTS_AKTIV ? "WHERE aktiv = 1" : "";
-$ressorts = $pdo->query("SELECT " . TABLE_RESSORTS_KEY . " as ressort, Ressort as klartext FROM " . TABLE_RESSORTS . " $ressorts_where ORDER BY Reihenfolge, " . TABLE_RESSORTS_KEY)->fetchAll();
+$ressorts = $pdo->query("SELECT CAST(" . TABLE_RESSORTS_KEY . " AS CHAR) as ressort, Ressort as klartext FROM " . TABLE_RESSORTS . " $ressorts_where ORDER BY Reihenfolge, " . TABLE_RESSORTS_KEY)->fetchAll();
 $verfuegungsber = getVerfuegungsberechtigte($pdo);
 $abstimmende = getAbstimmungsberechtigte($pdo, $antrag['bart'], $antrag['antrst']);
 $wartezeit = berechneWartezeit($antrnr, $antrag['bart'], $bart_config);
@@ -925,7 +925,7 @@ if ($user['aktiv'] >= 19) {
                         <select id="ressort1" name="ressort1" required>
                             <option value="">-- Bitte wählen --</option>
                             <?php foreach ($ressorts as $r): ?>
-                                <option value="<?= htmlspecialchars($r['ressort']) ?>" <?= $antrag['ressort1'] === $r['ressort'] ? 'selected' : '' ?>>
+                                <option value="<?= htmlspecialchars($r['ressort']) ?>" <?= (string)$antrag['ressort1'] === (string)$r['ressort'] ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($r['klartext'] ?? $r['ressort']) ?>
                                 </option>
                             <?php endforeach; ?>
@@ -937,7 +937,7 @@ if ($user['aktiv'] >= 19) {
                         <select id="ressort2" name="ressort2">
                             <option value="">-- Kein weiteres --</option>
                             <?php foreach ($ressorts as $r): ?>
-                                <option value="<?= htmlspecialchars($r['ressort']) ?>" <?= $antrag['ressort2'] === $r['ressort'] ? 'selected' : '' ?>>
+                                <option value="<?= htmlspecialchars($r['ressort']) ?>" <?= (string)$antrag['ressort2'] === (string)$r['ressort'] ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($r['klartext'] ?? $r['ressort']) ?>
                                 </option>
                             <?php endforeach; ?>
