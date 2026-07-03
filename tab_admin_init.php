@@ -372,22 +372,36 @@ body.dark-mode .init-danger-list {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($configs as $cfg): ?>
-                            <tr>
+                        <?php
+                        $terminology_labels = [
+                            'second_entity_name'       => ['Zweite Einheit (Name)', 'Optionaler Name einer zweiten Organisationseinheit neben "Verein" (z.B. "Stiftung"). Wenn leer, gibt es in Anträgen keine Verein/Stiftung-Differenzierung.'],
+                            'term_ressort_singular'    => ['Ressort (Einzahl)', 'Einzahl-Bezeichnung für Ressort/Abteilung/Bereich'],
+                            'term_ressort_plural'      => ['Ressort (Mehrzahl)', 'Mehrzahl-Bezeichnung für Ressort/Abteilung/Bereich'],
+                            'term_antrag_singular'     => ['Antrag (Einzahl)', 'Einzahl-Bezeichnung für Antrag/Beschlussvorlage'],
+                            'term_antrag_plural'       => ['Anträge (Mehrzahl)', 'Mehrzahl-Bezeichnung für Antrag/Beschlussvorlage'],
+                            'term_beschluss_singular'  => ['Beschluss (Einzahl)', 'Einzahl-Bezeichnung für Beschluss'],
+                            'term_beschluss_plural'    => ['Beschlüsse (Mehrzahl)', 'Mehrzahl-Bezeichnung für Beschluss'],
+                            'term_vorstand'            => ['Vorstand', 'Bezeichnung für Vorstand/Führungsgremium'],
+                            'term_geschaeftsfuehrer'   => ['Geschäftsführer', 'Bezeichnung für Geschäftsführer'],
+                            'term_ressortleiter'       => ['Ressortleiter', 'Bezeichnung für Ressortleiter/Abteilungsleiter'],
+                        ];
+                        foreach ($configs as $cfg):
+                            $key = $cfg['config_key'];
+                            [$label, $hint] = $terminology_labels[$key] ?? [ucfirst(str_replace(['term_', '_'], ['', ' '], $key)), $cfg['description']];
+                        ?>
+                            <tr <?= $key === 'second_entity_name' ? 'style="background: rgba(33,150,243,0.05); border-top: 2px solid #e3f2fd;"' : '' ?>>
                                 <td style="padding: 10px 5px; font-weight: 600;">
-                                    <?php
-                                    $label = str_replace(['term_', '_'], ['', ' '], $cfg['config_key']);
-                                    echo ucfirst($label);
-                                    ?>
+                                    <?= htmlspecialchars($label) ?>
                                 </td>
                                 <td style="padding: 10px 5px;">
                                     <input type="text"
-                                           name="config[<?php echo $cfg['config_key']; ?>]"
-                                           value="<?php echo htmlspecialchars($cfg['config_value']); ?>"
+                                           name="config[<?= $key ?>]"
+                                           value="<?= htmlspecialchars($cfg['config_value']) ?>"
+                                           placeholder="<?= $key === 'second_entity_name' ? 'z.B. Stiftung (leer = kein Dropdown)' : '' ?>"
                                            style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;">
                                 </td>
                                 <td style="padding: 10px 5px; font-size: 11px; color: #666;">
-                                    <?php echo htmlspecialchars($cfg['description']); ?>
+                                    <?= htmlspecialchars($hint) ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

@@ -112,7 +112,8 @@ foreach (['V', 'R', 'B'] as $typ) {
     }
 }
 $int_ext_text = ['e' => '🌐 Extern', 'n' => '👥 Führung', 'i' => '🔒 Vorstand'];
-$second_entity = $bart_config['second_entity_name'] ?? '';
+$second_entity_stmt = $pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'second_entity_name' LIMIT 1");
+$second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: '') : '';
 ?>
 <!DOCTYPE html>
 <html lang="de">

@@ -597,7 +597,8 @@ $verfuegungsber = getVerfuegungsberechtigte($pdo);
 $abstimmende = getAbstimmungsberechtigte($pdo, $antrag['bart'], $antrag['antrst']);
 $wartezeit = berechneWartezeit($antrnr, $antrag['bart'], $bart_config);
 $wartezeit_erfuellt = ($wartezeit === 'erfüllt' || ($antrag['verk1'] && $antrag['verk2']));
-$second_entity = $bart_config['second_entity_name'] ?? '';
+$second_entity_stmt = $pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'second_entity_name' LIMIT 1");
+$second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: '') : '';
 $monatssumme = berechneMonatssumme($pdo, $antrag['antrst'], $antrnr);
 
 $blockiert = false;
