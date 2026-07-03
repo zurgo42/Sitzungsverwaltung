@@ -541,6 +541,47 @@ function beschluss_annehmen($pdo, $antrnr, $antrag) {
     $neue_nr = 'VS' . date('ymd') . substr($antrnr, 7);
     $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ?, warantrag = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr, $antrnr]);
 
+    // Abstimmende nach Votum gruppieren (Kurzname aus Adapter)
+    $dafuer = $dagegen = $enthaltungen = [];
+    for ($i = 1; $i <= 6; $i++) {
+        if (empty($antrag["VName$i"])) continue;
+        $member = get_member_by_id($pdo, $antrag["VName$i"]);
+        $name = $member
+            ? (substr($member['first_name'], 0, 1) . '. ' . $member['last_name'])
+            : ('ID ' . $antrag["VName$i"]);
+        $votum = (int)($antrag["Votum$i"] ?? 0);
+        if ($votum === 1)            $dafuer[]      = $name;
+        elseif ($votum === 2 || $votum === 4) $dagegen[]  = $name; // Rückverweis = Nein
+        elseif ($votum === 3)        $enthaltungen[] = $name;
+    }
+
+    // Beschluss in TABLE_BESCHLUESSE eintragen
+    $stmt = $pdo->prepare("
+        INSERT INTO " . TABLE_BESCHLUESSE . "
+            (antrnr, fertig, titel, beschluss, begr, fintext, pers, sach, ressort, int_ext,
+             dafuer, dagegen, enthaltungen, abstimmregel)
+        VALUES (?, 'F', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            dafuer        = VALUES(dafuer),
+            dagegen       = VALUES(dagegen),
+            enthaltungen  = VALUES(enthaltungen)
+    ");
+    $stmt->execute([
+        $neue_nr,
+        $antrag['titel'],
+        $antrag['beschluss'],
+        $antrag['begr'],
+        $antrag['fintext'],
+        $antrag['pers'],
+        $antrag['sach'],
+        $antrag['ressort1'],
+        $antrag['int_ext'],
+        implode(', ', $dafuer),
+        implode(', ', $dagegen),
+        implode(', ', $enthaltungen),
+        $antrag['abstimmregel'] ?? 'einfach',
+    ]);
+
     // TODO: Email-Benachrichtigung (später)
 }
 

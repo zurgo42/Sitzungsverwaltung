@@ -512,10 +512,10 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         }
 
     } elseif ($antrag['bart'] === 'B') {
-        // Vorstandsbeschluss: Nur Vorstandsmitglieder (aktiv >= 18) über Adapter
+        // Vorstandsbeschluss: Nur Vorstände (aktiv = 19) über Adapter
         $all_members = get_all_members($pdo);
         $vorstand_members = array_filter($all_members, function($m) {
-            return isset($m['aktiv']) && $m['aktiv'] >= 18;
+            return isset($m['aktiv']) && (int)$m['aktiv'] === 19;
         });
         usort($vorstand_members, function($a, $b) {
             $diff = ($b['aktiv'] ?? 0) - ($a['aktiv'] ?? 0);
