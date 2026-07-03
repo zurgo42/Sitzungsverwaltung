@@ -30,8 +30,12 @@ function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) 
                 SELECT 1 FROM svopinion_poll_participants opp
                 WHERE opp.poll_id = op.poll_id AND opp.member_id = ?
             )
+            OR EXISTS (
+                SELECT 1 FROM svopinion_responses r
+                WHERE r.poll_id = op.poll_id AND r.member_id = ?
+            )
         )";
-        $params = [$member_id, $member_id];
+        $params = [$member_id, $member_id, $member_id];
     } elseif (!$include_public) {
         return [];
     }
