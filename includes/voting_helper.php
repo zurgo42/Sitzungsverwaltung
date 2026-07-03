@@ -230,7 +230,7 @@ function berechne_voting_ergebnis($antrag, $votes, $stimmberechtigte = 0) {
  *
  * @param PDO    $pdo
  * @param string $antrnr
- * @param bool   $force  true = Fristablauf, nicht gewählte Stimmen als Enthaltung
+ * @param bool   $force  true = Fristablauf, kein Votum/Bedenkzeit zählen nicht mit
  */
 function auswerten_abstimmung($pdo, $antrnr, $force = false) {
     $stmt = $pdo->prepare("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
@@ -248,27 +248,17 @@ function auswerten_abstimmung($pdo, $antrnr, $force = false) {
 
         $votum = (int)($antrag["Votum$i"] ?? 0);
 
-        // Bei Fristablauf: Votum=5 (Bedenkzeit) und Votum=0 (nicht gewählt) → Enthaltung
-        if ($force && ($votum === 5 || $votum === 0)) {
-            $abstimmende++;
-            $enthaltung++;
-            $abgestimmt++;
-            continue;
-        }
-        // Befangen: zählt nicht als Abstimmender
-        if ($votum === 6) {
-            continue;
-        }
+        // Befangen und "kein Votum" (0, 5 bei Fristablauf): nicht zählen
+        if ($votum === 6) continue;
+        if ($force && ($votum === 5 || $votum === 0)) continue; // kein Votum
 
         $abstimmende++;
-        if ($votum > 0) {
-            switch ($votum) {
-                case 1: $ja++;           $abgestimmt++; break;
-                case 2: $nein++;         $abgestimmt++; break;
-                case 3: $enthaltung++;   $abgestimmt++; break;
-                case 4: $rueckverweis++; $nein++; $abgestimmt++; break;
-                case 5: $bedenkzeit++;   break; // blockiert nur wenn !$force
-            }
+        switch ($votum) {
+            case 1: $ja++;           $abgestimmt++; break;
+            case 2: $nein++;         $abgestimmt++; break;
+            case 3: $enthaltung++;   $abgestimmt++; break;
+            case 4: $rueckverweis++; $nein++; $abgestimmt++; break;
+            case 5: $bedenkzeit++;   break; // blockiert nur wenn !$force
         }
     }
 
@@ -303,9 +293,10 @@ function beschluss_annehmen($pdo, $antrnr, $antrag) {
         $member = get_member_by_id($pdo, $antrag["VName$i"]);
         $name   = $member ? (substr($member['first_name'], 0, 1) . '. ' . $member['last_name']) : ('ID ' . $antrag["VName$i"]);
         $votum  = (int)($antrag["Votum$i"] ?? 0);
-        if ($votum === 1)                    $dafuer[]      = $name;
+        if ($votum === 1)                    $dafuer[]       = $name;
         elseif ($votum === 2 || $votum === 4) $dagegen[]    = $name;
-        elseif ($votum === 3 || $votum === 5) $enthaltungen[] = $name; // Bedenkzeit/Frist = Enthaltung
+        elseif ($votum === 3)                 $enthaltungen[] = $name;
+        // Votum=5 (Bedenkzeit/Fristablauf) und Votum=0 = kein Votum, tauchen nicht auf
     }
 
     $pdo->prepare("
