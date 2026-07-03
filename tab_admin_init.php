@@ -374,7 +374,7 @@ body.dark-mode .init-danger-list {
                     <tbody>
                         <?php
                         $terminology_labels = [
-                            'second_entity_name'       => ['Zweite Einheit (Name)', 'Optionaler Name einer zweiten Organisationseinheit neben "Verein" (z.B. "Stiftung"). Wenn leer, gibt es in Anträgen keine Verein/Stiftung-Differenzierung.'],
+                            'second_entity_name'       => ['Zweite Einheit (Name)', 'Optionaler Name einer zweiten Organisationseinheit neben "Verein" (z.B. "GmbH"). Leer = kein Dropdown.'],
                             'term_ressort_singular'    => ['Ressort (Einzahl)', 'Einzahl-Bezeichnung für Ressort/Abteilung/Bereich'],
                             'term_ressort_plural'      => ['Ressort (Mehrzahl)', 'Mehrzahl-Bezeichnung für Ressort/Abteilung/Bereich'],
                             'term_antrag_singular'     => ['Antrag (Einzahl)', 'Einzahl-Bezeichnung für Antrag/Beschlussvorlage'],
@@ -397,7 +397,7 @@ body.dark-mode .init-danger-list {
                                     <input type="text"
                                            name="config[<?= $key ?>]"
                                            value="<?= htmlspecialchars($cfg['config_value']) ?>"
-                                           placeholder="<?= $key === 'second_entity_name' ? 'z.B. Stiftung (leer = kein Dropdown)' : '' ?>"
+                                           placeholder="<?= $key === 'second_entity_name' ? 'z.B. GmbH (leer = kein Dropdown)' : '' ?>"
                                            style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;">
                                 </td>
                                 <td style="padding: 10px 5px; font-size: 11px; color: #666;">
