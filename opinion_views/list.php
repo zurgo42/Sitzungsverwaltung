@@ -49,6 +49,9 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
 
                         <span style="margin-left: 10px;">
                             📊 <?php echo $poll['response_count']; ?> Antwort<?php echo $poll['response_count'] != 1 ? 'en' : ''; ?>
+                            <?php if ($poll['target_type'] === 'list' && $poll['participant_count'] > 0): ?>
+                                von <?php echo $poll['participant_count']; ?> Teilnehmer<?php echo $poll['participant_count'] != 1 ? 'n' : ''; ?>
+                            <?php endif; ?>
                         </span>
 
                         <span style="margin-left: 10px;">

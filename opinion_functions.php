@@ -14,7 +14,8 @@ function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) 
     // Mitglieder über Adapter laden und zu Polls hinzufügen
     $sql = "
         SELECT op.*,
-               (SELECT COUNT(*) FROM svopinion_responses WHERE poll_id = op.poll_id) as response_count
+               (SELECT COUNT(*) FROM svopinion_responses WHERE poll_id = op.poll_id) as response_count,
+               (SELECT COUNT(*) FROM svopinion_poll_participants WHERE poll_id = op.poll_id) as participant_count
         FROM svopinion_polls op
         WHERE op.status != 'deleted'
     ";
