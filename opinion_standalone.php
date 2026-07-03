@@ -129,18 +129,32 @@ if ($is_sitzungsverwaltung) {
     // Hilfsfunktionen für berechtigte-Mapping
     function determine_role_opinion($funktion, $aktiv) {
         if ($aktiv == 19) return 'vorstand';
+        if ($aktiv == 18) return 'gf';
         $roleMapping = [
-            'GF' => 'gf',
-            'SV' => 'assistenz',
-            'RL' => 'fuehrungsteam',
-            'AD' => 'Mitglied',
-            'FP' => 'Mitglied'
+            'Vo'   => 'vorstand',
+            'FVo'  => 'vorstand',
+            'FVv'  => 'vorstand',
+            'GF'   => 'gf',
+            'VA'   => 'assistenz',
+            'SV'   => 'assistenz',
+            'MB'   => 'assistenz',
+            'Ka'   => 'assistenz',
+            'Orga' => 'assistenz',
+            'RL'   => 'fuehrungsteam',
+            'PL'   => 'fuehrungsteam',
+            'JT'   => 'fuehrungsteam',
+            'TM'   => 'fuehrungsteam',
+            'AD'   => 'mitglied',
+            'FP'   => 'mitglied',
+            'Rx'   => 'mitglied',
+            'Vx'   => 'mitglied',
+            'Xx'   => 'mitglied',
         ];
-        return $roleMapping[$funktion] ?? 'Mitglied';
+        return $roleMapping[$funktion] ?? 'mitglied';
     }
 
     function is_admin_user_opinion($funktion, $mnr) {
-        return in_array($funktion, ['GF', 'SV']) || $mnr == '0495018';
+        return in_array($funktion, ['GF', 'SV', 'VA']) || $mnr == '0495018';
     }
 
     // Alle Mitglieder laden
