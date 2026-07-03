@@ -332,11 +332,9 @@ class BerechtigteAdapter implements MemberAdapterInterface {
         $stmt = $this->pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
         $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($row && $this->shouldInclude($row)) {
-            return $this->mapToStandard($row);
-        }
-        return null;
+        // Kein shouldInclude-Filter: Wenn jemand mit dieser ID authentifiziert ist,
+        // muss er immer gefunden werden (unabhängig von Funktion/aktiv-Level).
+        return $row ? $this->mapToStandard($row) : null;
     }
 
     public function getAllMembers() {
@@ -377,11 +375,9 @@ class BerechtigteAdapter implements MemberAdapterInterface {
         $stmt = $this->pdo->prepare("SELECT * FROM berechtigte WHERE MNr = ?");
         $stmt->execute([$mnr]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($row && $this->shouldInclude($row)) {
-            return $this->mapToStandard($row);
-        }
-        return null;
+        // Kein shouldInclude-Filter: Jedes Mitglied mit gültiger MNr soll sich
+        // bei Meinungsumfragen ausweisen können (unabhängig von Funktion/aktiv).
+        return $row ? $this->mapToStandard($row) : null;
     }
 
     public function createMember($data) {

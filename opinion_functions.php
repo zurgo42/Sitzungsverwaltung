@@ -25,6 +25,7 @@ function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) 
         $sql .= " AND (
             op.creator_member_id = ?
             OR op.target_type = 'public'
+            OR op.target_type = 'authenticated'
             OR EXISTS (
                 SELECT 1 FROM svopinion_poll_participants opp
                 WHERE opp.poll_id = op.poll_id AND opp.member_id = ?
