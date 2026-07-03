@@ -93,6 +93,63 @@ if ($should_run) {
             @file_put_contents(__DIR__ . '/pseudo_cron.log', $log_msg, FILE_APPEND);
         }
 
+        // ---- Abstimmungsfrist-Check ----
+        // Abstimmungsdauer aus svconfig lesen (Default: 7 Tage)
+        $dauer_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'bart_B_abstimmung_tage' LIMIT 1");
+        $abstimmung_dauer = $dauer_stmt ? (int)($dauer_stmt->fetchColumn() ?: 7) : 7;
+
+        // Grenz-Datum im YYMMDD-Format (= Datum vor $abstimmung_dauer Tagen)
+        $grenz_yymmdd = date('ymd', strtotime("-{$abstimmung_dauer} days"));
+
+        // Alle B-Anträge suchen, deren Datum (YYMMDD in antrnr) die Frist überschritten hat
+        if (defined('TABLE_ANTRAEGE')) {
+            $b_stmt = @$pdo->query("
+                SELECT antrnr,
+                       VBedenk1, Votum1, VBedenk2, Votum2, VBedenk3, Votum3,
+                       VBedenk4, Votum4, VBedenk5, Votum5, VBedenk6, Votum6
+                FROM " . TABLE_ANTRAEGE . "
+                WHERE antrnr LIKE 'B%'
+                  AND LENGTH(antrnr) >= 8
+                  AND SUBSTR(antrnr, 2, 6) <= '" . $grenz_yymmdd . "'
+            ");
+
+            if ($b_stmt) {
+                // voting_helper.php laden falls noch nicht geschehen
+                if (!function_exists('auswerten_abstimmung')) {
+                    $helper = __DIR__ . '/includes/voting_helper.php';
+                    if (file_exists($helper)) require_once $helper;
+                    // member_functions.php wird von beschluss_annehmen() benötigt
+                    if (file_exists(__DIR__ . '/member_functions.php')) {
+                        require_once __DIR__ . '/member_functions.php';
+                    }
+                }
+
+                $ausgewertet = 0;
+                foreach ($b_stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                    // Prüfen ob eine Bedenkzeit noch aktiv ist
+                    $bedenkzeit_aktiv = false;
+                    for ($i = 1; $i <= 6; $i++) {
+                        if ((int)($row["Votum$i"] ?? 0) === 5
+                            && !empty($row["VBedenk$i"])
+                            && strtotime($row["VBedenk$i"]) > time()) {
+                            $bedenkzeit_aktiv = true;
+                            break;
+                        }
+                    }
+
+                    if (!$bedenkzeit_aktiv && function_exists('auswerten_abstimmung')) {
+                        auswerten_abstimmung($pdo, $row['antrnr'], true);
+                        $ausgewertet++;
+                    }
+                }
+
+                if ($ausgewertet > 0) {
+                    $log_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron: {$ausgewertet} Abstimmung(en) nach Fristablauf ausgewertet\n";
+                    @file_put_contents(__DIR__ . '/pseudo_cron.log', $log_msg, FILE_APPEND);
+                }
+            }
+        }
+
     } catch (Exception $e) {
         // Fehler loggen aber nicht ausgeben (um Seite nicht zu stören)
         $error_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron Error: " . $e->getMessage() . "\n";

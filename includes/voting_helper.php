@@ -224,3 +224,109 @@ function berechne_voting_ergebnis($antrag, $votes, $stimmberechtigte = 0) {
         'regel' => $regel
     ]);
 }
+
+/**
+ * Wertet eine Abstimmung aus und ruft beschluss_annehmen/ablehnen auf.
+ *
+ * @param PDO    $pdo
+ * @param string $antrnr
+ * @param bool   $force  true = Fristablauf, nicht gewählte Stimmen als Enthaltung
+ */
+function auswerten_abstimmung($pdo, $antrnr, $force = false) {
+    $stmt = $pdo->prepare("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
+    $stmt->execute([$antrnr]);
+    $antrag = $stmt->fetch();
+
+    if (!$antrag) return;
+
+    $abstimmende = 0;
+    $abgestimmt  = 0;
+    $ja = $nein = $enthaltung = $rueckverweis = $bedenkzeit = $befangen = 0;
+
+    for ($i = 1; $i <= 6; $i++) {
+        if (empty($antrag["VName$i"])) continue;
+
+        $votum = (int)($antrag["Votum$i"] ?? 0);
+
+        // Bei Fristablauf: Votum=5 (Bedenkzeit) und Votum=0 (nicht gewählt) → Enthaltung
+        if ($force && ($votum === 5 || $votum === 0)) {
+            $abstimmende++;
+            $enthaltung++;
+            $abgestimmt++;
+            continue;
+        }
+        // Befangen: zählt nicht als Abstimmender
+        if ($votum === 6) {
+            continue;
+        }
+
+        $abstimmende++;
+        if ($votum > 0) {
+            switch ($votum) {
+                case 1: $ja++;           $abgestimmt++; break;
+                case 2: $nein++;         $abgestimmt++; break;
+                case 3: $enthaltung++;   $abgestimmt++; break;
+                case 4: $rueckverweis++; $nein++; $abgestimmt++; break;
+                case 5: $bedenkzeit++;   break; // blockiert nur wenn !$force
+            }
+        }
+    }
+
+    if (!$force && $abgestimmt < $abstimmende) {
+        return; // Noch nicht alle abgestimmt
+    }
+
+    $regel = $antrag['abstimmregel'] ?? 'einfach';
+
+    if ($antrag['bart'] === 'V' && (!isset($antrag['abstimmregel']) || $regel === 'einfach')) {
+        if ($ja > 0 && $nein == 0) beschluss_annehmen($pdo, $antrnr, $antrag);
+        else                         beschluss_ablehnen($pdo, $antrnr);
+    } elseif ($antrag['bart'] === 'R' && (!isset($antrag['abstimmregel']) || $regel === 'einfach')) {
+        if ($ja == 2 && $nein == 0) beschluss_annehmen($pdo, $antrnr, $antrag);
+        else                         beschluss_ablehnen($pdo, $antrnr);
+    } else {
+        $ergebnis = pruefe_abstimmungsergebnis($regel, $ja, $nein, $enthaltung, $abstimmende);
+        if ($ergebnis['erfolg']) beschluss_annehmen($pdo, $antrnr, $antrag);
+        else                      beschluss_ablehnen($pdo, $antrnr);
+        error_log("Abstimmung {$antrnr}: Regel={$regel}, Ja={$ja}, Nein={$nein}, Enthaltung={$enthaltung}, Ergebnis=" . ($ergebnis['erfolg'] ? 'ANGENOMMEN' : 'ABGELEHNT') . ($force ? ' [FRISTABLAUF]' : ''));
+    }
+}
+
+/** Beschluss annehmen: antrnr B→VS, Eintrag in TABLE_BESCHLUESSE */
+function beschluss_annehmen($pdo, $antrnr, $antrag) {
+    $neue_nr = 'VS' . date('ymd') . substr($antrnr, 7);
+    $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ?, warantrag = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr, $antrnr]);
+
+    $dafuer = $dagegen = $enthaltungen = [];
+    for ($i = 1; $i <= 6; $i++) {
+        if (empty($antrag["VName$i"])) continue;
+        $member = get_member_by_id($pdo, $antrag["VName$i"]);
+        $name   = $member ? (substr($member['first_name'], 0, 1) . '. ' . $member['last_name']) : ('ID ' . $antrag["VName$i"]);
+        $votum  = (int)($antrag["Votum$i"] ?? 0);
+        if ($votum === 1)                    $dafuer[]      = $name;
+        elseif ($votum === 2 || $votum === 4) $dagegen[]    = $name;
+        elseif ($votum === 3 || $votum === 5) $enthaltungen[] = $name; // Bedenkzeit/Frist = Enthaltung
+    }
+
+    $pdo->prepare("
+        INSERT INTO " . TABLE_BESCHLUESSE . "
+            (antrnr, fertig, titel, beschluss, begr, fintext, pers, sach, ressort, int_ext,
+             dafuer, dagegen, enthaltungen, abstimmregel)
+        VALUES (?, 'F', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            dafuer = VALUES(dafuer), dagegen = VALUES(dagegen), enthaltungen = VALUES(enthaltungen)
+    ")->execute([
+        $neue_nr,
+        $antrag['titel'], $antrag['beschluss'], $antrag['begr'],
+        $antrag['fintext'], $antrag['pers'], $antrag['sach'],
+        $antrag['ressort1'], $antrag['int_ext'],
+        implode(', ', $dafuer), implode(', ', $dagegen), implode(', ', $enthaltungen),
+        $antrag['abstimmregel'] ?? 'einfach',
+    ]);
+}
+
+/** Beschluss ablehnen: antrnr B→X */
+function beschluss_ablehnen($pdo, $antrnr) {
+    $neue_nr = 'X' . substr($antrnr, 1);
+    $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr]);
+}

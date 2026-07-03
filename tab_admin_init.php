@@ -667,6 +667,20 @@ body.dark-mode .init-danger-list {
                             </div>
                         </div>
 
+                        <?php if ($typ === 'B'): ?>
+                        <!-- Abstimmungsdauer (nur für Vorstandsbeschluss) -->
+                        <div style="background: white; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Abstimmungsdauer (Tage):</label>
+                            <input type="number" name="bart[<?php echo $typ; ?>][abstimmung_tage]"
+                                   value="<?php echo htmlspecialchars($bart["bart_{$typ}_abstimmung_tage"] ?? '7'); ?>"
+                                   min="1" max="90" step="1"
+                                   style="width: 150px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                Nach Ablauf dieser Frist wertet der Cron-Job die Abstimmung automatisch aus (sofern keine aktive Bedenkzeit vorliegt).
+                            </small>
+                        </div>
+                        <?php endif; ?>
+
                         <!-- Freigabe-Vereinfachung -->
                         <div style="background: white; padding: 12px; border-radius: 4px;">
                             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">

@@ -1004,8 +1004,11 @@ if (isset($_POST['save_antragstypen'])) {
                     'betrag_limit' => intval($typ_data['betrag_limit'] ?? 0),
                     'wartezeit_aktiv' => isset($typ_data['wartezeit_aktiv']) ? '1' : '0',
                     'wartezeit_tage' => intval($typ_data['wartezeit_tage'] ?? 0),
-                    'freigabe_vereinfacht' => isset($typ_data['freigabe_vereinfacht']) ? '1' : '0'
+                    'freigabe_vereinfacht' => isset($typ_data['freigabe_vereinfacht']) ? '1' : '0',
+                    'abstimmung_tage' => isset($typ_data['abstimmung_tage']) ? max(1, intval($typ_data['abstimmung_tage'])) : null,
                 ];
+                // abstimmung_tage nur für Typ B speichern
+                if ($typ !== 'B') unset($fields['abstimmung_tage']);
 
                 foreach ($fields as $field => $value) {
                     $config_key = "bart_{$typ}_{$field}";
