@@ -160,20 +160,28 @@ foreach ($beschluesse as &$b) {
         $b['fin'] = (int)$matches[1];
     }
 
-    // Votum-Text aus dafuer, dagegen, enthaltungen zusammensetzen
-    if (!empty($b['dafuer']) || !empty($b['dagegen']) || !empty($b['enthaltungen'])) {
-        $b['votum_text'] = '';
-        if (!empty($b['dafuer'])) $b['votum_text'] .= 'Ja: ' . $b['dafuer'];
-        if (!empty($b['dagegen'])) {
-            if ($b['votum_text']) $b['votum_text'] .= ' | ';
-            $b['votum_text'] .= 'Nein: ' . $b['dagegen'];
+    // Votum-Text zusammensetzen
+    $hat_ja          = !empty($b['dafuer']);
+    $hat_nein        = !empty($b['dagegen']);
+    $hat_enthaltung  = !empty($b['enthaltungen']);
+    $hat_kein_votum  = !empty($b['kein_votum']);
+
+    if ($hat_ja && !$hat_nein && !$hat_enthaltung) {
+        // Alle, die abgestimmt haben, sagten Ja → einstimmig
+        $b['votum_text'] = 'einstimmig';
+        if ($hat_kein_votum) {
+            $b['votum_text'] .= ' | kein Votum: ' . $b['kein_votum'];
         }
-        if (!empty($b['enthaltungen'])) {
-            if ($b['votum_text']) $b['votum_text'] .= ' | ';
-            $b['votum_text'] .= 'Enthaltung: ' . $b['enthaltungen'];
-        }
+    } elseif ($hat_ja || $hat_nein || $hat_enthaltung) {
+        // Einzelvoten anzeigen
+        $parts = [];
+        if ($hat_ja)         $parts[] = 'Ja: ' . $b['dafuer'];
+        if ($hat_nein)       $parts[] = 'Nein: ' . $b['dagegen'];
+        if ($hat_enthaltung) $parts[] = 'Enthaltung: ' . $b['enthaltungen'];
+        if ($hat_kein_votum) $parts[] = 'kein Votum: ' . $b['kein_votum'];
+        $b['votum_text'] = implode(' | ', $parts);
     } else {
-        $b['votum_text'] = 'Einstimmig';
+        $b['votum_text'] = $hat_kein_votum ? 'kein Votum: ' . $b['kein_votum'] : '';
     }
 }
 unset($b);

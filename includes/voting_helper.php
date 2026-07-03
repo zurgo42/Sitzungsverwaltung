@@ -287,31 +287,35 @@ function beschluss_annehmen($pdo, $antrnr, $antrag) {
     $neue_nr = 'VS' . date('ymd') . substr($antrnr, 7);
     $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ?, warantrag = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr, $antrnr]);
 
-    $dafuer = $dagegen = $enthaltungen = [];
+    $dafuer = $dagegen = $enthaltungen = $kein_votum = [];
     for ($i = 1; $i <= 6; $i++) {
         if (empty($antrag["VName$i"])) continue;
         $member = get_member_by_id($pdo, $antrag["VName$i"]);
         $name   = $member ? (substr($member['first_name'], 0, 1) . '. ' . $member['last_name']) : ('ID ' . $antrag["VName$i"]);
         $votum  = (int)($antrag["Votum$i"] ?? 0);
-        if ($votum === 1)                    $dafuer[]       = $name;
-        elseif ($votum === 2 || $votum === 4) $dagegen[]    = $name;
+        if ($votum === 1)                     $dafuer[]       = $name;
+        elseif ($votum === 2 || $votum === 4) $dagegen[]      = $name;
         elseif ($votum === 3)                 $enthaltungen[] = $name;
-        // Votum=5 (Bedenkzeit/Fristablauf) und Votum=0 = kein Votum, tauchen nicht auf
+        else                                  $kein_votum[]   = $name; // 0, 5, 6
     }
 
     $pdo->prepare("
         INSERT INTO " . TABLE_BESCHLUESSE . "
             (antrnr, fertig, titel, beschluss, begr, fintext, pers, sach, ressort, int_ext,
-             dafuer, dagegen, enthaltungen, abstimmregel)
-        VALUES (?, 'F', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             dafuer, dagegen, enthaltungen, kein_votum, abstimmregel)
+        VALUES (?, 'F', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            dafuer = VALUES(dafuer), dagegen = VALUES(dagegen), enthaltungen = VALUES(enthaltungen)
+            dafuer       = VALUES(dafuer),
+            dagegen      = VALUES(dagegen),
+            enthaltungen = VALUES(enthaltungen),
+            kein_votum   = VALUES(kein_votum)
     ")->execute([
         $neue_nr,
         $antrag['titel'], $antrag['beschluss'], $antrag['begr'],
         $antrag['fintext'], $antrag['pers'], $antrag['sach'],
         $antrag['ressort1'], $antrag['int_ext'],
         implode(', ', $dafuer), implode(', ', $dagegen), implode(', ', $enthaltungen),
+        implode(', ', $kein_votum) ?: null,
         $antrag['abstimmregel'] ?? 'einfach',
     ]);
 }
