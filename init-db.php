@@ -495,7 +495,6 @@ try {
         dafuer TEXT DEFAULT NULL,
         dagegen TEXT DEFAULT NULL,
         enthaltungen TEXT DEFAULT NULL,
-        kein_votum TEXT DEFAULT NULL COMMENT 'Personen ohne Votum (nicht abgestimmt, Bedenkzeit, Befangen)',
         anmerkungen TEXT DEFAULT NULL,
         abstimmregel VARCHAR(20) DEFAULT 'einfach' COMMENT 'Abstimmungsregel (einfach, 2/3, etc.)',
         INDEX idx_ressort (ressort(100)),
@@ -1208,19 +1207,6 @@ try {
             echo "<p>Füge Spalte 'abstimmregel' zu svbeschluesse hinzu...</p>";
             $pdo->exec("ALTER TABLE svbeschluesse ADD COLUMN abstimmregel VARCHAR(20) DEFAULT 'einfach' COMMENT 'Abstimmungsregel (einfach, 2/3, etc.)'");
             echo ".";
-        }
-    }
-
-    // Migration: kein_votum zu beschluesse / svbeschluesse hinzufügen
-    foreach (['beschluesse', 'svbeschluesse'] as $_tbl) {
-        $table_check = $pdo->query("SHOW TABLES LIKE '{$_tbl}'");
-        if ($table_check->fetch()) {
-            $stmt = $pdo->query("SHOW COLUMNS FROM `{$_tbl}` LIKE 'kein_votum'");
-            if (!$stmt->fetch()) {
-                echo "<p>Füge Spalte 'kein_votum' zu {$_tbl} hinzu...</p>";
-                $pdo->exec("ALTER TABLE `{$_tbl}` ADD COLUMN kein_votum TEXT DEFAULT NULL COMMENT 'Personen ohne Votum (0=nicht abgestimmt, 5=Bedenkzeit, 6=Befangen)'");
-                echo ".";
-            }
         }
     }
 
