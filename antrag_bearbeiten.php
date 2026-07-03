@@ -112,9 +112,9 @@ function getAbstimmungsberechtigte($pdo, $bart, $antrst) {
         }, $members);
     }
 
-    // Für B: alle mit aktiv >= 18 (Vorstand)
+    // Für B: nur Vorstände (aktiv = 19)
     $members = array_filter($all_members, function($m) {
-        return isset($m['aktiv']) && $m['aktiv'] >= 18;
+        return isset($m['aktiv']) && (int)$m['aktiv'] === 19;
     });
 
     usort($members, function($a, $b) {
