@@ -386,9 +386,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
         <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
             <strong style="color: #2e7d32;">💡 Schon im Sitzungstool registriert?</strong>
             <p style="margin: 8px 0 0 0; color: #1b5e20; line-height: 1.5;">
-                Dann gib einfach nur deine <strong>Mitgliedsnummer</strong> an!
-                Deine Stimme wird dann automatisch mit deinem Profil im Sitzungstool verknüpft.
-                Name und E-Mail werden automatisch aus deinem Profil übernommen.
+                Dann gib einfach nur deine <strong>Mitgliedsnummer (049…)</strong> an! Deine Stimme wird dann automatisch mit deinem Profil im Sitzungstool verknüpft. Name und E-Mail werden automatisch aus deinem Profil übernommen.
+            </p>
+            <p style="margin: 8px 0 0 0; color: #1b5e20; line-height: 1.5;">
+                Du findest dann dein Votum auch im Sitzungstool und kannst es dort bei Bedarf später noch editieren.
+            </p>
+            <p style="margin: 8px 0 0 0; color: #1b5e20; line-height: 1.5;">
+                Wenn das mit der Mitgliedsnummer nicht funktioniert, bitte das Registrierungsformular nutzen – dann klappt es.
             </p>
         </div>
 
