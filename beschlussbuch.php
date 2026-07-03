@@ -160,29 +160,8 @@ foreach ($beschluesse as &$b) {
         $b['fin'] = (int)$matches[1];
     }
 
-    // Votum-Text zusammensetzen
-    $hat_ja          = !empty($b['dafuer']);
-    $hat_nein        = !empty($b['dagegen']);
-    $hat_enthaltung  = !empty($b['enthaltungen']);
-    $hat_kein_votum  = !empty($b['kein_votum']);
-
-    if ($hat_ja && !$hat_nein && !$hat_enthaltung) {
-        // Alle, die abgestimmt haben, sagten Ja → einstimmig
-        $b['votum_text'] = 'einstimmig';
-        if ($hat_kein_votum) {
-            $b['votum_text'] .= ' | kein Votum: ' . $b['kein_votum'];
-        }
-    } elseif ($hat_ja || $hat_nein || $hat_enthaltung) {
-        // Einzelvoten anzeigen
-        $parts = [];
-        if ($hat_ja)         $parts[] = 'Ja: ' . $b['dafuer'];
-        if ($hat_nein)       $parts[] = 'Nein: ' . $b['dagegen'];
-        if ($hat_enthaltung) $parts[] = 'Enthaltung: ' . $b['enthaltungen'];
-        if ($hat_kein_votum) $parts[] = 'kein Votum: ' . $b['kein_votum'];
-        $b['votum_text'] = implode(' | ', $parts);
-    } else {
-        $b['votum_text'] = $hat_kein_votum ? 'kein Votum: ' . $b['kein_votum'] : '';
-    }
+    // Votum-Text: steht fertig in dafuer (z.B. "einstimmig" oder "ClausM: Ja, EricS: kein Votum, ...")
+    $b['votum_text'] = $b['dafuer'] ?? '';
 }
 unset($b);
 

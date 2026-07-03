@@ -287,35 +287,39 @@ function beschluss_annehmen($pdo, $antrnr, $antrag) {
     $neue_nr = 'VS' . date('ymd') . substr($antrnr, 7);
     $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ?, warantrag = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr, $antrnr]);
 
-    $dafuer = $dagegen = $enthaltungen = $kein_votum = [];
+    // Einzelvoten als "KurzN: Votum"-Liste aufbauen
+    $stimmen  = [];
+    $alle_ja  = true;
+    $hat_vote = false;
+    $votum_label = [1 => 'Ja', 2 => 'Nein', 3 => 'Enthaltung', 4 => 'Nein'];
+
     for ($i = 1; $i <= 6; $i++) {
         if (empty($antrag["VName$i"])) continue;
         $member = get_member_by_id($pdo, $antrag["VName$i"]);
-        $name   = $member ? (substr($member['first_name'], 0, 1) . '. ' . $member['last_name']) : ('ID ' . $antrag["VName$i"]);
+        $kurzn  = $member
+            ? ($member['first_name'] . substr($member['last_name'], 0, 1))
+            : ('ID' . $antrag["VName$i"]);
         $votum  = (int)($antrag["Votum$i"] ?? 0);
-        if ($votum === 1)                     $dafuer[]       = $name;
-        elseif ($votum === 2 || $votum === 4) $dagegen[]      = $name;
-        elseif ($votum === 3)                 $enthaltungen[] = $name;
-        else                                  $kein_votum[]   = $name; // 0, 5, 6
+        $label  = $votum_label[$votum] ?? 'kein Votum';
+        if ($votum !== 1) $alle_ja = false;
+        if (in_array($votum, [1, 2, 3, 4])) $hat_vote = true;
+        $stimmen[] = $kurzn . ': ' . $label;
     }
+
+    $dafuer_text = ($alle_ja && $hat_vote) ? 'einstimmig' : implode(', ', $stimmen);
 
     $pdo->prepare("
         INSERT INTO " . TABLE_BESCHLUESSE . "
             (antrnr, fertig, titel, beschluss, begr, fintext, pers, sach, ressort, int_ext,
-             dafuer, dagegen, enthaltungen, kein_votum, abstimmregel)
-        VALUES (?, 'F', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            dafuer       = VALUES(dafuer),
-            dagegen      = VALUES(dagegen),
-            enthaltungen = VALUES(enthaltungen),
-            kein_votum   = VALUES(kein_votum)
+             dafuer, abstimmregel)
+        VALUES (?, 'F', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE dafuer = VALUES(dafuer)
     ")->execute([
         $neue_nr,
         $antrag['titel'], $antrag['beschluss'], $antrag['begr'],
         $antrag['fintext'], $antrag['pers'], $antrag['sach'],
         $antrag['ressort1'], $antrag['int_ext'],
-        implode(', ', $dafuer), implode(', ', $dagegen), implode(', ', $enthaltungen),
-        implode(', ', $kein_votum) ?: null,
+        $dafuer_text,
         $antrag['abstimmregel'] ?? 'einfach',
     ]);
 }
