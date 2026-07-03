@@ -50,11 +50,12 @@ if ($is_admin) {
         WHERE (
             EXISTS (SELECT 1 FROM svpoll_participants WHERE poll_id = p.poll_id AND member_id = ?)
             OR p.created_by_member_id = ?
+            OR EXISTS (SELECT 1 FROM svpoll_responses WHERE poll_id = p.poll_id AND member_id = ?)
         )
         GROUP BY p.poll_id
         ORDER BY p.created_at DESC
     ");
-    $stmt->execute([$current_user['member_id'], $current_user['member_id']]);
+    $stmt->execute([$current_user['member_id'], $current_user['member_id'], $current_user['member_id']]);
 }
 $all_polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
