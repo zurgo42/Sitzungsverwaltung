@@ -781,6 +781,20 @@ if ($user['aktiv'] >= 19) {
                         - Antragsteller: <?= htmlspecialchars(($antrag['Vorname'] ?? '') . ' ' . ($antrag['Name'] ?? '')) ?>
                     <?php endif; ?>
                 </div>
+                <?php
+                preg_match('/[A-Z]+(\d{6})/', $antrnr, $_antrnr_m);
+                $_yymmdd = $_antrnr_m[1] ?? '';
+                $_antrag_datum = $_yymmdd
+                    ? date('d.m.Y', strtotime('20'.substr($_yymmdd,0,2).'-'.substr($_yymmdd,2,2).'-'.substr($_yymmdd,4,2)))
+                    : '';
+                if ($_antrag_datum): ?>
+                <div style="font-size: 11px; color: #666; margin-bottom: 8px; padding: 2px 0;">
+                    Antrag eingestellt am: <strong><?= $_antrag_datum ?></strong>
+                    <?php if ($antrag['lzugriff']): ?>
+                        &nbsp;|&nbsp; Letzte Änderung: <?= date('d.m.Y H:i', strtotime($antrag['lzugriff'])) ?>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
 
                 <!-- Zeile 1: Beschlussart - Abstimmung 1 - Abstimmung 2 -->
                 <div class="form-row">
@@ -1179,8 +1193,10 @@ if ($user['aktiv'] >= 19) {
 
                 <?php if (!empty($antrag['hinweis'])): ?>
                 <div class="hint-box" style="margin-bottom: 10px;">
-                    <strong>Bisherige Hinweise:</strong><br>
-                    <?= nl2br(htmlspecialchars($antrag['hinweis'])) ?>
+                    <strong>Bisherige Hinweise:</strong>
+                    <div style="margin-top: 6px;">
+                        <?= render_hinweis_text($antrag['hinweis']) ?>
+                    </div>
                 </div>
                 <?php endif; ?>
 

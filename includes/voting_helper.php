@@ -282,6 +282,41 @@ function auswerten_abstimmung($pdo, $antrnr, $force = false) {
     }
 }
 
+/**
+ * Rendert den Hinweis-Text als formatierte HTML-Absätze.
+ * Unterstützt altes Format (<br>-Trenner) und neues Format (\n---\n-Trenner).
+ * Jeder Eintrag wird als eigener Absatz mit Header "KurzN (Datum - Uhrzeit):" dargestellt.
+ *
+ * @param string $raw Roher Hinweis-Text aus der Datenbank
+ * @return string HTML
+ */
+function render_hinweis_text($raw) {
+    if (empty($raw)) return '';
+
+    // Neues Format: \n---\n als Trenner; altes Format: <br> als Trenner
+    if (strpos($raw, "\n---\n") !== false) {
+        $entries = explode("\n---\n", $raw);
+    } else {
+        $entries = preg_split('/<br\s*\/?>/i', $raw);
+    }
+
+    $html = '';
+    foreach ($entries as $entry) {
+        $entry = trim($entry);
+        if ($entry === '') continue;
+
+        // Format: "dd.mm.YYYY HH:ii (KurzN): Hinweistext"
+        if (preg_match('/^(\d{2}\.\d{2}\.\d{4}) (\d{2}:\d{2}) \(([^)]+)\): (.*)$/s', $entry, $m)) {
+            $header = htmlspecialchars($m[3]) . ' (' . htmlspecialchars($m[1]) . ' - ' . htmlspecialchars($m[2]) . '):';
+            $text   = nl2br(htmlspecialchars(trim($m[4])));
+            $html  .= '<p style="margin:0 0 10px 0;"><strong>' . $header . '</strong><br>' . $text . '</p>';
+        } else {
+            $html .= '<p style="margin:0 0 10px 0;">' . nl2br(htmlspecialchars($entry)) . '</p>';
+        }
+    }
+    return $html;
+}
+
 /** Beschluss annehmen: antrnr B→VS, Eintrag in TABLE_BESCHLUESSE */
 function beschluss_annehmen($pdo, $antrnr, $antrag) {
     $neue_nr = 'VS' . date('ymd') . substr($antrnr, 7);

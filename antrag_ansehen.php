@@ -344,6 +344,18 @@ $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: ''
                     <div class="compact-value"><a href="https://vorstand.mensa.de/forum/index.php?id=<?= (int)$antrag['thread'] ?>" target="forum" style="color: var(--primary);">→ Thread #<?= (int)$antrag['thread'] ?></a></div>
                 </div>
                 <?php endif; ?>
+                <?php
+                preg_match('/[A-Z]+(\d{6})/', $antrnr, $_antrnr_m);
+                $_yymmdd = $_antrnr_m[1] ?? '';
+                $_antrag_datum = $_yymmdd
+                    ? date('d.m.Y', strtotime('20'.substr($_yymmdd,0,2).'-'.substr($_yymmdd,2,2).'-'.substr($_yymmdd,4,2)))
+                    : '';
+                if ($_antrag_datum): ?>
+                <div class="compact-row">
+                    <div class="compact-label">Datum der Antragstellung:</div>
+                    <div class="compact-value"><?= $_antrag_datum ?></div>
+                </div>
+                <?php endif; ?>
                 <div class="compact-row">
                     <div class="compact-label">Letzte Änderung:</div>
                     <div class="compact-value"><?= $antrag['lzugriff'] ? date('d.m.Y H:i', strtotime($antrag['lzugriff'])) : '-' ?></div>
@@ -578,10 +590,10 @@ $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: ''
                 <div class="accordion" onclick="this.classList.toggle('active'); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
                     Hinweise anzeigen
                 </div>
-                <div class="acc-content"><?= nl2br(htmlspecialchars($antrag['hinweis'])) ?></div>
+                <div class="acc-content"><?= render_hinweis_text($antrag['hinweis']) ?></div>
             <?php else: ?>
                 <div class="text-box" style="border-left-color: var(--warning); background: rgba(250, 170, 0, 0.1);">
-                    <?= nl2br(htmlspecialchars($antrag['hinweis'])) ?>
+                    <?= render_hinweis_text($antrag['hinweis']) ?>
                 </div>
             <?php endif; ?>
         </div>
