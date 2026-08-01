@@ -257,8 +257,8 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
             $_SESSION['role'] = $sso_user['role'];
             $_SESSION['MNr'] = $sso_mnr;  // Für config_adapter.php - damit API-Calls den richtigen Adapter verwenden
 
-            // Zur Hauptseite weiterleiten
-            header('Location: index.php');
+            // Zur ursprünglichen URL weiterleiten (erhält meeting_id und andere Parameter)
+            header('Location: ' . $_SERVER['REQUEST_URI']);
             exit;
         } else {
             // Mitglied nicht gefunden - Prüfen ob DB leer ist (nach Reset)
@@ -302,9 +302,9 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
                 $_SESSION['role'] = $sso_user['role'];
                 $_SESSION['MNr'] = $sso_mnr;
 
-                // Zur Hauptseite weiterleiten mit Hinweis
+                // Zur ursprünglichen URL weiterleiten mit Hinweis (erhält meeting_id und andere Parameter)
                 $_SESSION['success'] = 'Erste Anmeldung nach DB-Reset: Admin-Account wurde automatisch angelegt.';
-                header('Location: index.php');
+                header('Location: ' . $_SERVER['REQUEST_URI']);
                 exit;
             } else {
                 // DB ist nicht leer, aber User nicht gefunden
