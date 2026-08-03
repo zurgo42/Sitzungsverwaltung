@@ -549,15 +549,16 @@ echo '<!DOCTYPE html>
             background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
             border: none;
-            padding: 15px 40px;
-            font-size: 16px;
+            padding: 10px 24px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
             transition: all 0.3s ease;
-            margin-top: 30px;
-            width: 100%;
+            display: inline-block;
+            text-decoration: none;
+            text-align: center;
         }
 
         .btn-primary:hover {
@@ -565,17 +566,64 @@ echo '<!DOCTYPE html>
             box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
         }
 
+        .poll-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin: 16px 0;
+            background: #fafafa;
+        }
+
+        .poll-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: #222;
+        }
+
+        .poll-card p {
+            margin: 0 0 12px 0;
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .poll-card p:last-child {
+            margin-bottom: 0;
+        }
+
+        .poll-card.status-closed {
+            opacity: 0.7;
+            border-color: #ccc;
+            background: #f5f5f5;
+        }
+
+        .dashboard-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-header h2 {
+            margin: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
         .btn-secondary {
             background: #6c757d;
             color: white;
             border: none;
-            padding: 10px 25px;
+            padding: 8px 20px;
             font-size: 14px;
             cursor: pointer;
             border-radius: 6px;
             text-decoration: none;
             display: inline-block;
-            margin-top: 20px;
             transition: all 0.2s ease;
         }
 
@@ -659,18 +707,29 @@ if (isset($error_message)) {
 
 // Einfache Dashboard-Ansicht für Standalone-Modus
 if ($view === 'dashboard') {
+    echo '<div class="dashboard-header">';
     echo '<h2>Terminplanung</h2>';
-    echo '<p><a href="?view=create" class="btn-primary">+ Neue Umfrage erstellen</a></p>';
+    if ($current_user) {
+        echo '<a href="?view=create" class="btn-primary">+ Neue Umfrage erstellen</a>';
+    }
+    echo '</div>';
 
     // Umfragen auflisten
     $stmt = $pdo->query("SELECT * FROM svpolls ORDER BY created_at DESC");
     $polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    if (empty($polls)) {
+        echo '<p style="color:#666;">Noch keine Terminumfragen vorhanden.</p>';
+    }
+
     foreach ($polls as $poll) {
-        echo '<div class="poll-card status-' . $poll['status'] . '">';
-        echo '<h3>' . htmlspecialchars($poll['title']) . '</h3>';
-        echo '<p>' . nl2br(htmlspecialchars($poll['description'])) . '</p>';
-        echo '<p><a href="?view=poll&poll_id=' . $poll['poll_id'] . '" class="btn-primary">Ansehen</a></p>';
+        $status_label = $poll['status'] === 'open' ? '🟢 Offen' : '🔒 Geschlossen';
+        echo '<div class="poll-card status-' . htmlspecialchars($poll['status']) . '">';
+        echo '<h3>' . htmlspecialchars($poll['title']) . ' <small style="font-size:12px;font-weight:normal;color:#888;">' . $status_label . '</small></h3>';
+        if (!empty($poll['description'])) {
+            echo '<p>' . nl2br(htmlspecialchars($poll['description'])) . '</p>';
+        }
+        echo '<a href="?view=poll&poll_id=' . $poll['poll_id'] . '" class="btn-secondary">Ansehen →</a>';
         echo '</div>';
     }
 
