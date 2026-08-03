@@ -1162,20 +1162,26 @@ try {
         echo ".";
     }
 
-    // Migration: svconfig-Eintrag für Agenda-Erinnerungsmail anlegen (falls fehlend)
+    // Migration: svconfig-Einträge für Benachrichtigungen anlegen (falls fehlend)
     $stmt = $pdo->query("SHOW TABLES LIKE 'svconfig'");
     if ($stmt->fetch()) {
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM svconfig WHERE config_key = 'agenda_reminder_default_emails'");
-        $stmt->execute();
-        if ($stmt->fetchColumn() == 0) {
-            echo "<p>Füge svconfig-Eintrag 'agenda_reminder_default_emails' hinzu...</p>";
-            $pdo->exec("
-                INSERT INTO svconfig (config_key, config_value, config_type, description, category)
-                VALUES ('agenda_reminder_default_emails', '', 'text',
-                        'Standard-Empfänger für Agenda-Erinnerungsmail (kommagetrennt, leer = nur Teilnehmer)',
-                        'notifications')
-            ");
-            echo ".";
+        $new_cfg_entries = [
+            ['agenda_reminder_default_emails', '', 'text',
+             'Standard-Empfänger für Agenda-Erinnerungsmail (kommagetrennt, leer = nur Teilnehmer)',
+             'notifications'],
+            ['meeting_system_url', '', 'text',
+             'Basis-URL des Sitzungssystems für Links in Mails (z.B. https://example.com/vorstand/Sitzungsverwaltung)',
+             'notifications'],
+        ];
+        foreach ($new_cfg_entries as [$key, $val, $type, $desc, $cat]) {
+            $chk = $pdo->prepare("SELECT COUNT(*) FROM svconfig WHERE config_key = ?");
+            $chk->execute([$key]);
+            if ($chk->fetchColumn() == 0) {
+                echo "<p>Füge svconfig-Eintrag '{$key}' hinzu...</p>";
+                $ins = $pdo->prepare("INSERT INTO svconfig (config_key, config_value, config_type, description, category) VALUES (?,?,?,?,?)");
+                $ins->execute([$key, $val, $type, $desc, $cat]);
+                echo ".";
+            }
         }
     }
 

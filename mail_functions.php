@@ -881,6 +881,14 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
         return 0;
     }
 
+    // Basis-URL: svconfig hat Vorrang vor übergebenem $base_url
+    $cfg_url_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'meeting_system_url' LIMIT 1");
+    $cfg_url = $cfg_url_stmt ? trim($cfg_url_stmt->fetchColumn() ?: '') : '';
+    if ($cfg_url) {
+        $base_url = $cfg_url;
+    }
+    $meeting_base = rtrim($base_url, '/');
+
     // TOPs laden (ohne 'wahl'-Kategorie, nach Priorität)
     $stmt = $pdo->prepare("
         SELECT item_id, top_number, title, category
@@ -895,98 +903,106 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
         return 0;
     }
 
-    // Sitzungs-Teilnehmer mit E-Mail laden
-    $stmt = $pdo->prepare("
-        SELECT mp.member_id
-        FROM svmeeting_participants mp
-        WHERE mp.meeting_id = ?
-    ");
+    // Sitzungs-Teilnehmer mit Mitglieds-Daten laden (für personalisierte Anrede)
+    $stmt = $pdo->prepare("SELECT mp.member_id FROM svmeeting_participants mp WHERE mp.meeting_id = ?");
     $stmt->execute([$meeting_id]);
     $participant_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-    // E-Mail-Adressen der Teilnehmer sammeln
-    $recipient_emails = [];
+    // Teilnehmer: [email => first_name] für personalisierte Anrede
+    $member_recipients = [];
     foreach ($participant_ids as $mid) {
         $member = get_member_by_id($pdo, $mid);
         if ($member && !empty($member['email'])) {
-            $recipient_emails[] = $member['email'];
+            $member_recipients[$member['email']] = $member['first_name'] ?? '';
         }
     }
 
-    // Zusätzliche Adressen aus dem Meeting-Feld
+    // Zusätzliche Adressen aus dem Meeting-Feld (keine Anrede möglich)
+    $extra_recipients = [];
     if (!empty($meeting['agenda_reminder_emails'])) {
         foreach (preg_split('/[\s,;]+/', $meeting['agenda_reminder_emails']) as $addr) {
             $addr = trim($addr);
-            if ($addr && filter_var($addr, FILTER_VALIDATE_EMAIL)) {
-                $recipient_emails[] = $addr;
+            if ($addr && filter_var($addr, FILTER_VALIDATE_EMAIL) && !isset($member_recipients[$addr])) {
+                $extra_recipients[] = $addr;
             }
         }
     }
 
-    $recipient_emails = array_unique(array_filter($recipient_emails));
-
-    if (empty($recipient_emails)) {
-        // Kein Empfänger — trotzdem als gesendet markieren damit es nicht ewig wiederholt wird
+    if (empty($member_recipients) && empty($extra_recipients)) {
         $pdo->prepare("UPDATE svmeetings SET agenda_reminder_sent = 1 WHERE meeting_id = ?")->execute([$meeting_id]);
         return 0;
     }
 
-    // Link auf die Sitzung
-    $meeting_link = rtrim($base_url, '/') . '/index.php?tab=agenda&meeting_id=' . $meeting_id;
-
-    // Datum formatieren
+    // Gemeinsame Inhaltsbausteine
     $meeting_date_fmt = date('d.m.Y', strtotime($meeting['meeting_date']));
     $meeting_time_fmt = date('H:i', strtotime($meeting['meeting_date']));
-    $meeting_name = $meeting['meeting_name'] ?: 'Sitzung';
+    $meeting_name     = $meeting['meeting_name'] ?: 'Sitzung';
+    $meeting_link     = $meeting_base . '/index.php?tab=agenda&meeting_id=' . $meeting_id;
 
-    // Betreff
     $subject = "Tagesordnung: {$meeting_name} am {$meeting_date_fmt} um {$meeting_time_fmt} Uhr";
 
-    // Text-Version
-    $text = "Guten Tag,\n\n";
-    $text .= "in der Sitzung \"{$meeting_name}\" am {$meeting_date_fmt} um {$meeting_time_fmt} Uhr";
-    if (!empty($meeting['location'])) {
-        $text .= " (Ort: " . $meeting['location'] . ")";
-    }
-    $text .= " stehen folgende Themen an.\n";
-    $text .= "Bitte ggf. kurzfristig kommentieren, wenn es hierzu Hinweise gibt:\n\n";
+    $location_text = !empty($meeting['location']) ? ' (Ort: ' . $meeting['location'] . ')' : '';
+    $location_html = !empty($meeting['location']) ? ' (Ort: ' . htmlspecialchars($meeting['location']) . ')' : '';
 
-    foreach ($tops as $top) {
-        $text .= "• " . $top['title'] . "\n";
-        $text .= "  " . $meeting_link . "\n\n";
-    }
+    // Hilfsfunktion: Mail-Texte mit individueller Anrede bauen
+    $build_mail = function(string $salutation_text, string $salutation_html) use (
+        $meeting_name, $meeting_date_fmt, $meeting_time_fmt,
+        $location_text, $location_html, $tops, $meeting_link, $meeting_base
+    ): array {
+        $text  = $salutation_text . "\n\n";
+        $text .= "in der Sitzung \"{$meeting_name}\" am {$meeting_date_fmt} um {$meeting_time_fmt} Uhr{$location_text} ";
+        $text .= "stehen folgende Themen an.\n";
+        $text .= "Bitte ggf. kurzfristig kommentieren, wenn es hierzu Hinweise gibt:\n\n";
+        foreach ($tops as $top) {
+            $top_link = $meeting_base . '/index.php?tab=agenda&meeting_id=' . explode('=', $meeting_link)[1]
+                      . '#top-' . $top['item_id'];
+            // Einfacher: meeting_link ist bereits vollständig, nur Fragment anhängen
+            $top_url  = $meeting_link . '#top-' . $top['item_id'];
+            $text .= "• " . $top['title'] . "\n  " . $top_url . "\n\n";
+        }
+        $text .= "Zur Sitzung: " . $meeting_link . "\n";
 
-    $text .= "\nZur Sitzung: " . $meeting_link . "\n";
+        $html  = '<p>' . $salutation_html . '</p>';
+        $html .= '<p>in der Sitzung <strong>' . htmlspecialchars($meeting_name) . '</strong>';
+        $html .= ' am <strong>' . $meeting_date_fmt . ' um ' . $meeting_time_fmt . ' Uhr</strong>' . $location_html;
+        $html .= ' stehen folgende Themen an.<br>';
+        $html .= 'Bitte ggf. kurzfristig kommentieren, wenn es hierzu Hinweise gibt:</p>';
+        $html .= '<ol style="line-height:1.8;">';
+        foreach ($tops as $top) {
+            $top_url = $meeting_link . '#top-' . $top['item_id'];
+            $html .= '<li><a href="' . htmlspecialchars($top_url) . '">'
+                   . htmlspecialchars($top['title']) . '</a></li>';
+        }
+        $html .= '</ol>';
+        $html .= '<p><a href="' . htmlspecialchars($meeting_link) . '">→ Zur Sitzungsübersicht</a></p>';
 
-    // HTML-Version
-    $html  = '<p>Guten Tag,</p>';
-    $html .= '<p>in der Sitzung <strong>' . htmlspecialchars($meeting_name) . '</strong>';
-    $html .= ' am <strong>' . $meeting_date_fmt . ' um ' . $meeting_time_fmt . ' Uhr</strong>';
-    if (!empty($meeting['location'])) {
-        $html .= ' (Ort: ' . htmlspecialchars($meeting['location']) . ')';
-    }
-    $html .= ' stehen folgende Themen an.<br>';
-    $html .= 'Bitte ggf. kurzfristig kommentieren, wenn es hierzu Hinweise gibt:</p>';
-    $html .= '<ol>';
-    foreach ($tops as $top) {
-        $html .= '<li><a href="' . htmlspecialchars($meeting_link) . '">'
-               . htmlspecialchars($top['title']) . '</a></li>';
-    }
-    $html .= '</ol>';
-    $html .= '<p><a href="' . htmlspecialchars($meeting_link) . '">→ Zur Sitzung</a></p>';
+        return [$text, $html];
+    };
 
     // Mails versenden
     $sent = 0;
-    foreach ($recipient_emails as $email) {
+
+    // Personalisierte Mails an Teilnehmer
+    foreach ($member_recipients as $email => $first_name) {
+        $anrede = $first_name ? "Liebe/r {$first_name}," : "Guten Tag,";
+        [$text, $html] = $build_mail($anrede, htmlspecialchars($anrede));
         if (multipartmail($email, $subject, $text, $html)) {
             $sent++;
         }
     }
 
-    // Als gesendet markieren (auch wenn manche Mails fehlgeschlagen sind)
-    if ($sent > 0 || !empty($recipient_emails)) {
-        $pdo->prepare("UPDATE svmeetings SET agenda_reminder_sent = 1 WHERE meeting_id = ?")->execute([$meeting_id]);
+    // Generische Mails an Zusatz-Adressen
+    if (!empty($extra_recipients)) {
+        [$text, $html] = $build_mail("Guten Tag,", "Guten Tag,");
+        foreach ($extra_recipients as $email) {
+            if (multipartmail($email, $subject, $text, $html)) {
+                $sent++;
+            }
+        }
     }
+
+    // Als gesendet markieren
+    $pdo->prepare("UPDATE svmeetings SET agenda_reminder_sent = 1 WHERE meeting_id = ?")->execute([$meeting_id]);
 
     return $sent;
 }

@@ -271,6 +271,15 @@ require_once 'module_notifications.php';
     <div class="info-box">Noch keine Sitzungen vorhanden.</div>
 <?php else: ?>
     <?php
+    // ID der nächsten Sitzung bestimmen (erste zukünftige Vorbereitung)
+    $next_meeting_id = null;
+    foreach ($all_meetings as $_m) {
+        if ($_m['status'] === 'preparation' && strtotime($_m['meeting_date']) >= time()) {
+            $next_meeting_id = $_m['meeting_id'];
+            break;
+        }
+    }
+
     // TOP-Counts für alle Meetings laden
     $meeting_ids = array_column($all_meetings, 'meeting_id');
     $top_counts = [];
@@ -302,7 +311,15 @@ require_once 'module_notifications.php';
         $red_border_style = ($needs_protocol_completion || $needs_protocol_approval) ? ' style="border: 3px solid #f44336;"' : '';
     ?>
 
-        <div class="<?php echo $status_class; ?>"<?php echo $red_border_style; ?>>
+        <?php if ($next_meeting_id && $m['meeting_id'] === $next_meeting_id): ?>
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+                    color: #1565c0; background: #e3f2fd; border-left: 4px solid #1565c0;
+                    padding: 4px 12px; margin-bottom: -1px; border-radius: 4px 4px 0 0; display: inline-block;">
+            ▶ Nächste Sitzung
+        </div>
+        <?php endif; ?>
+        <div class="<?php echo $status_class; ?>"<?php echo $red_border_style; ?>
+             <?php if ($next_meeting_id && $m['meeting_id'] === $next_meeting_id): ?>style="border: 2px solid #1565c0;"<?php endif; ?>>
             <div class="meeting-card-header">
                 <div class="meeting-card-content">
                     <div class="agenda-title">

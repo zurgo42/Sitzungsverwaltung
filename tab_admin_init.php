@@ -953,6 +953,7 @@ body.dark-mode .init-danger-list {
                                 <?php
                                 $label_map = [
                                     'agenda_reminder_default_emails' => 'Standard-Empfänger Tagesordnungsmail',
+                                    'meeting_system_url'             => 'Basis-URL Sitzungssystem (für Mail-Links)',
                                 ];
                                 echo htmlspecialchars($label_map[$cfg['config_key']] ?? $cfg['config_key']);
                                 ?>
