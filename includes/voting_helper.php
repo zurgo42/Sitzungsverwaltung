@@ -319,12 +319,23 @@ function render_hinweis_text($raw) {
 
 /** Beschluss annehmen: antrnr B→VS, Eintrag in TABLE_BESCHLUESSE */
 function beschluss_annehmen($pdo, $antrnr, $antrag) {
-    // VS-Nummer unabhängig generieren (nicht aus A-Nummer ableiten, da diese nach Annahme umbenannt wird)
+    // VS-Nummer unabhängig generieren – beide Tabellen prüfen, damit manuell nachgetragene
+    // Einträge in TABLE_BESCHLUESSE nicht zu Kollisionen führen
     $date_part = date('ymd');
-    $vs_stmt = $pdo->prepare("SELECT antrnr FROM " . TABLE_ANTRAEGE . " WHERE antrnr LIKE ? ORDER BY antrnr DESC LIMIT 1");
-    $vs_stmt->execute(['VS' . $date_part . '%']);
-    $existing_vs = $vs_stmt->fetch();
-    $nn = $existing_vs ? ((int)substr($existing_vs['antrnr'], -2) + 1) : 1;
+    $vs_pattern = 'VS' . $date_part . '%';
+
+    $st = $pdo->prepare("SELECT antrnr FROM " . TABLE_ANTRAEGE . " WHERE antrnr LIKE ? ORDER BY antrnr DESC LIMIT 1");
+    $st->execute([$vs_pattern]);
+    $row_a = $st->fetch();
+
+    $st = $pdo->prepare("SELECT antrnr FROM " . TABLE_BESCHLUESSE . " WHERE antrnr LIKE ? ORDER BY antrnr DESC LIMIT 1");
+    $st->execute([$vs_pattern]);
+    $row_b = $st->fetch();
+
+    $nn = max(
+        $row_a ? (int)substr($row_a['antrnr'], -2) : 0,
+        $row_b ? (int)substr($row_b['antrnr'], -2) : 0
+    ) + 1;
     $neue_nr = 'VS' . $date_part . str_pad($nn, 2, '0', STR_PAD_LEFT);
 
     $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ?, warantrag = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr, $antrnr]);

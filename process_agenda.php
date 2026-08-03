@@ -52,12 +52,18 @@ function generiereAntragsnummer($pdo, $prefix = 'A', $date = '') {
     $existing = $stmt->fetch();
     $a_num = $existing ? (int)substr($existing['antrnr'], -2) : 0;
 
-    // Auch VS-umbenannte Einträge berücksichtigen, um Nummern-Wiederholung zu vermeiden
+    // VS-umbenannte Einträge in TABLE_ANTRAEGE berücksichtigen
     $stmt->execute(['VS' . $date_part . '%']);
     $existing_vs = $stmt->fetch();
-    $vs_num = $existing_vs ? (int)substr($existing_vs['antrnr'], -2) : 0;
+    $vs_num_a = $existing_vs ? (int)substr($existing_vs['antrnr'], -2) : 0;
 
-    $last_number = max($a_num, $vs_num);
+    // Auch manuell in TABLE_BESCHLUESSE eingetragene VS-Nummern prüfen
+    $stmt_b = $pdo->prepare("SELECT antrnr FROM " . TABLE_BESCHLUESSE . " WHERE antrnr LIKE ? ORDER BY antrnr DESC LIMIT 1");
+    $stmt_b->execute(['VS' . $date_part . '%']);
+    $existing_b = $stmt_b->fetch();
+    $vs_num_b = $existing_b ? (int)substr($existing_b['antrnr'], -2) : 0;
+
+    $last_number = max($a_num, $vs_num_a, $vs_num_b);
 
     if ($last_number === 0) {
         return $prefix_pattern . '01';
