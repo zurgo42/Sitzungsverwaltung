@@ -478,7 +478,10 @@ if ($show_detail) {
     $antrag = $stmt->fetch();
 
     if (!$antrag) {
-        $error = "Antrag nicht gefunden.";
+        // Fehlermeldung nur wenn keine Aktion-Rückmeldung vorhanden (z.B. nach Votum-Redirect)
+        if (empty($_GET['msg'])) {
+            $error = "Antrag nicht gefunden.";
+        }
         $show_detail = false;
     }
 }
