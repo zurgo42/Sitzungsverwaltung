@@ -888,6 +888,42 @@ body.dark-mode .init-danger-list {
             📧 E-Mail Benachrichtigungen
         </h3>
         <div class="admin-section-content collapsed">
+
+            <!-- Aktueller Mail-Status -->
+            <?php
+            $mail_enabled = defined('MAIL_ENABLED') && MAIL_ENABLED;
+            $mail_backend = defined('MAIL_BACKEND') ? MAIL_BACKEND : 'mail';
+            $mail_from    = defined('MAIL_FROM') ? MAIL_FROM : '(nicht gesetzt)';
+            ?>
+            <div style="background: <?= $mail_enabled ? '#e8f5e9' : '#fff3cd' ?>; border-left: 4px solid <?= $mail_enabled ? '#28a745' : '#ffc107' ?>; padding: 15px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
+                <strong><?= $mail_enabled ? '✅ E-Mail-Versand aktiv' : '⚠️ E-Mail-Versand deaktiviert (MAIL_ENABLED = false)' ?></strong><br>
+                <small style="color: #555;">
+                    Backend: <code><?= htmlspecialchars($mail_backend) ?></code> &nbsp;|&nbsp;
+                    Absender: <code><?= htmlspecialchars($mail_from) ?></code>
+                    <?php if (!$mail_enabled): ?>
+                        <br><strong>→ Setze in deiner <code>config.php</code> den Wert <code>MAIL_ENABLED</code> auf <code>true</code>, um den Versand zu aktivieren.</strong>
+                    <?php endif; ?>
+                </small>
+            </div>
+
+            <!-- Test-Mail -->
+            <form method="POST" action="?tab=admin_init" style="margin-bottom: 30px;">
+                <input type="hidden" name="send_test_mail_form" value="1">
+                <div style="display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px;">Test-Mail senden:</label>
+                        <input type="email" name="test_mail_to"
+                               value="<?= htmlspecialchars($current_user['email'] ?? '') ?>"
+                               placeholder="empfaenger@beispiel.de"
+                               required
+                               style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; width: 280px;">
+                    </div>
+                    <button type="submit" class="btn-primary" style="padding: 8px 20px;">📨 Test-Mail senden</button>
+                </div>
+                <small style="display: block; margin-top: 6px; color: #666;">
+                    Sendet eine einfache Test-Mail. So kannst du prüfen ob Mails grundsätzlich zugestellt werden.
+                </small>
+            </form>
             <p style="margin-bottom: 20px; color: #666; font-size: 13px;">
                 Standard-Empfänger für die automatische Tagesordnungs-Erinnerungsmail.
                 Diese Adressen werden beim Anlegen neuer Sitzungen als Voreinstellung eingetragen und können pro Sitzung individuell angepasst werden.

@@ -1899,6 +1899,29 @@ foreach ($all_collab_texts as &$text) {
 unset($text);
 
 // ============================================
+// TEST-MAIL VERSENDEN
+// ============================================
+
+if (isset($_POST['send_test_mail_form'])) {
+    $test_to = trim($_POST['test_mail_to'] ?? '');
+    if (!$test_to || !filter_var($test_to, FILTER_VALIDATE_EMAIL)) {
+        $error_message = "Ungültige E-Mail-Adresse.";
+    } elseif (!defined('MAIL_ENABLED') || !MAIL_ENABLED) {
+        $error_message = "E-Mail-Versand ist deaktiviert (MAIL_ENABLED = false in config.php). Bitte dort aktivieren.";
+    } else {
+        if (!function_exists('send_test_mail')) {
+            require_once __DIR__ . '/mail_functions.php';
+        }
+        $ok = send_test_mail($test_to);
+        if ($ok) {
+            $success_message = "Test-Mail an <strong>" . htmlspecialchars($test_to) . "</strong> versendet. Bitte Posteingang (und Spam-Ordner) prüfen.";
+        } else {
+            $error_message = "Test-Mail konnte nicht versendet werden. Bitte Server-Error-Log prüfen (PHP mail() fehlgeschlagen oder Backend-Fehler).";
+        }
+    }
+}
+
+// ============================================
 // BENACHRICHTIGUNGS-KONFIGURATION SPEICHERN
 // ============================================
 
