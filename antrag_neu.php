@@ -66,14 +66,19 @@ function generiereAntragsnummer($pdo, $prefix = 'A', $date = '') {
     ");
     $stmt->execute([$prefix_pattern . '%']);
     $existing = $stmt->fetch();
+    $a_num = $existing ? (int)substr($existing['antrnr'], -2) : 0;
 
-    // Wenn kein Eintrag existiert, erste Nummer vergeben
-    if (!$existing) {
+    // Auch VS-umbenannte Einträge berücksichtigen, um Nummern-Wiederholung zu vermeiden
+    $stmt->execute(['VS' . $date_part . '%']);
+    $existing_vs = $stmt->fetch();
+    $vs_num = $existing_vs ? (int)substr($existing_vs['antrnr'], -2) : 0;
+
+    $last_number = max($a_num, $vs_num);
+
+    if ($last_number === 0) {
         return $prefix_pattern . '01';
     }
 
-    // Letzten 2 Stellen extrahieren und hochzählen
-    $last_number = (int)substr($existing['antrnr'], -2);
     $new_number = $last_number + 1;
 
     // Prüfen ob Limit erreicht

@@ -319,7 +319,14 @@ function render_hinweis_text($raw) {
 
 /** Beschluss annehmen: antrnr B→VS, Eintrag in TABLE_BESCHLUESSE */
 function beschluss_annehmen($pdo, $antrnr, $antrag) {
-    $neue_nr = 'VS' . date('ymd') . substr($antrnr, 7);
+    // VS-Nummer unabhängig generieren (nicht aus A-Nummer ableiten, da diese nach Annahme umbenannt wird)
+    $date_part = date('ymd');
+    $vs_stmt = $pdo->prepare("SELECT antrnr FROM " . TABLE_ANTRAEGE . " WHERE antrnr LIKE ? ORDER BY antrnr DESC LIMIT 1");
+    $vs_stmt->execute(['VS' . $date_part . '%']);
+    $existing_vs = $vs_stmt->fetch();
+    $nn = $existing_vs ? ((int)substr($existing_vs['antrnr'], -2) + 1) : 1;
+    $neue_nr = 'VS' . $date_part . str_pad($nn, 2, '0', STR_PAD_LEFT);
+
     $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ?, warantrag = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr, $antrnr]);
 
     // Einzelvoten als "KurzN: Votum"-Liste aufbauen
@@ -343,6 +350,18 @@ function beschluss_annehmen($pdo, $antrnr, $antrag) {
 
     $dafuer_text = ($alle_ja && $hat_vote) ? 'einstimmig' : implode(', ', $stimmen);
 
+    // Ressort-Namen aus R-Kennung auflösen
+    $ressort_parts = [];
+    foreach (['ressort1', 'ressort2'] as $rf) {
+        if (!empty($antrag[$rf])) {
+            $rs = $pdo->prepare("SELECT Ressort FROM " . TABLE_RESSORTS . " WHERE " . TABLE_RESSORTS_KEY . " = ?");
+            $rs->execute([$antrag[$rf]]);
+            $rname = $rs->fetchColumn();
+            $ressort_parts[] = $rname ?: $antrag[$rf];
+        }
+    }
+    $ressort_name = implode(', ', $ressort_parts);
+
     $pdo->prepare("
         INSERT INTO " . TABLE_BESCHLUESSE . "
             (antrnr, fertig, titel, beschluss, begr, fintext, pers, sach, ressort, int_ext,
@@ -353,7 +372,7 @@ function beschluss_annehmen($pdo, $antrnr, $antrag) {
         $neue_nr,
         $antrag['titel'], $antrag['beschluss'], $antrag['begr'],
         $antrag['fintext'], $antrag['pers'], $antrag['sach'],
-        $antrag['ressort1'], $antrag['int_ext'],
+        $ressort_name, $antrag['int_ext'],
         $dafuer_text,
         $antrag['abstimmregel'] ?? 'einfach',
     ]);
