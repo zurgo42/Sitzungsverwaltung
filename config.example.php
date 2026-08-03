@@ -4,6 +4,10 @@
  * Hier stehen alle individuellen Einstellungen
  */
 
+// Guard: verhindert Doppel-Ausführung wenn aus zwei verschiedenen Pfaden geladen
+if (defined('SV_CONFIG_LOADED')) return;
+define('SV_CONFIG_LOADED', true);
+
 // ============= UMGEBUNGS-ERKENNUNG =============
 /**
  * Erkennt automatisch, ob die Anwendung lokal (XAMPP) oder auf dem Produktivserver läuft
