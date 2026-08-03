@@ -10,27 +10,29 @@
  *
  * @return bool true wenn lokal (XAMPP), false wenn Produktivserver
  */
-function is_local_environment() {
-    // Prüfe verschiedene Indikatoren für lokale Entwicklung
-    $local_indicators = [
-        // Prüfe Server-Name (localhost, 127.0.0.1, ::1)
-        isset($_SERVER['SERVER_NAME']) && in_array($_SERVER['SERVER_NAME'], ['localhost', '127.0.0.1', '::1']),
+if (!function_exists('is_local_environment')) {
+    function is_local_environment() {
+        // Prüfe verschiedene Indikatoren für lokale Entwicklung
+        $local_indicators = [
+            // Prüfe Server-Name (localhost, 127.0.0.1, ::1)
+            isset($_SERVER['SERVER_NAME']) && in_array($_SERVER['SERVER_NAME'], ['localhost', '127.0.0.1', '::1']),
 
-        // Prüfe HTTP-Host
-        isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false,
+            // Prüfe HTTP-Host
+            isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false,
 
-        // Prüfe Server-Adresse
-        isset($_SERVER['SERVER_ADDR']) && in_array($_SERVER['SERVER_ADDR'], ['127.0.0.1', '::1']),
+            // Prüfe Server-Adresse
+            isset($_SERVER['SERVER_ADDR']) && in_array($_SERVER['SERVER_ADDR'], ['127.0.0.1', '::1']),
 
-        // Prüfe ob im XAMPP-Pfad
-        stripos(__FILE__, 'xampp') !== false
-    ];
+            // Prüfe ob im XAMPP-Pfad
+            stripos(__FILE__, 'xampp') !== false
+        ];
 
-    return in_array(true, $local_indicators, true);
+        return in_array(true, $local_indicators, true);
+    }
 }
 
 // Umgebung setzen
-define('IS_LOCAL', is_local_environment());
+if (!defined('IS_LOCAL')) define('IS_LOCAL', is_local_environment());
 
 // ============= DATENBANK-ZUGANGSDATEN =============
 // BACKWARD COMPATIBILITY: Falls alte VTool config.php mit MYSQL_* Konstanten existiert
