@@ -313,7 +313,9 @@ render_user_notifications($pdo, $current_user['member_id']);
     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
         <a href="abstimmungen.php" style="padding: 6px 12px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; display: inline-block; white-space: nowrap;">🗳️ Abstimmungen</a>
         <a href="beschlussbuch.php" style="padding: 6px 12px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; display: inline-block; white-space: nowrap;">📚 Beschlussbuch</a>
+        <?php if ($user_aktiv > 10): ?>
         <a href="antrag_neu.php" style="padding: 6px 12px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; display: inline-block; white-space: nowrap;">+ Neuer Antrag</a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -468,19 +470,20 @@ render_user_notifications($pdo, $current_user['member_id']);
                style="padding: 8px 16px; font-size: 13px; text-decoration: none; display: inline-block; flex: 1; min-width: 120px; text-align: center;">
                 👁️ Ansehen
             </a>
+            <?php if ($prefix_a === 'A' && $user_aktiv > 10): ?>
             <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($a['antrnr']) ?>"
                class="btn btn-primary"
                style="padding: 8px 16px; font-size: 13px; text-decoration: none; display: inline-block; flex: 1; min-width: 120px; text-align: center;">
                 ✏️ Bearbeiten
             </a>
+            <?php elseif ($prefix_a !== 'A' && $ist_admin): ?>
+            <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($a['antrnr']) ?>"
+               class="btn btn-primary"
+               style="padding: 8px 16px; font-size: 13px; text-decoration: none; display: inline-block; flex: 1; min-width: 120px; text-align: center;">
+                ✏️ Bearbeiten
+            </a>
+            <?php endif; ?>
         </div>
-
-        <!-- Admin-Hinweis bei B-Anträgen -->
-        <?php if ($in_abstimmung && !$ist_admin): ?>
-            <div style="margin-top: 8px; font-size: 11px; color: #856404; background: rgba(250, 170, 0, 0.1); padding: 6px 8px; border-radius: 4px;">
-                ⚠️ Nur Administratoren können während der Abstimmung bearbeiten
-            </div>
-        <?php endif; ?>
 
         <!-- Endgültig löschen für Admins bei X/Z -->
         <?php if ($show_deleted && ($prefix_a === 'X' || $prefix_a === 'Z') && $ist_admin): ?>

@@ -9,6 +9,8 @@
 require_once 'session_config.php';
 session_start();
 require_once 'config.php';
+require_once 'config_adapter.php';
+require_once 'member_functions.php';
 require_once 'includes/antragstypen_helper.php';
 
 // Prüfen ob eingeloggt
@@ -29,6 +31,12 @@ $pdo = new PDO(
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]
 );
+
+// Berechtigung prüfen: aktiv > 10 erforderlich
+$current_user = get_member_by_id($pdo, $current_user_id);
+if (!$current_user || (int)($current_user['aktiv'] ?? 0) <= 10) {
+    die("Keine Berechtigung. Sie benötigen aktiv > 10 um Anträge zu stellen.");
+}
 
 // Antragstypen-Config laden
 $bart_config = lade_antragstypen_config($pdo);

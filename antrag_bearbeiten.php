@@ -202,8 +202,8 @@ $prefix = substr($antrnr, 0, 1);
 $ist_admin = ($user_aktiv >= 19 || ($user['is_admin'] ?? 0) == 1);
 
 if ($prefix === 'A') {
-    // A-Anträge: Antragsteller oder Vorstand darf bearbeiten
-    $darf_bearbeiten = ($antrag['antrst'] == $user['member_id'] || $user_aktiv >= 18);
+    // A-Anträge: Alle mit aktiv > 10 dürfen bearbeiten (bereits geprüft oben)
+    $darf_bearbeiten = true;
 } else {
     // B/VS/X/Z-Anträge: Nur Admins dürfen bearbeiten
     $darf_bearbeiten = $ist_admin;
