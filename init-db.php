@@ -1162,6 +1162,23 @@ try {
         echo ".";
     }
 
+    // Migration: svconfig-Eintrag für Agenda-Erinnerungsmail anlegen (falls fehlend)
+    $stmt = $pdo->query("SHOW TABLES LIKE 'svconfig'");
+    if ($stmt->fetch()) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM svconfig WHERE config_key = 'agenda_reminder_default_emails'");
+        $stmt->execute();
+        if ($stmt->fetchColumn() == 0) {
+            echo "<p>Füge svconfig-Eintrag 'agenda_reminder_default_emails' hinzu...</p>";
+            $pdo->exec("
+                INSERT INTO svconfig (config_key, config_value, config_type, description, category)
+                VALUES ('agenda_reminder_default_emails', '', 'text',
+                        'Standard-Empfänger für Agenda-Erinnerungsmail (kommagetrennt, leer = nur Teilnehmer)',
+                        'notifications')
+            ");
+            echo ".";
+        }
+    }
+
     // Migration: antrnr zu svagenda_items hinzufügen
     $stmt = $pdo->query("SHOW COLUMNS FROM svagenda_items LIKE 'antrnr'");
     if (!$stmt->fetch()) {
