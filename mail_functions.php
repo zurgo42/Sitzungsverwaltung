@@ -944,60 +944,35 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
     $location_text = !empty($meeting['location']) ? ' (Ort: ' . $meeting['location'] . ')' : '';
     $location_html = !empty($meeting['location']) ? ' (Ort: ' . htmlspecialchars($meeting['location']) . ')' : '';
 
-    // Hilfsfunktion: Mail-Texte mit individueller Anrede bauen
-    $build_mail = function(string $salutation_text, string $salutation_html) use (
-        $meeting_name, $meeting_date_fmt, $meeting_time_fmt,
-        $location_text, $location_html, $tops, $meeting_link, $meeting_base
-    ): array {
-        $text  = $salutation_text . "\n\n";
-        $text .= "in der Sitzung \"{$meeting_name}\" am {$meeting_date_fmt} um {$meeting_time_fmt} Uhr{$location_text} ";
-        $text .= "stehen folgende Themen an.\n";
-        $text .= "Bitte ggf. kurzfristig kommentieren, wenn es hierzu Hinweise gibt:\n\n";
-        foreach ($tops as $top) {
-            $top_link = $meeting_base . '/index.php?tab=agenda&meeting_id=' . explode('=', $meeting_link)[1]
-                      . '#top-' . $top['item_id'];
-            // Einfacher: meeting_link ist bereits vollständig, nur Fragment anhängen
-            $top_url  = $meeting_link . '#top-' . $top['item_id'];
-            $text .= "• " . $top['title'] . "\n  " . $top_url . "\n\n";
-        }
-        $text .= "Zur Sitzung: " . $meeting_link . "\n";
+    // Mail-Inhalt aufbauen (keine Anrede — automatisch erzeugte Information)
+    $text  = "In der Sitzung \"{$meeting_name}\" am {$meeting_date_fmt} um {$meeting_time_fmt} Uhr{$location_text} ";
+    $text .= "stehen folgende Themen an.\n";
+    $text .= "Bitte ggf. kurzfristig kommentieren, wenn es hierzu Hinweise gibt:\n\n";
+    foreach ($tops as $top) {
+        $top_url = $meeting_link . '#top-' . $top['item_id'];
+        $text .= "• " . $top['title'] . "\n  " . $top_url . "\n\n";
+    }
+    $text .= "Zur Sitzung: " . $meeting_link . "\n";
 
-        $html  = '<p>' . $salutation_html . '</p>';
-        $html .= '<p>in der Sitzung <strong>' . htmlspecialchars($meeting_name) . '</strong>';
-        $html .= ' am <strong>' . $meeting_date_fmt . ' um ' . $meeting_time_fmt . ' Uhr</strong>' . $location_html;
-        $html .= ' stehen folgende Themen an.<br>';
-        $html .= 'Bitte ggf. kurzfristig kommentieren, wenn es hierzu Hinweise gibt:</p>';
-        $html .= '<ol style="line-height:1.8;">';
-        foreach ($tops as $top) {
-            $top_url = $meeting_link . '#top-' . $top['item_id'];
-            $html .= '<li><a href="' . htmlspecialchars($top_url) . '">'
-                   . htmlspecialchars($top['title']) . '</a></li>';
-        }
-        $html .= '</ol>';
-        $html .= '<p><a href="' . htmlspecialchars($meeting_link) . '">→ Zur Sitzungsübersicht</a></p>';
+    $html  = '<p>In der Sitzung <strong>' . htmlspecialchars($meeting_name) . '</strong>';
+    $html .= ' am <strong>' . $meeting_date_fmt . ' um ' . $meeting_time_fmt . ' Uhr</strong>' . $location_html;
+    $html .= ' stehen folgende Themen an.<br>';
+    $html .= 'Bitte ggf. kurzfristig kommentieren, wenn es hierzu Hinweise gibt:</p>';
+    $html .= '<ol style="line-height:1.8;">';
+    foreach ($tops as $top) {
+        $top_url = $meeting_link . '#top-' . $top['item_id'];
+        $html .= '<li><a href="' . htmlspecialchars($top_url) . '">'
+               . htmlspecialchars($top['title']) . '</a></li>';
+    }
+    $html .= '</ol>';
+    $html .= '<p><a href="' . htmlspecialchars($meeting_link) . '">→ Zur Sitzungsübersicht</a></p>';
 
-        return [$text, $html];
-    };
-
-    // Mails versenden
+    // Mails versenden (alle Empfänger erhalten denselben Inhalt)
     $sent = 0;
-
-    // Personalisierte Mails an Teilnehmer
-    foreach ($member_recipients as $email => $first_name) {
-        $anrede = $first_name ? "Liebe/r {$first_name}," : "Guten Tag,";
-        [$text, $html] = $build_mail($anrede, htmlspecialchars($anrede));
+    $all_recipients = array_merge(array_keys($member_recipients), $extra_recipients);
+    foreach ($all_recipients as $email) {
         if (multipartmail($email, $subject, $text, $html)) {
             $sent++;
-        }
-    }
-
-    // Generische Mails an Zusatz-Adressen
-    if (!empty($extra_recipients)) {
-        [$text, $html] = $build_mail("Guten Tag,", "Guten Tag,");
-        foreach ($extra_recipients as $email) {
-            if (multipartmail($email, $subject, $text, $html)) {
-                $sent++;
-            }
         }
     }
 
