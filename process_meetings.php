@@ -244,6 +244,8 @@ if (isset($_POST['create_meeting'])) {
     $participant_ids = $_POST['participant_ids'] ?? [];
     $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
     $allow_decisions = isset($_POST['allow_decisions']) ? 1 : 0;
+    $send_agenda_reminder = isset($_POST['send_agenda_reminder']) ? 1 : 0;
+    $agenda_reminder_emails = trim($_POST['agenda_reminder_emails'] ?? '');
 
     // Validierung
     if (empty($meeting_name) || empty($meeting_date)) {
@@ -268,8 +270,9 @@ if (isset($_POST['create_meeting'])) {
         $stmt = $pdo->prepare("
             INSERT INTO svmeetings
             (meeting_name, meeting_date, expected_end_date, submission_deadline, location, video_link,
-             chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, allow_decisions, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
+             chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, allow_decisions,
+             send_agenda_reminder, agenda_reminder_emails, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
         ");
         $stmt->execute([
             $meeting_name,
@@ -282,7 +285,9 @@ if (isset($_POST['create_meeting'])) {
             $secretary_member_id,
             $current_user['member_id'],
             $visibility_type,
-            $allow_decisions
+            $allow_decisions,
+            $send_agenda_reminder,
+            $agenda_reminder_emails ?: null,
         ]);
         
         $meeting_id = $pdo->lastInsertId();
@@ -366,6 +371,8 @@ if (isset($_POST['edit_meeting'])) {
     $participant_ids = $_POST['participant_ids'] ?? [];
     $visibility_type = $_POST['visibility_type'] ?? 'invited_only';
     $allow_decisions = isset($_POST['allow_decisions']) ? 1 : 0;
+    $send_agenda_reminder = isset($_POST['send_agenda_reminder']) ? 1 : 0;
+    $agenda_reminder_emails = trim($_POST['agenda_reminder_emails'] ?? '');
 
     // Datetime-Format konvertieren: 2026-05-01T17:00 -> 2026-05-01 17:00:00
     if (!empty($meeting_date)) {
@@ -415,7 +422,10 @@ if (isset($_POST['edit_meeting'])) {
         $stmt = $pdo->prepare("
             UPDATE svmeetings
             SET meeting_name = ?, meeting_date = ?, expected_end_date = ?, submission_deadline = ?,
-                location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?, visibility_type = ?, allow_decisions = ?
+                location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?,
+                visibility_type = ?, allow_decisions = ?,
+                send_agenda_reminder = ?, agenda_reminder_emails = ?,
+                agenda_reminder_sent = 0
             WHERE meeting_id = ?
         ");
         $stmt->execute([
@@ -429,6 +439,8 @@ if (isset($_POST['edit_meeting'])) {
             $secretary_member_id,
             $visibility_type,
             $allow_decisions,
+            $send_agenda_reminder,
+            $agenda_reminder_emails ?: null,
             $meeting_id
         ]);
 

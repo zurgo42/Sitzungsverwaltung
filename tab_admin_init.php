@@ -882,6 +882,70 @@ body.dark-mode .init-danger-list {
     </div>
     <?php endif; ?>
 
+    <!-- E-MAIL BENACHRICHTIGUNGEN -->
+    <div class="admin-section">
+        <h3 class="admin-section-header init-section-header" onclick="toggleSection(this)">
+            📧 E-Mail Benachrichtigungen
+        </h3>
+        <div class="admin-section-content collapsed">
+            <p style="margin-bottom: 20px; color: #666; font-size: 13px;">
+                Standard-Empfänger für die automatische Tagesordnungs-Erinnerungsmail.
+                Diese Adressen werden beim Anlegen neuer Sitzungen als Voreinstellung eingetragen und können pro Sitzung individuell angepasst werden.
+            </p>
+
+            <?php
+            $notif_cfg_stmt = @$pdo->query("SELECT config_key, config_value, description FROM svconfig WHERE category = 'notifications' ORDER BY config_key");
+            $notif_configs = $notif_cfg_stmt ? $notif_cfg_stmt->fetchAll() : [];
+            ?>
+
+            <form method="POST" action="?tab=admin_init">
+                <input type="hidden" name="save_notifications" value="1">
+
+                <?php if (!empty($notif_configs)): ?>
+                <table style="width: 100%; max-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; width: 35%;">Einstellung</th>
+                            <th style="text-align: left; width: 45%;">Wert</th>
+                            <th style="text-align: left; width: 20%;">Beschreibung</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($notif_configs as $cfg): ?>
+                        <tr>
+                            <td style="padding: 10px 5px; font-weight: 600; font-size: 13px;">
+                                <?php
+                                $label_map = [
+                                    'agenda_reminder_default_emails' => 'Standard-Empfänger Tagesordnungsmail',
+                                ];
+                                echo htmlspecialchars($label_map[$cfg['config_key']] ?? $cfg['config_key']);
+                                ?>
+                            </td>
+                            <td style="padding: 10px 5px;">
+                                <input type="text"
+                                       name="config[<?= $cfg['config_key'] ?>]"
+                                       value="<?= htmlspecialchars($cfg['config_value']) ?>"
+                                       placeholder="mail@beispiel.de, mail2@beispiel.de"
+                                       style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;">
+                            </td>
+                            <td style="padding: 10px 5px; font-size: 11px; color: #666;">
+                                <?= htmlspecialchars($cfg['description']) ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <?php else: ?>
+                <p style="color: #999; font-style: italic;">Keine Benachrichtigungs-Einstellungen in svconfig gefunden. Bitte init-db.php ausführen.</p>
+                <?php endif; ?>
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn-primary">Einstellungen speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- PLATZHALTER FÜR WEITERE BEREICHE -->
     <!-- Hier werden später weitere Konfigurationsbereiche hinzugefügt:
          - Workflow-Status (A, B, VS, X, Z) - NICHT konfigurierbar

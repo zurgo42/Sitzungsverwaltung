@@ -150,6 +150,54 @@ if ($should_run) {
             }
         }
 
+        // ---- Agenda-Erinnerungsmail-Check ----
+        // Sitzungen finden, bei denen der Antragsschluss abgelaufen ist,
+        // Erinnerungsmail aktiviert und noch nicht versendet wurde
+        $col_check = @$pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'send_agenda_reminder'");
+        if ($col_check && $col_check->fetch()) {
+            $remind_stmt = @$pdo->query("
+                SELECT meeting_id
+                FROM svmeetings
+                WHERE send_agenda_reminder = 1
+                  AND agenda_reminder_sent = 0
+                  AND submission_deadline IS NOT NULL
+                  AND submission_deadline <= NOW()
+                  AND status IN ('preparation', 'active')
+            ");
+
+            if ($remind_stmt) {
+                // mail_functions.php laden falls noch nicht geschehen
+                if (!function_exists('send_agenda_reminder_mail')) {
+                    $mail_file = __DIR__ . '/mail_functions.php';
+                    if (file_exists($mail_file)) require_once $mail_file;
+                }
+                // member_functions.php für get_member_by_id() benötigt
+                if (!function_exists('get_member_by_id') && file_exists(__DIR__ . '/member_functions.php')) {
+                    require_once __DIR__ . '/member_functions.php';
+                }
+
+                // Basis-URL ermitteln (für Links in der Mail)
+                $base_url = '';
+                if (isset($_SERVER['HTTP_HOST'])) {
+                    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                    $base_url = $scheme . '://' . $_SERVER['HTTP_HOST'] . (defined('STANDALONE_PATH') ? STANDALONE_PATH : '');
+                }
+
+                $reminded = 0;
+                foreach ($remind_stmt->fetchAll(PDO::FETCH_COLUMN) as $mid) {
+                    if (function_exists('send_agenda_reminder_mail')) {
+                        $sent = send_agenda_reminder_mail($pdo, (int)$mid, $base_url);
+                        if ($sent >= 0) $reminded++;
+                    }
+                }
+
+                if ($reminded > 0) {
+                    $log_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron: {$reminded} Agenda-Erinnerungsmail(s) versendet\n";
+                    @file_put_contents(__DIR__ . '/pseudo_cron.log', $log_msg, FILE_APPEND);
+                }
+            }
+        }
+
     } catch (Exception $e) {
         // Fehler loggen aber nicht ausgeben (um Seite nicht zu stören)
         $error_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron Error: " . $e->getMessage() . "\n";

@@ -80,6 +80,9 @@ try {
         status ENUM('preparation', 'active', 'ended', 'protocol_ready', 'archived') DEFAULT 'preparation',
         visibility_type ENUM('public', 'authenticated', 'invited_only') DEFAULT 'invited_only',
         allow_decisions TINYINT(1) DEFAULT 1 COMMENT 'Beschlüsse in dieser Sitzung erlauben (1=ja, 0=nein)',
+        send_agenda_reminder TINYINT(1) DEFAULT 1 COMMENT 'Erinnerungsmail nach Antragsschluss versenden',
+        agenda_reminder_emails TEXT DEFAULT NULL COMMENT 'Kommagetrennte Empfänger-Mailadressen (leer = nur Teilnehmer)',
+        agenda_reminder_sent TINYINT(1) DEFAULT 0 COMMENT '1 = Erinnerungsmail wurde bereits versendet',
         protokoll TEXT DEFAULT NULL,
         prot_intern TEXT DEFAULT NULL,
         protocol_intern TEXT NOT NULL DEFAULT '',
@@ -1149,6 +1152,16 @@ try {
         echo ".";
     }
 
+    // Migration: Agenda-Erinnerungsmail-Felder zu svmeetings hinzufügen
+    $stmt = $pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'send_agenda_reminder'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Agenda-Erinnerungsmail-Spalten zu svmeetings hinzu...</p>";
+        $pdo->exec("ALTER TABLE svmeetings ADD COLUMN send_agenda_reminder TINYINT(1) DEFAULT 1 COMMENT 'Erinnerungsmail nach Antragsschluss versenden' AFTER allow_decisions");
+        $pdo->exec("ALTER TABLE svmeetings ADD COLUMN agenda_reminder_emails TEXT DEFAULT NULL COMMENT 'Kommagetrennte Empfänger-Mailadressen' AFTER send_agenda_reminder");
+        $pdo->exec("ALTER TABLE svmeetings ADD COLUMN agenda_reminder_sent TINYINT(1) DEFAULT 0 COMMENT '1 = Erinnerungsmail wurde bereits versendet' AFTER agenda_reminder_emails");
+        echo ".";
+    }
+
     // Migration: antrnr zu svagenda_items hinzufügen
     $stmt = $pdo->query("SHOW COLUMNS FROM svagenda_items LIKE 'antrnr'");
     if (!$stmt->fetch()) {
@@ -1362,6 +1375,7 @@ try {
             ['term_geschaeftsfuehrer', 'Geschäftsführer', 'text', 'Bezeichnung für Geschäftsführer', 'terminology'],
             ['term_ressortleiter', 'Ressortleiter', 'text', 'Bezeichnung für Ressortleiter/Abteilungsleiter', 'terminology'],
             ['second_entity_name', '', 'text', 'Name der zweiten Einheit neben "Verein" (z.B. "Stiftung", leer = keine Differenzierung)', 'terminology'],
+            ['agenda_reminder_default_emails', '', 'text', 'Standard-Empfänger für Agenda-Erinnerungsmail (kommagetrennt, leer = nur Teilnehmer)', 'notifications'],
         ];
 
         $stmt = $pdo->prepare("

@@ -1898,4 +1898,39 @@ foreach ($all_collab_texts as &$text) {
 }
 unset($text);
 
+// ============================================
+// BENACHRICHTIGUNGS-KONFIGURATION SPEICHERN
+// ============================================
+
+if (isset($_POST['save_notifications'])) {
+    $configs = $_POST['config'] ?? [];
+
+    if (empty($configs)) {
+        $error_message = "Keine Konfigurationswerte übermittelt.";
+    } else {
+        try {
+            $updated_count = 0;
+            foreach ($configs as $key => $value) {
+                $value = trim($value);
+                $stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+                $stmt->execute([$key]);
+                $old_value = $stmt->fetchColumn();
+
+                if ($old_value !== $value) {
+                    $update_stmt = $pdo->prepare("
+                        UPDATE svconfig
+                        SET config_value = ?, updated_by = ?, updated_at = NOW()
+                        WHERE config_key = ?
+                    ");
+                    $update_stmt->execute([$value, $current_user['member_id'], $key]);
+                    $updated_count++;
+                }
+            }
+            $success_message = "Benachrichtigungs-Einstellungen gespeichert" . ($updated_count > 0 ? " ($updated_count geändert)." : " (keine Änderungen).");
+        } catch (PDOException $e) {
+            $error_message = "Fehler beim Speichern: " . $e->getMessage();
+        }
+    }
+}
+
 ?>

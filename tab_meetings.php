@@ -7,6 +7,10 @@
  * Nur Darstellung - alle Verarbeitungen in process_meetings.php
  */
 
+// Standard-Empfänger für Agenda-Erinnerungsmail aus svconfig laden
+$_reminder_default_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'agenda_reminder_default_emails' LIMIT 1");
+$default_reminder_emails = $_reminder_default_stmt ? ($_reminder_default_stmt->fetchColumn() ?: '') : '';
+
 // Nur sichtbare Meetings laden (basierend auf Sichtbarkeitstyp)
 $all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
 $all_members = get_all_members($pdo);
@@ -193,6 +197,32 @@ require_once 'module_notifications.php';
                     Wenn aktiviert, können bei Tagesordnungspunkten Anträge erstellt und direkt in der Sitzung abgestimmt werden.
                 </small>
             </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" name="send_agenda_reminder" value="1" checked style="width: auto;" id="create_send_reminder">
+                    <span>Nach Ablauf der Antragsschlussfrist Erinnerungsmail versenden</span>
+                </label>
+                <small style="display: block; margin-top: 5px; color: #666;">
+                    Sendet nach dem Antragsschluss automatisch eine Mail mit der finalen Tagesordnung an die Teilnehmer und die unten angegebenen Adressen.
+                </small>
+            </div>
+
+            <div class="form-group" id="create_reminder_emails_group">
+                <label>Zusätzliche Empfänger-Adressen:</label>
+                <input type="text" name="agenda_reminder_emails"
+                       value="<?php echo htmlspecialchars($default_reminder_emails); ?>"
+                       placeholder="mail@beispiel.de, mail2@beispiel.de">
+                <small style="display: block; margin-top: 5px; color: #666;">
+                    Kommagetrennte Mailadressen. Sitzungs-Teilnehmer werden immer benachrichtigt (sofern E-Mail hinterlegt). Leer = nur Teilnehmer.
+                </small>
+            </div>
+
+            <script>
+            document.getElementById('create_send_reminder').addEventListener('change', function() {
+                document.getElementById('create_reminder_emails_group').style.display = this.checked ? '' : 'none';
+            });
+            </script>
 
             <div class="form-group">
                 <label>Teilnehmer auswählen:</label>
@@ -455,6 +485,35 @@ require_once 'module_notifications.php';
                             </label>
                             <small style="display: block; margin-top: 5px; color: #666;">
                                 Wenn aktiviert, können bei Tagesordnungspunkten Anträge erstellt und direkt in der Sitzung abgestimmt werden.
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" name="send_agenda_reminder" value="1"
+                                       <?php echo ($m['send_agenda_reminder'] ?? 1) ? 'checked' : ''; ?>
+                                       style="width: auto;"
+                                       id="edit_send_reminder_<?php echo $m['meeting_id']; ?>"
+                                       onchange="document.getElementById('edit_reminder_emails_<?php echo $m['meeting_id']; ?>').style.display=this.checked?'':'none'">
+                                <span>Nach Ablauf der Antragsschlussfrist Erinnerungsmail versenden</span>
+                            </label>
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                Sendet nach dem Antragsschluss automatisch eine Mail mit der finalen Tagesordnung.
+                                <?php if (!empty($m['agenda_reminder_sent'])): ?>
+                                    <strong style="color: #28a745;">✓ Erinnerungsmail wurde bereits versendet.</strong>
+                                    Wenn Sie die Sitzung ändern, wird sie erneut versendet.
+                                <?php endif; ?>
+                            </small>
+                        </div>
+
+                        <div class="form-group" id="edit_reminder_emails_<?php echo $m['meeting_id']; ?>"
+                             <?php echo ($m['send_agenda_reminder'] ?? 1) ? '' : 'style="display:none"'; ?>>
+                            <label>Zusätzliche Empfänger-Adressen:</label>
+                            <input type="text" name="agenda_reminder_emails"
+                                   value="<?php echo htmlspecialchars($m['agenda_reminder_emails'] ?? $default_reminder_emails); ?>"
+                                   placeholder="mail@beispiel.de, mail2@beispiel.de">
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                Kommagetrennte Mailadressen. Sitzungs-Teilnehmer werden immer benachrichtigt. Leer = nur Teilnehmer.
                             </small>
                         </div>
 
