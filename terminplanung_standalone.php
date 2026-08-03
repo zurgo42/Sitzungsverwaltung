@@ -390,9 +390,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
 // VIEW RENDERING
 // ============================================
 
-// Wenn in Sitzungsverwaltung integriert UND User eingeloggt, nutze die bestehenden Tab-Dateien
-// Externe Teilnehmer (ohne Login) brauchen die komplette Tab-Ansicht nicht
-if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_termine.php')) {
+// Wenn in Sitzungsverwaltung integriert UND User eingeloggt UND nicht im Public-Wrapper-Modus,
+// nutze die bestehenden Tab-Dateien.
+// Externe Teilnehmer (ohne Login) und Public-Wrapper-Aufrufe brauchen die Tab-Ansicht nicht.
+if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_termine.php') && empty($TERMINPLANUNG_PUBLIC_MODE)) {
     // functions.php laden für get_visible_meetings() etc.
     if (file_exists(__DIR__ . '/functions.php')) {
         require_once __DIR__ . '/functions.php';
