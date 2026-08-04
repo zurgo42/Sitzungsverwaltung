@@ -864,7 +864,8 @@ function send_test_mail($to) {
  * Sendet die Tagesordnungs-Erinnerungsmail nach Ablauf der Antragsschlussfrist.
  *
  * Empfänger: Sitzungs-Teilnehmer mit E-Mail-Adresse + optionale Zusatzadressen aus agenda_reminder_emails.
- * Inhalt: Sitzungsname, Datum/Uhrzeit, Liste aller TOPs außer category='wahl', je als Link auf die Sitzung.
+ * Inhalt: Sitzungsname, Datum/Uhrzeit, Liste aller öffentlichen TOPs (außer TOP 0 Sitzungsleitung-Wahl),
+ * je als Link auf die Sitzung. Falls vertrauliche TOPs existieren, wird ein entsprechender Hinweis ergänzt.
  *
  * @param PDO    $pdo        Datenbankverbindung
  * @param int    $meeting_id ID der Sitzung
@@ -889,17 +890,22 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
     }
     $meeting_base = rtrim($base_url, '/');
 
-    // TOPs laden (ohne 'wahl'-Kategorie, nach Priorität)
+    // Öffentliche TOPs laden (ohne TOP 0 Sitzungsleitung-Wahl, ohne vertrauliche TOPs)
     $stmt = $pdo->prepare("
         SELECT item_id, top_number, title, category
         FROM svagenda_items
-        WHERE meeting_id = ? AND category != 'wahl'
-        ORDER BY priority DESC, top_number ASC
+        WHERE meeting_id = ? AND is_confidential = 0 AND top_number > 0
+        ORDER BY top_number ASC
     ");
     $stmt->execute([$meeting_id]);
     $tops = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    if (empty($tops)) {
+    // Prüfen ob vertrauliche TOPs existieren
+    $stmt_conf = $pdo->prepare("SELECT COUNT(*) FROM svagenda_items WHERE meeting_id = ? AND is_confidential = 1");
+    $stmt_conf->execute([$meeting_id]);
+    $has_confidential = (int)$stmt_conf->fetchColumn() > 0;
+
+    if (empty($tops) && !$has_confidential) {
         return 0;
     }
 
@@ -952,6 +958,9 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
         $top_url = $meeting_link . '#top-' . $top['item_id'];
         $text .= "• " . $top['title'] . "\n  " . $top_url . "\n\n";
     }
+    if ($has_confidential) {
+        $text .= "(Es gibt Beratungspunkte im vertraulichen Teil)\n\n";
+    }
     $text .= "Zur Sitzung: " . $meeting_link . "\n";
 
     $html  = '<p>In der Sitzung <strong>' . htmlspecialchars($meeting_name) . '</strong>';
@@ -965,6 +974,9 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
                . htmlspecialchars($top['title']) . '</a></li>';
     }
     $html .= '</ol>';
+    if ($has_confidential) {
+        $html .= '<p><em>(Es gibt Beratungspunkte im vertraulichen Teil)</em></p>';
+    }
     $html .= '<p><a href="' . htmlspecialchars($meeting_link) . '">→ Zur Sitzungsübersicht</a></p>';
 
     // Mails versenden (alle Empfänger erhalten denselben Inhalt)
