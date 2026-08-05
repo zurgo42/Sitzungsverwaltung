@@ -895,17 +895,17 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
         SELECT item_id, top_number, title, category
         FROM svagenda_items
         WHERE meeting_id = ? AND is_confidential = 0 AND top_number > 0
-        ORDER BY top_number ASC
+        ORDER BY priority DESC, top_number ASC
     ");
     $stmt->execute([$meeting_id]);
     $tops = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Prüfen ob vertrauliche TOPs existieren
+    // Prüfen ob vertrauliche TOPs existieren (nur für Hinweistext, kein Versand ohne öffentliche TOPs)
     $stmt_conf = $pdo->prepare("SELECT COUNT(*) FROM svagenda_items WHERE meeting_id = ? AND is_confidential = 1");
     $stmt_conf->execute([$meeting_id]);
     $has_confidential = (int)$stmt_conf->fetchColumn() > 0;
 
-    if (empty($tops) && !$has_confidential) {
+    if (empty($tops)) {
         return 0;
     }
 

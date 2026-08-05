@@ -1363,7 +1363,7 @@ if (isset($_POST['save_protocol'])) {
                         $resubmit_note = "Wiedervorlage aus Sitzung vom {$meeting_date_formatted}, TOP {$current_item['top_number']}";
                         
                         $stmt = $pdo->prepare("
-                            INSERT INTO svagenda_items 
+                            INSERT INTO svagenda_items
                             (meeting_id, top_number, title, description, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ");
@@ -1378,7 +1378,16 @@ if (isset($_POST['save_protocol'])) {
                             $current_user['member_id'],
                             $resubmit_note
                         ]);
-                        
+                        $new_item_id = $pdo->lastInsertId();
+
+                        // Vorhandene Kommentare mitkopieren
+                        $old_comments = $pdo->prepare("SELECT member_id, comment_text, priority_rating, duration_estimate, created_at FROM svagenda_comments WHERE item_id = ? ORDER BY created_at ASC");
+                        $old_comments->execute([$item_id]);
+                        $copy_stmt = $pdo->prepare("INSERT INTO svagenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate, created_at) VALUES (?, ?, ?, ?, ?, ?)");
+                        foreach ($old_comments->fetchAll(PDO::FETCH_ASSOC) as $c) {
+                            $copy_stmt->execute([$new_item_id, $c['member_id'], $c['comment_text'], $c['priority_rating'], $c['duration_estimate'], $c['created_at']]);
+                        }
+
                         // Erfolgs-Feedback mit Info über Vertraulichkeit
                         $confidential_text = $is_confidential ? ' als vertraulicher TOP' : '';
                         $_SESSION['resubmit_success'] = "TOP erfolgreich als Wiedervorlage{$confidential_text} angelegt!";
@@ -1957,11 +1966,19 @@ if (isset($_POST['save_all_protocols']) && $is_secretary && $meeting['status'] =
                     ");
                     $stmt->execute([$new_item_id, $current_user['member_id'], $target_comment]);
 
+                    // Vorhandene Kommentare aus der Quell-Sitzung mitkopieren
+                    $old_comments = $pdo->prepare("SELECT member_id, comment_text, priority_rating, duration_estimate, created_at FROM svagenda_comments WHERE item_id = ? ORDER BY created_at ASC");
+                    $old_comments->execute([$item_id]);
+                    $copy_stmt = $pdo->prepare("INSERT INTO svagenda_comments (item_id, member_id, comment_text, priority_rating, duration_estimate, created_at) VALUES (?, ?, ?, ?, ?, ?)");
+                    foreach ($old_comments->fetchAll(PDO::FETCH_ASSOC) as $c) {
+                        $copy_stmt->execute([$new_item_id, $c['member_id'], $c['comment_text'], $c['priority_rating'], $c['duration_estimate'], $c['created_at']]);
+                    }
+
                     $_SESSION['resubmit_success'] = "Wiedervorlage erfolgreich angelegt!";
                 }
             }
         }
-        
+
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
     } catch (PDOException $e) {
