@@ -378,11 +378,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
             </div>
         <?php endif; ?>
 
+        <?php
+        // Im SSO-Modus (REQUIRE_LOGIN=false) sind Mitglieder bereits auto-eingeloggt;
+        // das Mitgliedsnummer-Feld ist dann überflüssig.
+        $show_mnr_section = !defined('REQUIRE_LOGIN') || REQUIRE_LOGIN;
+        ?>
+
         <div class="intro-text">
             <p>Um an dieser Umfrage teilzunehmen, benötigen wir einige Angaben von dir. Deine Daten werden vertraulich behandelt und ausschließlich für diese Umfrage verwendet.</p>
         </div>
 
-        <!-- Hinweis für registrierte Nutzer -->
+        <?php if ($show_mnr_section): ?>
+        <!-- Hinweis für registrierte Nutzer (nur im Nicht-SSO-Modus) -->
         <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
             <strong style="color: #2e7d32;">💡 Schon im Sitzungstool registriert?</strong>
             <p style="margin: 8px 0 0 0; color: #1b5e20; line-height: 1.5;">
@@ -395,10 +402,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                 Wenn das mit der Mitgliedsnummer nicht funktioniert, bitte das Registrierungsformular nutzen – dann klappt es.
             </p>
         </div>
+        <?php endif; ?>
 
         <form method="POST" action="">
             <input type="hidden" name="register_external" value="1">
 
+            <?php if ($show_mnr_section): ?>
             <div class="form-group">
                 <label>
                     Mitgliedsnummer (falls registriert)
@@ -420,6 +429,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                         📋 Oder als Externer Teilnehmer registrieren:
                     </p>
                 </div>
+            <?php else: ?>
+            <div id="external_fields">
+            <?php endif; ?>
 
                 <div class="form-group">
                     <label>
@@ -456,8 +468,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                         Wir verwenden deine E-Mail-Adresse nur zur Identifikation für diese Umfrage.
                     </p>
                 </div>
+
             </div>
 
+            <?php if ($show_mnr_section): ?>
             <script>
             function toggleExternalFields() {
                 const mnrField = document.getElementById('mnr_field');
@@ -465,12 +479,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                 const requiredMarkers = document.querySelectorAll('#firstname_required, #lastname_required, #email_required');
 
                 if (mnrField.value.trim() !== '') {
-                    // MNr eingegeben: Externe Felder ausblenden
                     externalFields.style.opacity = '0.3';
                     externalFields.style.pointerEvents = 'none';
                     requiredMarkers.forEach(el => el.style.display = 'none');
-
-                    // Felder leeren und nicht mehr required
                     document.getElementById('first_name').value = '';
                     document.getElementById('last_name').value = '';
                     document.getElementById('email').value = '';
@@ -478,20 +489,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
                     document.getElementById('last_name').removeAttribute('required');
                     document.getElementById('email').removeAttribute('required');
                 } else {
-                    // Keine MNr: Externe Felder wieder aktivieren
                     externalFields.style.opacity = '1';
                     externalFields.style.pointerEvents = 'auto';
                     requiredMarkers.forEach(el => el.style.display = 'inline');
-
                     document.getElementById('first_name').setAttribute('required', 'required');
                     document.getElementById('last_name').setAttribute('required', 'required');
                     document.getElementById('email').setAttribute('required', 'required');
                 }
             }
-
-            // Beim Laden prüfen
             document.addEventListener('DOMContentLoaded', toggleExternalFields);
             </script>
+            <?php endif; ?>
 
             <div class="checkbox-group">
                 <label>
