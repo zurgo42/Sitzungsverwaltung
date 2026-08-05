@@ -151,17 +151,17 @@ function berechneWartezeit($antrnr, $bart, $bart_config) {
     return $wz['erfuellt'] ? 'erfüllt' : date('d.m.Y', $wz['ablauf']);
 }
 
-function berechneMonatssumme($pdo, $member_id, $antrnr) {
+function berechneMonatssumme($pdo, $member_id, $antrnr, $v_limit = 600) {
     $jahr_monat = substr($antrnr, 1, 4); // JJMM
     $stmt = $pdo->prepare("
         SELECT SUM(fin) as summe
         FROM " . TABLE_ANTRAEGE . "
         WHERE antrst = ?
-        AND fin < 600
+        AND fin < ?
         AND SUBSTRING(antrnr, 2, 4) = ?
         AND antrnr != ?
     ");
-    $stmt->execute([$member_id, $jahr_monat, $antrnr]);
+    $stmt->execute([$member_id, $v_limit, $jahr_monat, $antrnr]);
     return (float)($stmt->fetchColumn() ?? 0);
 }
 
@@ -299,9 +299,9 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     }
 
     // Monatssummen-Prüfung für Verfügungen
-    $v_limit = $bart_config['bart_V_betrag_limit'] ?? 600;
-    $monatslimit = $bart_config['bart_verfuegung_monatslimit'] ?? 2000;
-    $monatssumme = berechneMonatssumme($pdo, $antrst, $antrnr);
+    $v_limit = (float)($bart_config['bart_V_betrag_limit'] ?? 500);
+    $monatslimit = (float)($bart_config['bart_verfuegung_monatslimit'] ?? 2000);
+    $monatssumme = berechneMonatssumme($pdo, $antrst, $antrnr, $v_limit);
     if ($fin <= $v_limit && ($monatssumme + $fin) > $monatslimit) {
         throw new Exception("Monatliche Verfügungsgrenze von " . number_format($monatslimit, 0, ',', '.') . "€ überschritten! Aktuelle Summe: " . number_format($monatssumme, 2, ',', '.') . "€");
     }
@@ -352,7 +352,7 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         error_log("DEBUG: bart='" . $bart . "' (bereits gesetzt)");
     } else {
         // Fallback: automatische Berechnung (für alte Anträge ohne gesetzten bart)
-        $bart = ($monatssumme + $fin) > 600 || $fin >= 600 ? ($fin <= 3000 ? 'R' : 'B') : 'V';
+        $bart = ($monatssumme + $fin) >= $v_limit || $fin >= $v_limit ? ($fin <= ($bart_config['bart_R_betrag_limit'] ?? 3000) ? 'R' : 'B') : 'V';
         error_log("DEBUG: bart='" . $bart . "' (automatisch berechnet, fin=" . $fin . ", monatssumme=" . $monatssumme . ")");
     }
 
@@ -599,7 +599,8 @@ $wartezeit = berechneWartezeit($antrnr, $antrag['bart'], $bart_config);
 $wartezeit_erfuellt = ($wartezeit === 'erfüllt' || ($antrag['verk1'] && $antrag['verk2']));
 $second_entity_stmt = $pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'second_entity_name' LIMIT 1");
 $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: '') : '';
-$monatssumme = berechneMonatssumme($pdo, $antrag['antrst'], $antrnr);
+$v_limit_display = (float)($bart_config['bart_V_betrag_limit'] ?? 500);
+$monatssumme = berechneMonatssumme($pdo, $antrag['antrst'], $antrnr, $v_limit_display);
 
 $blockiert = false;
 $blockierung_grund = [];
@@ -747,10 +748,10 @@ if ($user['aktiv'] >= 19) {
         <?php endif; ?>
 
         <?php
-        $v_limit = $bart_config['bart_V_betrag_limit'] ?? 600;
-        $monatslimit = $bart_config['bart_verfuegung_monatslimit'] ?? 2000;
+        $v_limit = $v_limit_display;
+        $monatslimit = (float)($bart_config['bart_verfuegung_monatslimit'] ?? 2000);
         $summe_mit_aktuell = $monatssumme + ($antrag['fin'] ?? 0);
-        if ($monatssumme > 0 && ($antrag['fin'] ?? 0) <= $v_limit):
+        if ($monatssumme > 0 && ($antrag['fin'] ?? 0) < $v_limit):
         ?>
             <div class="alert alert-<?= $summe_mit_aktuell > $monatslimit ? 'error' : 'warning' ?>">
                 <strong>Monatssumme Verfügungen:</strong> <?= number_format($monatssumme, 2, ',', '.') ?>€ + aktuell <?= number_format($antrag['fin'] ?? 0, 2, ',', '.') ?>€ = <?= number_format($summe_mit_aktuell, 2, ',', '.') ?>€
