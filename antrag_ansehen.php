@@ -435,12 +435,12 @@ $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: ''
         <!-- ANTRAG -->
         <div class="section-compact">
             <div class="section-title">Antrag</div>
-            <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px;"><?= nl2br(htmlspecialchars($antrag['titel'])) ?></div>
+            <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px;"><?= format_antrag_text($antrag['titel']) ?></div>
 
             <?php if ($antrag['beschluss']): ?>
             <div style="font-weight: 600; font-size: 11px; color: #666; margin-top: 10px; margin-bottom: 4px;">WORTLAUT DES BESCHLUSSES:</div>
             <div class="text-box" style="border-left-color: var(--primary);">
-                <?= nl2br(htmlspecialchars($antrag['beschluss'])) ?>
+                <?= format_antrag_text($antrag['beschluss']) ?>
             </div>
             <?php endif; ?>
 
@@ -450,11 +450,11 @@ $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: ''
                 <div class="accordion" onclick="this.classList.toggle('active'); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
                     Begründung anzeigen
                 </div>
-                <div class="acc-content"><?= nl2br(htmlspecialchars($antrag['begr'])) ?></div>
+                <div class="acc-content"><?= format_antrag_text($antrag['begr']) ?></div>
             <?php else: ?>
                 <div style="font-weight: 600; font-size: 11px; color: #666; margin-top: 10px; margin-bottom: 4px;">BEGRÜNDUNG:</div>
                 <div class="text-box" style="border-left-color: var(--success);">
-                    <?= nl2br(htmlspecialchars($antrag['begr'])) ?>
+                    <?= format_antrag_text($antrag['begr']) ?>
                 </div>
             <?php endif; ?>
             <?php endif; ?>
@@ -476,11 +476,11 @@ $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: ''
                 <div class="accordion" onclick="this.classList.toggle('active'); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
                     Finanzielle Details anzeigen
                 </div>
-                <div class="acc-content"><?= nl2br(htmlspecialchars($antrag['fintext'])) ?></div>
+                <div class="acc-content"><?= format_antrag_text($antrag['fintext']) ?></div>
             <?php else: ?>
                 <div style="font-weight: 600; font-size: 11px; color: #666; margin-bottom: 4px;">FINANZIELLE DETAILS:</div>
                 <div class="text-box" style="border-left-color: var(--danger);">
-                    <?= nl2br(htmlspecialchars($antrag['fintext'])) ?>
+                    <?= format_antrag_text($antrag['fintext']) ?>
                 </div>
             <?php endif; ?>
             <?php endif; ?>
@@ -491,10 +491,10 @@ $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: ''
                 <div class="accordion" onclick="this.classList.toggle('active'); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
                     Personelle Auswirkungen anzeigen
                 </div>
-                <div class="acc-content"><?= nl2br(htmlspecialchars($antrag['pers'])) ?></div>
+                <div class="acc-content"><?= format_antrag_text($antrag['pers']) ?></div>
             <?php else: ?>
                 <div style="font-weight: 600; font-size: 11px; color: #666; margin-bottom: 4px; margin-top: 8px;">PERSONELLE AUSWIRKUNGEN:</div>
-                <div class="text-box"><?= nl2br(htmlspecialchars($antrag['pers'])) ?></div>
+                <div class="text-box"><?= format_antrag_text($antrag['pers']) ?></div>
             <?php endif; ?>
             <?php endif; ?>
 
@@ -504,11 +504,11 @@ $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: ''
                 <div class="accordion" onclick="this.classList.toggle('active'); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block';">
                     Sachliche Auswirkungen anzeigen
                 </div>
-                <div class="acc-content"><?= nl2br(htmlspecialchars($antrag['sach'])) ?></div>
+                <div class="acc-content"><?= format_antrag_text($antrag['sach']) ?></div>
             <?php else: ?>
                 <div style="font-weight: 600; font-size: 11px; color: #666; margin-bottom: 4px; margin-top: 8px;">SACHLICHE AUSWIRKUNGEN:</div>
                 <div class="text-box" style="border-left-color: var(--success);">
-                    <?= nl2br(htmlspecialchars($antrag['sach'])) ?>
+                    <?= format_antrag_text($antrag['sach']) ?>
                 </div>
             <?php endif; ?>
             <?php endif; ?>

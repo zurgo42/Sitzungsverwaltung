@@ -293,6 +293,9 @@ function auswerten_abstimmung($pdo, $antrnr, $force = false) {
 function render_hinweis_text($raw) {
     if (empty($raw)) return '';
 
+    // Zeilenenden normieren: \r\n und \r → \n (Browser senden oft \r\n)
+    $raw = str_replace(["\r\n", "\r"], "\n", $raw);
+
     // Neues Format: \n---\n als Trenner; altes Format: <br> als Trenner
     if (strpos($raw, "\n---\n") !== false) {
         $entries = explode("\n---\n", $raw);
@@ -308,11 +311,32 @@ function render_hinweis_text($raw) {
         // Format: "dd.mm.YYYY HH:ii (KurzN): Hinweistext"
         if (preg_match('/^(\d{2}\.\d{2}\.\d{4}) (\d{2}:\d{2}) \(([^)]+)\): (.*)$/s', $entry, $m)) {
             $header = htmlspecialchars($m[3]) . ' (' . htmlspecialchars($m[1]) . ' - ' . htmlspecialchars($m[2]) . '):';
-            $text   = nl2br(htmlspecialchars(trim($m[4])));
-            $html  .= '<p style="margin:0 0 10px 0;"><strong>' . $header . '</strong><br>' . $text . '</p>';
+            $text   = format_antrag_text(trim($m[4]));
+            $html  .= '<div style="margin:0 0 10px 0;"><strong>' . $header . '</strong><br>' . $text . '</div>';
         } else {
-            $html .= '<p style="margin:0 0 10px 0;">' . nl2br(htmlspecialchars($entry)) . '</p>';
+            $html .= '<div style="margin:0 0 10px 0;">' . format_antrag_text($entry) . '</div>';
         }
+    }
+    return $html;
+}
+
+/**
+ * Text aus DB für HTML-Ausgabe aufbereiten:
+ * Normiert Zeilenenden, wandelt Absätze in <p>-Tags und Einzelzeilenumbrüche in <br>.
+ */
+function format_antrag_text($text) {
+    if ($text === null || $text === '') return '';
+    $text = htmlspecialchars($text);
+    $text = str_replace(["\r\n", "\r"], "\n", $text);
+    // Doppelte (oder mehr) Leerzeilen → Absatztrenner
+    $paragraphs = preg_split('/\n{2,}/', $text);
+    $paragraphs = array_values(array_filter($paragraphs, fn($p) => trim($p) !== ''));
+    if (count($paragraphs) <= 1) {
+        return nl2br($text);
+    }
+    $html = '';
+    foreach ($paragraphs as $para) {
+        $html .= '<p style="margin:0 0 6px 0;">' . nl2br($para) . '</p>';
     }
     return $html;
 }
