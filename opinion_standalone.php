@@ -44,6 +44,10 @@
 
 // Session starten falls noch nicht geschehen
 if (session_status() === PHP_SESSION_NONE) {
+    // session_config.php laden damit Cookie-Einstellungen mit index.php übereinstimmen
+    if (file_exists(__DIR__ . '/session_config.php')) {
+        require_once __DIR__ . '/session_config.php';
+    }
     session_start();
 }
 
@@ -86,6 +90,27 @@ if ($is_sitzungsverwaltung) {
     require_once __DIR__ . '/member_functions.php';
     require_once __DIR__ . '/opinion_functions.php';
     require_once __DIR__ . '/external_participants_functions.php';
+
+    // config_adapter laden (enthält REQUIRE_LOGIN und get_sso_membership_number)
+    if (!defined('REQUIRE_LOGIN') && file_exists(__DIR__ . '/config_adapter.php')) {
+        require_once __DIR__ . '/config_adapter.php';
+    }
+
+    // SSO Auto-Login: wenn SSO-Modus aktiv und noch keine Session
+    if (!isset($_SESSION['member_id'])
+        && defined('REQUIRE_LOGIN') && !REQUIRE_LOGIN
+        && function_exists('get_sso_membership_number'))
+    {
+        $sso_mnr = get_sso_membership_number();
+        if ($sso_mnr) {
+            $sso_user = get_member_by_membership_number($pdo, $sso_mnr);
+            if ($sso_user) {
+                $_SESSION['member_id'] = $sso_user['member_id'];
+                $_SESSION['role']      = $sso_user['role'] ?? '';
+                $_SESSION['MNr']       = $sso_mnr;
+            }
+        }
+    }
 
     // User aus Session holen (kann NULL sein bei public/token/externem Zugriff)
     $current_user = null;

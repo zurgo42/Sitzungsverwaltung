@@ -1172,6 +1172,12 @@ try {
             ['meeting_system_url', '', 'text',
              'Basis-URL des Sitzungssystems für Links in Mails (z.B. https://example.com/vorstand/Sitzungsverwaltung)',
              'notifications'],
+            ['opinion_standalone_url', '', 'text',
+             'Öffentliche URL des Meinungsbild-Standalone-Links (z.B. https://example.com/meinungsbild.php). Überschreibt den automatisch erzeugten Link.',
+             'notifications'],
+            ['terminplanung_standalone_url', '', 'text',
+             'Öffentliche URL des Terminplanung-Standalone-Links (z.B. https://example.com/termine.php). Überschreibt den automatisch erzeugten Link.',
+             'notifications'],
         ];
         foreach ($new_cfg_entries as [$key, $val, $type, $desc, $cat]) {
             $chk = $pdo->prepare("SELECT COUNT(*) FROM svconfig WHERE config_key = ?");

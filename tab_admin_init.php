@@ -952,8 +952,10 @@ body.dark-mode .init-danger-list {
                             <td style="padding: 10px 5px; font-weight: 600; font-size: 13px;">
                                 <?php
                                 $label_map = [
-                                    'agenda_reminder_default_emails' => 'Standard-Empfänger Tagesordnungsmail',
-                                    'meeting_system_url'             => 'Basis-URL Sitzungssystem (für Mail-Links)',
+                                    'agenda_reminder_default_emails'  => 'Standard-Empfänger Tagesordnungsmail',
+                                    'meeting_system_url'              => 'Basis-URL Sitzungssystem (für Mail-Links)',
+                                    'opinion_standalone_url'          => 'Öffentliche URL Meinungsbild (für Token-Links)',
+                                    'terminplanung_standalone_url'    => 'Öffentliche URL Terminplanung (für Token-Links)',
                                 ];
                                 echo htmlspecialchars($label_map[$cfg['config_key']] ?? $cfg['config_key']);
                                 ?>

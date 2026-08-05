@@ -292,6 +292,7 @@ function validate_external_email($email) {
 /**
  * Generiert einen Access-Link für externe Teilnehmer
  * ZENTRALE Funktion - verwendet STANDALONE_PATH aus config.php
+ * oder überschreibende svconfig-Einträge (opinion_standalone_url / terminplanung_standalone_url)
  *
  * @param string $poll_type 'termine' oder 'meinungsbild'
  * @param int|string $poll_id_or_token Poll-ID oder Access-Token
@@ -299,6 +300,24 @@ function validate_external_email($email) {
  * @return string
  */
 function generate_external_access_link($poll_type, $poll_id_or_token, $use_token = false) {
+    $param = $use_token ? "token=" . urlencode($poll_id_or_token) : "poll_id=" . intval($poll_id_or_token);
+
+    // svconfig-Eintrag hat höchste Priorität (konfigurierbare öffentliche URL)
+    global $pdo;
+    if ($pdo) {
+        $cfg_key = ($poll_type === 'termine') ? 'terminplanung_standalone_url' : 'opinion_standalone_url';
+        try {
+            $cfg_stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ? LIMIT 1");
+            $cfg_stmt->execute([$cfg_key]);
+            $custom_url = $cfg_stmt->fetchColumn();
+            if ($custom_url) {
+                return rtrim($custom_url, '/') . '?' . $param;
+            }
+        } catch (Exception $e) {
+            // svconfig nicht verfügbar – weiter mit Auto-Erkennung
+        }
+    }
+
     // Base URL ermitteln
     if (defined('BASE_URL')) {
         $base = BASE_URL;
@@ -311,13 +330,7 @@ function generate_external_access_link($poll_type, $poll_id_or_token, $use_token
     $path = defined('STANDALONE_PATH') ? STANDALONE_PATH : '';
 
     // Dateinamen und Parameter bestimmen
-    if ($poll_type === 'termine') {
-        $file = 'terminplanung_standalone.php';
-    } else {
-        $file = 'opinion_standalone.php';
-    }
-
-    $param = $use_token ? "token=$poll_id_or_token" : "poll_id=$poll_id_or_token";
+    $file = ($poll_type === 'termine') ? 'terminplanung_standalone.php' : 'opinion_standalone.php';
 
     // Link zusammenbauen
     return rtrim($base, '/') . rtrim($path, '/') . '/' . $file . '?' . $param;
