@@ -155,7 +155,7 @@ $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: ''
         .accordion:hover { background: #bbdefb; }
         .accordion::before { content: '▶ '; font-size: 11px; margin-right: 8px; color: #005596; }
         .accordion.active::before { content: '▼ '; }
-        .acc-content { display: none; padding: 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px; font-size: 13px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.6; border: 1px solid #ddd; }
+        .acc-content { display: none; padding: 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px; font-size: 13px; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.6; border: 1px solid #ddd; }
         .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
         /* Dark Mode für page-spezifische Klassen */
