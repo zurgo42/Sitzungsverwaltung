@@ -308,9 +308,19 @@ function render_hinweis_text($raw) {
         $entry = trim($entry);
         if ($entry === '') continue;
 
-        // Format: "dd.mm.YYYY HH:ii (KurzN): Hinweistext"
+        // Führende <br>-Tags entfernen (treten bei gemischtem DB-Format auf)
+        $entry = preg_replace('/^(<br\s*\/?>\s*)+/i', '', $entry);
+        $entry = trim($entry);
+        if ($entry === '') continue;
+
+        // Format: "dd.mm.YYYY HH:ii (KurzN): Hinweistext" (Speicherformat)
         if (preg_match('/^(\d{2}\.\d{2}\.\d{4}) (\d{2}:\d{2}) \(([^)]+)\): (.*)$/s', $entry, $m)) {
             $header = htmlspecialchars($m[3]) . ' (' . htmlspecialchars($m[1]) . ' - ' . htmlspecialchars($m[2]) . '):';
+            $text   = format_antrag_text(trim($m[4]));
+            $html  .= '<div style="margin:0 0 10px 0;"><strong>' . $header . '</strong><br>' . $text . '</div>';
+        // Format: "KurzN (dd.mm.YYYY - HH:ii): Hinweistext" (Anzeigeformat, ältere Einträge)
+        } elseif (preg_match('/^([^(]+)\s*\((\d{2}\.\d{2}\.\d{4})\s*-\s*(\d{2}:\d{2})\):\s*(.*)$/s', $entry, $m)) {
+            $header = htmlspecialchars(trim($m[1])) . ' (' . htmlspecialchars($m[2]) . ' - ' . htmlspecialchars($m[3]) . '):';
             $text   = format_antrag_text(trim($m[4]));
             $html  .= '<div style="margin:0 0 10px 0;"><strong>' . $header . '</strong><br>' . $text . '</div>';
         } else {
