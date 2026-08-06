@@ -957,6 +957,12 @@ body.dark-mode .init-danger-list {
                                     'opinion_standalone_url'          => 'Öffentliche URL Meinungsbild (für Token-Links)',
                                     'terminplanung_standalone_url'    => 'Öffentliche URL Terminplanung (für Token-Links)',
                                 ];
+                                $placeholder_map = [
+                                    'agenda_reminder_default_emails'  => 'mail@beispiel.de, mail2@beispiel.de',
+                                    'meeting_system_url'              => 'https://example.com/vorstand/Sitzungsverwaltung',
+                                    'opinion_standalone_url'          => 'https://example.com/meinungsbild.php',
+                                    'terminplanung_standalone_url'    => 'https://example.com/termine.php',
+                                ];
                                 echo htmlspecialchars($label_map[$cfg['config_key']] ?? $cfg['config_key']);
                                 ?>
                             </td>
@@ -964,7 +970,7 @@ body.dark-mode .init-danger-list {
                                 <input type="text"
                                        name="config[<?= $cfg['config_key'] ?>]"
                                        value="<?= htmlspecialchars($cfg['config_value']) ?>"
-                                       placeholder="mail@beispiel.de, mail2@beispiel.de"
+                                       placeholder="<?= htmlspecialchars($placeholder_map[$cfg['config_key']] ?? '') ?>"
                                        style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;">
                             </td>
                             <td style="padding: 10px 5px; font-size: 11px; color: #666;">
