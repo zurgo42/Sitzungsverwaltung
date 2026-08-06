@@ -296,20 +296,26 @@ function render_hinweis_text($raw) {
     // Zeilenenden normieren: \r\n und \r → \n (Browser senden oft \r\n)
     $raw = str_replace(["\r\n", "\r"], "\n", $raw);
 
-    // Neues Format: \n---\n als Trenner; altes Format: <br> als Trenner
-    if (strpos($raw, "\n---\n") !== false) {
-        $entries = explode("\n---\n", $raw);
-    } else {
-        $entries = preg_split('/<br\s*\/?>/i', $raw);
+    // Neues Format: \n---\n als Trenner. Ältere Einträge können <br> als Trenner enthalten.
+    // Zunächst auf \n---\n splitten, dann jeden Chunk nochmals auf <br> aufteilen
+    // (gemischtes Format: alte <br>-Blöcke vor neueren \n---\n-Einträgen).
+    $chunks = (strpos($raw, "\n---\n") !== false)
+        ? explode("\n---\n", $raw)
+        : [$raw];
+
+    $entries = [];
+    foreach ($chunks as $chunk) {
+        if (preg_match('/<br\s*\/?>/i', $chunk)) {
+            foreach (preg_split('/<br\s*\/?>/i', $chunk) as $sub) {
+                $entries[] = $sub;
+            }
+        } else {
+            $entries[] = $chunk;
+        }
     }
 
     $html = '';
     foreach ($entries as $entry) {
-        $entry = trim($entry);
-        if ($entry === '') continue;
-
-        // Führende <br>-Tags entfernen (treten bei gemischtem DB-Format auf)
-        $entry = preg_replace('/^(<br\s*\/?>\s*)+/i', '', $entry);
         $entry = trim($entry);
         if ($entry === '') continue;
 
