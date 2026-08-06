@@ -226,7 +226,7 @@ function show_access_denied_page($title, $message, $details = '') {
                     ℹ️ <?php echo htmlspecialchars($details); ?>
                 </div>
             <?php endif; ?>
-            <a href="<?php echo htmlspecialchars($back_url); ?>" class="back-button">
+            <a href="<?php echo htmlspecialchars($back_url); ?>" class="back-button" target="_top">
                 ← <?php echo htmlspecialchars($back_text); ?>
             </a>
             <div class="footer-note">
@@ -316,10 +316,10 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
             }
         }
     } else {
-        // Keine Mitgliedsnummer übergeben
+        // SSO-Session abgelaufen oder keine MNr verfügbar
         show_access_denied_page(
-            'Bitte Zugriff verifizieren',
-            'Es wurde keine Mitgliedsnummer übergeben. Bitte authentifiziere dich über das VTool.',
+            'Anmeldung abgelaufen',
+            'Deine Sitzung ist abgelaufen. Bitte kehre zum VTool zurück, um dich erneut anzumelden.',
             ''
         );
     }

@@ -28,6 +28,26 @@ try {
 
 $error = '';
 
+// Im SSO-Modus: Login-Formular ist nicht verwendbar.
+// Automatisch authentifizieren oder zur SSO-Seite weiterleiten.
+if (defined('REQUIRE_LOGIN') && !REQUIRE_LOGIN) {
+    if (!isset($_SESSION['member_id']) && function_exists('get_sso_membership_number')) {
+        $sso_mnr = get_sso_membership_number();
+        if ($sso_mnr) {
+            $sso_user = get_member_by_membership_number($pdo, $sso_mnr);
+            if ($sso_user) {
+                $_SESSION['member_id'] = $sso_user['member_id'];
+                $_SESSION['role']      = $sso_user['role'] ?? '';
+                $_SESSION['MNr']       = $sso_mnr;
+            }
+        }
+    }
+    // Ob SSO geklappt hat oder nicht: zu index.php weiterleiten
+    // (index.php zeigt entweder die App oder die "Anmeldung abgelaufen"-Seite)
+    header('Location: index.php');
+    exit;
+}
+
 // Logout
 if (isset($_GET['logout'])) {
     session_destroy();
