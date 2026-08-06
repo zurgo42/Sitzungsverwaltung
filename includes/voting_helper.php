@@ -330,7 +330,7 @@ function format_antrag_text($text) {
     $text = str_replace(["\r\n", "\r"], "\n", $text);
     // Doppelte (oder mehr) Leerzeilen → Absatztrenner
     $paragraphs = preg_split('/\n{2,}/', $text);
-    $paragraphs = array_values(array_filter($paragraphs, fn($p) => trim($p) !== ''));
+    $paragraphs = array_values(array_filter($paragraphs, function($p) { return trim($p) !== ''; }));
     if (count($paragraphs) <= 1) {
         return nl2br($text);
     }
