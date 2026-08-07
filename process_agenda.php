@@ -165,14 +165,14 @@ if (isset($_POST['add_agenda_item'])) {
                 for ($i = 1; $i <= 4; $i++) {
                     $file_field = "proposal_file$i";
                     if (isset($_FILES[$file_field]) && $_FILES[$file_field]['error'] === UPLOAD_ERR_OK) {
-                        $upload_dir = __DIR__ . '/uploads/antraege/';
+                        $upload_dir = __DIR__ . '/Scans/';
                         if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
                         $filename = $antrnr . '_f' . $i . '_' . basename($_FILES[$file_field]['name']);
                         $filepath = $upload_dir . $filename;
 
                         if (move_uploaded_file($_FILES[$file_field]['tmp_name'], $filepath)) {
-                            $file_paths[$i-1] = 'uploads/antraege/' . $filename;
+                            $file_paths[$i-1] = 'Scans/' . $filename;
                         }
                     }
                     $file_texts[$i-1] = trim($_POST["proposal_filetext$i"] ?? '');
@@ -1742,14 +1742,14 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
                 for ($i = 1; $i <= 4; $i++) {
                     $file_field = "proposal_file$i";
                     if (isset($_FILES[$file_field]) && $_FILES[$file_field]['error'] === UPLOAD_ERR_OK) {
-                        $upload_dir = __DIR__ . '/uploads/antraege/';
+                        $upload_dir = __DIR__ . '/Scans/';
                         if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
                         $filename = $antrnr . '_f' . $i . '_' . basename($_FILES[$file_field]['name']);
                         $filepath = $upload_dir . $filename;
 
                         if (move_uploaded_file($_FILES[$file_field]['tmp_name'], $filepath)) {
-                            $file_paths[$i-1] = 'uploads/antraege/' . $filename;
+                            $file_paths[$i-1] = 'Scans/' . $filename;
                         }
                     }
                     $file_texts[$i-1] = trim($_POST["proposal_filetext$i"] ?? '');

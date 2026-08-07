@@ -373,14 +373,14 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     for ($i = 1; $i <= 4; $i++) {
         $file_field = "file$i";
         if (isset($_FILES[$file_field]) && $_FILES[$file_field]['error'] === UPLOAD_ERR_OK) {
-            $upload_dir = __DIR__ . '/uploads/antraege/';
+            $upload_dir = __DIR__ . '/Scans/';
             if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
             $filename = $antrnr . '_f' . $i . '_' . basename($_FILES[$file_field]['name']);
             $filepath = $upload_dir . $filename;
 
             if (move_uploaded_file($_FILES[$file_field]['tmp_name'], $filepath)) {
-                $post[$file_field] = 'uploads/antraege/' . $filename;
+                $post[$file_field] = 'Scans/' . $filename;
             }
         } else {
             $post[$file_field] = $antrag[$file_field] ?? null;
