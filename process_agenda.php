@@ -978,10 +978,13 @@ if (isset($_POST['end_meeting'])) {
                 $due_date,
                 $current_user['member_id']
             ]);
-            
+
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Beenden', 'meeting_id:' . $current_meeting_id);
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
             exit;
-            
+
         } catch (PDOException $e) {
             error_log("Fehler beim Beenden der Sitzung: " . $e->getMessage());
             $error = "Fehler beim Beenden der Sitzung";
@@ -1035,10 +1038,13 @@ if (isset($_POST['approve_protocol'])) {
                 AND status = 'open'
             ");
             $stmt->execute([$current_meeting_id, $current_user['member_id']]);
-            
+
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Protokoll-Genehmigen', 'meeting_id:' . $current_meeting_id);
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
             exit;
-            
+
         } catch (PDOException $e) {
             error_log("Fehler beim Genehmigen des Protokolls: " . $e->getMessage());
             $error = "Fehler beim Genehmigen des Protokolls";
@@ -1064,7 +1070,7 @@ if (isset($_POST['approve_protocol'])) {
 if (isset($_POST['save_single_comment'])) {
     $item_id = intval($_POST['item_id'] ?? 0);
     $comment_text = trim($_POST['comment_text'] ?? '');
-    
+
     if ($item_id && $comment_text) {
         try {
             $stmt = $pdo->prepare("
@@ -1072,10 +1078,13 @@ if (isset($_POST['save_single_comment'])) {
                 VALUES (?, ?, ?, NOW())
             ");
             $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
-            
+
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Speichern', (string)$item_id);
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
             exit;
-            
+
         } catch (PDOException $e) {
             error_log("Fehler beim Hinzufügen des Kommentars: " . $e->getMessage());
             $error = "Fehler beim Hinzufügen des Kommentars";
@@ -1134,9 +1143,12 @@ if (isset($_POST['save_comment'])) {
                 $stmt->execute([$item_id, $current_user['member_id'], $new_text]);
             }
             
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Speichern', (string)$item_id);
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
             exit;
-            
+
         } catch (PDOException $e) {
             error_log("Fehler beim Speichern des Kommentars: " . $e->getMessage());
             $error = "Fehler beim Speichern des Kommentars";
@@ -1180,9 +1192,12 @@ if (isset($_POST['delete_comment'])) {
                     // Kommentar löschen
                     $stmt = $pdo->prepare("DELETE FROM svagenda_comments WHERE comment_id = ?");
                     $stmt->execute([$comment_id]);
-                    
+
                     // Durchschnittswerte neu berechnen
                     recalculate_item_metrics($pdo, $item_id);
+
+                    [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+                    protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Loeschen', (string)$comment_id);
                 }
             }
             
@@ -1225,6 +1240,9 @@ if (isset($_POST['add_comment_preparation'])) {
                     VALUES (?, ?, ?, NOW())
                 ");
                 $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
+
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Vorbereitung', (string)$item_id);
             }
             
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
@@ -1280,12 +1298,15 @@ if (isset($_POST['save_protocol'])) {
             
             // 2. Protokollnotizen speichern
             $stmt = $pdo->prepare("
-                UPDATE svagenda_items 
-                SET protocol_notes = ? 
+                UPDATE svagenda_items
+                SET protocol_notes = ?
                 WHERE item_id = ?
             ");
             $stmt->execute([$protocol_text, $item_id]);
-            
+
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Protokoll-Speichern', (string)$item_id);
+
             // 2. ToDo erstellen (falls gewünscht)
             $todo_arrays = [
                 'assigned_to' => $_POST['todo_assigned_to'] ?? [],
@@ -1404,6 +1425,8 @@ if (isset($_POST['save_protocol'])) {
                         ]);
                         $new_item_id = $pdo->lastInsertId();
 
+                        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Wiedervorlage', $new_title);
+
                         // Vorhandene Kommentare mitkopieren
                         $old_comments = $pdo->prepare("SELECT member_id, comment_text, priority_rating, duration_estimate, created_at FROM svagenda_comments WHERE item_id = ? ORDER BY created_at ASC");
                         $old_comments->execute([$item_id]);
@@ -1457,11 +1480,11 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
                 if ($target_meeting && $target_meeting['status'] === 'preparation') {
                     $is_confidential_resubmit = isset($_POST['resubmit_confidential']) ? 1 : 0;
                     $new_top_number = get_next_top_number($pdo, $target_meeting_id, $is_confidential_resubmit);
-                    
+
                     $new_title = "Wiedervorlage: " . $current_item['title'];
                     $meeting_date_formatted = date('d.m.Y', strtotime($current_item['meeting_date']));
                     $resubmit_note = "Wiedervorlage aus Sitzung vom {$meeting_date_formatted}, TOP {$current_item['top_number']}";
-                    
+
                     $stmt = $pdo->prepare("
                         INSERT INTO svagenda_items
                         (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id, protocol_notes)
@@ -1483,6 +1506,9 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
                     ]);
 
                     $new_item_id = $pdo->lastInsertId();
+
+                    [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+                    protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Wiedervorlage', $new_title);
 
                     // Wenn Antrag verknüpft ist, Antrag der neuen Sitzung zuordnen
                     if (!empty($current_item['antrnr'])) {
@@ -1539,17 +1565,20 @@ if (isset($_POST['save_resubmit']) && $is_secretary && $meeting['status'] === 'a
  */
 if (isset($_POST['update_attendance']) && $is_secretary && in_array($meeting['status'], ['active', 'ended', 'protocol_ready'])) {
     $attendance_data = $_POST['attendance'] ?? [];
-    
+
     try {
         foreach ($attendance_data as $member_id => $status) {
             $stmt = $pdo->prepare("
-                UPDATE svmeeting_participants 
-                SET attendance_status = ? 
+                UPDATE svmeeting_participants
+                SET attendance_status = ?
                 WHERE meeting_id = ? AND member_id = ?
             ");
             $stmt->execute([$status, $current_meeting_id, intval($member_id)]);
         }
-        
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Anwesenheit', 'meeting_id:' . $current_meeting_id);
+
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
     } catch (PDOException $e) {
@@ -1587,6 +1616,9 @@ if (isset($_POST['add_uninvited_participant'])) {
                     VALUES (?, ?, 'present')
                 ");
                 $stmt->execute([$current_meeting_id, $new_participant_id]);
+
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Teilnehmer-Hinzufuegen', 'member_id:' . $new_participant_id);
             }
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
@@ -1701,7 +1733,10 @@ if (isset($_POST['add_live_comment']) && $meeting['status'] === 'active') {
                 VALUES (?, ?, ?, NOW())
             ");
             $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
-            
+
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Aktiv', (string)$item_id);
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
             exit;
         } catch (PDOException $e) {
@@ -1852,6 +1887,9 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
             $pdo->commit();
             error_log("TOP successfully added and committed");
 
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Neu-Aktiv', $title);
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
             exit;
         } catch (Exception $e) {
@@ -1998,10 +2036,16 @@ if (isset($_POST['save_all_protocols']) && $is_secretary && $meeting['status'] =
                         $copy_stmt->execute([$new_item_id, $c['member_id'], $c['comment_text'], $c['priority_rating'], $c['duration_estimate'], $c['created_at']]);
                     }
 
+                    [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+                    protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Wiedervorlage', $new_title);
+
                     $_SESSION['resubmit_success'] = "Wiedervorlage erfolgreich angelegt!";
                 }
             }
         }
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Protokoll-Speichern', 'meeting_id:' . $current_meeting_id);
 
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
@@ -2045,7 +2089,10 @@ if (isset($_POST['start_meeting']) && ($is_secretary || $is_chairman) && $meetin
         // Meeting-Status auf active setzen
         $stmt = $pdo->prepare("UPDATE svmeetings SET status = 'active' WHERE meeting_id = ?");
         $stmt->execute([$current_meeting_id]);
-        
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Starten', 'meeting_id:' . $current_meeting_id);
+
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
     } catch (PDOException $e) {
@@ -2101,7 +2148,10 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
             $due_date,
             $current_user['member_id']
         ]);
-        
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Beenden', 'meeting_id:' . $current_meeting_id);
+
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
     } catch (PDOException $e) {
@@ -2115,6 +2165,7 @@ if (isset($_POST['end_meeting']) && ($is_secretary || $is_chairman) && $meeting[
 if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
     try {
         $changes_saved = false;
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
 
         // Protokoll speichern (nur Sekretär)
         if ($is_secretary) {
@@ -2145,6 +2196,9 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
                         $item_id
                     ]);
                 }
+            }
+            if (!empty($protocol_texts)) {
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Protokoll-Speichern', 'meeting_id:' . $current_meeting_id);
             }
         }
 
@@ -2188,6 +2242,9 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
                 ");
                 $stmt->execute([$item_id, $current_user['member_id']]);
             }
+        }
+        if (!empty($post_comments)) {
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Post-Kommentar', 'meeting_id:' . $current_meeting_id);
         }
 
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=ended_saved");
@@ -2256,10 +2313,13 @@ if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] ===
             $protocols['confidential'],
             $current_meeting_id
         ]);
-        
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Protokoll-Freigeben', 'meeting_id:' . $current_meeting_id);
+
         // TODO für Sekretär erledigen
         $stmt = $pdo->prepare("
-            UPDATE svtodos 
+            UPDATE svtodos
             SET status = 'done', completed_at = NOW()
             WHERE meeting_id = ? AND assigned_to_member_id = ? AND title LIKE '%fertigstellen%'
         ");
@@ -2357,6 +2417,9 @@ if (isset($_POST['save_protocol_ready_changes']) && $is_secretary && $meeting['s
             }
         }
 
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Protokoll-Nacharbeiten', 'meeting_id:' . $current_meeting_id);
+
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
     } catch (PDOException $e) {
@@ -2429,7 +2492,10 @@ if (isset($_POST['approve_protocol']) && $is_chairman && $meeting['status'] === 
             WHERE meeting_id = ? AND assigned_to_member_id = ? AND title LIKE '%genehmigen%'
         ");
         $stmt->execute([$current_meeting_id, $meeting['chairman_member_id']]);
-        
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Protokoll-Genehmigen', 'meeting_id:' . $current_meeting_id);
+
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
     } catch (PDOException $e) {
@@ -2456,6 +2522,9 @@ if (isset($_POST['request_protocol_revision']) && $is_chairman && $meeting['stat
             $todo_description,
             $current_user['member_id']
         ]);
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Protokoll-Aenderung-Anfordern', 'meeting_id:' . $current_meeting_id);
 
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
@@ -2505,6 +2574,9 @@ if (isset($_POST['save_chairman_comment']) && $is_chairman && $meeting['status']
                 $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
             }
 
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'SL-Kommentar', (string)$item_id);
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
             exit;
         } catch (PDOException $e) {
@@ -2551,6 +2623,9 @@ if (isset($_POST['save_participant_comment']) && $meeting['status'] === 'protoco
                 ");
                 $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
             }
+
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Post-Kommentar', (string)$item_id);
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
             exit;
@@ -2601,6 +2676,9 @@ if (isset($_POST['quick_todo_create'])) {
                 $todo_description,
                 $todo_due_date
             ]);
+
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Schnell', substr($todo_title, 0, 60));
 
             // Automatisch Zeile in persönliche Notiz einfügen (nur wenn item_id vorhanden)
             if ($item_id) {
@@ -2677,6 +2755,9 @@ if (isset($_POST['initiate_voting']) && $meeting['status'] === 'active') {
         ");
         $stmt->execute([$item_id, $current_user['member_id'], $voting_question ?: null, $voting_type, $eligible_voters]);
 
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Abstimmung-Starten', (string)$item_id);
+
         error_log("Voting initiated for item $item_id by member {$current_user['member_id']} (type: $voting_type, eligible: $eligible_voters)");
 
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id&success=voting_started#top-$item_id");
@@ -2729,6 +2810,9 @@ if (isset($_POST['submit_vote']) && $meeting['status'] === 'active') {
             VALUES (?, ?, ?, NOW())
         ");
         $stmt->execute([$voting_id, $current_user['member_id'], $vote]);
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Stimme', $voting_id . ':' . $vote);
 
         error_log("Vote submitted: voting_id=$voting_id, member_id={$current_user['member_id']}, vote=$vote");
 
@@ -2784,6 +2868,9 @@ if (isset($_POST['submit_vote_for_member']) && $is_secretary && $meeting['status
             VALUES (?, ?, ?, ?, NOW())
         ");
         $stmt->execute([$voting_id, $for_member_id, $vote, $current_user['member_id']]);
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Stimme-PF', 'member_id:' . $for_member_id);
 
         error_log("Vote submitted by secretary: voting_id=$voting_id, for_member_id=$for_member_id, vote=$vote, submitted_by={$current_user['member_id']}");
 
@@ -2874,6 +2961,9 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
             WHERE voting_id = ?
         ");
         $stmt->execute([$current_user['member_id'], $result_summary, $voting_id]);
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Abstimmung-Schliessen', (string)$voting_id);
 
         // Ergebnis automatisch ins Protokoll einfügen
         if ($item) {
