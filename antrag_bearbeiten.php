@@ -11,6 +11,7 @@ require_once 'config_adapter.php';
 require_once 'member_functions.php';
 require_once 'includes/antragstypen_helper.php';
 require_once 'includes/voting_helper.php';
+require_once 'protokoll_helper.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php');
@@ -229,6 +230,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($action) {
             case 'save':
                 speichereAntrag($pdo, $antrnr, $_POST, $antrag, $user);
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Speichern', $antrnr . ' ' . substr($_POST['titel'] ?? $antrag['titel'] ?? '', 0, 80));
 
                 // Wartezeitverkürzung verarbeiten
                 if (isset($_POST['wartezeit_verkuerzen']) && $_POST['wartezeit_verkuerzen'] == 1) {
@@ -250,16 +253,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = "Antrag wurde verbindlich eingestellt.";
                 // Redirect to updated antrnr
                 $neue_nr = $_POST['neue_antrnr'] ?? $antrnr;
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Finalisieren', $neue_nr);
                 header("Location: antrag_bearbeiten.php?antrnr=" . urlencode($neue_nr) . "&msg=finalized");
                 exit;
 
             case 'delete':
                 verwerfenAntrag($pdo, $antrnr, $antrag, $user);
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Verwerfen', $antrnr);
                 header('Location: index.php?tab=proposals&msg=withdrawn');
                 exit;
 
             case 'verkuerzung':
                 wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user);
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'WZV-Zustimmung', $antrnr);
                 $saved = true;
                 $message = "Wartezeitverkürzung gespeichert.";
                 break;
@@ -271,6 +280,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($hinweis_wz) $hinweis_wz .= "\n---\n";
                     $hinweis_wz .= date('d.m.Y H:i') . ' (' . $user_kurzn . '): Wartezeitverkürzung beantragt.';
                     $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET hinweis = ? WHERE antrnr = ?")->execute([$hinweis_wz, $antrnr]);
+                    [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
+                    protokoll($pdo, $_prot_mnr, $_prot_kurz, 'WZV-beantragt', $antrnr);
                     $saved = true;
                     $message = "Wartezeitverkürzung beantragt. Zwei Vorstandsmitglieder müssen nun zustimmen.";
                 }

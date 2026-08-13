@@ -12,6 +12,7 @@ require_once 'config.php';
 require_once 'config_adapter.php';
 require_once 'member_functions.php';
 require_once 'includes/antragstypen_helper.php';
+require_once 'protokoll_helper.php';
 
 // Prüfen ob eingeloggt
 if (!isset($_SESSION['member_id'])) {
@@ -140,6 +141,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $current_user_id,
             $selected_bart
         ]);
+
+        // Protokollierung
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Neu', $neue_antrnr);
 
         // Zur Bearbeitung weiterleiten
         header('Location: antrag_bearbeiten.php?antrnr=' . urlencode($neue_antrnr) . '&created=1');

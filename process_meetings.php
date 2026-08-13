@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 require_once 'config.php';
 require_once 'functions.php';
+require_once 'protokoll_helper.php';
 
 // Session starten (falls noch nicht gestartet)
 if (session_status() === PHP_SESSION_NONE) {
@@ -299,10 +300,13 @@ if (isset($_POST['create_meeting'])) {
         add_participants($pdo, $meeting_id, $participant_ids);
         
         $pdo->commit();
-        
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Erstellen', $meeting_name);
+
         header("Location: index.php?tab=meetings&success=created&meeting_id=$meeting_id");
         exit;
-        
+
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Fehler beim Meeting-Erstellen: " . $e->getMessage());
@@ -460,6 +464,8 @@ if (isset($_POST['edit_meeting'])) {
 
         $pdo->commit();
 
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Bearbeiten', 'ID:' . $meeting_id);
 
         header("Location: index.php?tab=meetings&success=updated&meeting_id=$meeting_id");
         exit;
@@ -549,10 +555,13 @@ if (isset($_POST['delete_meeting'])) {
         $stmt->execute([$meeting_id]);
         
         $pdo->commit();
-        
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Loeschen', 'ID:' . $meeting_id);
+
         header("Location: index.php?tab=meetings&success=deleted");
         exit;
-        
+
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Fehler beim Meeting-Löschen: " . $e->getMessage());
@@ -652,11 +661,14 @@ if (isset($_POST['start_meeting'])) {
         $stmt->execute([$protocol_text, $meeting_id]);
         
         $pdo->commit();
-        
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Starten', 'ID:' . $meeting_id);
+
         // Zur Tagesordnung weiterleiten
         header("Location: index.php?tab=agenda&meeting_id=$meeting_id");
         exit;
-        
+
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log("Fehler beim Meeting-Starten: " . $e->getMessage());
@@ -783,6 +795,9 @@ if (isset($_POST['duplicate_meeting'])) {
         create_default_tops($pdo, $new_meeting_id, $current_user['member_id']);
 
         $pdo->commit();
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Duplizieren', 'ID:' . $new_meeting_id . ' von ' . $original_meeting_id);
 
         header("Location: index.php?tab=meetings&success=duplicated&meeting_id=$new_meeting_id");
         exit;

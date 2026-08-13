@@ -12,6 +12,7 @@ require_once 'config.php';
 require_once 'config_adapter.php';
 require_once 'member_functions.php';
 require_once 'includes/voting_helper.php';
+require_once 'protokoll_helper.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php');
@@ -288,6 +289,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_remarks'])) {
                     WHERE antrnr = ?";
 
                 $pdo->prepare($update_sql)->execute([$vbegr, $vprot, $antrnr]);
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Votum-Bemerkungen', $antrnr);
 
                 // Für AJAX-Anfragen JSON zurückgeben
                 if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
@@ -342,6 +345,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['votum_action'])) {
                 $params[] = $antrnr;
 
                 $pdo->prepare($update_sql)->execute($params);
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Votum-Speichern', $antrnr . ' ' . $votum);
 
                 // Abstimmung auswerten
                 auswerten_abstimmung($pdo, $antrnr);
@@ -373,6 +378,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_hinweis'])) {
         $hinweis .= date('d.m.Y H:i') . ' (' . $user_kurzn . '): ' . $neuer_hinweis;
 
         $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET hinweis = ? WHERE antrnr = ?")->execute([$hinweis, $antrnr]);
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Abstimmung-Hinweis', $antrnr);
 
         header("Location: abstimmungen.php?antrnr=" . urlencode($antrnr) . "&msg=hinweis");
         exit;
@@ -392,6 +399,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zurueckziehen'])) {
             // Z-Präfix für zurückgezogen
             $neue_nr = 'Z' . substr($antrnr, 1);
             $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr]);
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Zurueckziehen', $antrnr);
 
             // Neue Antragsnummer für Kopie generieren (A-Präfix, aktuelles Datum)
             $date_part = date('ymd');
@@ -456,6 +465,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zurueckziehen'])) {
                 $copy_params[] = $antrag_data['abstimmregel'] ?? null;
             }
             $copy_stmt->execute($copy_params);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Kopie-Neu', $copy_antrnr . ' (Kopie von ' . $antrnr . ')');
 
             header("Location: abstimmungen.php?msg=withdrawn");
             exit;

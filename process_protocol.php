@@ -12,11 +12,14 @@ if (isset($_POST['add_protocol'])) {
         try {
             $stmt = $pdo->prepare("UPDATE svagenda_items SET protocol_notes = ? WHERE item_id = ?");
             $stmt->execute([$notes, $item_id]);
-            
+
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Protokoll-Speichern', 'item_id:' . $item_id);
+
             $stmt = $pdo->prepare("SELECT meeting_id FROM svagenda_items WHERE item_id = ?");
             $stmt->execute([$item_id]);
             $meeting_id = $stmt->fetch()['meeting_id'];
-            
+
             header("Location: ?tab=agenda&meeting_id=$meeting_id");
             exit;
         } catch (PDOException $e) {

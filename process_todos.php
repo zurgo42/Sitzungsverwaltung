@@ -51,6 +51,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'change_status') {
         $logstmt = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'status-change', ?, ?)");
         $logstmt->execute([$todo_id, $currentMemberID, $todo['status'], $new_status]);
 
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Status', 'ID:' . $todo_id . ' → ' . $new_status);
+
         $_SESSION['success'] = 'Status geändert';
         header('Location: index.php?tab=todos');
         exit;
@@ -95,6 +98,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'retract') {
 
         $delete = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
         $delete->execute([$todo_id]);
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Zurueckziehen', 'ID:' . $todo_id);
 
         $_SESSION['success'] = 'ToDo zurückgezogen';
         header('Location: index.php?tab=todos');
@@ -164,6 +170,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
         // Logging
         $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'todo-erstellt', NULL, ?)");
         $log->execute([$todo_id, $currentMemberID, $title]);
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Erstellen', substr($title ?? '', 0, 80));
 
         $_SESSION['success'] = 'ToDo erfolgreich erstellt';
         header('Location: index.php?tab=todos');
