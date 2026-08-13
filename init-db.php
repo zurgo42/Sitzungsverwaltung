@@ -1027,6 +1027,19 @@ try {
         INDEX idx_created_at (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MV-Beschlüsse (Mitgliederversammlung)'";
 
+    // Aktions-Protokolltabelle (kompatibel zum Altformat)
+    // Wird monatlich als YYYYMMprotokoll archiviert (via Pseudo-Cron)
+    $tables[] = "CREATE TABLE IF NOT EXISTS protokoll (
+        MNr    VARCHAR(12) DEFAULT NULL,
+        KurzN  VARCHAR(12) DEFAULT NULL,
+        zeit   VARCHAR(20) DEFAULT NULL,
+        was    TEXT        DEFAULT NULL,
+        string TEXT        DEFAULT NULL,
+        INDEX idx_mnr  (MNr),
+        INDEX idx_zeit (zeit)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='Aktions-Protokoll aller User-Datenbankänderungen'";
+
 
     // Tabellen erstellen
     echo "<p>Erstelle " . count($tables) . " Tabellen...</p>";
@@ -1178,6 +1191,9 @@ try {
             ['terminplanung_standalone_url', '', 'text',
              'Öffentliche URL des Terminplanung-Standalone-Links (z.B. https://example.com/termine.php). Überschreibt den automatisch erzeugten Link.',
              'notifications'],
+            ['protokoll_last_archive', '', 'text',
+             'Letzter Archivierungs-Monat der protokoll-Tabelle (Format: YYYYMM). Wird vom Pseudo-Cron aktualisiert.',
+             'system'],
         ];
         foreach ($new_cfg_entries as [$key, $val, $type, $desc, $cat]) {
             $chk = $pdo->prepare("SELECT COUNT(*) FROM svconfig WHERE config_key = ?");

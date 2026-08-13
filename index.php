@@ -31,6 +31,7 @@ require_once 'member_functions.php';          // Prozedurale Wrapper-Funktionen 
 require_once 'functions.php';                 // Wiederverwendbare Funktionen
 require_once 'includes/antragstypen_helper.php'; // Antragstypen-Konfiguration
 require_once 'includes/voting_helper.php';    // Abstimmungsregeln
+require_once 'protokoll_helper.php';          // Aktions-Protokollierung
 
 // ============================================
 // GLOBALES MEMBERS-ARRAY (für SSO und Standard-Modus)
