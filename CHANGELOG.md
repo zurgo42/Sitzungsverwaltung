@@ -6,6 +6,71 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Added (Neu)
+
+#### Aktions-Protokollierung / Audit-Log (2026-08-13)
+
+Vollständige Aktions-Protokollierung aller user-verursachten Datenbankänderungen.
+
+- **Neue Datei `protokoll_helper.php`** mit zwei Funktionen:
+  - `get_protokoll_user($current_user)` → `[$mnr, $kurz]` – ermittelt Mitgliedsnummer und Kurzname des eingeloggten Users (SSO-Session oder DB)
+  - `protokoll($pdo, $mnr, $kurz, $was, $string, $filter=3)` – schreibt einen Eintrag in die Tabelle `protokoll`; `$filter`-Wert steuert Deduplizierung (0=tägl., 1=tägl., 2=stündl., 3=immer)
+- **Neue Tabelle `protokoll`** in `init-db.php` (Schema: `MNr`, `KurzN`, `zeit`, `was`, `string` – kompatibel mit Altformat)
+- **Monatsarchivierung** in `pseudo_cron.php`: Beim ersten Seitenaufruf eines neuen Monats wird `protokoll` → `YYYYMMprotokoll` kopiert und anschließend truncated; svconfig-Schlüssel `protokoll_last_archive` speichert den zuletzt archivierten Monat
+- **~55 `protokoll()`-Aufrufe** in 8 Dateien instrumentiert:
+  - `antrag_neu.php`: Antrag-Neu
+  - `antrag_bearbeiten.php`: Antrag-Speichern, Antrag-Finalisieren, Antrag-Verwerfen, WZV-beantragt, WZV-Zustimmung
+  - `abstimmungen.php`: Votum-Speichern, Votum-Bemerkungen, Abstimmung-Hinweis, Antrag-Zurueckziehen, Antrag-Kopie-Neu
+  - `process_meetings.php`: Sitzung-Erstellen, -Bearbeiten, -Loeschen, -Starten, -Duplizieren
+  - `process_agenda.php`: ~38 Labels (TOP-Neu, TOP-Bearbeiten, TOP-Loeschen, TOP-Verschieben, TOP-Wiedervorlage, Kommentar-*, Protokoll-*, Sitzung-*, Abstimmung-*, Stimme, TODO-*, Anwesenheit u. a.)
+  - `process_todos.php`: TODO-Erstellen, TODO-Status, TODO-Zurueckziehen
+  - `process_protocol.php`: Protokoll-Speichern
+
+**Neue Dokumentation:** `docs/audit-logging.md`
+
+### Changed (Geändert)
+
+#### Monatssumme-Limit konfigurierbar (2026-08-13)
+
+- `berechneMonatssumme()` in `antrag_bearbeiten.php` erhält `$v_limit` jetzt aus der svconfig-Tabelle statt als hartkodierte Konstante
+- Konfigurationsschlüssel: `bart_V_betrag_limit` (Typ: number, Gruppe: antragstypen, Standardwert: 500)
+
+#### Textformatierung in Antragsansicht (2026-08-13)
+
+- **Neue Hilfsfunktion `format_antrag_text()`** in `includes/voting_helper.php`: normiert Zeilenenden, wandelt Doppelleerzeilen in `<p>`-Tags und Einzelzeilenumbrüche in `<br>`-Tags um
+- **`render_hinweis_text()` überarbeitet**: unterstützt gemischtes DB-Format (altes `<br>`-Trenner und neues `\n---\n`-Trenner), strippt führende `<br>`, erkennt beide Datumsformate
+- **CSS**: `white-space: pre-wrap` aus `.acc-content` entfernt (erzeugte doppelte Zeilenumbrüche)
+- Betroffen: `antrag_ansehen.php`, `includes/voting_helper.php`
+
+#### SSO-Fixes für opinion_standalone.php (2026-08-13)
+
+- SSO-Auto-Login nach Session-Start eingebaut (lädt `config_adapter.php`, ruft `get_sso_membership_number()`)
+- Standalone-URL jetzt über svconfig konfigurierbar: Schlüssel `opinion_standalone_url`
+
+#### Konfigurierbare externe URLs für Standalone-Seiten (2026-08-13)
+
+- **Neue svconfig-Schlüssel** `opinion_standalone_url` und `terminplanung_standalone_url` für konfigurierbare öffentliche URLs der Standalone-Seiten
+- `generate_external_access_link()` in `external_participants_functions.php` prüft zuerst die svconfig-Einträge, fällt auf `BASE_URL` zurück
+- Admin-UI (`tab_admin_init.php`): korrekter Placeholder-Text für URL-Felder
+- Initialisierung in `init-db.php` und `tab_admin_init.php`
+
+#### Upload-Verzeichnis für Antragsunterlagen (2026-08-13)
+
+- Upload-Verzeichnis in `antrag_bearbeiten.php` und `process_agenda.php` von `uploads/antraege/` auf `Scans/` geändert
+- DB-Format der Dateipfade (`Scans/filename`) kompatibel mit Altprogramm-Dateien
+
+#### SSO Session-Timeout UX-Verbesserungen (2026-08-13)
+
+- `index.php`: Fehlermeldung bei abgelaufenem SSO-Token jetzt "Anmeldung abgelaufen" statt "Bitte Zugriff verifizieren"
+- VTool-Button erhält `target="_top"` für korrekte Navigation in iframe-Umgebungen
+- `login.php`: Leitet im SSO-Modus automatisch zu `index.php` weiter (mit SSO-Auto-Login-Versuch)
+
+#### external_participant_register.php im SSO-Modus (2026-08-13)
+
+- Mitgliedsnummer-Sektion wird im SSO-Modus ausgeblendet (kein separates Login-Formular im SSO-Kontext sinnvoll)
+
+---
+
 ### Changed (Geändert)
 
 #### Migration zu reiner Adapter-Architektur (2026-05-27)
@@ -262,6 +327,27 @@ Alte feingranulare Levels (Projektleitung, Ressortleitung) entfernt.
 
 **Datenbank-Migration erforderlich:**
 
+0. **Aktions-Protokollierung** (2026-08-13):
+```sql
+-- Wird automatisch durch init-db.php ausgeführt
+CREATE TABLE IF NOT EXISTS protokoll (
+    MNr    VARCHAR(12) DEFAULT NULL,
+    KurzN  VARCHAR(12) DEFAULT NULL,
+    zeit   VARCHAR(20) DEFAULT NULL,
+    was    TEXT        DEFAULT NULL,
+    string TEXT        DEFAULT NULL,
+    INDEX idx_mnr  (MNr),
+    INDEX idx_zeit (zeit)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Neue svconfig-Schlüssel (ebenfalls automatisch via init-db.php):
+INSERT IGNORE INTO svconfig (config_key, config_value, config_type, description, config_group)
+VALUES
+  ('opinion_standalone_url',       '', 'text', '...', 'notifications'),
+  ('terminplanung_standalone_url', '', 'text', '...', 'notifications'),
+  ('protokoll_last_archive',       '', 'text', '...', 'system');
+```
+
 1. **Antrags- und Beschluss-System** (2026-05-20 bis 2026-05-22):
 ```sql
 -- Wird automatisch durch init-db.php ausgeführt
@@ -340,6 +426,8 @@ ALTER TABLE svdocuments MODIFY COLUMN filepath VARCHAR(500) NULL;
 
 **Neue Tabellen (Sonstige)**:
 - `svexternal_participants` - Externe Teilnehmer für Meinungsbilder (2025-12-23)
+- `protokoll` - Aktions-Protokoll aller User-Datenbankänderungen (2026-08-13)
+- `YYYYMMprotokoll` (dynamisch) - Monatliche Archivtabellen, automatisch angelegt (2026-08-13)
 
 **Neue Spalten**:
 - `svmeetings.allow_decisions` (TINYINT 1, DEFAULT 1) - Beschlüsse in Meeting erlauben (2026-05-20)
@@ -369,6 +457,7 @@ ALTER TABLE svdocuments MODIFY COLUMN filepath VARCHAR(500) NULL;
 **Helper & Tools**:
 - `includes/antragstypen_helper.php` - Konfigurationsfunktionen für Antragstypen
 - `apply_meeting_decisions_migration.php` - Migrations-Tool für Datenbankschema
+- `protokoll_helper.php` - Aktions-Protokollierung: `get_protokoll_user()`, `protokoll()` (2026-08-13)
 
 **Styles**:
 - `css/antrag-styles.css` - Styling für Antragsseiten (inkl. Dark Mode)
@@ -389,10 +478,14 @@ ALTER TABLE svdocuments MODIFY COLUMN filepath VARCHAR(500) NULL;
 
 **Aktuelle Session:**
 - Session: claude/continue-session-management-01NbwbYdHVMH7hEM5HwQmFji
+- Datum: 2026-08-13
+- Features: Aktions-Protokollierung, Konfigurierbare URLs, Monatssumme-Limit, Textformatierung, SSO-Fixes, Upload-Verzeichnis
+
+**Vorherige Sessions:**
+- Session: claude/continue-session-management-01NbwbYdHVMH7hEM5HwQmFji
 - Datum: 2026-05-25 bis 2026-05-26
 - Features: Wiedervorlage, Voting-System, Abwesenheiten-Optimierung, VTool-Integration
 
-**Vorherige Sessions:**
 - Session: claude/fix-sso-integration-01NbwbYdHVMH7hEM5HwQmFji
 - Datum: 2025-12-23
 - Features: Externe Teilnehmer, Externe Links, Meeting-Duplikation

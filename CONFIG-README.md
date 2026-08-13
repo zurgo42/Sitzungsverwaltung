@@ -159,6 +159,21 @@ define('REQUIRE_LOGIN', true);
 define('MEMBER_SOURCE', 'members');
 ```
 
+## svconfig-Schlüssel (Datenbank-Konfiguration)
+
+Neben `config.php` und `config_adapter.php` gibt es eine weitere Konfigurationsebene: die Tabelle `svconfig` in der Datenbank. Diese wird über den Admin-Bereich oder `init-db.php` befüllt und enthält laufzeitveränderliche Parameter.
+
+### Neue Schlüssel (ab 2026-08-13)
+
+| Schlüssel | Typ | Gruppe | Standardwert | Beschreibung |
+|---|---|---|---|---|
+| `opinion_standalone_url` | text | notifications | _(leer)_ | Öffentliche URL des Meinungsbild-Standalone-Links (z.B. `https://example.com/meinungsbild.php`). Überschreibt den automatisch aus `BASE_URL` erzeugten Link in Zugangs-E-Mails. |
+| `terminplanung_standalone_url` | text | notifications | _(leer)_ | Öffentliche URL des Terminplanung-Standalone-Links (z.B. `https://example.com/termine.php`). Überschreibt den automatisch erzeugten Link. |
+| `protokoll_last_archive` | text | system | _(leer)_ | Letzter Archivierungs-Monat der `protokoll`-Tabelle (Format: `YYYYMM`, z.B. `202608`). Wird vom Pseudo-Cron automatisch gesetzt – **nicht manuell ändern**. |
+| `bart_V_betrag_limit` | number | antragstypen | `500` | Betragsgrenze für Antragstyp V (Verfügung) in Euro. Steuert die Monatssummen-Prüfung in `antrag_bearbeiten.php`. |
+
+Diese Schlüssel werden von `init-db.php` beim ersten Aufruf angelegt und sind über Admin → Systemkonfiguration einsehbar.
+
 ## Checkliste bei Updates
 
 - [ ] Backup der aktuellen config.php und config_adapter.php

@@ -360,7 +360,7 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 
 - **Zugriffskontrolle:** Rollenbasierte Berechtigungen
 - **Vertraulichkeit:** Separate Speicherung sensibler Daten
-- **Audit-Log:** Nachverfolgung von Admin-Aktionen
+- **Audit-Log:** Vollständige Protokollierung aller user-verursachten Datenbankänderungen (siehe `docs/audit-logging.md`)
 - **Anonymität:** Optionen für anonyme Teilnahme bei Umfragen
 - **Session-Management:** Automatischer Logout bei Inaktivität
 
@@ -492,6 +492,7 @@ Siehe [INSTALL.md](INSTALL.md) für detaillierte Installationsanweisungen.
 - **Entwickler-Dokumentation:** [DEVELOPER.md](DEVELOPER.md)
 - **Meinungsbild-Tool (Details):** [OPINION_TOOL_README.md](OPINION_TOOL_README.md)
 - **Dokumentenverwaltung (Details):** [DOCUMENTS_README.md](DOCUMENTS_README.md)
+- **Audit-Log / Protokollierung:** [docs/audit-logging.md](docs/audit-logging.md)
 
 ## Lizenz
 
