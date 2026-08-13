@@ -260,6 +260,9 @@ if (isset($_POST['add_agenda_item'])) {
             // Nicht nötig beim Erstellen, da nur ein Kommentar existiert und Werte schon korrekt sind
             // recalculate_item_metrics($pdo, $new_item_id);
 
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Neu', $title);
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
             exit;
 
@@ -327,6 +330,9 @@ if (isset($_POST['delete_agenda_item']) && isset($_POST['item_id'])) {
                 $stmt = $pdo->prepare("DELETE FROM svagenda_items WHERE item_id = ?");
                 $stmt->execute([$item_id]);
 
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Loeschen', $item['title']);
+
                 error_log("DELETE TOP Success: Item $item_id ({$item['title']}) deleted by " .
                          ($is_secretary ? "secretary" : "creator"));
 
@@ -386,6 +392,9 @@ if (isset($_POST['edit_agenda_item']) && !isset($_POST['delete_agenda_item'])) {
                     WHERE item_id = ?
                 ");
                 $stmt->execute([$title, $description, $category, $proposal_text, $item_id]);
+
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Bearbeiten', $title);
 
                 error_log("EDIT TOP Success: Updated category from {$item['old_category']} to $category");
 
@@ -491,6 +500,9 @@ if (isset($_POST['move_agenda_item'])) {
             $stmt->execute([$target_meeting_id, $new_top_number, $item_id]);
 
             $pdo->commit();
+
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Verschieben', $item_id . '→' . $target_meeting_id);
 
             error_log("MOVE TOP Success: Item $item_id moved to meeting $target_meeting_id with TOP# $new_top_number");
 
@@ -641,9 +653,12 @@ if (isset($_POST['save_all_changes']) || isset($_POST['save_all_preparation'])) 
             }
         }
         
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Bearbeiten', 'Bulk-Edit meeting_id:' . $current_meeting_id);
+
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
-        
+
     } catch (PDOException $e) {
         error_log("Fehler beim Speichern der Änderungen: " . $e->getMessage());
         $error = "Fehler beim Speichern der Änderungen";
@@ -722,9 +737,12 @@ if (isset($_POST['save_ratings_overview'])) {
             }
         }
         
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Bewertung', 'Bulk-Rating meeting_id:' . $current_meeting_id);
+
         header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
         exit;
-        
+
     } catch (PDOException $e) {
         error_log("Fehler beim Speichern der Bewertungen: " . $e->getMessage());
         $error = "Fehler beim Speichern der Bewertungen";
@@ -764,10 +782,13 @@ if (isset($_POST['update_meeting_roles'])) {
                     WHERE meeting_id = ?
                 ");
                 $stmt->execute([$chairman_id, $secretary_id, $current_meeting_id]);
-                
+
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Rollen', 'meeting_id:' . $current_meeting_id);
+
                 header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
                 exit;
-                
+
             } catch (PDOException $e) {
                 error_log("Fehler beim Aktualisieren der Rollen: " . $e->getMessage());
                 $error = "Fehler beim Aktualisieren der Rollen";
@@ -799,15 +820,18 @@ if (isset($_POST['save_attendance'])) {
             foreach ($attendance as $member_id => $status) {
                 $member_id = intval($member_id);
                 $status = in_array($status, ['present', 'partial', 'absent']) ? $status : 'absent';
-                
+
                 $stmt = $pdo->prepare("
-                    UPDATE svmeeting_participants 
-                    SET attendance_status = ? 
+                    UPDATE svmeeting_participants
+                    SET attendance_status = ?
                     WHERE meeting_id = ? AND member_id = ?
                 ");
                 $stmt->execute([$status, $current_meeting_id, $member_id]);
             }
-            
+
+            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Anwesenheit', 'meeting_id:' . $current_meeting_id);
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
             exit;
             
