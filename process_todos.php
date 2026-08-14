@@ -29,7 +29,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'change_status') {
     }
 
     // Berechtigung prüfen (nur Empfänger)
-    $stmt = $pdo->prepare("SELECT status, assigned_to_member_id FROM svtodos WHERE todo_id = ?");
+    $stmt = $pdo->prepare("SELECT status, assigned_to_member_id, title FROM svtodos WHERE todo_id = ?");
     $stmt->execute([$todo_id]);
     $todo = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -52,7 +52,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'change_status') {
         $logstmt->execute([$todo_id, $currentMemberID, $todo['status'], $new_status]);
 
         [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Status', 'ID:' . $todo_id . ' → ' . $new_status);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Status', substr($todo['title'] ?? '', 0, 60) . ' → ' . $new_status);
 
         $_SESSION['success'] = 'Status geändert';
         header('Location: index.php?tab=todos');
@@ -100,7 +100,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'retract') {
         $delete->execute([$todo_id]);
 
         [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Zurueckziehen', 'ID:' . $todo_id);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Zurueckziehen', substr($todo['title'] ?? '', 0, 80));
 
         $_SESSION['success'] = 'ToDo zurückgezogen';
         header('Location: index.php?tab=todos');

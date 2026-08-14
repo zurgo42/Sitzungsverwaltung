@@ -465,7 +465,7 @@ if (isset($_POST['edit_meeting'])) {
         $pdo->commit();
 
         [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Bearbeiten', 'ID:' . $meeting_id);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Bearbeiten', ($saved_data['meeting_name'] ?? '') . ' (ID:' . $meeting_id . ')');
 
         header("Location: index.php?tab=meetings&success=updated&meeting_id=$meeting_id");
         exit;
@@ -557,7 +557,7 @@ if (isset($_POST['delete_meeting'])) {
         $pdo->commit();
 
         [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Loeschen', 'ID:' . $meeting_id);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Loeschen', ($meeting['meeting_name'] ?? '') . ' (ID:' . $meeting_id . ')');
 
         header("Location: index.php?tab=meetings&success=deleted");
         exit;
@@ -663,7 +663,7 @@ if (isset($_POST['start_meeting'])) {
         $pdo->commit();
 
         [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Starten', 'ID:' . $meeting_id);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Starten', ($meeting['meeting_name'] ?? '') . ' (ID:' . $meeting_id . ')');
 
         // Zur Tagesordnung weiterleiten
         header("Location: index.php?tab=agenda&meeting_id=$meeting_id");

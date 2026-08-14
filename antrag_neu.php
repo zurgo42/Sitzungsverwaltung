@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Protokollierung
         [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Neu', $neue_antrnr);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Neu', $neue_antrnr . ' (' . $selected_bart . ')');
 
         // Zur Bearbeitung weiterleiten
         header('Location: antrag_bearbeiten.php?antrnr=' . urlencode($neue_antrnr) . '&created=1');

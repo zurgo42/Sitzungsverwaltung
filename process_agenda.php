@@ -261,7 +261,7 @@ if (isset($_POST['add_agenda_item'])) {
             // recalculate_item_metrics($pdo, $new_item_id);
 
             [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Neu', $title);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Neu', 'Sitzung ' . $current_meeting_id . ': ' . substr($title, 0, 80));
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
             exit;
@@ -331,7 +331,7 @@ if (isset($_POST['delete_agenda_item']) && isset($_POST['item_id'])) {
                 $stmt->execute([$item_id]);
 
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Loeschen', $item['title']);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Loeschen', 'Sitzung ' . $current_meeting_id . ': ' . substr($item['title'], 0, 80));
 
                 error_log("DELETE TOP Success: Item $item_id ({$item['title']}) deleted by " .
                          ($is_secretary ? "secretary" : "creator"));
@@ -394,7 +394,7 @@ if (isset($_POST['edit_agenda_item']) && !isset($_POST['delete_agenda_item'])) {
                 $stmt->execute([$title, $description, $category, $proposal_text, $item_id]);
 
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Bearbeiten', $title);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Bearbeiten', 'Sitzung ' . $current_meeting_id . ': ' . substr($title, 0, 80));
 
                 error_log("EDIT TOP Success: Updated category from {$item['old_category']} to $category");
 
@@ -1080,7 +1080,7 @@ if (isset($_POST['save_single_comment'])) {
             $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
 
             [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Speichern', (string)$item_id);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Speichern', 'TOP-' . $item_id . ': ' . substr($comment_text, 0, 80));
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
             exit;
@@ -1144,7 +1144,7 @@ if (isset($_POST['save_comment'])) {
             }
             
             [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Speichern', (string)$item_id);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Speichern', 'TOP-' . $item_id . ': ' . substr($comment_text, 0, 80));
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
             exit;

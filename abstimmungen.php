@@ -346,7 +346,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['votum_action'])) {
 
                 $pdo->prepare($update_sql)->execute($params);
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
-                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Votum-Speichern', $antrnr . ' ' . $votum);
+                $votum_labels = [1 => 'Ja', 2 => 'Nein', 3 => 'Enthaltung', 4 => 'Befangen', 5 => 'Bedenkzeit'];
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Votum-Speichern', $antrnr . ' → ' . ($votum_labels[(int)$votum] ?? 'Votum-' . $votum));
 
                 // Abstimmung auswerten
                 auswerten_abstimmung($pdo, $antrnr);
@@ -400,7 +401,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zurueckziehen'])) {
             $neue_nr = 'Z' . substr($antrnr, 1);
             $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr]);
             [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
-            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Zurueckziehen', $antrnr);
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Zurueckziehen', $antrnr . ' ' . substr($antrag_data['titel'] ?? '', 0, 60));
 
             // Neue Antragsnummer für Kopie generieren (A-Präfix, aktuelles Datum)
             $date_part = date('ymd');
