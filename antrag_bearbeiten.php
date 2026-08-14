@@ -442,47 +442,46 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     $params[] = $antrnr;
     $update->execute($params);
 
-    // Diff für Protokollierung: nur geänderte Felder ausgeben
+    // Diff für Protokollierung: nur geänderte Felder, vorher→nachher
     $diff_felder = [
-        'antrst'    => [(string)($antrag['antrst'] ?? ''),   (string)$antrst],
-        'titel'     => [(string)($antrag['titel'] ?? ''),    (string)($post['titel'] ?? '')],
+        'antrst'    => [(string)($antrag['antrst'] ?? ''),    (string)$antrst],
+        'titel'     => [(string)($antrag['titel'] ?? ''),     (string)($post['titel'] ?? '')],
         'beschluss' => [(string)($antrag['beschluss'] ?? ''), (string)($post['beschluss'] ?? '')],
-        'begr'      => [(string)($antrag['begr'] ?? ''),     (string)($post['begr'] ?? '')],
-        'pers'      => [(string)($antrag['pers'] ?? ''),     (string)($post['pers'] ?? '')],
-        'sach'      => [(string)($antrag['sach'] ?? ''),     (string)($post['sach'] ?? '')],
-        'fintext'   => [(string)($antrag['fintext'] ?? ''),  (string)($post['fintext'] ?? '')],
+        'begr'      => [(string)($antrag['begr'] ?? ''),      (string)($post['begr'] ?? '')],
+        'pers'      => [(string)($antrag['pers'] ?? ''),      (string)($post['pers'] ?? '')],
+        'sach'      => [(string)($antrag['sach'] ?? ''),      (string)($post['sach'] ?? '')],
+        'fintext'   => [(string)($antrag['fintext'] ?? ''),   (string)($post['fintext'] ?? '')],
         'fin'       => [(string)(float)($antrag['fin'] ?? 0), (string)$fin],
-        'bart'      => [(string)($antrag['bart'] ?? ''),     (string)$bart],
-        'verant'    => [(string)($antrag['verant'] ?? ''),   (string)($post['verant'] ?? '')],
-        'ressort1'  => [(string)($antrag['ressort1'] ?? ''), (string)($post['ressort1'] ?? '')],
-        'ressort2'  => [(string)($antrag['ressort2'] ?? ''), (string)($post['ressort2'] ?? '')],
-        'wichtig'   => [(string)($antrag['wichtig'] ?? 0),   (string)$wichtig],
-        'int_ext'   => [(string)($antrag['int_ext'] ?? ''),  (string)($post['int_ext'] ?? '')],
-        'verein'    => [(string)($antrag['verein'] ?? ''),   (string)($post['verein'] ?? 'V')],
-        'sofort'    => [(string)($antrag['sofort'] ?? 0),    (string)$sofort],
-        'durch'     => [(string)($antrag['durch'] ?? ''),    (string)($post['durch'] ?? '')],
-        'zufin'     => [(string)($antrag['zufin'] ?? 0),     (string)(isset($post['zufin']) ? 1 : 0)],
-        'zbem'      => [(string)($antrag['zbem'] ?? ''),     (string)($post['zbem'] ?? '')],
-        'praesenz'  => [(string)($antrag['praesenz'] ?? ''), (string)($post['praesenz'] ?? '')],
-        'verf1'     => [(string)($antrag['verf1'] ?? ''),    (string)(!empty($post['verf1']) ? $post['verf1'] : '')],
-        'verf2'     => [(string)($antrag['verf2'] ?? ''),    (string)(!empty($post['verf2']) ? $post['verf2'] : '')],
-        'vorher'    => [(string)($antrag['vorher'] ?? 0),    (string)(isset($post['vorher']) ? 1 : 0)],
-        'thread'    => [(string)($antrag['thread'] ?? ''),   (string)($post['thread'] ?? '')],
+        'bart'      => [(string)($antrag['bart'] ?? ''),      (string)$bart],
+        'verant'    => [(string)($antrag['verant'] ?? ''),    (string)($post['verant'] ?? '')],
+        'ressort1'  => [(string)($antrag['ressort1'] ?? ''),  (string)($post['ressort1'] ?? '')],
+        'ressort2'  => [(string)($antrag['ressort2'] ?? ''),  (string)($post['ressort2'] ?? '')],
+        'wichtig'   => [(string)($antrag['wichtig'] ?? 0),    (string)$wichtig],
+        'int_ext'   => [(string)($antrag['int_ext'] ?? ''),   (string)($post['int_ext'] ?? '')],
+        'verein'    => [(string)($antrag['verein'] ?? ''),    (string)($post['verein'] ?? 'V')],
+        'sofort'    => [(string)($antrag['sofort'] ?? 0),     (string)$sofort],
+        'durch'     => [(string)($antrag['durch'] ?? ''),     (string)($post['durch'] ?? '')],
+        'zufin'     => [(string)($antrag['zufin'] ?? 0),      (string)(isset($post['zufin']) ? 1 : 0)],
+        'zbem'      => [(string)($antrag['zbem'] ?? ''),      (string)($post['zbem'] ?? '')],
+        'praesenz'  => [(string)($antrag['praesenz'] ?? ''),  (string)($post['praesenz'] ?? '')],
+        'verf1'     => [(string)($antrag['verf1'] ?? ''),     (string)(!empty($post['verf1']) ? $post['verf1'] : '')],
+        'verf2'     => [(string)($antrag['verf2'] ?? ''),     (string)(!empty($post['verf2']) ? $post['verf2'] : '')],
+        'vorher'    => [(string)($antrag['vorher'] ?? 0),     (string)(isset($post['vorher']) ? 1 : 0)],
+        'thread'    => [(string)($antrag['thread'] ?? ''),    (string)($post['thread'] ?? '')],
     ];
     if (TABLE_ANTRAEGE_HAS_ABSTIMMREGEL) {
         $diff_felder['abstimmregel'] = [(string)($antrag['abstimmregel'] ?? 'einfach'), (string)$abstimmregel];
     }
 
     $diff_parts = [];
-    foreach ($diff_felder as $feld => [$alt, $neu]) {
-        if ($alt !== $neu) {
-            $anzeige = strlen($neu) > 50 ? substr($neu, 0, 50) . '…' : $neu;
-            $diff_parts[] = $feld . "='" . $anzeige . "'";
-        }
+    foreach ($diff_felder as $feld => [$alt_val, $neu_val]) {
+        $part = protokoll_feld_diff($feld, $alt_val, $neu_val);
+        if ($part !== null) $diff_parts[] = $part;
     }
-    // Neuer Hinweis-Eintrag
+    // Neuer Hinweis: nur den neuen Text zeigen (wird angehängt, nicht ersetzt)
     if (!empty($post['neuerhinweis'])) {
-        $diff_parts[] = "hinweis+='" . (strlen($post['neuerhinweis']) > 50 ? substr($post['neuerhinweis'], 0, 50) . '…' : $post['neuerhinweis']) . "'";
+        $nh = $post['neuerhinweis'];
+        $diff_parts[] = "hinweis+='". (mb_strlen($nh) > 80 ? mb_substr($nh, 0, 80) . '…' : $nh) . "'";
     }
     // Datei-Uploads
     for ($i = 1; $i <= 4; $i++) {
@@ -491,7 +490,7 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         }
     }
 
-    return $antrnr . ': ' . ($diff_parts ? implode(', ', $diff_parts) : '(unverändert)');
+    return $antrnr . ': ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)');
 }
 
 // Finalisieren-Funktion

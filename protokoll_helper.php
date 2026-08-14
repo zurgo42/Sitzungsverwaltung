@@ -20,6 +20,57 @@ function get_protokoll_user($current_user) {
 }
 
 /**
+ * Erzeugt einen lesbaren Diff-String für ein einzelnes Feld.
+ *
+ * Kurze Werte (≤80 Zeichen): "feld='alt'→'neu'"
+ * Lange Texte: zeigt die geänderte Passage mit je $ctx Zeichen Umfeld:
+ *   "feld=[…Kontext«alter Text»→«neuer Text»Kontext…]"
+ *
+ * Gibt null zurück wenn alt === neu.
+ */
+function protokoll_feld_diff($feld, $alt, $neu, $ctx = 30) {
+    $alt = (string)$alt;
+    $neu = (string)$neu;
+    if ($alt === $neu) return null;
+
+    // Kurze Werte: direkt vorher→nachher
+    if (mb_strlen($alt) <= 80 && mb_strlen($neu) <= 80) {
+        $a = mb_strlen($alt) > 50 ? mb_substr($alt, 0, 50) . '…' : $alt;
+        $n = mb_strlen($neu) > 50 ? mb_substr($neu, 0, 50) . '…' : $neu;
+        return $feld . "='" . $a . "'→'" . $n . "'";
+    }
+
+    // Lange Texte: geänderte Passage mit Kontext
+    // Zeichenweise aufteilen (UTF-8-sicher, PHP-7.3-kompatibel)
+    $ca = preg_split('//u', $alt, -1, PREG_SPLIT_NO_EMPTY);
+    $cn = preg_split('//u', $neu, -1, PREG_SPLIT_NO_EMPTY);
+    $la = count($ca);
+    $ln = count($cn);
+
+    // Ersten Unterschied finden
+    $i = 0;
+    while ($i < $la && $i < $ln && $ca[$i] === $cn[$i]) $i++;
+
+    // Letzten Unterschied finden (von hinten)
+    $ea = $la - 1;
+    $en = $ln - 1;
+    while ($ea > $i && $en > $i && $ca[$ea] === $cn[$en]) { $ea--; $en--; }
+
+    $old_part = implode('', array_slice($ca, $i, max(0, $ea - $i + 1)));
+    $new_part = implode('', array_slice($cn, $i, max(0, $en - $i + 1)));
+
+    if (mb_strlen($old_part) > 40) $old_part = mb_substr($old_part, 0, 40) . '…';
+    if (mb_strlen($new_part) > 40) $new_part = mb_substr($new_part, 0, 40) . '…';
+
+    $before = implode('', array_slice($ca, max(0, $i - $ctx), min($ctx, $i)));
+    $after  = implode('', array_slice($ca, $ea + 1, $ctx));
+    $pre    = $i > $ctx            ? '…' : '';
+    $suf    = $la > $ea + 1 + $ctx ? '…' : '';
+
+    return $feld . '=[' . $pre . $before . '«' . $old_part . '»→«' . $new_part . '»' . $after . $suf . ']';
+}
+
+/**
  * Schreibt einen Eintrag in die Protokoll-Tabelle.
  *
  * @param PDO    $pdo
