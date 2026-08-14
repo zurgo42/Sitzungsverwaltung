@@ -31,6 +31,9 @@ function get_protokoll_user($current_user) {
 function protokoll_feld_diff($feld, $alt, $neu, $ctx = 30) {
     $alt = (string)$alt;
     $neu = (string)$neu;
+    // Zeilenenden normalisieren (DB liefert \r\n, Browser-POST \n – sonst $i=0)
+    $alt = str_replace(["\r\n", "\r"], "\n", $alt);
+    $neu = str_replace(["\r\n", "\r"], "\n", $neu);
     if ($alt === $neu) return null;
 
     // Kurze Werte: direkt vorher→nachher (ungekürzt)
@@ -57,10 +60,12 @@ function protokoll_feld_diff($feld, $alt, $neu, $ctx = 30) {
     $old_part = implode('', array_slice($ca, $i, max(0, $ea - $i + 1)));
     $new_part = implode('', array_slice($cn, $i, max(0, $en - $i + 1)));
 
+    // Kontext: $before aus altem Text (vor $i, in beiden Texten identisch)
+    // $after aus neuem Text (nach $en, korrekt für den nach-Wert)
     $before = implode('', array_slice($ca, max(0, $i - $ctx), min($ctx, $i)));
-    $after  = implode('', array_slice($ca, $ea + 1, $ctx));
+    $after  = implode('', array_slice($cn, $en + 1, $ctx));
     $pre    = $i > $ctx            ? '…' : '';
-    $suf    = $la > $ea + 1 + $ctx ? '…' : '';
+    $suf    = $ln > $en + 1 + $ctx ? '…' : '';
 
     return $feld . '=[' . $pre . $before . '«' . $old_part . '»→«' . $new_part . '»' . $after . $suf . ']';
 }
