@@ -229,9 +229,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         switch ($action) {
             case 'save':
-                speichereAntrag($pdo, $antrnr, $_POST, $antrag, $user);
+                $prot_diff = speichereAntrag($pdo, $antrnr, $_POST, $antrag, $user);
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
-                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Speichern', $antrnr . ' ' . substr($_POST['titel'] ?? $antrag['titel'] ?? '', 0, 80));
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Speichern', $prot_diff);
 
                 // Wartezeitverkürzung verarbeiten
                 if (isset($_POST['wartezeit_verkuerzen']) && $_POST['wartezeit_verkuerzen'] == 1) {
@@ -441,6 +441,57 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     }
     $params[] = $antrnr;
     $update->execute($params);
+
+    // Diff für Protokollierung: nur geänderte Felder ausgeben
+    $diff_felder = [
+        'antrst'    => [(string)($antrag['antrst'] ?? ''),   (string)$antrst],
+        'titel'     => [(string)($antrag['titel'] ?? ''),    (string)($post['titel'] ?? '')],
+        'beschluss' => [(string)($antrag['beschluss'] ?? ''), (string)($post['beschluss'] ?? '')],
+        'begr'      => [(string)($antrag['begr'] ?? ''),     (string)($post['begr'] ?? '')],
+        'pers'      => [(string)($antrag['pers'] ?? ''),     (string)($post['pers'] ?? '')],
+        'sach'      => [(string)($antrag['sach'] ?? ''),     (string)($post['sach'] ?? '')],
+        'fintext'   => [(string)($antrag['fintext'] ?? ''),  (string)($post['fintext'] ?? '')],
+        'fin'       => [(string)(float)($antrag['fin'] ?? 0), (string)$fin],
+        'bart'      => [(string)($antrag['bart'] ?? ''),     (string)$bart],
+        'verant'    => [(string)($antrag['verant'] ?? ''),   (string)($post['verant'] ?? '')],
+        'ressort1'  => [(string)($antrag['ressort1'] ?? ''), (string)($post['ressort1'] ?? '')],
+        'ressort2'  => [(string)($antrag['ressort2'] ?? ''), (string)($post['ressort2'] ?? '')],
+        'wichtig'   => [(string)($antrag['wichtig'] ?? 0),   (string)$wichtig],
+        'int_ext'   => [(string)($antrag['int_ext'] ?? ''),  (string)($post['int_ext'] ?? '')],
+        'verein'    => [(string)($antrag['verein'] ?? ''),   (string)($post['verein'] ?? 'V')],
+        'sofort'    => [(string)($antrag['sofort'] ?? 0),    (string)$sofort],
+        'durch'     => [(string)($antrag['durch'] ?? ''),    (string)($post['durch'] ?? '')],
+        'zufin'     => [(string)($antrag['zufin'] ?? 0),     (string)(isset($post['zufin']) ? 1 : 0)],
+        'zbem'      => [(string)($antrag['zbem'] ?? ''),     (string)($post['zbem'] ?? '')],
+        'praesenz'  => [(string)($antrag['praesenz'] ?? ''), (string)($post['praesenz'] ?? '')],
+        'verf1'     => [(string)($antrag['verf1'] ?? ''),    (string)(!empty($post['verf1']) ? $post['verf1'] : '')],
+        'verf2'     => [(string)($antrag['verf2'] ?? ''),    (string)(!empty($post['verf2']) ? $post['verf2'] : '')],
+        'vorher'    => [(string)($antrag['vorher'] ?? 0),    (string)(isset($post['vorher']) ? 1 : 0)],
+        'thread'    => [(string)($antrag['thread'] ?? ''),   (string)($post['thread'] ?? '')],
+    ];
+    if (TABLE_ANTRAEGE_HAS_ABSTIMMREGEL) {
+        $diff_felder['abstimmregel'] = [(string)($antrag['abstimmregel'] ?? 'einfach'), (string)$abstimmregel];
+    }
+
+    $diff_parts = [];
+    foreach ($diff_felder as $feld => [$alt, $neu]) {
+        if ($alt !== $neu) {
+            $anzeige = strlen($neu) > 50 ? substr($neu, 0, 50) . '…' : $neu;
+            $diff_parts[] = $feld . "='" . $anzeige . "'";
+        }
+    }
+    // Neuer Hinweis-Eintrag
+    if (!empty($post['neuerhinweis'])) {
+        $diff_parts[] = "hinweis+='" . (strlen($post['neuerhinweis']) > 50 ? substr($post['neuerhinweis'], 0, 50) . '…' : $post['neuerhinweis']) . "'";
+    }
+    // Datei-Uploads
+    for ($i = 1; $i <= 4; $i++) {
+        if (!empty($post["file$i"]) && $post["file$i"] !== ($antrag["file$i"] ?? null)) {
+            $diff_parts[] = "file$i='" . basename($post["file$i"]) . "'";
+        }
+    }
+
+    return $antrnr . ': ' . ($diff_parts ? implode(', ', $diff_parts) : '(unverändert)');
 }
 
 // Finalisieren-Funktion
