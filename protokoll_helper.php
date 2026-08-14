@@ -60,14 +60,18 @@ function protokoll_feld_diff($feld, $alt, $neu, $ctx = 30) {
     $old_part = implode('', array_slice($ca, $i, max(0, $ea - $i + 1)));
     $new_part = implode('', array_slice($cn, $i, max(0, $en - $i + 1)));
 
-    // Kontext: $before aus altem Text (vor $i, in beiden Texten identisch)
-    // $after aus neuem Text (nach $en, korrekt für den nach-Wert)
+    // Kontext (beide Seiten aus dem alten Text, identischer Rahmen)
     $before = implode('', array_slice($ca, max(0, $i - $ctx), min($ctx, $i)));
-    $after  = implode('', array_slice($cn, $en + 1, $ctx));
+    $after  = implode('', array_slice($ca, $ea + 1, $ctx));
     $pre    = $i > $ctx            ? '…' : '';
-    $suf    = $ln > $en + 1 + $ctx ? '…' : '';
+    $suf    = $la > $ea + 1 + $ctx ? '…' : '';
 
-    return $feld . '=[' . $pre . $before . '«' . $old_part . '»→«' . $new_part . '»' . $after . $suf . ']';
+    // Format: [pre.before«old»after→pre.before«new»after.suf]
+    return $feld . '=['
+        . $pre . $before . '«' . $old_part . '»' . $after
+        . '→'
+        . $pre . $before . '«' . $new_part . '»' . $after . $suf
+        . ']';
 }
 
 /**
