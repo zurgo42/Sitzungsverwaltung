@@ -481,7 +481,7 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     // Neuer Hinweis: nur den neuen Text zeigen (wird angehängt, nicht ersetzt)
     if (!empty($post['neuerhinweis'])) {
         $nh = $post['neuerhinweis'];
-        $diff_parts[] = "hinweis+='". (mb_strlen($nh) > 80 ? mb_substr($nh, 0, 80) . '…' : $nh) . "'";
+        $diff_parts[] = "hinweis+='" . $nh . "'";
     }
     // Datei-Uploads
     for ($i = 1; $i <= 4; $i++) {

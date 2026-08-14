@@ -33,11 +33,9 @@ function protokoll_feld_diff($feld, $alt, $neu, $ctx = 30) {
     $neu = (string)$neu;
     if ($alt === $neu) return null;
 
-    // Kurze Werte: direkt vorher→nachher
+    // Kurze Werte: direkt vorher→nachher (ungekürzt)
     if (mb_strlen($alt) <= 80 && mb_strlen($neu) <= 80) {
-        $a = mb_strlen($alt) > 50 ? mb_substr($alt, 0, 50) . '…' : $alt;
-        $n = mb_strlen($neu) > 50 ? mb_substr($neu, 0, 50) . '…' : $neu;
-        return $feld . "='" . $a . "'→'" . $n . "'";
+        return $feld . "='" . $alt . "'→'" . $neu . "'";
     }
 
     // Lange Texte: geänderte Passage mit Kontext
@@ -58,9 +56,6 @@ function protokoll_feld_diff($feld, $alt, $neu, $ctx = 30) {
 
     $old_part = implode('', array_slice($ca, $i, max(0, $ea - $i + 1)));
     $new_part = implode('', array_slice($cn, $i, max(0, $en - $i + 1)));
-
-    if (mb_strlen($old_part) > 40) $old_part = mb_substr($old_part, 0, 40) . '…';
-    if (mb_strlen($new_part) > 40) $new_part = mb_substr($new_part, 0, 40) . '…';
 
     $before = implode('', array_slice($ca, max(0, $i - $ctx), min($ctx, $i)));
     $after  = implode('', array_slice($ca, $ea + 1, $ctx));
