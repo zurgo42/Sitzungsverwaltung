@@ -367,9 +367,10 @@ if (isset($_POST['edit_agenda_item']) && !isset($_POST['delete_agenda_item'])) {
 
     if ($item_id && $title) {
         try {
-            // Prüfen ob User der Ersteller ist
+            // Prüfen ob User der Ersteller ist (inkl. alte Werte für Diff)
             $stmt = $pdo->prepare("
-                SELECT ai.created_by_member_id, ai.meeting_id, m.status, ai.category as old_category
+                SELECT ai.created_by_member_id, ai.meeting_id, m.status, ai.category as old_category,
+                       ai.title as old_title, ai.description as old_description, ai.proposal_text as old_proposal_text
                 FROM svagenda_items ai
                 JOIN svmeetings m ON ai.meeting_id = m.meeting_id
                 WHERE ai.item_id = ?
@@ -394,7 +395,18 @@ if (isset($_POST['edit_agenda_item']) && !isset($_POST['delete_agenda_item'])) {
                 $stmt->execute([$title, $description, $category, $proposal_text, $item_id]);
 
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Bearbeiten', 'Sitzung ' . $current_meeting_id . ': ' . substr($title, 0, 80));
+                $diff_parts = [];
+                foreach ([
+                    'Titel'        => [(string)($item['old_title'] ?? ''),        $title],
+                    'Beschreibung' => [(string)($item['old_description'] ?? ''),   $description],
+                    'Kategorie'    => [(string)($item['old_category'] ?? ''),      $category],
+                    'Antragstext'  => [(string)($item['old_proposal_text'] ?? ''), $proposal_text],
+                ] as $feld => [$alt, $neu]) {
+                    $part = protokoll_feld_diff($feld, $alt, $neu);
+                    if ($part !== null) $diff_parts[] = $part;
+                }
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Bearbeiten',
+                    'Sitzung ' . $current_meeting_id . '/' . $item_id . ': ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)'));
 
                 error_log("EDIT TOP Success: Updated category from {$item['old_category']} to $category");
 
@@ -1080,7 +1092,7 @@ if (isset($_POST['save_single_comment'])) {
             $stmt->execute([$item_id, $current_user['member_id'], $comment_text]);
 
             [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Speichern', 'TOP-' . $item_id . ': ' . substr($comment_text, 0, 80));
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Speichern', 'TOP-' . $item_id . ': ' . $comment_text);
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
             exit;
@@ -1144,7 +1156,7 @@ if (isset($_POST['save_comment'])) {
             }
             
             [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Speichern', 'TOP-' . $item_id . ': ' . substr($comment_text, 0, 80));
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Speichern', 'TOP-' . $item_id . ': ' . $comment_text);
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
             exit;
@@ -1296,7 +1308,11 @@ if (isset($_POST['save_protocol'])) {
                 $stmt->execute([$vote_yes, $vote_no, $vote_abstain, $vote_result, $item_id]);
             }
             
-            // 2. Protokollnotizen speichern
+            // 2. Protokollnotizen speichern (alte Notizen für Diff vorher laden)
+            $stmt = $pdo->prepare("SELECT protocol_notes FROM svagenda_items WHERE item_id = ?");
+            $stmt->execute([$item_id]);
+            $old_protocol = (string)($stmt->fetchColumn() ?? '');
+
             $stmt = $pdo->prepare("
                 UPDATE svagenda_items
                 SET protocol_notes = ?
@@ -1305,7 +1321,8 @@ if (isset($_POST['save_protocol'])) {
             $stmt->execute([$protocol_text, $item_id]);
 
             [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Protokoll-Speichern', (string)$item_id);
+            $prot_diff = protokoll_feld_diff('Protokoll', $old_protocol, $protocol_text) ?? '(unverändert)';
+            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Protokoll-Speichern', 'TOP-' . $item_id . ': ' . $prot_diff);
 
             // 2. ToDo erstellen (falls gewünscht)
             $todo_arrays = [

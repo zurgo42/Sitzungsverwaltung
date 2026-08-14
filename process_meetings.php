@@ -465,7 +465,24 @@ if (isset($_POST['edit_meeting'])) {
         $pdo->commit();
 
         [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Bearbeiten', ($saved_data['meeting_name'] ?? '') . ' (ID:' . $meeting_id . ')');
+        $diff_parts = [];
+        foreach ([
+            'Sitzungsname'      => [(string)($meeting['meeting_name'] ?? ''),           $meeting_name],
+            'Datum'             => [(string)($meeting['meeting_date'] ?? ''),            $meeting_date],
+            'Ende'              => [(string)($meeting['expected_end_date'] ?? ''),       $expected_end_date ?? ''],
+            'Antragsschluss'    => [(string)($meeting['submission_deadline'] ?? ''),     $submission_deadline ?? ''],
+            'Ort'               => [(string)($meeting['location'] ?? ''),                $location],
+            'Video-Link'        => [(string)($meeting['video_link'] ?? ''),              $video_link],
+            'Sichtbarkeit'      => [(string)($meeting['visibility_type'] ?? ''),         $visibility_type],
+            'Beschluesse'       => [(string)($meeting['allow_decisions'] ?? 0),          (string)$allow_decisions],
+            'Erinnerungsmail'   => [(string)($meeting['send_agenda_reminder'] ?? 0),     (string)$send_agenda_reminder],
+            'Erinnerung-Emails' => [(string)($meeting['agenda_reminder_emails'] ?? ''),  $agenda_reminder_emails],
+        ] as $feld => [$alt, $neu]) {
+            $part = protokoll_feld_diff($feld, $alt, $neu);
+            if ($part !== null) $diff_parts[] = $part;
+        }
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Bearbeiten',
+            $meeting_name . ' (ID:' . $meeting_id . '): ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)'));
 
         header("Location: index.php?tab=meetings&success=updated&meeting_id=$meeting_id");
         exit;

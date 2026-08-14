@@ -276,10 +276,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_remarks'])) {
 
     if ($antrnr && $abstimmend > 0 && $abstimmend <= 6) {
         try {
-            // Prüfen ob User berechtigt ist
-            $check_stmt = $pdo->prepare("SELECT VName$abstimmend FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
+            // Prüfen ob User berechtigt ist (inkl. alte Werte für Diff)
+            $check_stmt = $pdo->prepare("SELECT VName{$abstimmend}, VBegr{$abstimmend} AS old_vbegr, VProt{$abstimmend} AS old_vprot FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
             $check_stmt->execute([$antrnr]);
-            $vname = $check_stmt->fetchColumn();
+            $check_row = $check_stmt->fetch(PDO::FETCH_ASSOC);
+            $vname = $check_row ? $check_row["VName{$abstimmend}"] : null;
 
             if ($vname == $user['member_id']) {
                 // Nur Bemerkungen speichern (Votum bleibt unverändert)
@@ -290,7 +291,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_remarks'])) {
 
                 $pdo->prepare($update_sql)->execute([$vbegr, $vprot, $antrnr]);
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
-                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Votum-Bemerkungen', $antrnr);
+                $diff_parts = [];
+                $part = protokoll_feld_diff('VBegr', (string)($check_row['old_vbegr'] ?? ''), $vbegr);
+                if ($part !== null) $diff_parts[] = $part;
+                $part = protokoll_feld_diff('VProt', (string)($check_row['old_vprot'] ?? ''), $vprot);
+                if ($part !== null) $diff_parts[] = $part;
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Votum-Bemerkungen',
+                    $antrnr . ': ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)'));
 
                 // Für AJAX-Anfragen JSON zurückgeben
                 if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
@@ -320,10 +327,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['votum_action'])) {
 
     if ($antrnr && $abstimmend > 0 && $abstimmend <= 6) {
         try {
-            // Prüfen ob User berechtigt ist
-            $check_stmt = $pdo->prepare("SELECT VName$abstimmend FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
+            // Prüfen ob User berechtigt ist (inkl. alte Werte für Diff)
+            $check_stmt = $pdo->prepare("SELECT VName{$abstimmend}, Votum{$abstimmend} AS old_votum, VBegr{$abstimmend} AS old_vbegr FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
             $check_stmt->execute([$antrnr]);
-            $vname = $check_stmt->fetchColumn();
+            $check_row = $check_stmt->fetch(PDO::FETCH_ASSOC);
+            $vname = $check_row ? $check_row["VName{$abstimmend}"] : null;
 
             if ($vname == $user['member_id']) {
                 // Votum speichern
@@ -347,7 +355,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['votum_action'])) {
                 $pdo->prepare($update_sql)->execute($params);
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
                 $votum_labels = [1 => 'Ja', 2 => 'Nein', 3 => 'Enthaltung', 4 => 'Befangen', 5 => 'Bedenkzeit'];
-                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Votum-Speichern', $antrnr . ' → ' . ($votum_labels[(int)$votum] ?? 'Votum-' . $votum));
+                $old_votum_str = $votum_labels[(int)($check_row['old_votum'] ?? 0)] ?? ('Votum-' . ($check_row['old_votum'] ?? '0'));
+                $new_votum_str = $votum_labels[(int)$votum] ?? ('Votum-' . $votum);
+                $diff_parts = [];
+                if ((string)($check_row['old_votum'] ?? '') !== (string)$votum) {
+                    $diff_parts[] = "Votum='" . $old_votum_str . "'→'" . $new_votum_str . "'";
+                }
+                $part = protokoll_feld_diff('VBegr', (string)($check_row['old_vbegr'] ?? ''), $vbegr);
+                if ($part !== null) $diff_parts[] = $part;
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Votum-Speichern',
+                    $antrnr . ': ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)'));
 
                 // Abstimmung auswerten
                 auswerten_abstimmung($pdo, $antrnr);
