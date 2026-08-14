@@ -205,13 +205,21 @@ if ($should_run) {
             $last_arch_stmt = $pdo->query(
                 "SELECT config_value FROM svconfig WHERE config_key = 'protokoll_last_archive' LIMIT 1"
             );
-            $last_archive = $last_arch_stmt ? $last_arch_stmt->fetchColumn() : null;
+            // fetchColumn() returns false (not null/empty) when the row doesn't exist
+            $last_archive = $last_arch_stmt ? $last_arch_stmt->fetchColumn() : false;
 
             // Tabelle protokoll existiert prüfen
             $tbl_check = $pdo->query("SHOW TABLES LIKE 'protokoll'");
             $protokoll_exists = $tbl_check && $tbl_check->rowCount() > 0;
 
-            if ($protokoll_exists && $last_archive !== $aktueller_monat) {
+            if ($last_archive === false) {
+                // Schlüssel existiert noch nicht → initialisieren, kein Archiv anlegen
+                $pdo->prepare(
+                    "INSERT INTO svconfig (config_key, config_value, config_type, config_description, config_group)
+                     VALUES ('protokoll_last_archive', ?, 'text', 'Letzter archivierter Protokoll-Monat (YYYYMM)', 'system')
+                     ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)"
+                )->execute([$aktueller_monat]);
+            } elseif ($protokoll_exists && $last_archive !== $aktueller_monat) {
                 $archiv_name = $aktueller_monat . 'protokoll'; // z.B. "202601protokoll"
 
                 // Archivtabelle anlegen und Daten kopieren
@@ -219,11 +227,13 @@ if ($should_run) {
                 $pdo->exec("INSERT INTO `{$archiv_name}` SELECT * FROM protokoll");
                 $pdo->exec("TRUNCATE TABLE protokoll");
 
-                // letzten Archivmonat merken
-                $upd = $pdo->prepare(
-                    "UPDATE svconfig SET config_value=? WHERE config_key='protokoll_last_archive'"
-                );
-                $upd->execute([$aktueller_monat]);
+                // letzten Archivmonat merken (INSERT … ON DUPLICATE KEY damit es auch klappt
+                // wenn der Schlüssel zwischenzeitlich gelöscht wurde)
+                $pdo->prepare(
+                    "INSERT INTO svconfig (config_key, config_value, config_type, config_description, config_group)
+                     VALUES ('protokoll_last_archive', ?, 'text', 'Letzter archivierter Protokoll-Monat (YYYYMM)', 'system')
+                     ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)"
+                )->execute([$aktueller_monat]);
 
                 $log_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron: protokoll archiviert als {$archiv_name}\n";
                 @file_put_contents(__DIR__ . '/pseudo_cron.log', $log_msg, FILE_APPEND);
