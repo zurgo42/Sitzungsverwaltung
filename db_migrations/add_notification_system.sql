@@ -27,6 +27,6 @@ CREATE TABLE IF NOT EXISTS svmail_notifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Konfigurationseintrag: Stunde für Digest-Versand (Standard: 18 Uhr)
-INSERT INTO svconfig (config_key, config_value, config_type, config_description, category)
+INSERT INTO svconfig (config_key, config_value, config_type, description, category)
 VALUES ('notification_digest_hour', '18', 'number', 'Stunde für den Digest-Versand (0–23)', 'notifications')
 ON DUPLICATE KEY UPDATE config_key = config_key;

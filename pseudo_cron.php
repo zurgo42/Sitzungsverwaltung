@@ -215,7 +215,7 @@ if ($should_run) {
             if ($last_archive === false) {
                 // Schlüssel existiert noch nicht → initialisieren, kein Archiv anlegen
                 $pdo->prepare(
-                    "INSERT INTO svconfig (config_key, config_value, config_type, config_description, config_group)
+                    "INSERT INTO svconfig (config_key, config_value, config_type, description, category)
                      VALUES ('protokoll_last_archive', ?, 'text', 'Letzter archivierter Protokoll-Monat (YYYYMM)', 'system')
                      ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)"
                 )->execute([$aktueller_monat]);
@@ -230,7 +230,7 @@ if ($should_run) {
                 // letzten Archivmonat merken (INSERT … ON DUPLICATE KEY damit es auch klappt
                 // wenn der Schlüssel zwischenzeitlich gelöscht wurde)
                 $pdo->prepare(
-                    "INSERT INTO svconfig (config_key, config_value, config_type, config_description, config_group)
+                    "INSERT INTO svconfig (config_key, config_value, config_type, description, category)
                      VALUES ('protokoll_last_archive', ?, 'text', 'Letzter archivierter Protokoll-Monat (YYYYMM)', 'system')
                      ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)"
                 )->execute([$aktueller_monat]);
@@ -264,7 +264,7 @@ if ($should_run) {
             if ($nm_last_digest !== $today_d && (int)date('H') >= $digest_hour) {
                 nm_process_digest($pdo);
                 $pdo->prepare(
-                    "INSERT INTO svconfig (config_key, config_value, config_type, config_description, config_group)
+                    "INSERT INTO svconfig (config_key, config_value, config_type, description, category)
                      VALUES ('nm_last_digest_date', ?, 'text', 'Datum des letzten Digest-Versands', 'notifications')
                      ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)"
                 )->execute([$today_d]);
