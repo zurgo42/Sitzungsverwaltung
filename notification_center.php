@@ -210,6 +210,10 @@ body.dark-mode .notification-footer {
         </button>
     </div>
 
+    <div style="padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.15);text-align:right;">
+        <a href="meine_benachrichtigungen.php" style="color:rgba(255,255,255,.8);font-size:11px;text-decoration:none;">⚙ E-Mail-Einstellungen</a>
+    </div>
+
     <div class="notification-list" id="notification-list">
         <?php if (empty($notifications)): ?>
             <div class="notification-empty">
