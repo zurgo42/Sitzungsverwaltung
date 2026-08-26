@@ -770,9 +770,6 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                     <span class="icon">🌙</span>
                 </button>
 
-                <!-- Benachrichtigungseinstellungen (immer sichtbar) -->
-                <a href="meine_benachrichtigungen.php" class="logout-btn" title="E-Mail-Benachrichtigungseinstellungen" style="font-size:12px;padding:6px 10px;">🔔</a>
-
                 <?php if ($display_mode === 'SSOdirekt' && $sso_config): ?>
                     <!-- Zurück-Button für SSOdirekt-Modus -->
                     <a href="<?php echo $sso_config['back_button_url']; ?>" class="logout-btn sso-back-button">

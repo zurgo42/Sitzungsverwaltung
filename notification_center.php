@@ -195,7 +195,7 @@ body.dark-mode .notification-footer {
 
 <!-- Notification Bell -->
 <div class="notification-bell" id="notification-bell" onclick="toggleNotificationDropdown()">
-    🔔 Nachricht
+    🔔 Nachrichten
     <?php if ($unread_count > 0): ?>
         <span class="notification-badge" id="notification-badge"><?php echo $unread_count; ?></span>
     <?php endif; ?>
@@ -208,10 +208,6 @@ body.dark-mode .notification-footer {
         <button onclick="markAllRead()" style="background: transparent; border: none; color: white; cursor: pointer; font-size: 12px;">
             Alle gelesen
         </button>
-    </div>
-
-    <div style="padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.15);text-align:right;">
-        <a href="meine_benachrichtigungen.php" style="color:rgba(255,255,255,.8);font-size:11px;text-decoration:none;">⚙ E-Mail-Einstellungen</a>
     </div>
 
     <div class="notification-list" id="notification-list">
@@ -254,6 +250,13 @@ body.dark-mode .notification-footer {
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
+    </div>
+    <div class="notification-footer">
+        <a href="meine_benachrichtigungen.php"
+           style="display:inline-block;background:#2196f3;color:#fff;font-weight:600;font-size:13px;
+                  padding:8px 20px;border-radius:5px;text-decoration:none;">
+            ⚙ E-Mail-Einstellungen
+        </a>
     </div>
 </div>
 
