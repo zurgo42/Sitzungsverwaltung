@@ -174,6 +174,20 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
         [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
         protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Erstellen', substr($title ?? '', 0, 80));
 
+        // E-Mail-Benachrichtigung: ToDo zugewiesen (nur wenn Empfänger ≠ Ersteller)
+        if ($assigned_to !== $currentMemberID) {
+            if (!function_exists('nm_event_todo_zugewiesen') && file_exists(__DIR__ . '/notification_mailer.php')) {
+                require_once __DIR__ . '/notification_mailer.php';
+            }
+            if (function_exists('nm_event_todo_zugewiesen')) {
+                $assignee_member = get_member_by_id($pdo, $assigned_to);
+                if ($assignee_member) {
+                    $creator_name = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
+                    nm_event_todo_zugewiesen($pdo, $assignee_member, $title, $description, $due_date, $creator_name);
+                }
+            }
+        }
+
         $_SESSION['success'] = 'ToDo erfolgreich erstellt';
         header('Location: index.php?tab=todos');
         exit;

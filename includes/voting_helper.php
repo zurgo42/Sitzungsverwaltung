@@ -268,17 +268,21 @@ function auswerten_abstimmung($pdo, $antrnr, $force = false) {
 
     $regel = $antrag['abstimmregel'] ?? 'einfach';
 
+    $nm_angenommen = null;
     if ($antrag['bart'] === 'V' && (!isset($antrag['abstimmregel']) || $regel === 'einfach')) {
-        if ($ja > 0 && $nein == 0) beschluss_annehmen($pdo, $antrnr, $antrag);
-        else                         beschluss_ablehnen($pdo, $antrnr);
+        if ($ja > 0 && $nein == 0) { beschluss_annehmen($pdo, $antrnr, $antrag); $nm_angenommen = true; }
+        else                         { beschluss_ablehnen($pdo, $antrnr); $nm_angenommen = false; }
     } elseif ($antrag['bart'] === 'R' && (!isset($antrag['abstimmregel']) || $regel === 'einfach')) {
-        if ($ja == 2 && $nein == 0) beschluss_annehmen($pdo, $antrnr, $antrag);
-        else                         beschluss_ablehnen($pdo, $antrnr);
+        if ($ja == 2 && $nein == 0) { beschluss_annehmen($pdo, $antrnr, $antrag); $nm_angenommen = true; }
+        else                         { beschluss_ablehnen($pdo, $antrnr); $nm_angenommen = false; }
     } else {
         $ergebnis = pruefe_abstimmungsergebnis($regel, $ja, $nein, $enthaltung, $abstimmende);
-        if ($ergebnis['erfolg']) beschluss_annehmen($pdo, $antrnr, $antrag);
-        else                      beschluss_ablehnen($pdo, $antrnr);
+        if ($ergebnis['erfolg']) { beschluss_annehmen($pdo, $antrnr, $antrag); $nm_angenommen = true; }
+        else                      { beschluss_ablehnen($pdo, $antrnr); $nm_angenommen = false; }
         error_log("Abstimmung {$antrnr}: Regel={$regel}, Ja={$ja}, Nein={$nein}, Enthaltung={$enthaltung}, Ergebnis=" . ($ergebnis['erfolg'] ? 'ANGENOMMEN' : 'ABGELEHNT') . ($force ? ' [FRISTABLAUF]' : ''));
+    }
+    if ($nm_angenommen !== null && function_exists('nm_event_antrag_beschlossen')) {
+        nm_event_antrag_beschlossen($pdo, $antrnr, $antrag['titel'] ?? '', $nm_angenommen);
     }
 }
 

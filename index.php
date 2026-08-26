@@ -776,6 +776,8 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                         <?php echo $sso_config['back_button_text']; ?>
                     </a>
                 <?php else: ?>
+                    <!-- Benachrichtigungseinstellungen -->
+                    <a href="meine_benachrichtigungen.php" class="logout-btn" title="E-Mail-Benachrichtigungseinstellungen" style="font-size:12px;padding:6px 10px;">🔔</a>
                     <!-- Normaler Logout-Button -->
                     <a href="?logout=1" class="logout-btn">Abmelden</a>
                 <?php endif; ?>

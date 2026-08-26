@@ -263,6 +263,14 @@ if (isset($_POST['add_agenda_item'])) {
             [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
             protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Neu', 'Sitzung ' . $current_meeting_id . ': ' . substr($title, 0, 80));
 
+            // E-Mail-Benachrichtigung: Neuer TOP
+            if (!function_exists('nm_event_top_neu') && file_exists(__DIR__ . '/notification_mailer.php')) {
+                require_once __DIR__ . '/notification_mailer.php';
+            }
+            if (function_exists('nm_event_top_neu') && isset($meeting)) {
+                nm_event_top_neu($pdo, $current_meeting_id, $title, $meeting['meeting_date'] ?? '', $meeting['meeting_name'] ?? '');
+            }
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
             exit;
 
@@ -1094,6 +1102,20 @@ if (isset($_POST['save_single_comment'])) {
             [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
             protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Speichern', 'TOP-' . $item_id . ': ' . $comment_text);
 
+            // E-Mail-Benachrichtigung: Kommentar zu TOP
+            if (!function_exists('nm_event_top_kommentar') && file_exists(__DIR__ . '/notification_mailer.php')) {
+                require_once __DIR__ . '/notification_mailer.php';
+            }
+            if (function_exists('nm_event_top_kommentar')) {
+                $nm_item_stmt = $pdo->prepare("SELECT ai.title, m.meeting_date, m.meeting_name FROM svagenda_items ai JOIN svmeetings m ON ai.meeting_id = m.meeting_id WHERE ai.item_id = ?");
+                $nm_item_stmt->execute([$item_id]);
+                $nm_item = $nm_item_stmt->fetch(PDO::FETCH_ASSOC);
+                if ($nm_item) {
+                    $nm_author = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
+                    nm_event_top_kommentar($pdo, $current_meeting_id, $nm_item['title'], $nm_item['meeting_date'], $nm_item['meeting_name'], $comment_text, $nm_author);
+                }
+            }
+
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
             exit;
 
@@ -1157,6 +1179,20 @@ if (isset($_POST['save_comment'])) {
             
             [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
             protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Kommentar-Speichern', 'TOP-' . $item_id . ': ' . $comment_text);
+
+            // E-Mail-Benachrichtigung: Kommentar zu TOP
+            if (!function_exists('nm_event_top_kommentar') && file_exists(__DIR__ . '/notification_mailer.php')) {
+                require_once __DIR__ . '/notification_mailer.php';
+            }
+            if (function_exists('nm_event_top_kommentar')) {
+                $nm_item_stmt2 = $pdo->prepare("SELECT ai.title, m.meeting_date, m.meeting_name FROM svagenda_items ai JOIN svmeetings m ON ai.meeting_id = m.meeting_id WHERE ai.item_id = ?");
+                $nm_item_stmt2->execute([$item_id]);
+                $nm_item2 = $nm_item_stmt2->fetch(PDO::FETCH_ASSOC);
+                if ($nm_item2) {
+                    $nm_author2 = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
+                    nm_event_top_kommentar($pdo, $current_meeting_id, $nm_item2['title'], $nm_item2['meeting_date'], $nm_item2['meeting_name'], $comment_text, $nm_author2);
+                }
+            }
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
             exit;

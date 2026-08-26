@@ -146,6 +146,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
         protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Neu', $neue_antrnr . ' (' . $selected_bart . ')');
 
+        // E-Mail-Benachrichtigung: Neuer Antrag
+        if (!function_exists('nm_event_antrag_neu') && file_exists(__DIR__ . '/notification_mailer.php')) {
+            require_once __DIR__ . '/notification_mailer.php';
+        }
+        if (function_exists('nm_event_antrag_neu')) {
+            $bart_label = isset($aktive_typen[$selected_bart]['name']) ? $aktive_typen[$selected_bart]['name'] : $selected_bart;
+            nm_event_antrag_neu($pdo, $neue_antrnr, '', $bart_label);
+        }
+
         // Zur Bearbeitung weiterleiten
         header('Location: antrag_bearbeiten.php?antrnr=' . urlencode($neue_antrnr) . '&created=1');
         exit;

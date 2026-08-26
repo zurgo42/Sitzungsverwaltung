@@ -233,6 +233,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
                 protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Speichern', $prot_diff);
 
+                // E-Mail-Benachrichtigung: Antrag geändert
+                if (!function_exists('nm_event_antrag_geaendert') && file_exists(__DIR__ . '/notification_mailer.php')) {
+                    require_once __DIR__ . '/notification_mailer.php';
+                }
+                if (function_exists('nm_event_antrag_geaendert')) {
+                    $notif_titel = trim($_POST['titel'] ?? ($antrag['titel'] ?? ''));
+                    nm_event_antrag_geaendert($pdo, $antrnr, $notif_titel, $prot_diff);
+                }
+
                 // Wartezeitverkürzung verarbeiten
                 if (isset($_POST['wartezeit_verkuerzen']) && $_POST['wartezeit_verkuerzen'] == 1) {
                     if ($user['aktiv'] >= 18 && $antrag['antrst'] != $user['member_id']) {
@@ -613,7 +622,13 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 
     $_POST['neue_antrnr'] = $neue_nr;
 
-    // TODO: Email-Benachrichtigung an Abstimmende (später)
+    // E-Mail-Benachrichtigung: Antrag zur Abstimmung eingestellt
+    if (!function_exists('nm_event_antrag_abstimmung') && file_exists(__DIR__ . '/notification_mailer.php')) {
+        require_once __DIR__ . '/notification_mailer.php';
+    }
+    if (function_exists('nm_event_antrag_abstimmung')) {
+        nm_event_antrag_abstimmung($pdo, $antrnr, $neue_nr, $antrag['titel'] ?? '', '');
+    }
 }
 
 // Löschen-Funktion

@@ -243,6 +243,34 @@ if ($should_run) {
             @file_put_contents(__DIR__ . '/pseudo_cron.log', $error_msg, FILE_APPEND);
         }
 
+        // ---- E-Mail-Benachrichtigungen verarbeiten ----
+        if (!function_exists('nm_process_immediate')) {
+            $nm_file = __DIR__ . '/notification_mailer.php';
+            if (file_exists($nm_file)) require_once $nm_file;
+        }
+        if (function_exists('nm_process_immediate')) {
+            // Sofort-Nachrichten verarbeiten (jede Minute)
+            nm_process_immediate($pdo);
+
+            // Digest einmal täglich nach der konfigurierten Stunde versenden
+            $dh_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'notification_digest_hour' LIMIT 1");
+            $digest_hour = $dh_stmt ? (int)($dh_stmt->fetchColumn() ?: 18) : 18;
+
+            $ld_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'nm_last_digest_date' LIMIT 1");
+            $nm_last_digest_row = $ld_stmt ? $ld_stmt->fetchColumn() : false;
+            $nm_last_digest = ($nm_last_digest_row !== false) ? (string)$nm_last_digest_row : '';
+
+            $today_d = date('Y-m-d');
+            if ($nm_last_digest !== $today_d && (int)date('H') >= $digest_hour) {
+                nm_process_digest($pdo);
+                $pdo->prepare(
+                    "INSERT INTO svconfig (config_key, config_value, config_type, config_description, config_group)
+                     VALUES ('nm_last_digest_date', ?, 'text', 'Datum des letzten Digest-Versands', 'notifications')
+                     ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)"
+                )->execute([$today_d]);
+            }
+        }
+
     } catch (Exception $e) {
         // Fehler loggen aber nicht ausgeben (um Seite nicht zu stören)
         $error_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron Error: " . $e->getMessage() . "\n";

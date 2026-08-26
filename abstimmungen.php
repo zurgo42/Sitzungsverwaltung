@@ -13,6 +13,7 @@ require_once 'config_adapter.php';
 require_once 'member_functions.php';
 require_once 'includes/voting_helper.php';
 require_once 'protokoll_helper.php';
+require_once 'notification_mailer.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php');
@@ -386,7 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_hinweis'])) {
     $neuer_hinweis = $_POST['neuerhinweis'] ?? '';
 
     if ($antrnr && $neuer_hinweis) {
-        $stmt = $pdo->prepare("SELECT hinweis FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
+        $stmt = $pdo->prepare("SELECT hinweis, titel FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
         $stmt->execute([$antrnr]);
         $antrag = $stmt->fetch();
 
@@ -398,6 +399,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_hinweis'])) {
         $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET hinweis = ? WHERE antrnr = ?")->execute([$hinweis, $antrnr]);
         [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
         protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Abstimmung-Hinweis', $antrnr);
+
+        if (function_exists('nm_event_antrag_hinweis')) {
+            nm_event_antrag_hinweis($pdo, $antrnr, $antrag['titel'] ?? '', $neuer_hinweis);
+        }
 
         header("Location: abstimmungen.php?antrnr=" . urlencode($antrnr) . "&msg=hinweis");
         exit;
