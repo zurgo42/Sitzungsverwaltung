@@ -846,115 +846,128 @@ if (isset($_SESSION['error'])) {
         echo '<div class="error-message">Umfrage nicht gefunden</div>';
         echo '<a href="?tab=termine" class="btn-secondary">← Zurück zur Übersicht</a>';
     } else {
-        // Creator-Namen über Adapter laden
-        if ($poll['created_by_member_id']) {
-            $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
-            if ($creator) {
-                $poll['creator_first_name'] = $creator['first_name'];
-                $poll['creator_last_name'] = $creator['last_name'];
-            }
-        }
-        // Terminvorschläge laden
-        $stmt = $pdo->prepare("
-            SELECT * FROM svpoll_dates
-            WHERE poll_id = ?
-            ORDER BY sort_order, suggested_date
-        ");
-        $stmt->execute([$poll_id]);
-        $poll_dates = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Alle Antworten laden
-        $stmt = $pdo->prepare("
-            SELECT pr.*
-            FROM svpoll_responses pr
-            WHERE pr.poll_id = ?
-        ");
-        $stmt->execute([$poll_id]);
-        $all_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Member- und Externe-Teilnehmer-Namen nachladen
-        foreach ($all_responses as &$response) {
-            if ($response['member_id']) {
-                // participant_key IMMER setzen (auch wenn get_member_by_id fehlschlägt)
-                $response['participant_key'] = 'member_' . $response['member_id'];
-
-                $member = get_member_by_id($pdo, $response['member_id']);
-                if ($member) {
-                    $response['first_name'] = $member['first_name'] ?? '';
-                    $response['last_name'] = $member['last_name'] ?? '';
-                } else {
-                    // Fallback: Member nicht gefunden
-                    $response['first_name'] = 'User';
-                    $response['last_name'] = '#' . $response['member_id'];
-                }
-            } elseif ($response['external_participant_id']) {
-                // participant_key IMMER setzen
-                $response['participant_key'] = 'external_' . $response['external_participant_id'];
-
-                // Externen Teilnehmer laden
-                $ext_stmt = $pdo->prepare("SELECT first_name, last_name FROM svexternal_participants WHERE external_id = ?");
-                $ext_stmt->execute([$response['external_participant_id']]);
-                $ext = $ext_stmt->fetch(PDO::FETCH_ASSOC);
-                if ($ext) {
-                    $response['first_name'] = $ext['first_name'] ?? '';
-                    $response['last_name'] = $ext['last_name'] ?? '';
-                } else {
-                    // Fallback: Externer Teilnehmer nicht gefunden
-                    $response['first_name'] = 'Extern';
-                    $response['last_name'] = '#' . $response['external_participant_id'];
+        $_poll_load_error = null;
+        try {
+            // Creator-Namen über Adapter laden
+            if ($poll['created_by_member_id']) {
+                $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
+                if ($creator) {
+                    $poll['creator_first_name'] = $creator['first_name'];
+                    $poll['creator_last_name'] = $creator['last_name'];
                 }
             }
-        }
+            // Terminvorschläge laden
+            $stmt = $pdo->prepare("
+                SELECT * FROM svpoll_dates
+                WHERE poll_id = ?
+                ORDER BY sort_order, suggested_date
+            ");
+            $stmt->execute([$poll_id]);
+            $poll_dates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Alle eingeladenen Teilnehmer laden
-        $stmt = $pdo->prepare("
-            SELECT pp.member_id
-            FROM svpoll_participants pp
-            WHERE pp.poll_id = ?
-        ");
-        $stmt->execute([$poll_id]);
-        $poll_participants_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Alle Antworten laden
+            $stmt = $pdo->prepare("
+                SELECT pr.*
+                FROM svpoll_responses pr
+                WHERE pr.poll_id = ?
+            ");
+            $stmt->execute([$poll_id]);
+            $all_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Member-Namen über Adapter nachladen und nur erfolgreiche behalten
-        $poll_participants = [];
-        foreach ($poll_participants_raw as $participant) {
-            if ($participant['member_id']) {
-                $member = get_member_by_id($pdo, $participant['member_id']);
-                if ($member) {
-                    $poll_participants[] = [
-                        'member_id' => $participant['member_id'],
-                        'first_name' => $member['first_name'] ?? '',
-                        'last_name' => $member['last_name'] ?? '',
-                        'participant_key' => 'member_' . $participant['member_id']
-                    ];
+            // Member- und Externe-Teilnehmer-Namen nachladen
+            foreach ($all_responses as &$response) {
+                if ($response['member_id']) {
+                    $response['participant_key'] = 'member_' . $response['member_id'];
+                    $member = get_member_by_id($pdo, $response['member_id']);
+                    if ($member) {
+                        $response['first_name'] = $member['first_name'] ?? '';
+                        $response['last_name'] = $member['last_name'] ?? '';
+                    } else {
+                        $response['first_name'] = 'User';
+                        $response['last_name'] = '#' . $response['member_id'];
+                    }
+                } elseif ($response['external_participant_id']) {
+                    $response['participant_key'] = 'external_' . $response['external_participant_id'];
+                    $ext_stmt = $pdo->prepare("SELECT first_name, last_name FROM svexternal_participants WHERE external_id = ?");
+                    $ext_stmt->execute([$response['external_participant_id']]);
+                    $ext = $ext_stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($ext) {
+                        $response['first_name'] = $ext['first_name'] ?? '';
+                        $response['last_name'] = $ext['last_name'] ?? '';
+                    } else {
+                        $response['first_name'] = 'Extern';
+                        $response['last_name'] = '#' . $response['external_participant_id'];
+                    }
                 }
             }
-        }
-        // Nach Nachname sortieren
-        usort($poll_participants, function($a, $b) {
-            return strcmp($a['last_name'] ?? '', $b['last_name'] ?? '');
-        });
 
-        // User's aktuelle Antworten laden
-        $stmt = $pdo->prepare("
-            SELECT date_id, vote
-            FROM svpoll_responses
-            WHERE poll_id = ? AND member_id = ?
-        ");
-        $stmt->execute([$poll_id, $current_user['member_id']]);
-        $user_votes = [];
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $user_votes[$row['date_id']] = (int)$row['vote'];
-        }
+            // Alle eingeladenen Teilnehmer laden
+            $stmt = $pdo->prepare("
+                SELECT pp.member_id
+                FROM svpoll_participants pp
+                WHERE pp.poll_id = ?
+            ");
+            $stmt->execute([$poll_id]);
+            $poll_participants_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Berechtigungen
-        $is_creator = ($poll['created_by_member_id'] == $current_user['member_id']);
-        $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
-        $can_edit = $is_creator || $is_admin;
-        $can_vote = $poll['status'] === 'open';
+            $poll_participants = [];
+            foreach ($poll_participants_raw as $participant) {
+                if ($participant['member_id']) {
+                    $member = get_member_by_id($pdo, $participant['member_id']);
+                    if ($member) {
+                        $poll_participants[] = [
+                            'member_id' => $participant['member_id'],
+                            'first_name' => $member['first_name'] ?? '',
+                            'last_name' => $member['last_name'] ?? '',
+                            'participant_key' => 'member_' . $participant['member_id']
+                        ];
+                    }
+                }
+            }
+            usort($poll_participants, function($a, $b) {
+                return strcmp($a['last_name'] ?? '', $b['last_name'] ?? '');
+            });
+
+            // User's aktuelle Antworten laden
+            $stmt = $pdo->prepare("
+                SELECT date_id, vote
+                FROM svpoll_responses
+                WHERE poll_id = ? AND member_id = ?
+            ");
+            $stmt->execute([$poll_id, $current_user['member_id']]);
+            $user_votes = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $user_votes[$row['date_id']] = (int)$row['vote'];
+            }
+
+            // Berechtigungen
+            $is_creator = ($poll['created_by_member_id'] == $current_user['member_id']);
+            $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
+            $can_edit = $is_creator || $is_admin;
+            $can_vote = $poll['status'] === 'open';
+
+        } catch (Exception $_poll_ex) {
+            $_poll_load_error = $_poll_ex->getMessage();
+            error_log('tab_termine.php poll view error: ' . $_poll_load_error);
+            // Sichere Defaults damit HTML nicht bricht
+            $poll_dates = [];
+            $all_responses = [];
+            $poll_participants = [];
+            $user_votes = [];
+            $is_creator = false;
+            $is_admin = false;
+            $can_edit = false;
+            $can_vote = false;
+        }
     ?>
 
         <a href="?tab=termine" class="btn-secondary" style="margin-bottom: 20px;">← Zurück zur Übersicht</a>
+
+        <?php if (!empty($_poll_load_error)): ?>
+        <div class="error-message" style="margin-bottom: 20px;">
+            Fehler beim Laden der Umfrage: <?php echo htmlspecialchars($_poll_load_error); ?>
+        </div>
+        <?php endif; ?>
 
         <div class="poll-card status-<?php echo $poll['status']; ?>" style="margin-bottom: 20px;">
             <div class="poll-header">

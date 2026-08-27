@@ -728,7 +728,7 @@ if ($view === 'dashboard') {
     echo '<div class="dashboard-header">';
     echo '<h2>Terminplanung</h2>';
     if ($current_user) {
-        echo '<a href="' . $terminplanung_self_url . '?view=create" class="btn-primary">+ Neue Umfrage erstellen</a>';
+        echo '<a href="' . $terminplanung_share_url . '?view=create" class="btn-primary">+ Neue Umfrage erstellen</a>';
     }
     echo '</div>';
 
@@ -747,13 +747,13 @@ if ($view === 'dashboard') {
         if (!empty($poll['description'])) {
             echo '<p>' . nl2br(htmlspecialchars($poll['description'])) . '</p>';
         }
-        echo '<a href="' . $terminplanung_self_url . '?view=poll&poll_id=' . $poll['poll_id'] . '" class="btn-secondary">Ansehen →</a>';
+        echo '<a href="' . $terminplanung_share_url . '?view=poll&poll_id=' . $poll['poll_id'] . '" class="btn-secondary">Ansehen →</a>';
         echo '</div>';
     }
 
 } elseif ($view === 'create') {
     // Einfaches Formular zum Erstellen
-    echo '<div style="margin-bottom:16px;"><a href="' . $terminplanung_self_url . '" class="btn-secondary">← Übersicht</a></div>';
+    echo '<div style="margin-bottom:16px;"><a href="' . $terminplanung_share_url . '" class="btn-secondary">← Übersicht</a></div>';
     echo '<h2>Neue Terminumfrage erstellen</h2>';
     echo '<form method="POST" action="' . htmlspecialchars($terminplanung_self_url) . '">';
     echo '<input type="hidden" name="terminplanung_action" value="create_poll">';
@@ -789,7 +789,7 @@ if ($view === 'dashboard') {
             'Sunday' => 'Sonntag'
         ];
 
-        echo '<div style="margin-bottom:16px;"><a href="' . $terminplanung_self_url . '" class="btn-secondary">← Übersicht</a></div>';
+        echo '<div style="margin-bottom:16px;"><a href="' . $terminplanung_share_url . '" class="btn-secondary">← Übersicht</a></div>';
         echo '<h2>' . htmlspecialchars($poll['title']) . '</h2>';
 
         if (!empty($poll['description'])) {

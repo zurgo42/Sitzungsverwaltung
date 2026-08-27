@@ -149,13 +149,14 @@ try {
                 exit;
             }
 
-            // Umfrage erstellen (meeting_id wird später beim Finalisieren gesetzt)
-            // access_token wird automatisch via Trigger generiert wenn target_type='individual'
+            // access_token immer generieren (für alle target_types, damit Weitergabe-Links funktionieren)
+            $new_access_token = bin2hex(random_bytes(16));
+
             $stmt = $pdo->prepare("
-                INSERT INTO svpolls (title, description, location, created_by_member_id, meeting_id, target_type, status, created_at)
-                VALUES (?, ?, ?, ?, NULL, ?, 'open', NOW())
+                INSERT INTO svpolls (title, description, location, created_by_member_id, meeting_id, target_type, status, access_token, created_at)
+                VALUES (?, ?, ?, ?, NULL, ?, 'open', ?, NOW())
             ");
-            $stmt->execute([$title, $description, $location, $current_user['member_id'], $target_type]);
+            $stmt->execute([$title, $description, $location, $current_user['member_id'], $target_type, $new_access_token]);
             $poll_id = $pdo->lastInsertId();
 
             // Teilnehmer nur bei target_type='list' hinzufügen
