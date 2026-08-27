@@ -263,12 +263,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                     break;
                 }
 
+                // Access-Token generieren (für Weitergabe-Link an externe Teilnehmer)
+                $new_access_token = bin2hex(random_bytes(16));
+
                 // Umfrage erstellen
                 $stmt = $pdo->prepare("
-                    INSERT INTO svpolls (title, description, location, created_by_member_id, status, created_at)
-                    VALUES (?, ?, ?, ?, 'open', NOW())
+                    INSERT INTO svpolls (title, description, location, created_by_member_id, status, access_token, created_at)
+                    VALUES (?, ?, ?, ?, 'open', ?, NOW())
                 ");
-                $stmt->execute([$title, $description, $location, $current_user['member_id']]);
+                $stmt->execute([$title, $description, $location, $current_user['member_id'], $new_access_token]);
                 $poll_id = $pdo->lastInsertId();
 
                 // Terminvorschläge hinzufügen
@@ -404,6 +407,15 @@ if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_termi
 }
 
 // Ansonsten: Standalone-Rendering
+
+// Kanonische URL zu terminplanung_standalone.php (funktioniert auch wenn per include eingebunden)
+$_tp_proto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$_tp_docroot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+$_tp_abspath = realpath(__FILE__);
+$_tp_relpath = str_replace('\\', '/', substr($_tp_abspath, strlen($_tp_docroot)));
+$terminplanung_self_url = $_tp_proto . '://' . $_SERVER['HTTP_HOST'] . $_tp_relpath;
+$terminplanung_self     = basename(__FILE__); // für relative Links (gleiche Directory)
+
 // Wenn poll_id vorhanden ist, automatisch poll-View wählen (für externe Teilnehmer)
 $poll_id = intval($_GET['poll_id'] ?? 0);
 if ($poll_id > 0 && !isset($_GET['view'])) {
@@ -710,7 +722,7 @@ if ($view === 'dashboard') {
     echo '<div class="dashboard-header">';
     echo '<h2>Terminplanung</h2>';
     if ($current_user) {
-        echo '<a href="?view=create" class="btn-primary">+ Neue Umfrage erstellen</a>';
+        echo '<a href="' . $terminplanung_self_url . '?view=create" class="btn-primary">+ Neue Umfrage erstellen</a>';
     }
     echo '</div>';
 
@@ -729,14 +741,15 @@ if ($view === 'dashboard') {
         if (!empty($poll['description'])) {
             echo '<p>' . nl2br(htmlspecialchars($poll['description'])) . '</p>';
         }
-        echo '<a href="?view=poll&poll_id=' . $poll['poll_id'] . '" class="btn-secondary">Ansehen →</a>';
+        echo '<a href="' . $terminplanung_self_url . '?view=poll&poll_id=' . $poll['poll_id'] . '" class="btn-secondary">Ansehen →</a>';
         echo '</div>';
     }
 
 } elseif ($view === 'create') {
     // Einfaches Formular zum Erstellen
+    echo '<div style="margin-bottom:16px;"><a href="' . $terminplanung_self_url . '" class="btn-secondary">← Übersicht</a></div>';
     echo '<h2>Neue Terminumfrage erstellen</h2>';
-    echo '<form method="POST">';
+    echo '<form method="POST" action="' . htmlspecialchars($terminplanung_self_url) . '">';
     echo '<input type="hidden" name="terminplanung_action" value="create_poll">';
     echo '<p><label>Titel: <input type="text" name="title" required style="width: 100%; padding: 8px;"></label></p>';
     echo '<p><label>Beschreibung: <textarea name="description" rows="3" style="width: 100%; padding: 8px;"></textarea></label></p>';
@@ -770,6 +783,7 @@ if ($view === 'dashboard') {
             'Sunday' => 'Sonntag'
         ];
 
+        echo '<div style="margin-bottom:16px;"><a href="' . $terminplanung_self_url . '" class="btn-secondary">← Übersicht</a></div>';
         echo '<h2>' . htmlspecialchars($poll['title']) . '</h2>';
 
         if (!empty($poll['description'])) {
@@ -778,6 +792,21 @@ if ($view === 'dashboard') {
 
         if (!empty($poll['location'])) {
             echo '<div class="poll-meta">📍 Ort: ' . htmlspecialchars($poll['location']) . '</div>';
+        }
+
+        // Weitergabe-Link anzeigen (für Ersteller/Admin)
+        if (!empty($poll['access_token']) && $current_user && can_edit_poll_standalone($poll, $current_user)) {
+            $share_url = $terminplanung_self_url . '?token=' . $poll['access_token'];
+            echo '<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:16px;margin:16px 0;">';
+            echo '<strong>🔗 Teilnahme-Link zum Weitergeben</strong>';
+            echo '<p style="font-size:13px;color:#555;margin:6px 0 10px;">Diesen Link können Sie an alle Teilnehmer weitergeben — auch ohne Login.</p>';
+            echo '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">';
+            echo '<input type="text" id="tp-share-url" value="' . htmlspecialchars($share_url) . '" readonly '
+                . 'style="flex:1;min-width:200px;padding:8px 10px;border:1px solid #ccc;border-radius:5px;font-size:13px;background:#fff;">';
+            echo '<button onclick="var i=document.getElementById(\'tp-share-url\');i.select();navigator.clipboard.writeText(i.value).then(function(){this.textContent=\'✓ Kopiert\';}.bind(this));" '
+                . 'style="padding:8px 16px;background:#4CAF50;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;white-space:nowrap;">Kopieren</button>';
+            echo '</div>';
+            echo '</div>';
         }
 
         // Terminvorschläge und Abstimmung
