@@ -401,6 +401,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
 // Szenario 3 (Öffentlich): $TERMINPLANUNG_PUBLIC_MODE=true → weiter unten, Standalone-Rendering.
 if (isset($MNr) && empty($TERMINPLANUNG_PUBLIC_MODE) && $current_user && file_exists(__DIR__ . '/tab_termine.php')) {
     $TERMINPLANUNG_MTOOL_MODE = true;
+
+    // Absolute URL zu SV's process_termine.php (für Form-Actions)
+    $_mtp_proto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $_mtp_docroot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+    $_mtp_proc    = realpath(__DIR__ . '/process_termine.php');
+    $terminplanung_process_url = $_mtp_proto . '://' . $_SERVER['HTTP_HOST']
+        . str_replace('\\', '/', substr($_mtp_proc, strlen($_mtp_docroot)));
+
+    // URL des aufrufenden MTool-Skripts (für Rückleitungen nach POST)
+    $_mtp_caller  = realpath($_SERVER['SCRIPT_FILENAME']);
+    $terminplanung_share_url = $_mtp_proto . '://' . $_SERVER['HTTP_HOST']
+        . str_replace('\\', '/', substr($_mtp_caller, strlen($_mtp_docroot)));
+
     if (file_exists(__DIR__ . '/functions.php')) {
         require_once __DIR__ . '/functions.php';
     }

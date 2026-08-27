@@ -14,6 +14,11 @@ require_once 'external_participants_functions.php';
 $view = $_GET['view'] ?? 'dashboard';
 $poll_id = intval($_GET['poll_id'] ?? 0);
 
+// Im MTool-Modus: absolute URL zu process_termine.php; in SV: relativer Pfad reicht
+$_tab_process_url = isset($terminplanung_process_url) ? $terminplanung_process_url : 'process_termine.php';
+// Redirect-Ziel nach POST: MTool-URL oder leer (process_termine.php kennt index.php als Default)
+$_tab_redirect_to = isset($terminplanung_share_url) ? $terminplanung_share_url : '';
+
 // Umfragen laden (nur die, bei denen User Teilnehmer oder Ersteller ist)
 $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
 
@@ -663,8 +668,9 @@ if (isset($_SESSION['error'])) {
     <div style="margin-bottom: 30px;">
         <button class="accordion-button create-poll-button" onclick="toggleAccordion(this)">➕ Neue Terminumfrage erstellen</button>
         <div class="accordion-content">
-            <form method="POST" action="process_termine.php" id="poll-create-form">
+            <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" id="poll-create-form">
                 <input type="hidden" name="action" value="create_poll">
+                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
 
                 <div class="form-group">
                     <label>Titel der Umfrage:*</label>
@@ -844,22 +850,25 @@ if (isset($_SESSION['error'])) {
 
                     <?php if ($can_edit): ?>
                         <?php if ($poll['status'] === 'open'): ?>
-                            <form method="POST" action="process_termine.php" style="display: inline;">
+                            <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="display: inline;">
                                 <input type="hidden" name="action" value="close_poll">
                                 <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
+                                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
                                 <button type="submit" class="btn-secondary" onclick="return confirm('Umfrage schließen?')">🔒 Schließen</button>
                             </form>
                         <?php elseif ($poll['status'] === 'closed'): ?>
-                            <form method="POST" action="process_termine.php" style="display: inline;">
+                            <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="display: inline;">
                                 <input type="hidden" name="action" value="reopen_poll">
                                 <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
+                                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
                                 <button type="submit" class="btn-secondary">🔓 Wieder öffnen</button>
                             </form>
                         <?php endif; ?>
 
-                        <form method="POST" action="process_termine.php" style="display: inline;">
+                        <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="display: inline;">
                             <input type="hidden" name="action" value="delete_poll">
                             <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
+                            <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
                             <button type="submit" class="btn-danger" onclick="return confirm('Umfrage wirklich löschen? Alle Abstimmungen gehen verloren!')">🗑️ Löschen</button>
                         </form>
                     <?php endif; ?>
@@ -1119,9 +1128,10 @@ if (isset($_SESSION['error'])) {
                 <strong>❌ Passt nicht</strong> – Der Termin passt mir nicht
             </p>
 
-            <form method="POST" action="process_termine.php">
+            <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>">
                 <input type="hidden" name="action" value="submit_vote">
                 <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
+                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
 
                 <table class="vote-matrix">
                     <thead>
@@ -1337,9 +1347,10 @@ if (isset($_SESSION['error'])) {
                     🔒 Finalisierung
                 </button>
                 <div class="accordion-content <?php echo $is_creator ? 'active' : ''; ?>">
-            <form method="POST" action="process_termine.php">
+            <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>">
                 <input type="hidden" name="action" value="finalize_poll">
                 <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
+                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
 
                 <div class="form-group">
                     <label>Finalen Termin auswählen:</label>

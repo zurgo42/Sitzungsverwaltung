@@ -57,6 +57,35 @@ if (!$current_user && !$is_external_participant) {
 }
 
 // ============================================
+// REDIRECT-BASIS
+// ============================================
+
+// MTool-Modus: redirect_to aus POST übernehmen wenn valide (gleicher Host)
+$_r_base = null;
+if (!empty($_POST['redirect_to'])) {
+    $rt = trim($_POST['redirect_to']);
+    $parsed = parse_url($rt);
+    if ($rt && strpos($rt, '//') !== 0 &&
+        (!isset($parsed['host']) || $parsed['host'] === $_SERVER['HTTP_HOST'])) {
+        $_r_base = $rt;
+    }
+}
+// Hilfsfunktion: URL für Poll-Ansicht
+function _r_poll($poll_id) {
+    global $_r_base;
+    if ($_r_base) {
+        $sep = strpos($_r_base, '?') !== false ? '&' : '?';
+        return $_r_base . $sep . 'view=poll&poll_id=' . intval($poll_id);
+    }
+    return 'index.php?tab=termine&view=poll&poll_id=' . intval($poll_id);
+}
+// Hilfsfunktion: URL für Dashboard
+function _r_dash() {
+    global $_r_base;
+    return $_r_base ?: 'index.php?tab=termine';
+}
+
+// ============================================
 // HILFSFUNKTIONEN
 // ============================================
 
@@ -138,14 +167,14 @@ try {
 
             if (empty($title)) {
                 $_SESSION['error'] = 'Bitte gib einen Titel ein';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
             // Teilnehmer nur bei target_type='list' erforderlich
             if ($target_type === 'list' && empty($participant_ids)) {
                 $_SESSION['error'] = 'Bitte wähle mindestens einen Teilnehmer aus';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
@@ -214,7 +243,7 @@ try {
             }
 
             $_SESSION['success'] = $success_message;
-            header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+            header('Location: ' . _r_poll($poll_id));
             exit;
 
         // ====== ABSTIMMUNG ABGEBEN ======
@@ -224,13 +253,13 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
             if ($poll['status'] !== 'open') {
                 $_SESSION['error'] = 'Diese Umfrage ist geschlossen';
-                header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+                header('Location: ' . _r_poll($poll_id));
                 exit;
             }
 
@@ -284,7 +313,7 @@ try {
 
             // Redirect je nach Teilnehmer-Typ
             if ($current_user) {
-                header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+                header('Location: ' . _r_poll($poll_id));
             } else {
                 header('Location: terminplanung_standalone.php?poll_id=' . $poll_id);
             }
@@ -299,14 +328,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
             // Berechtigung prüfen
             if (!can_edit_poll($poll, $current_user)) {
                 $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+                header('Location: ' . _r_poll($poll_id));
                 exit;
             }
 
@@ -417,7 +446,7 @@ try {
             }
 
             $_SESSION['success'] = $success_message;
-            header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+            header('Location: ' . _r_poll($poll_id));
             exit;
 
         // ====== UMFRAGE SCHLIESSEN (ohne Finalisierung) ======
@@ -427,14 +456,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
             // Berechtigung prüfen
             if (!can_edit_poll($poll, $current_user)) {
                 $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+                header('Location: ' . _r_poll($poll_id));
                 exit;
             }
 
@@ -442,7 +471,7 @@ try {
             $stmt->execute([$poll_id]);
 
             $_SESSION['success'] = 'Umfrage wurde geschlossen';
-            header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+            header('Location: ' . _r_poll($poll_id));
             exit;
 
         // ====== UMFRAGE WIEDER ÖFFNEN ======
@@ -452,14 +481,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
             // Berechtigung prüfen
             if (!can_edit_poll($poll, $current_user)) {
                 $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+                header('Location: ' . _r_poll($poll_id));
                 exit;
             }
 
@@ -467,7 +496,7 @@ try {
             $stmt->execute([$poll_id]);
 
             $_SESSION['success'] = 'Umfrage wurde wieder geöffnet';
-            header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+            header('Location: ' . _r_poll($poll_id));
             exit;
 
         // ====== UMFRAGE LÖSCHEN ======
@@ -477,14 +506,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
             // Berechtigung prüfen
             if (!can_edit_poll($poll, $current_user)) {
                 $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
@@ -493,18 +522,18 @@ try {
             $stmt->execute([$poll_id]);
 
             $_SESSION['success'] = 'Umfrage wurde gelöscht';
-            header('Location: index.php?tab=termine');
+            header('Location: ' . _r_dash());
             exit;
 
         default:
             $_SESSION['error'] = 'Unbekannte Aktion';
-            header('Location: index.php?tab=termine');
+            header('Location: ' . _r_dash());
             exit;
     }
 
 } catch (Exception $e) {
     $_SESSION['error'] = 'Ein Fehler ist aufgetreten: ' . $e->getMessage();
-    header('Location: index.php?tab=termine');
+    header('Location: ' . _r_dash());
     exit;
 }
 
