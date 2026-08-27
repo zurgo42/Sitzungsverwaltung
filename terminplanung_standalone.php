@@ -393,11 +393,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
 // VIEW RENDERING
 // ============================================
 
-// Standalone-Rendering: Diese Datei rendert immer ihre eigene Ansicht.
-// Szenario 1 (VTool/SV): index.php lädt tab_termine.php direkt – terminplanung_standalone.php
-//   wird dabei nicht eingebunden.
-// Szenario 2 (MTool): require_once dieser Datei → Standalone-Ansicht (einfach, kein SV-Overhead).
-// Szenario 3 (Öffentlich): $TERMINPLANUNG_PUBLIC_MODE=true → Standalone mit öffentlicher URL.
+// MTool-Modus: Aufrufer hat $MNr gesetzt und kein Public-Wrapper-Modus.
+// In diesem Fall nutzen wir tab_termine.php (vollständige Funktionalität),
+// blenden dort aber MTool-unpassende Bereiche (Abwesenheiten, Zielgruppe,
+// E-Mail-Optionen) per $TERMINPLANUNG_MTOOL_MODE aus.
+// Szenario 1 (VTool/SV): index.php lädt tab_termine.php direkt – diese Datei nicht beteiligt.
+// Szenario 3 (Öffentlich): $TERMINPLANUNG_PUBLIC_MODE=true → weiter unten, Standalone-Rendering.
+if (isset($MNr) && empty($TERMINPLANUNG_PUBLIC_MODE) && $current_user && file_exists(__DIR__ . '/tab_termine.php')) {
+    $TERMINPLANUNG_MTOOL_MODE = true;
+    if (file_exists(__DIR__ . '/functions.php')) {
+        require_once __DIR__ . '/functions.php';
+    }
+    // Minimaler HTML-Wrapper – tab_termine.php liefert seinen eigenen <style>-Block
+    echo '<!DOCTYPE html>' . "\n";
+    echo '<html lang="de"><head>';
+    echo '<meta charset="UTF-8">';
+    echo '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
+    echo '<title>Terminplanung</title>';
+    echo '</head><body style="margin:0;padding:0;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;">';
+    echo '<div style="max-width:1100px;margin:0 auto;padding:20px;">';
+    include __DIR__ . '/tab_termine.php';
+    echo '</div></body></html>';
+    return;
+}
 
 // Kanonische URL zu terminplanung_standalone.php (funktioniert auch wenn per include eingebunden)
 $_tp_proto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';

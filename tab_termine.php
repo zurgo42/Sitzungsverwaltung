@@ -107,6 +107,39 @@ function get_german_weekday_long($date_string) {
 ?>
 
 <style>
+/* Basis-Formularstyles (werden von SV-CSS überschrieben, decken MTool-Standalone-Betrieb ab) */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="date"],
+.form-group input[type="datetime-local"],
+.form-group input[type="number"],
+.form-group input[type="time"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
 /* Poll-spezifische Styles */
 .poll-card {
     background: white;
@@ -602,8 +635,8 @@ function copyToClipboard(text) {
 }
 </script>
 
-<!-- BENACHRICHTIGUNGEN -->
-<?php render_user_notifications($pdo, $current_user['member_id']); ?>
+<!-- BENACHRICHTIGUNGEN (nicht im MTool-Modus) -->
+<?php if (empty($TERMINPLANUNG_MTOOL_MODE)) render_user_notifications($pdo, $current_user['member_id']); ?>
 
 <h2>📆 Terminplanung & Umfragen</h2>
 
@@ -651,6 +684,10 @@ if (isset($_SESSION['error'])) {
                     </small>
                 </div>
 
+                <?php if (!empty($TERMINPLANUNG_MTOOL_MODE)): ?>
+                <!-- MTool-Modus: immer Individuell (Link), keine Auswahl -->
+                <input type="hidden" name="target_type" value="individual">
+                <?php else: ?>
                 <!-- Zielgruppe wählen -->
                 <div class="form-group" style="margin-top: 25px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
                     <h4 style="margin: 0 0 15px 0;">Zielgruppe wählen</h4>
@@ -663,7 +700,9 @@ if (isset($_SESSION['error'])) {
                         <strong>Ausgewählte registrierte Teilnehmer</strong>
                     </label>
                 </div>
+                <?php endif; ?>
 
+                <?php if (empty($TERMINPLANUNG_MTOOL_MODE)): ?>
                 <!-- Teilnehmer auswählen (nur bei target_type='list') -->
                 <div class="form-group" id="poll-participant-list-selection">
                     <label>Teilnehmer auswählen (nur diese sehen die Umfrage):*</label>
@@ -697,6 +736,7 @@ if (isset($_SESSION['error'])) {
                         </small>
                     </div>
                 </div>
+                <?php endif; // end !TERMINPLANUNG_MTOOL_MODE (Teilnehmer-Sektion) ?>
 
                 <!-- Terminvorschläge -->
                 <h3 style="margin-top: 25px; margin-bottom: 15px;">Terminvorschläge</h3>
@@ -1329,7 +1369,8 @@ if (isset($_SESSION['error'])) {
                     </small>
                 </div>
 
-                <!-- E-Mail-Optionen -->
+                <?php if (empty($TERMINPLANUNG_MTOOL_MODE)): ?>
+                <!-- E-Mail-Optionen (nicht im MTool-Modus) -->
                 <div class="form-group" style="margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px;">
                     <label style="font-weight: bold; display: block; margin-bottom: 10px;">📧 E-Mail-Benachrichtigungen:</label>
 
@@ -1363,6 +1404,7 @@ if (isset($_SESSION['error'])) {
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <button type="submit" class="btn-primary" onclick="return confirm('Finalen Termin festlegen? Die Umfrage wird damit abgeschlossen.')">
                     ✓ Finalen Termin festlegen
