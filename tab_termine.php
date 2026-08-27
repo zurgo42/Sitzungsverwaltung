@@ -114,7 +114,8 @@ function get_german_weekday_long($date_string) {
 <style>
 /* Basis-Formularstyles (werden von SV-CSS überschrieben, decken MTool-Standalone-Betrieb ab) */
 body { background: #f0f2f5; color: #333; }
-h2, h3, h4 { color: #333; }
+h2, h3, h4 { color: #333 !important; background: transparent !important; padding: 0 !important; }
+.poll-header { background: transparent !important; }
 a { color: #007bff; }
 .btn-primary, a.btn-primary  { background: #007bff !important; color: white !important; }
 .btn-secondary, a.btn-secondary { background: #6c757d !important; color: white !important; }
