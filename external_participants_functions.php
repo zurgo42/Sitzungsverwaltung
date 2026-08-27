@@ -318,6 +318,14 @@ function generate_external_access_link($poll_type, $poll_id_or_token, $use_token
         }
     }
 
+    // Fallback: $TERMINPLANUNG_PUBLIC_URL (gesetzt vom public-Wrapper oder MTool-Einbinder)
+    if ($poll_type === 'termine') {
+        global $TERMINPLANUNG_PUBLIC_URL;
+        if (!empty($TERMINPLANUNG_PUBLIC_URL)) {
+            return rtrim($TERMINPLANUNG_PUBLIC_URL, '/') . '?' . $param;
+        }
+    }
+
     // Base URL ermitteln
     if (defined('BASE_URL')) {
         $base = BASE_URL;

@@ -18,7 +18,10 @@
  *   ?>
  * - Voraussetzungen:
  *   - $pdo: PDO-Datenbankverbindung
- *   - $MNr: Mitgliedsnummer des eingeloggten Users (für berechtigte-Tabelle)
+ *   - $MNr: Mitgliedsnummer des eingeloggten Users
+ *   - $TERMINPLANUNG_PUBLIC_URL: öffentliche URL des public-Wrappers (für Weitergabe-Links)
+ *     z.B. 'https://aktive.mensa.de/termine/terminplanung_public.php'
+ *   - Optional: $terminplanung_share_url mit Routing-Parametern (z.B. '...mtool.php?steuer=231')
  *   - Optional: $HOST_URL_BASE für E-Mails
  *
  * Externer Zugriff (ohne Login):
