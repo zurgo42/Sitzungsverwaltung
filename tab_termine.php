@@ -846,7 +846,12 @@ if (isset($_SESSION['error'])) {
                 </div>
 
                 <div class="poll-actions" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; clear: both;">
-                    <a href="?tab=termine&view=poll&poll_id=<?php echo $poll['poll_id']; ?>" class="btn-primary" style="position: static; float: none;">
+                    <?php
+                        $_poll_view_url = !empty($_tab_redirect_to)
+                            ? $_tab_redirect_to . (strpos($_tab_redirect_to, '?') !== false ? '&' : '?') . 'view=poll&poll_id=' . $poll['poll_id']
+                            : '?tab=termine&view=poll&poll_id=' . $poll['poll_id'];
+                    ?>
+                    <a href="<?php echo htmlspecialchars($_poll_view_url); ?>" class="btn-primary" style="position: static; float: none;">
                         <?php echo $poll['status'] === 'open' ? '📝 Abstimmen' : '📊 Ergebnisse ansehen'; ?>
                     </a>
 
@@ -895,7 +900,7 @@ if (isset($_SESSION['error'])) {
 
     if (!$poll) {
         echo '<div class="error-message">Umfrage nicht gefunden</div>';
-        echo '<a href="?tab=termine" class="btn-secondary">← Zurück zur Übersicht</a>';
+        echo '<a href="' . htmlspecialchars(!empty($_tab_redirect_to) ? $_tab_redirect_to : '?tab=termine') . '" class="btn-secondary">← Zurück zur Übersicht</a>';
     } else {
         $_poll_load_error = null;
         try {
@@ -1012,7 +1017,7 @@ if (isset($_SESSION['error'])) {
         }
     ?>
 
-        <a href="?tab=termine" class="btn-secondary" style="margin-bottom: 20px;">← Zurück zur Übersicht</a>
+        <a href="<?php echo htmlspecialchars(!empty($_tab_redirect_to) ? $_tab_redirect_to : '?tab=termine'); ?>" class="btn-secondary" style="margin-bottom: 20px;">← Zurück zur Übersicht</a>
 
         <?php if (!empty($_poll_load_error)): ?>
         <div class="error-message" style="margin-bottom: 20px;">
