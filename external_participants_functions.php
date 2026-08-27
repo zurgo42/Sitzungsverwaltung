@@ -302,7 +302,15 @@ function validate_external_email($email) {
 function generate_external_access_link($poll_type, $poll_id_or_token, $use_token = false) {
     $param = $use_token ? "token=" . urlencode($poll_id_or_token) : "poll_id=" . intval($poll_id_or_token);
 
-    // svconfig-Eintrag hat höchste Priorität (konfigurierbare öffentliche URL)
+    // Höchste Priorität: $TERMINPLANUNG_PUBLIC_URL (explizit vom Aufrufer gesetzt)
+    if ($poll_type === 'termine') {
+        global $TERMINPLANUNG_PUBLIC_URL;
+        if (!empty($TERMINPLANUNG_PUBLIC_URL)) {
+            return rtrim($TERMINPLANUNG_PUBLIC_URL, '/') . '?' . $param;
+        }
+    }
+
+    // svconfig-Eintrag (konfigurierbare öffentliche URL, wird von explizitem $TERMINPLANUNG_PUBLIC_URL überstimmt)
     global $pdo;
     if ($pdo) {
         $cfg_key = ($poll_type === 'termine') ? 'terminplanung_standalone_url' : 'opinion_standalone_url';
@@ -315,14 +323,6 @@ function generate_external_access_link($poll_type, $poll_id_or_token, $use_token
             }
         } catch (Exception $e) {
             // svconfig nicht verfügbar – weiter mit Auto-Erkennung
-        }
-    }
-
-    // Fallback: $TERMINPLANUNG_PUBLIC_URL (gesetzt vom public-Wrapper oder MTool-Einbinder)
-    if ($poll_type === 'termine') {
-        global $TERMINPLANUNG_PUBLIC_URL;
-        if (!empty($TERMINPLANUNG_PUBLIC_URL)) {
-            return rtrim($TERMINPLANUNG_PUBLIC_URL, '/') . '?' . $param;
         }
     }
 

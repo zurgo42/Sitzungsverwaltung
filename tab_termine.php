@@ -1,6 +1,6 @@
 <?php
-require_once 'module_notifications.php';
-require_once 'external_participants_functions.php';
+require_once __DIR__ . '/module_notifications.php';
+require_once __DIR__ . '/external_participants_functions.php';
 
 /**
  * tab_termine.php - Terminplanung/Umfragen (Präsentation)
