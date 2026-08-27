@@ -672,7 +672,7 @@ if (isset($_SESSION['error'])) {
         <div class="accordion-content">
             <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" id="poll-create-form">
                 <input type="hidden" name="action" value="create_poll">
-                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($_tp_mtool_auth_mid)): ?><input type="hidden" name="mtool_auth_mid" value="<?php echo intval($_tp_mtool_auth_mid); ?>"><input type="hidden" name="mtool_auth_token" value="<?php echo htmlspecialchars($_tp_mtool_auth_token); ?>"><?php endif; ?>
+                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
 
                 <div class="form-group">
                     <label>Titel der Umfrage:*</label>
@@ -855,14 +855,14 @@ if (isset($_SESSION['error'])) {
                             <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="display: inline;">
                                 <input type="hidden" name="action" value="close_poll">
                                 <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
-                                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($_tp_mtool_auth_mid)): ?><input type="hidden" name="mtool_auth_mid" value="<?php echo intval($_tp_mtool_auth_mid); ?>"><input type="hidden" name="mtool_auth_token" value="<?php echo htmlspecialchars($_tp_mtool_auth_token); ?>"><?php endif; ?>
+                                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
                                 <button type="submit" class="btn-secondary" onclick="return confirm('Umfrage schließen?')">🔒 Schließen</button>
                             </form>
                         <?php elseif ($poll['status'] === 'closed'): ?>
                             <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="display: inline;">
                                 <input type="hidden" name="action" value="reopen_poll">
                                 <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
-                                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($_tp_mtool_auth_mid)): ?><input type="hidden" name="mtool_auth_mid" value="<?php echo intval($_tp_mtool_auth_mid); ?>"><input type="hidden" name="mtool_auth_token" value="<?php echo htmlspecialchars($_tp_mtool_auth_token); ?>"><?php endif; ?>
+                                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
                                 <button type="submit" class="btn-secondary">🔓 Wieder öffnen</button>
                             </form>
                         <?php endif; ?>
@@ -870,7 +870,7 @@ if (isset($_SESSION['error'])) {
                         <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="display: inline;">
                             <input type="hidden" name="action" value="delete_poll">
                             <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
-                            <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($_tp_mtool_auth_mid)): ?><input type="hidden" name="mtool_auth_mid" value="<?php echo intval($_tp_mtool_auth_mid); ?>"><input type="hidden" name="mtool_auth_token" value="<?php echo htmlspecialchars($_tp_mtool_auth_token); ?>"><?php endif; ?>
+                            <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
                             <button type="submit" class="btn-danger" onclick="return confirm('Umfrage wirklich löschen? Alle Abstimmungen gehen verloren!')">🗑️ Löschen</button>
                         </form>
                     <?php endif; ?>
@@ -1133,7 +1133,7 @@ if (isset($_SESSION['error'])) {
             <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>">
                 <input type="hidden" name="action" value="submit_vote">
                 <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
-                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($_tp_mtool_auth_mid)): ?><input type="hidden" name="mtool_auth_mid" value="<?php echo intval($_tp_mtool_auth_mid); ?>"><input type="hidden" name="mtool_auth_token" value="<?php echo htmlspecialchars($_tp_mtool_auth_token); ?>"><?php endif; ?>
+                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
 
                 <table class="vote-matrix">
                     <thead>
@@ -1352,7 +1352,7 @@ if (isset($_SESSION['error'])) {
             <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>">
                 <input type="hidden" name="action" value="finalize_poll">
                 <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
-                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($_tp_mtool_auth_mid)): ?><input type="hidden" name="mtool_auth_mid" value="<?php echo intval($_tp_mtool_auth_mid); ?>"><input type="hidden" name="mtool_auth_token" value="<?php echo htmlspecialchars($_tp_mtool_auth_token); ?>"><?php endif; ?>
+                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
 
                 <div class="form-group">
                     <label>Finalen Termin auswählen:</label>

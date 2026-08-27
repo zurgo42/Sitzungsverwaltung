@@ -80,19 +80,8 @@ if ($is_sitzungsverwaltung) {
         $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
     }
     // MTool-Kontext: $MNr gesetzt aber kein SV-Session → Mitglied per MNr laden
-    $_tp_mtool_auth_mid   = null;
-    $_tp_mtool_auth_token = null;
     if (!$current_user && isset($MNr) && $MNr) {
         $current_user = get_member_by_membership_number($pdo, $MNr);
-        if ($current_user) {
-            $_SESSION['tp_mtool_user'] = $current_user;
-        }
-    }
-    // HMAC-Token für sessionunabhängige Authentifizierung in process_termine.php
-    // (Session reicht nicht wenn MTool und SV unterschiedliche Session-Kontexte haben)
-    if ($current_user && isset($MNr)) {
-        $_tp_mtool_auth_mid   = $current_user['member_id'];
-        $_tp_mtool_auth_token = hash_hmac('sha256', $_tp_mtool_auth_mid . '|' . date('Y-m-d'), DB_PASS);
     }
 
 } else {
@@ -123,9 +112,6 @@ if ($is_sitzungsverwaltung) {
                 'role' => determine_role($ber['Funktion'], $ber['aktiv']),
                 'is_admin' => is_admin_user($ber['Funktion'], $ber['MNr'])
             ];
-            // In Session speichern damit process_termine.php den User authentifizieren kann
-            if (!isset($_SESSION)) { session_start(); }
-            $_SESSION['tp_mtool_user'] = $current_user;
         }
     }
 

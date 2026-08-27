@@ -44,16 +44,10 @@ if (isset($_SESSION['member_id'])) {
     }
 }
 
-// MTool-Fallback 1: Session (funktioniert wenn SV und MTool gleichen Session-Kontext teilen)
-if (!$current_user && isset($_SESSION['tp_mtool_user']) && is_array($_SESSION['tp_mtool_user'])) {
-    $current_user = $_SESSION['tp_mtool_user'];
-}
-// MTool-Fallback 2: HMAC-Token im POST (sessionunabhängig, DB_PASS als Secret, täglich gültig)
-if (!$current_user && !empty($_POST['mtool_auth_mid']) && !empty($_POST['mtool_auth_token'])) {
-    $expected = hash_hmac('sha256', intval($_POST['mtool_auth_mid']) . '|' . date('Y-m-d'), DB_PASS);
-    if (hash_equals($expected, $_POST['mtool_auth_token'])) {
-        $current_user = get_member_by_id($pdo, intval($_POST['mtool_auth_mid']));
-    }
+// MTool-Fallback: MNr aus Hidden-Field → Mitglied aus DB laden
+// (MTool setzt $MNr und gibt sie als mtool_mnr mit; keine Session nötig)
+if (!$current_user && !empty($_POST['mtool_mnr'])) {
+    $current_user = get_member_by_membership_number($pdo, trim($_POST['mtool_mnr']));
 }
 
 // Externe Teilnehmer-Session prüfen
