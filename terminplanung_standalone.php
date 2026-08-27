@@ -413,8 +413,14 @@ $_tp_proto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'htt
 $_tp_docroot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
 $_tp_abspath = realpath(__FILE__);
 $_tp_relpath = str_replace('\\', '/', substr($_tp_abspath, strlen($_tp_docroot)));
+// Interne URL (zum Navigieren innerhalb der geschützten Umgebung)
 $terminplanung_self_url = $_tp_proto . '://' . $_SERVER['HTTP_HOST'] . $_tp_relpath;
 $terminplanung_self     = basename(__FILE__); // für relative Links (gleiche Directory)
+// Öffentliche URL für Weitergabe-Links: vom Wrapper gesetzt ($TERMINPLANUNG_PUBLIC_URL),
+// sonst intern (nur sinnvoll wenn die Umgebung selbst öffentlich ist)
+$terminplanung_share_url = isset($TERMINPLANUNG_PUBLIC_URL) && $TERMINPLANUNG_PUBLIC_URL
+    ? rtrim($TERMINPLANUNG_PUBLIC_URL, '/')
+    : $terminplanung_self_url;
 
 // Wenn poll_id vorhanden ist, automatisch poll-View wählen (für externe Teilnehmer)
 $poll_id = intval($_GET['poll_id'] ?? 0);
@@ -796,7 +802,7 @@ if ($view === 'dashboard') {
 
         // Weitergabe-Link anzeigen (für Ersteller/Admin)
         if (!empty($poll['access_token']) && $current_user && can_edit_poll_standalone($poll, $current_user)) {
-            $share_url = $terminplanung_self_url . '?token=' . $poll['access_token'];
+            $share_url = $terminplanung_share_url . '?token=' . $poll['access_token'];
             echo '<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:16px;margin:16px 0;">';
             echo '<strong>🔗 Teilnahme-Link zum Weitergeben</strong>';
             echo '<p style="font-size:13px;color:#555;margin:6px 0 10px;">Diesen Link können Sie an alle Teilnehmer weitergeben — auch ohne Login.</p>';

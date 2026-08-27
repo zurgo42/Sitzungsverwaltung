@@ -32,6 +32,10 @@
 // Flag setzen: Standalone-CSS verwenden, kein Sitzungsverwaltungs-Header
 $TERMINPLANUNG_PUBLIC_MODE = true;
 
+// ANPASSEN: Öffentliche URL dieser Datei (wird für Weitergabe-Links in E-Mails und Umfragen verwendet)
+// Muss auf die URL dieser Datei zeigen, die auch ohne SSO erreichbar ist.
+$TERMINPLANUNG_PUBLIC_URL = 'https://ihre-domain.de/pfad-zum-oeffentlichen-bereich/terminplanung_standalone.php';
+
 // ANPASSEN: Absoluter Pfad zur echten terminplanung_standalone.php
 // (im SSO-geschützten Verzeichnis)
 require_once '/srv/www/vhosts/aktive/htdocs/vorstand/Sitzungsverwaltung/terminplanung_standalone.php';
