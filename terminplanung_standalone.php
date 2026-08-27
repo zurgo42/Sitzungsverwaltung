@@ -266,10 +266,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
                 // Access-Token generieren (für Weitergabe-Link an externe Teilnehmer)
                 $new_access_token = bin2hex(random_bytes(16));
 
-                // Umfrage erstellen
+                // Umfrage erstellen (immer individual – Weitergabe per Link)
                 $stmt = $pdo->prepare("
-                    INSERT INTO svpolls (title, description, location, created_by_member_id, status, access_token, created_at)
-                    VALUES (?, ?, ?, ?, 'open', ?, NOW())
+                    INSERT INTO svpolls (title, description, location, created_by_member_id, target_type, status, access_token, created_at)
+                    VALUES (?, ?, ?, ?, 'individual', 'open', ?, NOW())
                 ");
                 $stmt->execute([$title, $description, $location, $current_user['member_id'], $new_access_token]);
                 $poll_id = $pdo->lastInsertId();
@@ -393,20 +393,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['terminplanung_action'
 // VIEW RENDERING
 // ============================================
 
-// Wenn in Sitzungsverwaltung integriert UND User eingeloggt UND nicht im Public-Wrapper-Modus,
-// nutze die bestehenden Tab-Dateien.
-// Externe Teilnehmer (ohne Login) und Public-Wrapper-Aufrufe brauchen die Tab-Ansicht nicht.
-if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_termine.php') && empty($TERMINPLANUNG_PUBLIC_MODE)) {
-    // functions.php laden für get_visible_meetings() etc.
-    if (file_exists(__DIR__ . '/functions.php')) {
-        require_once __DIR__ . '/functions.php';
-    }
-
-    include __DIR__ . '/tab_termine.php';
-    return; // Beende hier
-}
-
-// Ansonsten: Standalone-Rendering
+// Standalone-Rendering: Diese Datei rendert immer ihre eigene Ansicht.
+// Szenario 1 (VTool/SV): index.php lädt tab_termine.php direkt – terminplanung_standalone.php
+//   wird dabei nicht eingebunden.
+// Szenario 2 (MTool): require_once dieser Datei → Standalone-Ansicht (einfach, kein SV-Overhead).
+// Szenario 3 (Öffentlich): $TERMINPLANUNG_PUBLIC_MODE=true → Standalone mit öffentlicher URL.
 
 // Kanonische URL zu terminplanung_standalone.php (funktioniert auch wenn per include eingebunden)
 $_tp_proto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
@@ -669,6 +660,72 @@ echo '<!DOCTYPE html>
             font-weight: 500;
         }
 
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #444;
+            font-size: 14px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="date"],
+        .form-group input[type="time"],
+        .form-group textarea {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76,175,80,0.15);
+        }
+
+        .date-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .date-row .date-label {
+            min-width: 60px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .date-row input[type="date"] {
+            flex: 2;
+            padding: 7px 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .date-row input[type="time"] {
+            flex: 1;
+            padding: 7px 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .date-row .date-sep {
+            color: #888;
+            font-size: 13px;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -732,8 +789,20 @@ if ($view === 'dashboard') {
     }
     echo '</div>';
 
-    // Umfragen auflisten
-    $stmt = $pdo->query("SELECT * FROM svpolls ORDER BY created_at DESC");
+    // Umfragen: nur die des eingeloggten Users (Ersteller oder eingeladen)
+    if ($current_user) {
+        $stmt = $pdo->prepare("
+            SELECT * FROM svpolls
+            WHERE created_by_member_id = ?
+               OR EXISTS (SELECT 1 FROM svpoll_participants WHERE poll_id = svpolls.poll_id AND member_id = ?)
+               OR EXISTS (SELECT 1 FROM svpoll_responses WHERE poll_id = svpolls.poll_id AND member_id = ?)
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([$current_user['member_id'], $current_user['member_id'], $current_user['member_id']]);
+    } else {
+        $stmt = $pdo->prepare("SELECT * FROM svpolls WHERE status = 'open' ORDER BY created_at DESC");
+        $stmt->execute();
+    }
     $polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if (empty($polls)) {
@@ -752,23 +821,42 @@ if ($view === 'dashboard') {
     }
 
 } elseif ($view === 'create') {
-    // Einfaches Formular zum Erstellen
     echo '<div style="margin-bottom:16px;"><a href="' . $terminplanung_share_url . '" class="btn-secondary">← Übersicht</a></div>';
     echo '<h2>Neue Terminumfrage erstellen</h2>';
     echo '<form method="POST" action="' . htmlspecialchars($terminplanung_self_url) . '">';
     echo '<input type="hidden" name="terminplanung_action" value="create_poll">';
-    echo '<p><label>Titel: <input type="text" name="title" required style="width: 100%; padding: 8px;"></label></p>';
-    echo '<p><label>Beschreibung: <textarea name="description" rows="3" style="width: 100%; padding: 8px;"></textarea></label></p>';
-    echo '<p><label>Ort (optional): <input type="text" name="location" placeholder="Ort der Veranstaltung" style="width: 100%; padding: 8px;"></label></p>';
-    echo '<h3>Terminvorschläge</h3>';
-    for ($i = 1; $i <= 5; $i++) {
-        echo '<p>Termin ' . $i . ': ';
+    echo '<input type="hidden" name="target_type" value="individual">';
+
+    echo '<div class="form-group">';
+    echo '<label for="tp-title">Titel der Umfrage *</label>';
+    echo '<input type="text" id="tp-title" name="title" required placeholder="z.B. Vorstandssitzung April 2025">';
+    echo '</div>';
+
+    echo '<div class="form-group">';
+    echo '<label for="tp-desc">Beschreibung</label>';
+    echo '<textarea id="tp-desc" name="description" rows="3" placeholder="Optional: Weitere Informationen zur Umfrage"></textarea>';
+    echo '</div>';
+
+    echo '<div class="form-group">';
+    echo '<label for="tp-loc">Ort</label>';
+    echo '<input type="text" id="tp-loc" name="location" placeholder="Optional: Ort der Veranstaltung">';
+    echo '</div>';
+
+    echo '<h3 style="margin: 24px 0 12px;">Terminvorschläge</h3>';
+    echo '<p style="font-size:13px;color:#666;margin-bottom:14px;">Mindestens einen Termin angeben. Endzeit ist optional.</p>';
+    for ($i = 1; $i <= 8; $i++) {
+        echo '<div class="date-row">';
+        echo '<span class="date-label">Termin ' . $i . '</span>';
         echo '<input type="date" name="date_' . $i . '">';
-        echo ' <input type="time" name="time_start_' . $i . '">';
-        echo ' - <input type="time" name="time_end_' . $i . '">';
-        echo '</p>';
+        echo '<input type="time" name="time_start_' . $i . '" placeholder="Von">';
+        echo '<span class="date-sep">–</span>';
+        echo '<input type="time" name="time_end_' . $i . '" placeholder="Bis">';
+        echo '</div>';
     }
-    echo '<p><button type="submit" class="btn-primary">Umfrage erstellen</button></p>';
+
+    echo '<div style="margin-top:24px;">';
+    echo '<button type="submit" class="btn-primary">Umfrage erstellen</button>';
+    echo '</div>';
     echo '</form>';
 
 } elseif ($view === 'poll' && $poll_id > 0) {
