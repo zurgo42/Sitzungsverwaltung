@@ -413,10 +413,17 @@ if (isset($MNr) && empty($TERMINPLANUNG_PUBLIC_MODE) && $current_user && file_ex
     $terminplanung_process_url = $_mtp_proto . '://' . $_SERVER['HTTP_HOST']
         . str_replace('\\', '/', substr($_mtp_proc, strlen($_mtp_docroot)));
 
-    // URL des aufrufenden MTool-Skripts (für Rückleitungen nach POST)
-    $_mtp_caller  = realpath($_SERVER['SCRIPT_FILENAME']);
-    $terminplanung_share_url = $_mtp_proto . '://' . $_SERVER['HTTP_HOST']
-        . str_replace('\\', '/', substr($_mtp_caller, strlen($_mtp_docroot)));
+    // URL des aufrufenden MTool-Skripts (für Navigation und Rückleitungen nach POST).
+    // Wenn der Aufrufer $terminplanung_share_url bereits gesetzt hat (z.B. mit ?steuer=231),
+    // wird diese URL verwendet. Andernfalls wird sie automatisch ermittelt (ohne GET-Parameter).
+    // Empfehlung für den MTool-Programmierer:
+    //   $terminplanung_share_url = 'https://example.com/mtool/sitzungen.php?steuer=231';
+    //   require_once '...terminplanung_standalone.php';
+    if (!isset($terminplanung_share_url)) {
+        $_mtp_caller  = realpath($_SERVER['SCRIPT_FILENAME']);
+        $terminplanung_share_url = $_mtp_proto . '://' . $_SERVER['HTTP_HOST']
+            . str_replace('\\', '/', substr($_mtp_caller, strlen($_mtp_docroot)));
+    }
 
     if (file_exists(__DIR__ . '/functions.php')) {
         require_once __DIR__ . '/functions.php';
