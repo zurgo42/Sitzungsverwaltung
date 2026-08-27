@@ -16,7 +16,7 @@ require_once 'protokoll_helper.php';
 require_once 'notification_mailer.php';
 
 if (!isset($_SESSION['member_id'])) {
-    header('Location: login.php');
+    header('Location: login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
     exit;
 }
 

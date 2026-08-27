@@ -28,6 +28,16 @@ try {
 
 $error = '';
 
+// Validated redirect target: only relative paths within this app
+function login_redirect_target($fallback = 'index.php') {
+    $r = isset($_GET['redirect']) ? $_GET['redirect'] : '';
+    // Allow only relative URLs starting with a letter (no // or http://)
+    if ($r && preg_match('/^[a-zA-Z][a-zA-Z0-9_\-\.\/\?\=\&\%]*$/', $r) && strpos($r, '//') === false) {
+        return $r;
+    }
+    return $fallback;
+}
+
 // Im SSO-Modus: Login-Formular ist nicht verwendbar.
 // Automatisch authentifizieren oder zur SSO-Seite weiterleiten.
 if (defined('REQUIRE_LOGIN') && !REQUIRE_LOGIN) {
@@ -42,9 +52,8 @@ if (defined('REQUIRE_LOGIN') && !REQUIRE_LOGIN) {
             }
         }
     }
-    // Ob SSO geklappt hat oder nicht: zu index.php weiterleiten
-    // (index.php zeigt entweder die App oder die "Anmeldung abgelaufen"-Seite)
-    header('Location: index.php');
+    // Ob SSO geklappt hat oder nicht: weiterleiten (mit redirect-Ziel falls angegeben)
+    header('Location: ' . login_redirect_target('index.php'));
     exit;
 }
 
@@ -56,10 +65,10 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-// Wenn schon eingeloggt, zur Hauptseite
+// Wenn schon eingeloggt, zur Hauptseite (oder redirect-Ziel)
 if (isset($_SESSION['member_id'])) {
     session_write_close();  // Session schreiben vor Redirect
-    header('Location: index.php');
+    header('Location: ' . login_redirect_target('index.php'));
     exit;
 }
 
@@ -83,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['login_time'] = time();
 
             session_write_close();  // Session schreiben vor Redirect
-            header('Location: index.php');
+            header('Location: ' . login_redirect_target('index.php'));
             exit;
         } else {
             $error = 'Email oder Passwort ist falsch!';
@@ -286,7 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
             
-            <form method="POST">
+            <form method="POST" action="login.php<?php if (!empty($_GET['redirect'])): ?>?redirect=<?php echo urlencode($_GET['redirect']); ?><?php endif; ?>">
                 <div class="form-group">
                     <label for="email">E-Mail-Adresse:</label>
                     <input type="email" id="email" name="email" required autofocus>

@@ -282,7 +282,15 @@ function auswerten_abstimmung($pdo, $antrnr, $force = false) {
         error_log("Abstimmung {$antrnr}: Regel={$regel}, Ja={$ja}, Nein={$nein}, Enthaltung={$enthaltung}, Ergebnis=" . ($ergebnis['erfolg'] ? 'ANGENOMMEN' : 'ABGELEHNT') . ($force ? ' [FRISTABLAUF]' : ''));
     }
     if ($nm_angenommen !== null && function_exists('nm_event_antrag_beschlossen')) {
-        nm_event_antrag_beschlossen($pdo, $antrnr, $antrag['titel'] ?? '', $nm_angenommen);
+        // Neue antrnr ermitteln (nach Umbenennung B→VS/X)
+        if ($nm_angenommen) {
+            $nm_nr_stmt = $pdo->prepare("SELECT antrnr FROM " . TABLE_ANTRAEGE . " WHERE warantrag = ? LIMIT 1");
+            $nm_nr_stmt->execute([$antrnr]);
+            $nm_neue_nr = $nm_nr_stmt->fetchColumn() ?: $antrnr;
+        } else {
+            $nm_neue_nr = 'X' . substr($antrnr, 1);
+        }
+        nm_event_antrag_beschlossen($pdo, $nm_neue_nr, $antrag['titel'] ?? '', $nm_angenommen);
     }
 }
 

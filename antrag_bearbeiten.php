@@ -14,7 +14,7 @@ require_once 'includes/voting_helper.php';
 require_once 'protokoll_helper.php';
 
 if (!isset($_SESSION['member_id'])) {
-    header('Location: login.php');
+    header('Location: login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
     exit;
 }
 
