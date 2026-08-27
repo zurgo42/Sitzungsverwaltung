@@ -421,8 +421,16 @@ if (isset($MNr) && empty($TERMINPLANUNG_PUBLIC_MODE) && $current_user && file_ex
     //   require_once '...terminplanung_standalone.php';
     if (!isset($terminplanung_share_url)) {
         $_mtp_caller  = realpath($_SERVER['SCRIPT_FILENAME']);
+        $_mtp_relpath = str_replace('\\', '/', substr($_mtp_caller, strlen($_mtp_docroot)));
+        // Terminplanung-eigene GET-Parameter aus dem aktuellen Query-String entfernen,
+        // MTool-Routing-Parameter (z.B. steuer=231) bleiben erhalten
+        $_mtp_qparams = [];
+        parse_str($_SERVER['QUERY_STRING'] ?? '', $_mtp_qparams);
+        unset($_mtp_qparams['view'], $_mtp_qparams['poll_id'], $_mtp_qparams['token'], $_mtp_qparams['tab']);
+        $_mtp_base_qs = http_build_query($_mtp_qparams);
         $terminplanung_share_url = $_mtp_proto . '://' . $_SERVER['HTTP_HOST']
-            . str_replace('\\', '/', substr($_mtp_caller, strlen($_mtp_docroot)));
+            . $_mtp_relpath
+            . ($_mtp_base_qs ? '?' . $_mtp_base_qs : '');
     }
 
     if (file_exists(__DIR__ . '/functions.php')) {
