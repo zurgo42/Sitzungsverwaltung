@@ -79,6 +79,13 @@ if ($is_sitzungsverwaltung) {
     if (isset($_SESSION['member_id'])) {
         $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
     }
+    // MTool-Kontext: $MNr gesetzt aber kein SV-Session → Mitglied per MNr laden
+    if (!$current_user && isset($MNr) && $MNr) {
+        $current_user = get_member_by_membership_number($pdo, $MNr);
+        if ($current_user) {
+            $_SESSION['tp_mtool_user'] = $current_user;
+        }
+    }
 
 } else {
     // In anderer Anwendung: Direkter Zugriff auf berechtigte-Tabelle
