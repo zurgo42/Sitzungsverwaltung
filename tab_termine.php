@@ -155,7 +155,7 @@ a { color: #007bff; }
 
 /* Poll-spezifische Styles */
 .poll-card {
-    background: white;
+    background: white !important;
     border: 1px solid #ddd;
     border-radius: 5px;
     padding: 15px;
@@ -186,7 +186,7 @@ a { color: #007bff; }
 .poll-title {
     font-size: 18px;
     font-weight: bold;
-    color: #333;
+    color: #333 !important;
     margin: 0;
     flex: 1;
 }
@@ -1382,7 +1382,8 @@ if (isset($_SESSION['error'])) {
                     </select>
                 </div>
 
-                <!-- Meeting-Option -->
+                <!-- Meeting-Option (nicht im MTool-Modus) -->
+                <?php if (empty($TERMINPLANUNG_MTOOL_MODE)): ?>
                 <div class="form-group" style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 5px;">
                     <label style="display: block; margin-bottom: 10px;">
                         <input type="checkbox" name="create_meeting" value="1" checked>
@@ -1392,6 +1393,7 @@ if (isset($_SESSION['error'])) {
                         Wenn aktiviert, wird automatisch ein Meeting mit dem finalen Termin, Titel und Teilnehmern erstellt
                     </small>
                 </div>
+                <?php endif; ?>
 
                 <?php if (empty($TERMINPLANUNG_MTOOL_MODE)): ?>
                 <!-- E-Mail-Optionen (nicht im MTool-Modus) -->
