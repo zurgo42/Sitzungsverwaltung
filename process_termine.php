@@ -44,6 +44,11 @@ if (isset($_SESSION['member_id'])) {
     }
 }
 
+// MTool-Fallback: User via terminplanung_standalone.php in Session gespeichert
+if (!$current_user && isset($_SESSION['tp_mtool_user']) && is_array($_SESSION['tp_mtool_user'])) {
+    $current_user = $_SESSION['tp_mtool_user'];
+}
+
 // Externe Teilnehmer-Session prüfen
 $external_session = get_external_participant_session();
 $is_external_participant = ($external_session !== null);

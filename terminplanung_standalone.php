@@ -108,6 +108,9 @@ if ($is_sitzungsverwaltung) {
                 'role' => determine_role($ber['Funktion'], $ber['aktiv']),
                 'is_admin' => is_admin_user($ber['Funktion'], $ber['MNr'])
             ];
+            // In Session speichern damit process_termine.php den User authentifizieren kann
+            if (!isset($_SESSION)) { session_start(); }
+            $_SESSION['tp_mtool_user'] = $current_user;
         }
     }
 

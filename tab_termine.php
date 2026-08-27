@@ -113,6 +113,8 @@ function get_german_weekday_long($date_string) {
 
 <style>
 /* Basis-Formularstyles (werden von SV-CSS überschrieben, decken MTool-Standalone-Betrieb ab) */
+h2 { color: #333; }
+
 .form-group {
     margin-bottom: 20px;
 }
