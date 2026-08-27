@@ -326,22 +326,11 @@ function generate_external_access_link($poll_type, $poll_id_or_token, $use_token
         }
     }
 
-    // Base URL ermitteln
-    if (defined('BASE_URL')) {
-        $base = BASE_URL;
-    } else {
-        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-        $base = $protocol . '://' . $_SERVER['HTTP_HOST'];
-    }
-
-    // Standalone-Pfad aus Konfiguration
-    $path = defined('STANDALONE_PATH') ? STANDALONE_PATH : '';
-
-    // Dateinamen und Parameter bestimmen
+    // Auto-Erkennung: nur HTTP_HOST, kein BASE_URL (der zeigt auf den geschützten SV-Bereich)
+    // Für andere Pfade bitte svconfig.terminplanung_standalone_url konfigurieren
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
     $file = ($poll_type === 'termine') ? 'terminplanung_standalone.php' : 'opinion_standalone.php';
-
-    // Link zusammenbauen
-    return rtrim($base, '/') . rtrim($path, '/') . '/' . $file . '?' . $param;
+    return $protocol . '://' . $_SERVER['HTTP_HOST'] . '/' . $file . '?' . $param;
 }
 
 /**
