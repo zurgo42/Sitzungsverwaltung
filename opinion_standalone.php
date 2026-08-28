@@ -434,8 +434,12 @@ if (isset($MNr) && empty($OPINION_PUBLIC_MODE) && $current_user && file_exists(_
     // MTool-URL in Session speichern → process_opinion.php kann sie als Fallback nutzen
     $_SESSION['opinion_mtool_share_url'] = $opinion_share_url;
 
-    // Zugangslinks (für Teilnehmer) sollen ebenfalls über die MTool-URL laufen (mit steuer-Param)
-    $OPINION_PUBLIC_URL = $opinion_share_url;
+    // $OPINION_PUBLIC_URL nur setzen, wenn der MTool-Aufrufer sie nicht bereits gesetzt hat.
+    // Der Aufrufer kann z.B. 'https://aktive.mensa.de/opinion_standalone.php' setzen (korrekte
+    // öffentliche URL für externe Teilnehmer). Hier nur als Fallback die MTool-URL verwenden.
+    if (!isset($OPINION_PUBLIC_URL)) {
+        $OPINION_PUBLIC_URL = $opinion_share_url;
+    }
 
     echo '<!DOCTYPE html>' . "\n";
     echo '<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Meinungsbild</title></head>';
