@@ -20,6 +20,7 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
   - Einladung zur Terminabstimmung
   - Bestätigung nach Festlegung
   - Erinnerung X Tage vor dem Termin
+- **Für mich ausblenden:** Jeder Nutzer kann erledigte Umfragen individuell ausblenden; sie bleiben über "Ergebnisse" abrufbar und können jederzeit wieder eingeblendet werden
 
 **Ideal für:** Gremiensitzungen, Vorstandssitzungen, Projektmeetings
 

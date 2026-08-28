@@ -35,7 +35,12 @@ Das Meinungsbild-Tool ermöglicht es, schnell und einfach Umfragen zu erstellen 
 - **Individuelle Anonymität**: Teilnehmer können selbst wählen, anonym zu bleiben
 - **Laufzeit**: Frei wählbar (Standard: 14 Tage)
 - **Zwischenergebnisse**: Ab wann Ergebnisse sichtbar werden (Standard: 7 Tage)
-- **Auto-Löschung**: Automatisches Löschen nach X Tagen (Standard: 30 Tage)
+- **Löschdatum**: Pflichtangabe beim Erstellen (Datumsfeld, Standard: heute +90 Tage); Umfragen werden automatisch gelöscht wenn das Datum überschritten ist (Lazy-Deletion)
+
+### Listenansicht
+- **Für mich ausblenden**: Jeder Nutzer kann Umfragen individuell aus seiner Liste ausblenden – die Umfrage bleibt für andere sichtbar
+- Ausgeblendete Umfragen erscheinen zugeklappt unter "Für mich ausgeblendet" und sind über "Ergebnisse" weiterhin abrufbar
+- **Wieder einblenden**: Button zum Rückgängigmachen der Ausblendung
 
 ### Berechtigungen
 - **Ersteller**:
@@ -182,6 +187,13 @@ Antworten der Teilnehmer
 Gewählte Optionen (M:N)
 - Verknüpfung zwischen responses und options
 - Ermöglicht Mehrfachantworten
+
+### svopinion_user_hidden
+Pro-User-Ausblendungen in der Listenansicht
+- `poll_id`: Ausgeblendete Umfrage
+- `member_id`: Nutzer, der ausgeblendet hat
+- `hidden_at`: Zeitstempel
+- PRIMARY KEY (poll_id, member_id) – verhindert Duplikate
 
 ## Standalone-Nutzung (Adapter-Pattern)
 

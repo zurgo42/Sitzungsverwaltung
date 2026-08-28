@@ -8,6 +8,32 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### MTool-Integration & Listenbereinigung für Meinungsbilder und Terminplanung (2026-08-28)
+
+**Meinungsbilder – MTool-Integration:**
+- `opinion_standalone.php` als `require_once` aus MTool aufrufbar: erkennt `$MNr`, baut HTML-Wrapper und lädt `tab_opinion.php`
+- Fix: Früher `exit()` in Public-Polls-Listing übersprang den MTool-Block wenn keine `poll_id`/`token` in der URL war (`!isset($MNr)` Guard)
+- `$OPINION_PUBLIC_URL` wird nur gesetzt wenn nicht bereits vom Aufrufer definiert; explizit in `$GLOBALS` geschrieben für Funktions-Scope-Kompatibilität
+- Session-Fallback `$_SESSION['opinion_mtool_share_url']` in `process_opinion.php` für korrekte Redirects
+- `_opinion_url()` für externen Teilnehmer-Pfad (standalone ohne `tab_opinion.php`) definiert
+
+**Für mich ausblenden – Meinungsbilder:**
+- Jeder eingeloggte Nutzer kann Umfragen individuell ausblenden ("👁 Für mich ausblenden")
+- Ausgeblendete Umfragen erscheinen in zugeklapptem Bereich "Für mich ausgeblendet (n)" mit Ergebnis-Link
+- "↩ Wieder einblenden" macht die Ausblendung rückgängig
+- Neue Tabelle `svopinion_user_hidden` (wird automatisch angelegt, auch in `init-db.php`)
+- Neue POST-Aktionen `hide_poll` und `unhide_poll` in `process_opinion.php`
+
+**Für mich ausblenden – Terminplanung:**
+- Identische Funktion für Terminumfragen
+- Neue Tabelle `svtermine_user_hidden` (wird automatisch angelegt, auch in `init-db.php`)
+- Neue POST-Aktionen `hide_poll` und `unhide_poll` in `process_termine.php`
+
+**Pflicht-Löschdatum beim Erstellen (Meinungsbilder):**
+- Datumsfeld "Automatisch löschen am" ersetzt die Tages-Eingabe (Pflichtfeld, Default: heute +90 Tage, min: morgen)
+- Lazy-Deletion: `get_all_opinion_polls()` setzt abgelaufene Umfragen automatisch auf `deleted`
+- `ends_at` wird beim Erstellen jetzt korrekt gesetzt
+
 #### Aktions-Protokollierung / Audit-Log (2026-08-13)
 
 Vollständige Aktions-Protokollierung aller user-verursachten Datenbankänderungen.
