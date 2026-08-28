@@ -74,7 +74,30 @@ foreach ($all_polls as &$poll) {
         }
     }
 }
-unset($poll); // Referenz aufheben, sonst wird letzter Eintrag doppelt angezeigt
+unset($poll);
+
+// Tabelle für nutzer-individuelle Ausblendungen anlegen (einmalig, falls nicht vorhanden)
+$pdo->exec("CREATE TABLE IF NOT EXISTS svtermine_user_hidden (
+    poll_id   INT NOT NULL,
+    member_id INT NOT NULL,
+    hidden_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (poll_id, member_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Hidden-Flags für diesen User ermitteln
+$_hidden_poll_ids = [];
+$_h_stmt = $pdo->prepare("SELECT poll_id FROM svtermine_user_hidden WHERE member_id = ?");
+$_h_stmt->execute([$current_user['member_id']]);
+foreach ($_h_stmt->fetchAll(PDO::FETCH_ASSOC) as $_hr) {
+    $_hidden_poll_ids[] = (int)$_hr['poll_id'];
+}
+foreach ($all_polls as &$poll) {
+    $poll['is_hidden_for_user'] = in_array((int)$poll['poll_id'], $_hidden_poll_ids);
+}
+unset($poll);
+
+$_visible_polls = array_filter($all_polls, fn($p) => !$p['is_hidden_for_user']);
+$_hidden_polls  = array_filter($all_polls, fn($p) =>  $p['is_hidden_for_user']);
 
 // Meetings für Dropdown laden
 $all_meetings = get_visible_meetings($pdo, $current_user['member_id']);
@@ -800,7 +823,12 @@ if (isset($_SESSION['error'])) {
     <?php if (empty($all_polls)): ?>
         <div class="info-box">Noch keine Umfragen vorhanden.</div>
     <?php else: ?>
-        <?php foreach ($all_polls as $poll):
+
+        <?php if (empty($_visible_polls)): ?>
+            <div class="info-box">Alle Umfragen sind ausgeblendet.</div>
+        <?php endif; ?>
+
+        <?php foreach ($_visible_polls as $poll):
             $is_creator = ($poll['created_by_member_id'] == $current_user['member_id']);
             $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
             $can_edit = $is_creator || $is_admin;
@@ -827,7 +855,7 @@ if (isset($_SESSION['error'])) {
                     <p style="margin: 8px 0;">
                         📊 <strong><?php echo $poll['date_count']; ?></strong> Terminvorschläge ·
                         👥 <strong><?php echo $poll['response_count']; ?></strong> Teilnehmer abgestimmt ·
-                        👤 Erstellt von <strong><?php echo htmlspecialchars($poll['creator_first_name'] . ' ' . $poll['creator_last_name']); ?></strong> ·
+                        👤 Erstellt von <strong><?php echo htmlspecialchars(($poll['creator_first_name'] ?? '') . ' ' . ($poll['creator_last_name'] ?? '')); ?></strong> ·
                         Zielgruppe: <?php
                             $target_type = $poll['target_type'] ?? '';
                             if ($target_type === 'individual') echo '🔗 Individuell (Link)';
@@ -886,9 +914,58 @@ if (isset($_SESSION['error'])) {
                             <button type="submit" class="btn-danger" onclick="return confirm('Umfrage wirklich löschen? Alle Abstimmungen gehen verloren!')">🗑️ Löschen</button>
                         </form>
                     <?php endif; ?>
+
+                    <!-- Für mich ausblenden -->
+                    <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="display: inline;">
+                        <input type="hidden" name="action"  value="hide_poll">
+                        <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
+                        <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
+                        <?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
+                        <button type="submit" class="btn-secondary" style="font-size:13px;">👁 Für mich ausblenden</button>
+                    </form>
                 </div>
             </div>
         <?php endforeach; ?>
+
+        <?php if (!empty($_hidden_polls)): ?>
+            <details style="margin-top:20px;">
+                <summary style="cursor:pointer;font-weight:bold;color:#666;padding:12px 16px;background:#f5f5f5;border-radius:6px;border:1px solid #ddd;list-style:none;display:flex;justify-content:space-between;align-items:center;">
+                    <span>👁 Für mich ausgeblendet (<?php echo count($_hidden_polls); ?>)</span>
+                    <span style="font-size:18px;line-height:1;">▾</span>
+                </summary>
+                <div style="margin-top:10px;">
+                    <?php foreach ($_hidden_polls as $poll):
+                        $_poll_view_url = !empty($_tab_redirect_to)
+                            ? $_tab_redirect_to . (strpos($_tab_redirect_to, '?') !== false ? '&' : '?') . 'view=poll&poll_id=' . $poll['poll_id']
+                            : '?tab=termine&view=poll&poll_id=' . $poll['poll_id'];
+                    ?>
+                        <div class="poll-card" style="opacity:0.7;display:block;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                                <div style="flex:1;min-width:0;">
+                                    <span style="color:#555;font-weight:bold;"><?php echo htmlspecialchars($poll['title']); ?></span>
+                                    <span style="margin-left:10px;font-size:13px;color:#999;">
+                                        👥 <?php echo $poll['response_count']; ?> Teilnehmer
+                                    </span>
+                                </div>
+                                <div style="display:flex;gap:8px;flex-shrink:0;">
+                                    <a href="<?php echo htmlspecialchars($_poll_view_url); ?>" class="btn-secondary" style="font-size:13px;padding:6px 12px;text-decoration:none;">
+                                        📊 Ergebnisse
+                                    </a>
+                                    <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="display:inline;">
+                                        <input type="hidden" name="action"  value="unhide_poll">
+                                        <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
+                                        <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
+                                        <?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
+                                        <button type="submit" class="btn-secondary" style="font-size:13px;padding:6px 12px;">↩ Wieder einblenden</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </details>
+        <?php endif; ?>
+
     <?php endif; ?>
 
 <?php elseif ($view === 'poll' && $poll_id > 0): ?>

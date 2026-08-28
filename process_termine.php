@@ -535,6 +535,27 @@ try {
             header('Location: ' . _r_dash());
             exit;
 
+        // ====== UMFRAGE FÜR DIESEN USER AUSBLENDEN ======
+        case 'hide_poll':
+            if (!$current_user) { header('Location: ' . _r_dash()); exit; }
+            $poll_id = intval($_POST['poll_id'] ?? 0);
+            $pdo->exec("CREATE TABLE IF NOT EXISTS svtermine_user_hidden (
+                poll_id INT NOT NULL, member_id INT NOT NULL, hidden_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (poll_id, member_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $pdo->prepare("INSERT IGNORE INTO svtermine_user_hidden (poll_id, member_id) VALUES (?, ?)")
+                ->execute([$poll_id, $current_user['member_id']]);
+            header('Location: ' . _r_dash());
+            exit;
+
+        // ====== AUSBLENDUNG RÜCKGÄNGIG MACHEN ======
+        case 'unhide_poll':
+            if (!$current_user) { header('Location: ' . _r_dash()); exit; }
+            $poll_id = intval($_POST['poll_id'] ?? 0);
+            $pdo->prepare("DELETE FROM svtermine_user_hidden WHERE poll_id = ? AND member_id = ?")
+                ->execute([$poll_id, $current_user['member_id']]);
+            header('Location: ' . _r_dash());
+            exit;
+
         default:
             $_SESSION['error'] = 'Unbekannte Aktion';
             header('Location: ' . _r_dash());
