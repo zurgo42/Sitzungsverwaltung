@@ -14,13 +14,13 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
 
 <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
     <h3>Meine Meinungsbilder</h3>
-    <a href="?tab=opinion&view=create" class="btn-primary">+ Neues Meinungsbild erstellen</a>
+    <a href="<?php echo _opinion_url('create'); ?>" class="btn-primary">+ Neues Meinungsbild erstellen</a>
 </div>
 
 <?php if (empty($all_polls)): ?>
     <div class="opinion-card">
         <p>Noch keine Meinungsbilder vorhanden.</p>
-        <p><a href="?tab=opinion&view=create">Erstelle jetzt dein erstes Meinungsbild!</a></p>
+        <p><a href="<?php echo _opinion_url('create'); ?>">Erstelle jetzt dein erstes Meinungsbild!</a></p>
     </div>
 <?php else: ?>
     <?php foreach ($all_polls as $poll):
@@ -33,7 +33,7 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <div style="flex: 1;">
                     <h4 style="margin: 0 0 10px 0;">
-                        <a href="?tab=opinion&view=detail&poll_id=<?php echo $poll['poll_id']; ?>" style="text-decoration: none; color: #333;">
+                        <a href="<?php echo _opinion_url('detail', $poll['poll_id']); ?>" style="text-decoration: none; color: #333;">
                             <?php echo htmlspecialchars($poll['title']); ?>
                         </a>
                     </h4>
@@ -78,7 +78,8 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
                     <?php
                     // Zugangslink anzeigen (nur für Ersteller und Admins)
                     if ($is_creator || $is_admin):
-                        $access_link = get_poll_access_link($poll, defined('BASE_URL') ? BASE_URL : 'http://' . $_SERVER['HTTP_HOST']);
+                        $host = defined('BASE_URL') ? BASE_URL : ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                        $access_link = get_poll_access_link($poll, $host);
                         if ($access_link):
                     ?>
                         <div style="margin-top: 10px; padding: 10px; background: #f0f8ff; border: 1px solid #4CAF50; border-radius: 4px;">
@@ -115,18 +116,18 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
 
                 <div style="display: flex; gap: 10px;">
                     <?php if ($is_active && !$has_responded): ?>
-                        <a href="?tab=opinion&view=participate&poll_id=<?php echo $poll['poll_id']; ?>" class="btn-primary" style="text-decoration: none;">
+                        <a href="<?php echo _opinion_url('participate', $poll['poll_id']); ?>" class="btn-primary" style="text-decoration: none;">
                             Teilnehmen
                         </a>
                     <?php endif; ?>
 
                     <?php if ($has_responded || $is_creator || $is_admin): ?>
-                        <a href="?tab=opinion&view=results&poll_id=<?php echo $poll['poll_id']; ?>" class="btn-secondary" style="text-decoration: none;">
+                        <a href="<?php echo _opinion_url('results', $poll['poll_id']); ?>" class="btn-secondary" style="text-decoration: none;">
                             Ergebnisse
                         </a>
                     <?php endif; ?>
 
-                    <a href="?tab=opinion&view=detail&poll_id=<?php echo $poll['poll_id']; ?>" class="btn-secondary" style="text-decoration: none;">
+                    <a href="<?php echo _opinion_url('detail', $poll['poll_id']); ?>" class="btn-secondary" style="text-decoration: none;">
                         Details
                     </a>
                 </div>

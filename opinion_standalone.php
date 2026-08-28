@@ -117,6 +117,10 @@ if ($is_sitzungsverwaltung) {
     if (isset($_SESSION['member_id'])) {
         $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
     }
+    // MTool-Kontext: $MNr gesetzt aber kein SV-Session → Mitglied per MNr laden
+    if (!$current_user && isset($MNr) && $MNr) {
+        $current_user = get_member_by_membership_number($pdo, $MNr);
+    }
 
 } else {
     // In anderer Anwendung: Direkter Zugriff auf berechtigte-Tabelle
@@ -402,7 +406,42 @@ if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $
 // VIEW RENDERING
 // ============================================
 
-// tab_opinion.php nur für eingeloggte Benutzer laden
+// MTool-Modus: $MNr gesetzt, kein Public-Wrapper → tab_opinion.php mit HTML-Wrapper laden
+// Szenario 2 (MTool/normales Mitglied): MTool-unpassende Bereiche werden per $OPINION_MTOOL_MODE ausgeblendet
+if (isset($MNr) && empty($OPINION_PUBLIC_MODE) && $current_user && file_exists(__DIR__ . '/tab_opinion.php')) {
+    $OPINION_MTOOL_MODE = true;
+
+    $_omtp_proto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $_omtp_docroot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+
+    // Absolute URL zu process_opinion.php (für Form-Actions aus beliebigem Verzeichnis)
+    $_omtp_proc = realpath(__DIR__ . '/process_opinion.php');
+    $opinion_process_url = $_omtp_proto . '://' . $_SERVER['HTTP_HOST']
+        . str_replace('\\', '/', substr($_omtp_proc, strlen($_omtp_docroot)));
+
+    // URL des aufrufenden MTool-Skripts — MTool-Routing-Parameter (z.B. steuer=231) erhalten
+    if (!isset($opinion_share_url)) {
+        $_omtp_caller = realpath($_SERVER['SCRIPT_FILENAME']);
+        $_omtp_relpath = str_replace('\\', '/', substr($_omtp_caller, strlen($_omtp_docroot)));
+        $_omtp_qparams = [];
+        parse_str($_SERVER['QUERY_STRING'] ?? '', $_omtp_qparams);
+        unset($_omtp_qparams['view'], $_omtp_qparams['poll_id'], $_omtp_qparams['token'], $_omtp_qparams['tab']);
+        $_omtp_base_qs = http_build_query($_omtp_qparams);
+        $opinion_share_url = $_omtp_proto . '://' . $_SERVER['HTTP_HOST']
+            . $_omtp_relpath
+            . ($_omtp_base_qs ? '?' . $_omtp_base_qs : '');
+    }
+
+    echo '<!DOCTYPE html>' . "\n";
+    echo '<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Meinungsbild</title></head>';
+    echo '<body style="margin:0;padding:0;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;">';
+    echo '<div style="max-width:1100px;margin:0 auto;padding:20px;">';
+    include __DIR__ . '/tab_opinion.php';
+    echo '</div></body></html>';
+    return;
+}
+
+// tab_opinion.php für SV-eingeloggte Benutzer laden
 // (externe Teilnehmer benötigen das Standalone-Rendering weiter unten)
 if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_opinion.php')) {
     include __DIR__ . '/tab_opinion.php';
