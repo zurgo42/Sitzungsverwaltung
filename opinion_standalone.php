@@ -248,8 +248,23 @@ if ($access_token) {
 // ÖFFENTLICHE UMFRAGEN-LISTE
 // ============================================
 
-// Wenn KEINE Token UND KEINE Poll-ID: Liste öffentlicher Umfragen anzeigen
-if (!$access_token && !$poll_id_param) {
+// DEBUG: Checkpoint 2 – nach Auth-Block, vor Public-Polls-Check
+if (!empty($_GET['debug_opinion'])) {
+    echo '<div style="background:#d4edda;border:2px solid #155724;padding:15px;margin:10px;font-family:monospace;font-size:12px;border-radius:6px;">';
+    echo '<strong>✅ Checkpoint 2: nach Auth-Block</strong><br><br>';
+    echo '$is_sitzungsverwaltung = ' . var_export($is_sitzungsverwaltung, true) . '<br>';
+    echo '$access_token          = ' . var_export($access_token, true) . '<br>';
+    echo '$poll_id_param         = ' . var_export($poll_id_param, true) . '<br>';
+    echo 'isset($MNr)            = ' . var_export(isset($MNr), true) . '<br>';
+    echo '$MNr                   = ' . var_export($MNr ?? null, true) . '<br>';
+    echo '$current_user          = ' . ($current_user ? 'gesetzt (id=' . ($current_user['member_id'] ?? '?') . ')' : 'null') . '<br>';
+    echo 'Public-Polls-Check würde laufen: ' . var_export(!$access_token && !$poll_id_param && !isset($MNr), true) . '<br>';
+    echo '</div>';
+    flush();
+}
+
+// Wenn KEINE Token UND KEINE Poll-ID UND kein MTool-Kontext: Liste öffentlicher Umfragen anzeigen
+if (!$access_token && !$poll_id_param && !isset($MNr)) {
     $stmt = $pdo->prepare("
         SELECT poll_id, title, created_at, ends_at, status
         FROM svopinion_polls
