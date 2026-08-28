@@ -381,17 +381,21 @@ function get_answer_templates($pdo) {
 }
 
 /**
- * Generiert Zugriffs-Link für individual-Umfragen
- * Verwendet zentrale Funktion aus external_participants_functions.php
+ * Generiert Zugriffs-Link für Meinungsbilder
+ * - individual: Token-basierter Link
+ * - public:     poll_id-basierter Link
+ * - list:       kein externer Link (Teilnehmer werden direkt eingeladen)
  */
 function get_poll_access_link($poll, $base_url = null) {
-    if (empty($poll['access_token'])) {
-        return null;
-    }
-
-    // Zentrale Link-Generierung verwenden
     require_once __DIR__ . '/external_participants_functions.php';
-    return generate_external_access_link('meinungsbild', $poll['access_token'], true);
+
+    if (!empty($poll['access_token'])) {
+        return generate_external_access_link('meinungsbild', $poll['access_token'], true);
+    }
+    if (($poll['target_type'] ?? '') === 'public') {
+        return generate_external_access_link('meinungsbild', $poll['poll_id'], false);
+    }
+    return null;
 }
 
 /**

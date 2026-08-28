@@ -434,6 +434,9 @@ if (isset($MNr) && empty($OPINION_PUBLIC_MODE) && $current_user && file_exists(_
     // MTool-URL in Session speichern → process_opinion.php kann sie als Fallback nutzen
     $_SESSION['opinion_mtool_share_url'] = $opinion_share_url;
 
+    // Zugangslinks (für Teilnehmer) sollen ebenfalls über die MTool-URL laufen (mit steuer-Param)
+    $OPINION_PUBLIC_URL = $opinion_share_url;
+
     echo '<!DOCTYPE html>' . "\n";
     echo '<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Meinungsbild</title></head>';
     echo '<body style="margin:0;padding:0;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;">';

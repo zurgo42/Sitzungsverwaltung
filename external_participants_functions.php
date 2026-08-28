@@ -302,11 +302,18 @@ function validate_external_email($email) {
 function generate_external_access_link($poll_type, $poll_id_or_token, $use_token = false) {
     $param = $use_token ? "token=" . urlencode($poll_id_or_token) : "poll_id=" . intval($poll_id_or_token);
 
-    // Höchste Priorität: $TERMINPLANUNG_PUBLIC_URL (explizit vom Aufrufer gesetzt)
+    // Höchste Priorität: explizite Public-URL-Variablen (vom Aufrufer gesetzt, z.B. MTool mit steuer=221)
     if ($poll_type === 'termine') {
         global $TERMINPLANUNG_PUBLIC_URL;
         if (!empty($TERMINPLANUNG_PUBLIC_URL)) {
             return rtrim($TERMINPLANUNG_PUBLIC_URL, '/') . '?' . $param;
+        }
+    }
+    if ($poll_type === 'meinungsbild') {
+        global $OPINION_PUBLIC_URL;
+        if (!empty($OPINION_PUBLIC_URL)) {
+            $sep = strpos($OPINION_PUBLIC_URL, '?') !== false ? '&' : '?';
+            return rtrim($OPINION_PUBLIC_URL, '/') . $sep . $param;
         }
     }
 
