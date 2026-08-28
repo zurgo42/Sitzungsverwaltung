@@ -78,8 +78,20 @@ $all_polls = get_all_opinion_polls($pdo, $current_user['member_id']);
                     <?php
                     // Zugangslink anzeigen (nur für Ersteller und Admins)
                     if ($is_creator || $is_admin):
-                        $host = defined('BASE_URL') ? BASE_URL : ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
-                        $access_link = get_poll_access_link($poll, $host);
+                        // $_tab_public_url direkt verwenden wenn vorhanden (gleicher Include-Scope,
+                        // kein 'global' nötig) – sonst Fallback auf Funktion mit svconfig/auto-detect.
+                        if (!empty($_tab_public_url)) {
+                            $sep = strpos($_tab_public_url, '?') !== false ? '&' : '?';
+                            if (!empty($poll['access_token'])) {
+                                $access_link = $_tab_public_url . $sep . 'token=' . urlencode($poll['access_token']);
+                            } elseif (($poll['target_type'] ?? '') === 'public') {
+                                $access_link = $_tab_public_url . $sep . 'poll_id=' . intval($poll['poll_id']);
+                            } else {
+                                $access_link = null;
+                            }
+                        } else {
+                            $access_link = get_poll_access_link($poll);
+                        }
                         if ($access_link):
                     ?>
                         <div style="margin-top: 10px; padding: 10px; background: #f0f8ff; border: 1px solid #4CAF50; border-radius: 4px;">

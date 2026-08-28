@@ -18,6 +18,10 @@ if (!isset($current_user) || $current_user === null) {
 // MTool-URL-Variablen (absolute URLs für Form-Actions und Navigation)
 $_tab_process_url  = isset($opinion_process_url) ? $opinion_process_url : 'process_opinion.php';
 $_tab_redirect_to  = isset($opinion_share_url)   ? $opinion_share_url   : '';
+// Öffentliche URL für Zugangslinks (externe Teilnehmer).
+// Im MTool-Kontext: $OPINION_PUBLIC_URL zeigt auf opinion_standalone.php (kein MTool-Login nötig).
+// Direkte Auswertung hier (gleicher Include-Scope) – kein 'global' in Funktionen nötig.
+$_tab_public_url   = !empty($OPINION_PUBLIC_URL) ? rtrim($OPINION_PUBLIC_URL, '/') : null;
 
 // Hilfsfunktion: kontextsensitive URL für Navigation
 if (!function_exists('_opinion_url')) {
