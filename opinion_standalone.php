@@ -468,8 +468,8 @@ if (!isset($opinion_process_url) && $is_sitzungsverwaltung) {
 }
 
 // tab_opinion.php für SV-eingeloggte Benutzer laden
-// (externe Teilnehmer benötigen das Standalone-Rendering weiter unten)
-if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_opinion.php')) {
+// (externe Teilnehmer und Public-Wrapper benötigen das Standalone-Rendering weiter unten)
+if ($is_sitzungsverwaltung && $current_user && empty($OPINION_PUBLIC_MODE) && file_exists(__DIR__ . '/tab_opinion.php')) {
     include __DIR__ . '/tab_opinion.php';
     return; // Beende hier
 }
