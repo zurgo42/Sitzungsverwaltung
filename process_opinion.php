@@ -58,13 +58,23 @@ $is_external_participant = ($external_session !== null);
 // REDIRECT-BASIS (MTool-Modus)
 // ============================================
 $_r_base = null;
+// Priorität 1: redirect_to aus POST-Daten
 if (!empty($_POST['redirect_to'])) {
     $rt = trim($_POST['redirect_to']);
     $parsed = parse_url($rt);
-    if ($rt && strpos($rt, '//') !== 0 &&
-        (!isset($parsed['host']) || $parsed['host'] === $_SERVER['HTTP_HOST'])) {
-        $_r_base = $rt;
+    if ($parsed !== false && $rt && strpos($rt, '//') !== 0) {
+        $redirect_host = $parsed['host'] ?? '';
+        $ok = empty($redirect_host)
+            || $redirect_host === $_SERVER['HTTP_HOST']
+            || $redirect_host === ($_SERVER['SERVER_NAME'] ?? '');
+        if ($ok) {
+            $_r_base = $rt;
+        }
     }
+}
+// Priorität 2: aus Session (dort gespeichert beim Rendern durch MTool)
+if (!$_r_base && !empty($_SESSION['opinion_mtool_share_url'])) {
+    $_r_base = $_SESSION['opinion_mtool_share_url'];
 }
 function _r_opinion_dash() {
     global $_r_base;

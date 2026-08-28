@@ -419,18 +419,20 @@ if (isset($MNr) && empty($OPINION_PUBLIC_MODE) && $current_user && file_exists(_
     $opinion_process_url = $_omtp_proto . '://' . $_SERVER['HTTP_HOST']
         . str_replace('\\', '/', substr($_omtp_proc, strlen($_omtp_docroot)));
 
-    // URL des aufrufenden MTool-Skripts — MTool-Routing-Parameter (z.B. steuer=231) erhalten
+    // URL des aufrufenden MTool-Skripts — MTool-Routing-Parameter (z.B. steuer=221) erhalten
     if (!isset($opinion_share_url)) {
         $_omtp_caller = realpath($_SERVER['SCRIPT_FILENAME']);
         $_omtp_relpath = str_replace('\\', '/', substr($_omtp_caller, strlen($_omtp_docroot)));
-        $_omtp_qparams = [];
-        parse_str($_SERVER['QUERY_STRING'] ?? '', $_omtp_qparams);
+        // $_GET direkt verwenden (zuverlässiger als QUERY_STRING bei manchen Server-Konfigurationen)
+        $_omtp_qparams = $_GET;
         unset($_omtp_qparams['view'], $_omtp_qparams['poll_id'], $_omtp_qparams['token'], $_omtp_qparams['tab']);
         $_omtp_base_qs = http_build_query($_omtp_qparams);
         $opinion_share_url = $_omtp_proto . '://' . $_SERVER['HTTP_HOST']
             . $_omtp_relpath
             . ($_omtp_base_qs ? '?' . $_omtp_base_qs : '');
     }
+    // MTool-URL in Session speichern → process_opinion.php kann sie als Fallback nutzen
+    $_SESSION['opinion_mtool_share_url'] = $opinion_share_url;
 
     echo '<!DOCTYPE html>' . "\n";
     echo '<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Meinungsbild</title></head>';
