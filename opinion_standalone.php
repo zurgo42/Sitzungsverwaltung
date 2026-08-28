@@ -440,6 +440,11 @@ if (isset($MNr) && empty($OPINION_PUBLIC_MODE) && $current_user && file_exists(_
     if (!isset($OPINION_PUBLIC_URL)) {
         $OPINION_PUBLIC_URL = $opinion_share_url;
     }
+    // Explizit in $GLOBALS schreiben: generate_external_access_link() nutzt 'global $OPINION_PUBLIC_URL'.
+    // Wenn MTool dieses Script aus einem Funktions-Scope per require_once einbindet, landet
+    // $OPINION_PUBLIC_URL nur im lokalen Scope – global findet es dann nicht. $GLOBALS ist
+    // immer der echte globale Scope, unabhängig davon, wo der Aufruf stattfand.
+    $GLOBALS['OPINION_PUBLIC_URL'] = $OPINION_PUBLIC_URL;
 
     echo '<!DOCTYPE html>' . "\n";
     echo '<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Meinungsbild</title></head>';
