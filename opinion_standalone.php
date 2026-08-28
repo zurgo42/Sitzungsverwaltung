@@ -406,6 +406,24 @@ if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $
 // VIEW RENDERING
 // ============================================
 
+// DEBUG: Früher Checkpoint – erscheint noch vor dem MTool-Block-Check
+if (!empty($_GET['debug_opinion'])) {
+    echo '<div style="background:#d1ecf1;border:2px solid #0c5460;padding:15px;margin:10px;font-family:monospace;font-size:12px;border-radius:6px;">';
+    echo '<strong>🔍 Debug opinion_standalone.php (vor MTool-Block)</strong><br><br>';
+    echo 'isset($MNr)          = ' . var_export(isset($MNr), true) . '<br>';
+    echo '$MNr                 = ' . var_export($MNr ?? null, true) . '<br>';
+    echo '$current_user        = ' . ($current_user ? 'gesetzt (id=' . ($current_user['member_id'] ?? '?') . ')' : 'null') . '<br>';
+    echo 'OPINION_PUBLIC_MODE  = ' . var_export($OPINION_PUBLIC_MODE ?? null, true) . '<br>';
+    echo 'tab_opinion.php exists = ' . var_export(file_exists(__DIR__ . '/tab_opinion.php'), true) . '<br>';
+    echo 'OPINION_PUBLIC_URL   = ' . var_export($OPINION_PUBLIC_URL ?? null, true) . '<br>';
+    echo '$opinion_share_url   = ' . var_export($opinion_share_url ?? null, true) . '<br>';
+    echo 'MTool-Block-Bedingung = isset($MNr)=' . var_export(isset($MNr), true)
+        . ' && empty(OPINION_PUBLIC_MODE)=' . var_export(empty($OPINION_PUBLIC_MODE ?? null), true)
+        . ' && $current_user=' . var_export((bool)$current_user, true)
+        . ' && tab_opinion.php exists=' . var_export(file_exists(__DIR__ . '/tab_opinion.php'), true) . '<br>';
+    echo '</div>';
+}
+
 // MTool-Modus: $MNr gesetzt, kein Public-Wrapper → tab_opinion.php mit HTML-Wrapper laden
 // Szenario 2 (MTool/normales Mitglied): MTool-unpassende Bereiche werden per $OPINION_MTOOL_MODE ausgeblendet
 if (isset($MNr) && empty($OPINION_PUBLIC_MODE) && $current_user && file_exists(__DIR__ . '/tab_opinion.php')) {
