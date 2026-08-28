@@ -23,23 +23,6 @@ $_tab_redirect_to  = isset($opinion_share_url)   ? $opinion_share_url   : '';
 // Direkte Auswertung hier (gleicher Include-Scope) – kein 'global' in Funktionen nötig.
 $_tab_public_url   = !empty($OPINION_PUBLIC_URL) ? rtrim($OPINION_PUBLIC_URL, '/') : null;
 
-// DEBUG: Variablen-Status anzeigen wenn ?debug_opinion=1 gesetzt ist
-if (!empty($_GET['debug_opinion'])) {
-    echo '<div style="background:#fff3cd;border:2px solid #f90;padding:15px;margin:15px 0;font-family:monospace;font-size:13px;border-radius:6px;">';
-    echo '<strong>🔍 Debug opinion_standalone/tab_opinion</strong><br><br>';
-    echo 'OPINION_PUBLIC_URL  = ' . var_export($OPINION_PUBLIC_URL ?? null, true) . '<br>';
-    echo '$_tab_public_url    = ' . var_export($_tab_public_url, true) . '<br>';
-    echo '$opinion_share_url  = ' . var_export($opinion_share_url ?? null, true) . '<br>';
-    echo '$_tab_redirect_to   = ' . var_export($_tab_redirect_to, true) . '<br>';
-    echo '$opinion_process_url= ' . var_export($opinion_process_url ?? null, true) . '<br>';
-    echo '$_tab_process_url   = ' . var_export($_tab_process_url, true) . '<br>';
-    echo 'OPINION_MTOOL_MODE  = ' . var_export($OPINION_MTOOL_MODE ?? null, true) . '<br>';
-    echo 'GLOBALS[OPINION_PUBLIC_URL] = ' . var_export($GLOBALS['OPINION_PUBLIC_URL'] ?? null, true) . '<br>';
-    echo 'SESSION[opinion_mtool_share_url] = ' . var_export($_SESSION['opinion_mtool_share_url'] ?? null, true) . '<br>';
-    echo '_opinion_url("participate",1) = ' . (function_exists('_opinion_url') ? _opinion_url('participate', 1) : '(Funktion noch nicht definiert)') . '<br>';
-    echo '</div>';
-}
-
 // Hilfsfunktion: kontextsensitive URL für Navigation
 if (!function_exists('_opinion_url')) {
     function _opinion_url($view = null, $poll_id = null) {

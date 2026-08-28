@@ -1,14 +1,4 @@
 <?php
-// DEBUG-BLOCK (temporär) – aktiv bei ?debug_opinion=1
-if (!empty($_GET['debug_opinion'])) {
-    // Ausgabe-Puffer leeren damit nichts die Ausgabe unterdrückt
-    while (ob_get_level()) { ob_end_flush(); }
-    echo '<div style="background:red;color:white;padding:15px;font-family:monospace;font-size:14px;z-index:9999;position:relative;">'
-        . '<strong>opinion_standalone.php ERREICHT</strong> – '
-        . date('H:i:s') . ' – __FILE__=' . __FILE__
-        . '</div>';
-    flush();
-}
 /**
  * opinion_standalone.php - Standalone Meinungsbild-Tool-Wrapper
  * Erstellt: 18.11.2025
@@ -248,21 +238,6 @@ if ($access_token) {
 // ÖFFENTLICHE UMFRAGEN-LISTE
 // ============================================
 
-// DEBUG: Checkpoint 2 – nach Auth-Block, vor Public-Polls-Check
-if (!empty($_GET['debug_opinion'])) {
-    echo '<div style="background:#d4edda;border:2px solid #155724;padding:15px;margin:10px;font-family:monospace;font-size:12px;border-radius:6px;">';
-    echo '<strong>✅ Checkpoint 2: nach Auth-Block</strong><br><br>';
-    echo '$is_sitzungsverwaltung = ' . var_export($is_sitzungsverwaltung, true) . '<br>';
-    echo '$access_token          = ' . var_export($access_token, true) . '<br>';
-    echo '$poll_id_param         = ' . var_export($poll_id_param, true) . '<br>';
-    echo 'isset($MNr)            = ' . var_export(isset($MNr), true) . '<br>';
-    echo '$MNr                   = ' . var_export($MNr ?? null, true) . '<br>';
-    echo '$current_user          = ' . ($current_user ? 'gesetzt (id=' . ($current_user['member_id'] ?? '?') . ')' : 'null') . '<br>';
-    echo 'Public-Polls-Check würde laufen: ' . var_export(!$access_token && !$poll_id_param && !isset($MNr), true) . '<br>';
-    echo '</div>';
-    flush();
-}
-
 // Wenn KEINE Token UND KEINE Poll-ID UND kein MTool-Kontext: Liste öffentlicher Umfragen anzeigen
 if (!$access_token && !$poll_id_param && !isset($MNr)) {
     $stmt = $pdo->prepare("
@@ -430,24 +405,6 @@ if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $
 // ============================================
 // VIEW RENDERING
 // ============================================
-
-// DEBUG: Früher Checkpoint – erscheint noch vor dem MTool-Block-Check
-if (!empty($_GET['debug_opinion'])) {
-    echo '<div style="background:#d1ecf1;border:2px solid #0c5460;padding:15px;margin:10px;font-family:monospace;font-size:12px;border-radius:6px;">';
-    echo '<strong>🔍 Debug opinion_standalone.php (vor MTool-Block)</strong><br><br>';
-    echo 'isset($MNr)          = ' . var_export(isset($MNr), true) . '<br>';
-    echo '$MNr                 = ' . var_export($MNr ?? null, true) . '<br>';
-    echo '$current_user        = ' . ($current_user ? 'gesetzt (id=' . ($current_user['member_id'] ?? '?') . ')' : 'null') . '<br>';
-    echo 'OPINION_PUBLIC_MODE  = ' . var_export($OPINION_PUBLIC_MODE ?? null, true) . '<br>';
-    echo 'tab_opinion.php exists = ' . var_export(file_exists(__DIR__ . '/tab_opinion.php'), true) . '<br>';
-    echo 'OPINION_PUBLIC_URL   = ' . var_export($OPINION_PUBLIC_URL ?? null, true) . '<br>';
-    echo '$opinion_share_url   = ' . var_export($opinion_share_url ?? null, true) . '<br>';
-    echo 'MTool-Block-Bedingung = isset($MNr)=' . var_export(isset($MNr), true)
-        . ' && empty(OPINION_PUBLIC_MODE)=' . var_export(empty($OPINION_PUBLIC_MODE ?? null), true)
-        . ' && $current_user=' . var_export((bool)$current_user, true)
-        . ' && tab_opinion.php exists=' . var_export(file_exists(__DIR__ . '/tab_opinion.php'), true) . '<br>';
-    echo '</div>';
-}
 
 // MTool-Modus: $MNr gesetzt, kein Public-Wrapper → tab_opinion.php mit HTML-Wrapper laden
 // Szenario 2 (MTool/normales Mitglied): MTool-unpassende Bereiche werden per $OPINION_MTOOL_MODE ausgeblendet

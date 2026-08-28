@@ -152,7 +152,14 @@ try {
             $is_anonymous = !empty($_POST['is_anonymous']) ? 1 : 0;
             $duration_days = intval($_POST['duration_days'] ?? 14);
             $show_intermediate_after_days = intval($_POST['show_intermediate_after_days'] ?? 7);
-            $delete_after_days = intval($_POST['delete_after_days'] ?? 30);
+
+            // Löschdatum: aus Datumseingabe berechnen, Fallback auf Legacy-Feld
+            if (!empty($_POST['delete_at_date'])) {
+                $delete_ts = strtotime($_POST['delete_at_date']);
+                $delete_after_days = max(1, (int)ceil(($delete_ts - time()) / 86400));
+            } else {
+                $delete_after_days = intval($_POST['delete_after_days'] ?? 90);
+            }
 
             if (empty($title)) {
                 $_SESSION['error'] = 'Bitte gib eine Frage ein';
@@ -160,18 +167,21 @@ try {
                 exit;
             }
 
+            // Enddatum berechnen
+            $ends_at = date('Y-m-d H:i:s', strtotime("+{$duration_days} days"));
+
             // Umfrage erstellen
             $stmt = $pdo->prepare("
                 INSERT INTO svopinion_polls
                 (title, creator_member_id, target_type, list_id, template_id,
                  allow_multiple_answers, is_anonymous, duration_days,
-                 show_intermediate_after_days, delete_after_days, status, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())
+                 show_intermediate_after_days, delete_after_days, status, created_at, ends_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), ?)
             ");
             $stmt->execute([
                 $title, $current_user['member_id'], $target_type, $list_id,
                 $template_id, $allow_multiple, $is_anonymous, $duration_days,
-                $show_intermediate_after_days, $delete_after_days
+                $show_intermediate_after_days, $delete_after_days, $ends_at
             ]);
             $poll_id = $pdo->lastInsertId();
 
@@ -545,6 +555,30 @@ try {
 
             $_SESSION['success'] = 'Meinungsbild wurde beendet';
             header('Location: ' . _r_opinion_poll($poll_id, 'results'));
+            exit;
+
+        // ====== UMFRAGE ARCHIVIEREN ======
+        case 'archive_poll':
+            $poll_id = intval($_POST['poll_id'] ?? 0);
+            $poll = get_opinion_poll($pdo, $poll_id);
+
+            if (!$poll) {
+                $_SESSION['error'] = 'Umfrage nicht gefunden';
+                header('Location: ' . _r_opinion_dash());
+                exit;
+            }
+
+            if (!is_creator($poll, $current_user) && !is_admin($current_user)) {
+                $_SESSION['error'] = 'Keine Berechtigung';
+                header('Location: ' . _r_opinion_dash());
+                exit;
+            }
+
+            $pdo->prepare("UPDATE svopinion_polls SET status = 'archived' WHERE poll_id = ?")
+                ->execute([$poll_id]);
+
+            $_SESSION['success'] = 'Meinungsbild wurde archiviert';
+            header('Location: ' . _r_opinion_dash());
             exit;
 
         default:

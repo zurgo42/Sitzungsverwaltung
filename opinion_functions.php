@@ -11,7 +11,15 @@ require_once __DIR__ . '/member_functions.php';
  * Lädt alle aktiven Meinungsbilder
  */
 function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) {
-    // Mitglieder über Adapter laden und zu Polls hinzufügen
+    // Abgelaufene Umfragen automatisch löschen (lazy deletion anhand delete_after_days)
+    $pdo->exec("
+        UPDATE svopinion_polls
+        SET status = 'deleted'
+        WHERE status NOT IN ('deleted')
+          AND delete_after_days > 0
+          AND DATE_ADD(created_at, INTERVAL delete_after_days DAY) < NOW()
+    ");
+
     $sql = "
         SELECT op.*,
                (SELECT COUNT(*) FROM svopinion_responses WHERE poll_id = op.poll_id) as response_count,
