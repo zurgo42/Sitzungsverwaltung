@@ -1041,6 +1041,28 @@ try {
     COMMENT='Aktions-Protokoll aller User-Datenbankänderungen'";
 
 
+    // Nutzer-individuelle Ausblendungen für Terminplanung (2026-08-28)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svtermine_user_hidden (
+        poll_id   INT NOT NULL COMMENT 'FK zu svpolls',
+        member_id INT NOT NULL COMMENT 'FK zu svmembers',
+        hidden_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (poll_id, member_id),
+        FOREIGN KEY (poll_id)   REFERENCES svpolls(poll_id)     ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='Pro-User-Ausblendung von Terminumfragen in der Listenansicht'";
+
+    // Nutzer-individuelle Ausblendungen für Meinungsbilder (2026-08-28)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svopinion_user_hidden (
+        poll_id   INT NOT NULL COMMENT 'FK zu svopinion_polls',
+        member_id INT NOT NULL COMMENT 'FK zu svmembers',
+        hidden_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (poll_id, member_id),
+        FOREIGN KEY (poll_id)   REFERENCES svopinion_polls(poll_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id)     ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='Pro-User-Ausblendung von Meinungsbildern in der Listenansicht'";
+
     // Tabellen erstellen
     echo "<p>Erstelle " . count($tables) . " Tabellen...</p>";
     foreach ($tables as $sql) {
