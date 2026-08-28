@@ -521,6 +521,17 @@ if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_opini
 // STANDALONE-RENDERING
 // ============================================
 
+// _opinion_url() für standalone-Kontext (externe Teilnehmer, kein tab_opinion.php-Include)
+if (!function_exists('_opinion_url')) {
+    function _opinion_url($view = null, $poll_id = null) {
+        $url = basename($_SERVER['SCRIPT_NAME']);
+        $sep = '?';
+        if ($view)    { $url .= $sep . 'view=' . $view;            $sep = '&'; }
+        if ($poll_id) { $url .= $sep . 'poll_id=' . intval($poll_id); }
+        return $url;
+    }
+}
+
 // View bestimmen: Wenn poll_id vorhanden und kein User eingeloggt -> participate
 $view = $_GET['view'] ?? (($poll_id_param && !$current_user) ? 'participate' : 'list');
 $poll_id = $poll_id_param ?? (isset($_GET['poll_id']) ? intval($_GET['poll_id']) : null);
