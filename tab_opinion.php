@@ -36,7 +36,7 @@ if (!empty($_GET['debug_opinion'])) {
     echo 'OPINION_MTOOL_MODE  = ' . var_export($OPINION_MTOOL_MODE ?? null, true) . '<br>';
     echo 'GLOBALS[OPINION_PUBLIC_URL] = ' . var_export($GLOBALS['OPINION_PUBLIC_URL'] ?? null, true) . '<br>';
     echo 'SESSION[opinion_mtool_share_url] = ' . var_export($_SESSION['opinion_mtool_share_url'] ?? null, true) . '<br>';
-    echo '_opinion_url("participate",1) = ' . _opinion_url('participate', 1) . '<br>';
+    echo '_opinion_url("participate",1) = ' . (function_exists('_opinion_url') ? _opinion_url('participate', 1) : '(Funktion noch nicht definiert)') . '<br>';
     echo '</div>';
 }
 
