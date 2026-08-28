@@ -11,6 +11,18 @@ require_once __DIR__ . '/member_functions.php';
  * Lädt alle aktiven Meinungsbilder
  */
 function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) {
+    // Tabelle für nutzer-individuelle Ausblendungen anlegen (einmalig, falls nicht vorhanden)
+    static $hidden_table_ready = false;
+    if (!$hidden_table_ready) {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS svopinion_user_hidden (
+            poll_id   INT NOT NULL,
+            member_id INT NOT NULL,
+            hidden_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (poll_id, member_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $hidden_table_ready = true;
+    }
+
     // Abgelaufene Umfragen automatisch löschen (lazy deletion anhand delete_after_days)
     $pdo->exec("
         UPDATE svopinion_polls
@@ -20,11 +32,16 @@ function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) 
           AND DATE_ADD(created_at, INTERVAL delete_after_days DAY) < NOW()
     ");
 
+    $hidden_join  = $member_id ? "LEFT JOIN svopinion_user_hidden uh ON uh.poll_id = op.poll_id AND uh.member_id = " . intval($member_id) : "";
+    $hidden_field = $member_id ? ", (uh.poll_id IS NOT NULL) AS is_hidden_for_user" : ", 0 AS is_hidden_for_user";
+
     $sql = "
         SELECT op.*,
                (SELECT COUNT(*) FROM svopinion_responses WHERE poll_id = op.poll_id) as response_count,
                (SELECT COUNT(*) FROM svopinion_poll_participants WHERE poll_id = op.poll_id) as participant_count
+               {$hidden_field}
         FROM svopinion_polls op
+        {$hidden_join}
         WHERE op.status != 'deleted'
     ";
 

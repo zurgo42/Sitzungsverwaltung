@@ -557,27 +557,27 @@ try {
             header('Location: ' . _r_opinion_poll($poll_id, 'results'));
             exit;
 
-        // ====== UMFRAGE ARCHIVIEREN ======
-        case 'archive_poll':
+        // ====== UMFRAGE FÜR DIESEN USER AUSBLENDEN ======
+        case 'hide_poll':
+            if (!$is_authenticated || !$current_user) {
+                header('Location: ' . _r_opinion_dash());
+                exit;
+            }
             $poll_id = intval($_POST['poll_id'] ?? 0);
-            $poll = get_opinion_poll($pdo, $poll_id);
+            $pdo->prepare("INSERT IGNORE INTO svopinion_user_hidden (poll_id, member_id) VALUES (?, ?)")
+                ->execute([$poll_id, $current_user['member_id']]);
+            header('Location: ' . _r_opinion_dash());
+            exit;
 
-            if (!$poll) {
-                $_SESSION['error'] = 'Umfrage nicht gefunden';
+        // ====== AUSBLENDUNG RÜCKGÄNGIG MACHEN ======
+        case 'unhide_poll':
+            if (!$is_authenticated || !$current_user) {
                 header('Location: ' . _r_opinion_dash());
                 exit;
             }
-
-            if (!is_creator($poll, $current_user) && !is_admin($current_user)) {
-                $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: ' . _r_opinion_dash());
-                exit;
-            }
-
-            $pdo->prepare("UPDATE svopinion_polls SET status = 'archived' WHERE poll_id = ?")
-                ->execute([$poll_id]);
-
-            $_SESSION['success'] = 'Meinungsbild wurde archiviert';
+            $poll_id = intval($_POST['poll_id'] ?? 0);
+            $pdo->prepare("DELETE FROM svopinion_user_hidden WHERE poll_id = ? AND member_id = ?")
+                ->execute([$poll_id, $current_user['member_id']]);
             header('Location: ' . _r_opinion_dash());
             exit;
 
