@@ -173,21 +173,28 @@ if (empty($members)) {
 if (!empty($comments)) {
     $test_item_id = $comments[0]['item_id'];
 
-    echo "<h2>3. JOIN-Query Test (item_id = $test_item_id)</h2>";
+    echo "<h2>3. Query mit Adapter-Funktionen (item_id = $test_item_id)</h2>";
 
-    echo "<h3>A) JOIN mit svmembers</h3>";
+    echo "<h3>A) Kommentare über Adapter laden</h3>";
     $stmt = $pdo->prepare("
-        SELECT apc.*, m.first_name, m.last_name
+        SELECT apc.*
         FROM svagenda_post_comments apc
-        JOIN svmembers m ON apc.member_id = m.member_id
         WHERE apc.item_id = ?
         ORDER BY apc.created_at ASC
     ");
     $stmt->execute([$test_item_id]);
     $joined_comments = $stmt->fetchAll();
 
+    // Member-Namen über Adapter hinzufügen
+    foreach ($joined_comments as &$comment) {
+        $member = get_member_by_id($pdo, $comment['member_id']);
+        $comment['first_name'] = $member ? $member['first_name'] : 'Unbekannt';
+        $comment['last_name'] = $member ? $member['last_name'] : '';
+    }
+    unset($comment);
+
     if (empty($joined_comments)) {
-        echo "<p style='color: red;'>❌ JOIN mit svmembers liefert keine Ergebnisse!</p>";
+        echo "<p style='color: red;'>❌ Keine Kommentare gefunden!</p>";
 
         // Prüfen welche member_ids in post_comments existieren
         $stmt = $pdo->prepare("SELECT DISTINCT member_id FROM svagenda_post_comments WHERE item_id = ?");

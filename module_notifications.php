@@ -30,52 +30,34 @@ function render_user_notifications($pdo, $member_id) {
 
     $notifications = [];
 
-    // 1. ABWESENHEITEN PRÜFEN
-    // Nutzt Adapter-kompatible Funktion statt direktem JOIN auf svmembers
-    $all_absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
-
-    // is_current Flag hinzufügen
-    foreach ($all_absences as &$abs) {
-        $abs['is_current'] = (strtotime('today') >= strtotime($abs['start_date']) &&
-                              strtotime('today') <= strtotime($abs['end_date'])) ? 1 : 0;
+    // 1. AUSSTEHENDE ABSTIMMUNGEN (ANTRÄGE) - GANZ OBEN
+    // Prüfe offene Abstimmungen für aktuellen User in antraege-Tabelle
+    $pending_stmt = $pdo->query("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr LIKE 'B%'");
+    $b_antraege = $pending_stmt->fetchAll();
+    $pending_votes = [];
+    foreach ($b_antraege as $a) {
+        for ($i = 1; $i <= 6; $i++) {
+            if ($a["VName$i"] == $member_id && empty($a["Votum$i"])) {
+                $pending_votes[] = $a;
+                break;
+            }
+        }
     }
 
-    if (!empty($all_absences)) {
-        $absence_items = [];
-        foreach ($all_absences as $abs) {
-            // Zeitraum (strong) + Doppelpunkt
-            $dates = '<strong>' . date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date'])) . ':</strong>';
-
-            // Vorname + erster Buchstabe Nachname mit Punkt
-            $first_name = htmlspecialchars($abs['first_name']);
-            $last_initial = strtoupper(substr($abs['last_name'], 0, 1)) . '.';
-            $name = $first_name . ' ' . $last_initial;
-
-            // Vertretung (falls vorhanden)
-            $vertr = '';
-            if ($abs['substitute_member_id']) {
-                $sub_first = htmlspecialchars($abs['sub_first_name']);
-                $sub_initial = strtoupper(substr($abs['sub_last_name'], 0, 1)) . '.';
-                $vertr = ' Vertr.: ' . $sub_first . ' ' . $sub_initial;
-            }
-
-            $text = $dates . ' ' . $name . $vertr;
-
-            // Aktuelle Abwesenheiten in rot
-            if ($abs['is_current']) {
-                $absence_items[] = '<span style="color: #d32f2f;">' . $text . '</span>';
-            } else {
-                $absence_items[] = $text;
-            }
+    if (!empty($pending_votes)) {
+        $vote_items = [];
+        foreach ($pending_votes as $pv) {
+            $antrnr = htmlspecialchars($pv['antrnr']);
+            $titel = htmlspecialchars(mb_substr($pv['titel'], 0, 40));
+            if (mb_strlen($pv['titel']) > 40) $titel .= '...';
+            $vote_items[] = '<a href="abstimmungen.php?antrnr=' . urlencode($pv['antrnr']) . '" style="display: inline-block; background: var(--warning); color: #000; padding: 6px 10px; border-radius: 4px; text-decoration: none; font-weight: 600; font-size: 12px; margin-right: 5px; margin-bottom: 5px;">→ ' . $antrnr . ': ' . $titel . '</a>';
         }
 
         $notifications[] = [
-            'type' => 'absences',
-            'icon' => '🏖️',
-            'text' => implode(' <span style="color: #ffc107; font-weight: 900; font-size: 18px;">•</span> ', $absence_items),
-            'link' => '?tab=vertretung',
-            'link_text' => 'Details',
-            'button' => true
+            'type' => 'proposals_voting',
+            'icon' => '🗳️',
+            'text' => 'Du hast <strong>' . count($pending_votes) . '</strong> offene Abstimmung' . (count($pending_votes) > 1 ? 'en' : '') . ': ' . implode('', $vote_items),
+            'link' => null
         ];
     }
 
@@ -147,7 +129,110 @@ function render_user_notifications($pdo, $member_id) {
         ];
     }
 
-    // 5. ZUSAMMENFASSUNG: KOMMENDE SITZUNGEN & TERMINE
+    // 5. ALTE PROPOSALS-ABSTIMMUNGEN (DEAKTIVIERT)
+    // Jetzt in Sektion 1 (ganz oben) implementiert
+    /*
+    require_once __DIR__ . '/proposals_functions.php';
+    require_once __DIR__ . '/adapters/ProposalPermissionAdapter.php';
+
+    $memberAdapter = get_member_adapter($pdo);
+    $permAdapter = new ProposalPermissionAdapter($pdo, $memberAdapter);
+
+    // Ausstehende Abstimmungen
+    $voting_stats = $permAdapter->get_voting_stats($member);
+
+    if ($voting_stats['pending'] > 0) {
+        // Nächste Deadline ermitteln
+        $votable_ids = $permAdapter->get_votable_proposal_ids($member);
+        if (!empty($votable_ids)) {
+            $placeholders = str_repeat('?,', count($votable_ids) - 1) . '?';
+            $stmt_deadline = $pdo->prepare("
+                SELECT MIN(voting_deadline) as next_deadline
+                FROM svbproposals
+                WHERE id IN ($placeholders)
+                AND status = 'voting'
+                AND voting_deadline IS NOT NULL
+            ");
+            $stmt_deadline->execute($votable_ids);
+            $next_deadline = $stmt_deadline->fetchColumn();
+
+            $deadline_text = '';
+            if ($next_deadline) {
+                $days_left = ceil((strtotime($next_deadline) - time()) / 86400);
+                if ($days_left <= 3) {
+                    $deadline_text = ' <span style="color: #d32f2f; font-weight: 600;">(läuft in ' . $days_left . ' ' . ($days_left == 1 ? 'Tag' : 'Tagen') . ' ab!)</span>';
+                } elseif ($days_left <= 7) {
+                    $deadline_text = ' <span style="color: #ff9800;">(läuft in ' . $days_left . ' Tagen ab)</span>';
+                }
+            }
+        }
+
+        $notifications[] = [
+            'type' => 'proposals_voting',
+            'icon' => '🗳️',
+            'text' => ($voting_stats['pending'] == 1 ? 'Eine Abstimmung wartet auf deine Stimme' : $voting_stats['pending'] . ' Abstimmungen warten auf deine Stimme') . $deadline_text,
+            'link' => '?tab=proposals&view=voting',
+            'link_text' => '→ Abstimmen',
+            'button' => true
+        ];
+    }
+
+    // 6. EXPEDITE-GENEHMIGUNGEN WARTEND (nur für Vorstand)
+    if (strtolower($member_role) === 'vorstand') {
+        $stmt_expedite = $pdo->prepare("
+            SELECT COUNT(*) as count
+            FROM svbproposals
+            WHERE status = 'editing'
+            AND expedite_justification IS NOT NULL
+            AND (
+                (expedite_approver1_id IS NULL)
+                OR (expedite_approver1_id IS NOT NULL AND expedite_approver2_id IS NULL)
+            )
+            AND expedite_approver1_id != ?
+            AND expedite_approver2_id != ?
+            AND submitter_id != ?
+        ");
+        $stmt_expedite->execute([$member_id, $member_id, $member_id]);
+        $expedite_count = $stmt_expedite->fetchColumn();
+
+        if ($expedite_count > 0) {
+            $notifications[] = [
+                'type' => 'proposals_expedite',
+                'icon' => '⚡',
+                'text' => ($expedite_count == 1 ? 'Eine Wartezeitverkürzung' : $expedite_count . ' Wartezeitverkürzungen') . ' warten auf Genehmigung',
+                'link' => '?tab=proposals&view=list',
+                'link_text' => '→ Anträge',
+                'button' => true
+            ];
+        }
+    }
+
+    // 7. FINANZ-FREIGABEN ERFORDERLICH (für Finanzverantwortliche)
+    if ($permAdapter->can_approve_finance($member)) {
+        $stmt_finance = $pdo->prepare("
+            SELECT COUNT(*) as count
+            FROM svbproposals
+            WHERE decision_type = 'department'
+            AND status = 'voting'
+            AND finance_approval = 0
+        ");
+        $stmt_finance->execute();
+        $finance_count = $stmt_finance->fetchColumn();
+
+        if ($finance_count > 0) {
+            $notifications[] = [
+                'type' => 'proposals_finance',
+                'icon' => '💰',
+                'text' => ($finance_count == 1 ? 'Eine Finanzfreigabe wird benötigt' : $finance_count . ' Finanzfreigaben werden benötigt'),
+                'link' => '?tab=proposals&view=list&filter_decision_type=department',
+                'link_text' => '→ Prüfen',
+                'button' => true
+            ];
+        }
+    }
+    */
+
+    // 8. ZUSAMMENFASSUNG: KOMMENDE SITZUNGEN & TERMINE
     $stmt_summary = $pdo->prepare("
         (SELECT 'meeting' as type, m.meeting_id as item_id, m.meeting_name as title, m.meeting_date as date_time
          FROM svmeetings m
@@ -180,7 +265,7 @@ function render_user_notifications($pdo, $member_id) {
         if (!array_key_exists($key, $seen)) {
             $seen[$key] = true;
             $upcoming[] = $item;
-            if (count($upcoming) >= 6) break; // Max 6 Einträge
+            if (count($upcoming) >= 3) break; // Max 3 Einträge
         }
     }
 
@@ -211,6 +296,61 @@ function render_user_notifications($pdo, $member_id) {
             'icon' => '📋',
             'text' => '<strong class="kommende-termine-label">Kommende Termine:</strong><span class="kommende-termine-break"></span> ' . implode(' ', $items),
             'link' => null
+        ];
+    }
+
+    // 9. ABWESENHEITEN (AM ENDE, NACH TERMINEN)
+    $all_absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
+
+    // is_current Flag hinzufügen
+    foreach ($all_absences as &$abs) {
+        $abs['is_current'] = (strtotime('today') >= strtotime($abs['start_date']) &&
+                              strtotime('today') <= strtotime($abs['end_date'])) ? 1 : 0;
+    }
+
+    if (!empty($all_absences)) {
+        $total_absences = count($all_absences);
+        // Nur die ersten 4 Abwesenheiten anzeigen
+        $display_absences = array_slice($all_absences, 0, 4);
+
+        $absence_items = [];
+        foreach ($display_absences as $abs) {
+            // Zeitraum (strong) + Doppelpunkt
+            $dates = '<strong>' . date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date'])) . ':</strong>';
+
+            // Vorname + erster Buchstabe Nachname mit Punkt
+            $first_name = htmlspecialchars($abs['first_name']);
+            $last_initial = strtoupper(substr($abs['last_name'], 0, 1)) . '.';
+            $name = $first_name . ' ' . $last_initial;
+
+            // Vertretung (falls vorhanden)
+            $vertr = '';
+            if ($abs['substitute_member_id']) {
+                $sub_first = htmlspecialchars($abs['sub_first_name']);
+                $sub_initial = strtoupper(substr($abs['sub_last_name'], 0, 1)) . '.';
+                $vertr = ' Vertr.: ' . $sub_first . ' ' . $sub_initial;
+            }
+
+            $text = $dates . ' ' . $name . $vertr;
+
+            // Aktuelle Abwesenheiten in rot
+            if ($abs['is_current']) {
+                $absence_items[] = '<span style="color: #d32f2f;">' . $text . '</span>';
+            } else {
+                $absence_items[] = $text;
+            }
+        }
+
+        // Link-Text: "Details" wenn 4 oder weniger, "weitere..." wenn mehr als 4
+        $link_text = ($total_absences <= 4) ? 'Details' : 'weitere...';
+
+        $notifications[] = [
+            'type' => 'absences',
+            'icon' => '🏖️',
+            'text' => implode(' <span style="color: #ffc107; font-weight: 900; font-size: 18px;">•</span> ', $absence_items),
+            'link' => '?tab=vertretung',
+            'link_text' => $link_text,
+            'button' => true
         ];
     }
 

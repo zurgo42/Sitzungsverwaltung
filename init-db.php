@@ -42,6 +42,8 @@ try {
         first_name VARCHAR(100) NOT NULL,
         last_name VARCHAR(100) NOT NULL,
         role ENUM('vorstand', 'gf', 'assistenz', 'fuehrungsteam', 'Mitglied') NOT NULL,
+        aktiv INT DEFAULT 1 COMMENT 'Berechtigungslevel 0-19: 0=öffentlich, 10=Aktive, 15=RL, 18=GF, 19=Vorstand (siehe PERMISSIONS.md)',
+        funktion VARCHAR(10) DEFAULT NULL COMMENT 'Funktion: Vo,FVo,FVv,GF,VA,RL,PL,JT,TM,FP,SV,MB,Ka,Orga,AD,Rx,Vx,Xx (siehe PERMISSIONS.md)',
         is_admin TINYINT(1) DEFAULT 0,
         is_active TINYINT(1) DEFAULT 1,
         is_confidential TINYINT UNSIGNED DEFAULT NULL,
@@ -49,7 +51,9 @@ try {
         UNIQUE KEY membership_number (membership_number),
         INDEX idx_email (email),
         INDEX idx_role (role),
-        INDEX idx_is_active (is_active)
+        INDEX idx_is_active (is_active),
+        INDEX idx_aktiv (aktiv),
+        INDEX idx_funktion (funktion)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // =========================================================
@@ -75,6 +79,10 @@ try {
         ended_at DATETIME DEFAULT NULL,
         status ENUM('preparation', 'active', 'ended', 'protocol_ready', 'archived') DEFAULT 'preparation',
         visibility_type ENUM('public', 'authenticated', 'invited_only') DEFAULT 'invited_only',
+        allow_decisions TINYINT(1) DEFAULT 1 COMMENT 'Beschlüsse in dieser Sitzung erlauben (1=ja, 0=nein)',
+        send_agenda_reminder TINYINT(1) DEFAULT 1 COMMENT 'Erinnerungsmail nach Antragsschluss versenden',
+        agenda_reminder_emails TEXT DEFAULT NULL COMMENT 'Kommagetrennte Empfänger-Mailadressen (leer = nur Teilnehmer)',
+        agenda_reminder_sent TINYINT(1) DEFAULT 0 COMMENT '1 = Erinnerungsmail wurde bereits versendet',
         protokoll TEXT DEFAULT NULL,
         prot_intern TEXT DEFAULT NULL,
         protocol_intern TEXT NOT NULL DEFAULT '',
@@ -113,6 +121,7 @@ try {
         description TEXT,
         category ENUM('information', 'klaerung', 'diskussion', 'aussprache', 'antrag_beschluss', 'wahl', 'bericht', 'sonstiges') DEFAULT 'information',
         proposal_text TEXT,
+        antrnr VARCHAR(15) NULL COMMENT 'Verknüpfung zu antraege.antrnr für Beschlussfassung',
         vote_yes INT DEFAULT NULL,
         vote_no INT DEFAULT NULL,
         vote_abstain INT DEFAULT NULL,
@@ -134,7 +143,8 @@ try {
         INDEX idx_is_active (is_active),
         INDEX idx_created_by (created_by_member_id),
         INDEX idx_grouped_with (grouped_with_item_id),
-        INDEX idx_category (category)
+        INDEX idx_category (category),
+        INDEX idx_antrnr (antrnr)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // Kommentare-Tabelle
@@ -195,6 +205,46 @@ try {
         INDEX idx_uploaded_at (uploaded_at),
         FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE,
         FOREIGN KEY (uploaded_by_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // =========================================================
+    // ABSTIMMUNGS-TABELLEN
+    // =========================================================
+
+    // Abstimmungen für TOPs
+    $tables[] = "CREATE TABLE IF NOT EXISTS svvotings (
+        voting_id INT AUTO_INCREMENT PRIMARY KEY,
+        item_id INT NOT NULL COMMENT 'FK zu svagenda_items',
+        initiated_by_member_id INT NOT NULL COMMENT 'Wer hat Abstimmung gestartet',
+        voting_question VARCHAR(500) DEFAULT NULL COMMENT 'Frage bei Stimmungsbild (wenn kein Antrag)',
+        voting_type ENUM('open', 'secret') NOT NULL DEFAULT 'open' COMMENT 'Offen oder geheim',
+        eligible_voters ENUM('board', 'all') NOT NULL DEFAULT 'board' COMMENT 'Vorstand oder alle Teilnehmer',
+        status ENUM('active', 'closed') NOT NULL DEFAULT 'active' COMMENT 'Läuft oder abgeschlossen',
+        result_summary TEXT DEFAULT NULL COMMENT 'Zusammenfassung für Protokoll',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        closed_at DATETIME DEFAULT NULL,
+        closed_by_member_id INT DEFAULT NULL COMMENT 'Wer hat abgeschlossen',
+        INDEX idx_item_id (item_id),
+        INDEX idx_status (status),
+        FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE,
+        FOREIGN KEY (initiated_by_member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (closed_by_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // Einzelne Stimmen
+    $tables[] = "CREATE TABLE IF NOT EXISTS svvotes (
+        vote_id INT AUTO_INCREMENT PRIMARY KEY,
+        voting_id INT NOT NULL COMMENT 'FK zu svvotings',
+        member_id INT NOT NULL COMMENT 'Wer stimmt ab',
+        vote ENUM('yes', 'no', 'abstain') NOT NULL COMMENT 'Ja/Nein/Enthaltung',
+        submitted_by_member_id INT DEFAULT NULL COMMENT 'Falls Protokollführer für jemanden abstimmt',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_vote (voting_id, member_id) COMMENT 'Jeder Member kann nur einmal abstimmen',
+        INDEX idx_voting_id (voting_id),
+        INDEX idx_member_id (member_id),
+        FOREIGN KEY (voting_id) REFERENCES svvotings(voting_id) ON DELETE CASCADE,
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE,
+        FOREIGN KEY (submitted_by_member_id) REFERENCES svmembers(member_id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     // =========================================================
@@ -293,6 +343,168 @@ try {
         INDEX idx_target_type (target_type),
         INDEX idx_created_at (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    // =========================================================
+    // SYSTEM-KONFIGURATION
+    // =========================================================
+
+    // System-Konfigurationstabelle
+    $tables[] = "CREATE TABLE IF NOT EXISTS svconfig (
+        config_key VARCHAR(50) PRIMARY KEY,
+        config_value TEXT,
+        config_type ENUM('text', 'number', 'boolean', 'json') DEFAULT 'text',
+        description VARCHAR(255),
+        category VARCHAR(50) DEFAULT 'general',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        updated_by INT NULL,
+        INDEX idx_category (category)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='System-Konfiguration für anpassbare Einstellungen'";
+
+    // =========================================================
+    // ANTRAGS-/BESCHLUSSSYSTEM
+    // =========================================================
+
+    // Ressorts-Tabelle
+    $tables[] = "CREATE TABLE IF NOT EXISTS svressorts (
+        ID INT AUTO_INCREMENT PRIMARY KEY,
+        Code VARCHAR(4) DEFAULT NULL COMMENT 'Ressort-Code (z.B. R15)',
+        Ressort VARCHAR(100) NOT NULL COMMENT 'Name des Ressorts',
+        Reihenfolge INT DEFAULT 100 COMMENT 'Sortierreihenfolge',
+        aktiv TINYINT(1) DEFAULT 1 COMMENT '1=Aktiv, 0=Inaktiv',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_code (Code),
+        INDEX idx_reihenfolge (Reihenfolge),
+        INDEX idx_aktiv (aktiv)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='Ressorts für das Antragssystem'";
+
+    // Anträge-Tabelle (für Clean-Installationen ohne Adapter)
+    // Bewährte VTool-Struktur + moderne Erweiterungen
+    $tables[] = "CREATE TABLE IF NOT EXISTS svantraege (
+        bart VARCHAR(1) DEFAULT NULL,
+        praesenz VARCHAR(11) DEFAULT NULL,
+        antrnr VARCHAR(10) NOT NULL PRIMARY KEY,
+        ergebnis TEXT DEFAULT NULL,
+        antrst VARCHAR(3) DEFAULT NULL COMMENT 'Antragsteller-Code',
+        ressort1 VARCHAR(4) DEFAULT NULL COMMENT 'Hauptressort (Code)',
+        ressort2 VARCHAR(4) DEFAULT NULL COMMENT 'Mitwirkendes Ressort (Code)',
+        verein VARCHAR(1) DEFAULT NULL,
+        int_ext VARCHAR(1) DEFAULT NULL,
+        titel VARCHAR(255) DEFAULT NULL,
+        beschluss TEXT DEFAULT NULL,
+        fin VARCHAR(8) DEFAULT NULL,
+        fintext TEXT DEFAULT NULL,
+        budgetnr VARCHAR(16) DEFAULT NULL,
+        budget VARCHAR(8) DEFAULT NULL,
+        pers TEXT DEFAULT NULL,
+        sach TEXT DEFAULT NULL,
+        begr TEXT DEFAULT NULL,
+        thread VARCHAR(64) DEFAULT NULL,
+        hinweis TEXT DEFAULT NULL,
+        verant TEXT DEFAULT NULL,
+        file1 VARCHAR(128) DEFAULT NULL,
+        filetext1 TEXT DEFAULT NULL,
+        file2 VARCHAR(128) DEFAULT NULL,
+        filetext2 TEXT DEFAULT NULL,
+        file3 VARCHAR(128) DEFAULT NULL,
+        filetext3 TEXT DEFAULT NULL,
+        file4 VARCHAR(128) DEFAULT NULL,
+        filetext4 TEXT DEFAULT NULL,
+        wichtig VARCHAR(3) DEFAULT NULL,
+        verf VARCHAR(64) DEFAULT NULL,
+        vorher VARCHAR(1) DEFAULT NULL,
+        sofort VARCHAR(1) DEFAULT NULL,
+        durch VARCHAR(64) DEFAULT NULL,
+        zufin VARCHAR(16) DEFAULT NULL,
+        zbem TEXT DEFAULT NULL,
+        verf1 VARCHAR(3) DEFAULT NULL,
+        verf2 VARCHAR(3) DEFAULT NULL,
+        verkb TEXT DEFAULT NULL,
+        verk1 INT UNSIGNED DEFAULT NULL,
+        verk2 INT UNSIGNED DEFAULT NULL,
+        warantrag VARCHAR(9) DEFAULT NULL,
+        lzugriff DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+        VName1 VARCHAR(3) DEFAULT NULL,
+        Votum1 VARCHAR(1) DEFAULT NULL,
+        VBegr1 TEXT DEFAULT NULL,
+        VProt1 TEXT DEFAULT NULL,
+        VBedenk1 TEXT DEFAULT NULL,
+        VDat1 VARCHAR(19) DEFAULT NULL COMMENT 'Datum/Zeit der Abstimmung (YYYY-MM-DD HH:MM:SS)',
+        VName2 VARCHAR(3) DEFAULT NULL,
+        Votum2 VARCHAR(1) DEFAULT NULL,
+        VBegr2 TEXT DEFAULT NULL,
+        VProt2 TEXT DEFAULT NULL,
+        VBedenk2 TEXT DEFAULT NULL,
+        VDat2 VARCHAR(19) DEFAULT NULL COMMENT 'Datum/Zeit der Abstimmung (YYYY-MM-DD HH:MM:SS)',
+        VName3 VARCHAR(3) DEFAULT NULL,
+        Votum3 VARCHAR(1) DEFAULT NULL,
+        VBegr3 TEXT DEFAULT NULL,
+        VProt3 TEXT DEFAULT NULL,
+        VBedenk3 TEXT DEFAULT NULL,
+        VDat3 VARCHAR(19) DEFAULT NULL COMMENT 'Datum/Zeit der Abstimmung (YYYY-MM-DD HH:MM:SS)',
+        VName4 VARCHAR(3) DEFAULT NULL,
+        Votum4 VARCHAR(1) DEFAULT NULL,
+        VBegr4 TEXT DEFAULT NULL,
+        VProt4 TEXT DEFAULT NULL,
+        VBedenk4 TEXT DEFAULT NULL,
+        VDat4 VARCHAR(19) DEFAULT NULL COMMENT 'Datum/Zeit der Abstimmung (YYYY-MM-DD HH:MM:SS)',
+        VName5 VARCHAR(3) DEFAULT NULL,
+        Votum5 VARCHAR(1) DEFAULT NULL,
+        VBegr5 TEXT DEFAULT NULL,
+        VProt5 TEXT DEFAULT NULL,
+        VBedenk5 TEXT DEFAULT NULL,
+        VDat5 VARCHAR(19) DEFAULT NULL COMMENT 'Datum/Zeit der Abstimmung (YYYY-MM-DD HH:MM:SS)',
+        VName6 VARCHAR(3) DEFAULT NULL,
+        Votum6 VARCHAR(1) DEFAULT NULL,
+        VBegr6 TEXT DEFAULT NULL,
+        VProt6 TEXT DEFAULT NULL,
+        VBedenk6 TEXT DEFAULT NULL,
+        VDat6 VARCHAR(19) DEFAULT NULL COMMENT 'Datum/Zeit der Abstimmung (YYYY-MM-DD HH:MM:SS)',
+        Zeitablauf TEXT DEFAULT NULL,
+        -- Neue Felder für moderne Funktionen
+        status CHAR(1) DEFAULT 'A' COMMENT 'Status: A=Editing, E=Eingereicht, F=Freigegeben, G=Genehmigt, Z=Zurückgestellt, X=Abgelehnt',
+        abstimmregel VARCHAR(20) DEFAULT 'einfach' COMMENT 'Abstimmungsregel: einfach, absolut, mehrheit_stimmber, zweidrittel, einstimmig',
+        betrag DECIMAL(10,2) DEFAULT NULL COMMENT 'Finanzieller Betrag (strukturiert)',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_bart (bart),
+        INDEX idx_antrst (antrst),
+        INDEX idx_ressort1 (ressort1),
+        INDEX idx_ressort2 (ressort2),
+        INDEX idx_status (status),
+        INDEX idx_abstimmregel (abstimmregel),
+        INDEX idx_wichtig (wichtig),
+        INDEX idx_lzugriff (lzugriff)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='Anträge - Bewährte VTool-Struktur mit modernen Erweiterungen'";
+
+    // Beschlüsse-Tabelle (für Clean-Installationen ohne VTool)
+    // Kompatibel mit VTool-Struktur, erweitert um abstimmregel
+    $tables[] = "CREATE TABLE IF NOT EXISTS svbeschluesse (
+        antrnr VARCHAR(12) NOT NULL PRIMARY KEY,
+        fertig VARCHAR(1) DEFAULT NULL,
+        wichtig VARCHAR(1) DEFAULT NULL,
+        text TEXT DEFAULT NULL,
+        ressort TEXT DEFAULT NULL,
+        int_ext VARCHAR(8) DEFAULT NULL,
+        titel TEXT DEFAULT NULL,
+        beschluss TEXT DEFAULT NULL,
+        fintext TEXT DEFAULT NULL,
+        pers TEXT DEFAULT NULL,
+        sach TEXT DEFAULT NULL,
+        begr TEXT DEFAULT NULL,
+        dafuer TEXT DEFAULT NULL,
+        dagegen TEXT DEFAULT NULL,
+        enthaltungen TEXT DEFAULT NULL,
+        anmerkungen TEXT DEFAULT NULL,
+        abstimmregel VARCHAR(20) DEFAULT 'einfach' COMMENT 'Abstimmungsregel (einfach, 2/3, etc.)',
+        INDEX idx_ressort (ressort(100)),
+        INDEX idx_wichtig (wichtig),
+        INDEX idx_fertig (fertig)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='Beschlüsse - VTool-kompatible Struktur mit Abstimmregel'";
 
     // =========================================================
     // TERMINPLANUNG-TABELLEN
@@ -774,6 +986,61 @@ try {
         FOREIGN KEY (item_id) REFERENCES svagenda_items(item_id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Persönliche Notizen von Teilnehmern zu Agenda Items'";
 
+    // =========================================================
+    // FEEDBACK-SYSTEM (für Testphase)
+    // =========================================================
+
+    // Feedback-Tabelle für Benutzer-Rückmeldungen während Testphase
+    $tables[] = "CREATE TABLE IF NOT EXISTS feedback (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        member_id INT NOT NULL,
+        feedback_text TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        is_deleted TINYINT(1) DEFAULT 0,
+        INDEX idx_member_id (member_id),
+        INDEX idx_created_at (created_at),
+        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Feedback und Fehlermeldungen für Testphase'";
+
+    // =========================================================
+    // MV-BESCHLÜSSE (Mitgliederversammlungs-Beschlüsse)
+    // =========================================================
+
+    // MV-Beschlüsse Tabelle (für Login-System)
+    // Im Adapter-System wird die VTool-Tabelle 'mvbeschluesse' verwendet
+    $tables[] = "CREATE TABLE IF NOT EXISTS svmvbeschluesse (
+        antrnr VARCHAR(50) PRIMARY KEY COMMENT 'Antragsnummer (eindeutig)',
+        titel VARCHAR(500) DEFAULT NULL COMMENT 'Titel des Beschlusses',
+        text TEXT DEFAULT NULL COMMENT 'Beschlusstext',
+        begr TEXT DEFAULT NULL COMMENT 'Begründung',
+        ergebnis VARCHAR(100) DEFAULT NULL COMMENT 'Ergebnis (angenommen/abgelehnt)',
+        dafuer INT DEFAULT 0 COMMENT 'Ja-Stimmen',
+        dagegen INT DEFAULT 0 COMMENT 'Nein-Stimmen',
+        enth INT DEFAULT 0 COMMENT 'Enthaltungen',
+        Relevant TINYINT(1) DEFAULT 1 COMMENT 'Ist der Beschluss noch relevant?',
+        kategorie VARCHAR(100) DEFAULT NULL COMMENT 'Kategorie/Themenbereich',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_kategorie (kategorie),
+        INDEX idx_relevant (Relevant),
+        INDEX idx_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='MV-Beschlüsse (Mitgliederversammlung)'";
+
+    // Aktions-Protokolltabelle (kompatibel zum Altformat)
+    // Wird monatlich als YYYYMMprotokoll archiviert (via Pseudo-Cron)
+    $tables[] = "CREATE TABLE IF NOT EXISTS protokoll (
+        MNr    VARCHAR(12) DEFAULT NULL,
+        KurzN  VARCHAR(12) DEFAULT NULL,
+        zeit   VARCHAR(20) DEFAULT NULL,
+        was    TEXT        DEFAULT NULL,
+        string TEXT        DEFAULT NULL,
+        INDEX idx_mnr  (MNr),
+        INDEX idx_zeit (zeit)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='Aktions-Protokoll aller User-Datenbankänderungen'";
+
+
     // Tabellen erstellen
     echo "<p>Erstelle " . count($tables) . " Tabellen...</p>";
     foreach ($tables as $sql) {
@@ -824,6 +1091,36 @@ try {
         echo ".";
     }
 
+    // Migration: aktiv zu svmembers hinzufügen (VTool-Kompatibilität)
+    // Details siehe PERMISSIONS.md
+    $stmt = $pdo->query("SHOW COLUMNS FROM svmembers LIKE 'aktiv'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'aktiv' zu members hinzu (Berechtigungslevel 0-19)...</p>";
+        $pdo->exec("ALTER TABLE svmembers ADD COLUMN aktiv INT DEFAULT 1 COMMENT 'Berechtigungslevel 0-19: 0=öffentlich, 10=Aktive, 15=RL, 18=GF, 19=Vorstand (siehe PERMISSIONS.md)' AFTER role");
+        // Index hinzufügen
+        try {
+            $pdo->exec("ALTER TABLE svmembers ADD INDEX idx_aktiv (aktiv)");
+        } catch (PDOException $e) {
+            // Index existiert bereits - ignorieren
+        }
+        echo ".";
+    }
+
+    // Migration: funktion zu svmembers hinzufügen (VTool-Kompatibilität)
+    // Details siehe PERMISSIONS.md
+    $stmt = $pdo->query("SHOW COLUMNS FROM svmembers LIKE 'funktion'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'funktion' zu members hinzu (Vo, GF, VA, RL, etc.)...</p>";
+        $pdo->exec("ALTER TABLE svmembers ADD COLUMN funktion VARCHAR(10) DEFAULT NULL COMMENT 'Funktion: Vo,FVo,FVv,GF,VA,RL,PL,JT,TM,FP,SV,MB,Ka,Orga,AD,Rx,Vx,Xx (siehe PERMISSIONS.md)' AFTER aktiv");
+        // Index hinzufügen
+        try {
+            $pdo->exec("ALTER TABLE svmembers ADD INDEX idx_funktion (funktion)");
+        } catch (PDOException $e) {
+            // Index existiert bereits - ignorieren
+        }
+        echo ".";
+    }
+
     // Migration: location, video_link, duration zu polls hinzufügen (falls fehlend)
     $stmt = $pdo->query("SHOW COLUMNS FROM svpolls LIKE 'location'");
     if (!$stmt->fetch()) {
@@ -858,6 +1155,117 @@ try {
             // Index existiert bereits - ignorieren
         }
         echo ".";
+    }
+
+    // Migration: allow_decisions zu svmeetings hinzufügen
+    $stmt = $pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'allow_decisions'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'allow_decisions' zu svmeetings hinzu...</p>";
+        $pdo->exec("ALTER TABLE svmeetings ADD COLUMN allow_decisions TINYINT(1) DEFAULT 1 COMMENT 'Beschlüsse in dieser Sitzung erlauben (1=ja, 0=nein)' AFTER visibility_type");
+        echo ".";
+    }
+
+    // Migration: Agenda-Erinnerungsmail-Felder zu svmeetings hinzufügen
+    $stmt = $pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'send_agenda_reminder'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Agenda-Erinnerungsmail-Spalten zu svmeetings hinzu...</p>";
+        $pdo->exec("ALTER TABLE svmeetings ADD COLUMN send_agenda_reminder TINYINT(1) DEFAULT 1 COMMENT 'Erinnerungsmail nach Antragsschluss versenden' AFTER allow_decisions");
+        $pdo->exec("ALTER TABLE svmeetings ADD COLUMN agenda_reminder_emails TEXT DEFAULT NULL COMMENT 'Kommagetrennte Empfänger-Mailadressen' AFTER send_agenda_reminder");
+        $pdo->exec("ALTER TABLE svmeetings ADD COLUMN agenda_reminder_sent TINYINT(1) DEFAULT 0 COMMENT '1 = Erinnerungsmail wurde bereits versendet' AFTER agenda_reminder_emails");
+        echo ".";
+    }
+
+    // Migration: svconfig-Einträge für Benachrichtigungen anlegen (falls fehlend)
+    $stmt = $pdo->query("SHOW TABLES LIKE 'svconfig'");
+    if ($stmt->fetch()) {
+        $new_cfg_entries = [
+            ['agenda_reminder_default_emails', '', 'text',
+             'Standard-Empfänger für Agenda-Erinnerungsmail (kommagetrennt, leer = nur Teilnehmer)',
+             'notifications'],
+            ['meeting_system_url', '', 'text',
+             'Basis-URL des Sitzungssystems für Links in Mails (z.B. https://example.com/vorstand/Sitzungsverwaltung)',
+             'notifications'],
+            ['opinion_standalone_url', '', 'text',
+             'Öffentliche URL des Meinungsbild-Standalone-Links (z.B. https://example.com/meinungsbild.php). Überschreibt den automatisch erzeugten Link.',
+             'notifications'],
+            ['terminplanung_standalone_url', '', 'text',
+             'Öffentliche URL des Terminplanung-Standalone-Links (z.B. https://example.com/termine.php). Überschreibt den automatisch erzeugten Link.',
+             'notifications'],
+            ['protokoll_last_archive', '', 'text',
+             'Letzter Archivierungs-Monat der protokoll-Tabelle (Format: YYYYMM). Wird vom Pseudo-Cron aktualisiert.',
+             'system'],
+        ];
+        foreach ($new_cfg_entries as [$key, $val, $type, $desc, $cat]) {
+            $chk = $pdo->prepare("SELECT COUNT(*) FROM svconfig WHERE config_key = ?");
+            $chk->execute([$key]);
+            if ($chk->fetchColumn() == 0) {
+                echo "<p>Füge svconfig-Eintrag '{$key}' hinzu...</p>";
+                $ins = $pdo->prepare("INSERT INTO svconfig (config_key, config_value, config_type, description, category) VALUES (?,?,?,?,?)");
+                $ins->execute([$key, $val, $type, $desc, $cat]);
+                echo ".";
+            }
+        }
+    }
+
+    // Migration: antrnr zu svagenda_items hinzufügen
+    $stmt = $pdo->query("SHOW COLUMNS FROM svagenda_items LIKE 'antrnr'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'antrnr' zu svagenda_items hinzu...</p>";
+        $pdo->exec("ALTER TABLE svagenda_items ADD COLUMN antrnr VARCHAR(15) NULL COMMENT 'Verknüpfung zu antraege.antrnr für Beschlussfassung' AFTER proposal_text");
+        // Index hinzufügen
+        try {
+            $pdo->exec("ALTER TABLE svagenda_items ADD INDEX idx_antrnr (antrnr)");
+        } catch (PDOException $e) {
+            // Index existiert bereits - ignorieren
+        }
+        echo ".";
+    }
+
+    // Migration: meeting_id zu antraege hinzufügen (falls Tabelle existiert)
+    $table_check = $pdo->query("SHOW TABLES LIKE 'antraege'");
+    if ($table_check->fetch()) {
+        $stmt = $pdo->query("SHOW COLUMNS FROM antraege LIKE 'meeting_id'");
+        if (!$stmt->fetch()) {
+            echo "<p>Füge Spalte 'meeting_id' zu antraege hinzu...</p>";
+            $pdo->exec("ALTER TABLE antraege ADD COLUMN meeting_id INT NULL COMMENT 'Verknüpfung zur Sitzung falls Präsenzantrag'");
+            // Index hinzufügen
+            try {
+                $pdo->exec("ALTER TABLE antraege ADD INDEX idx_meeting (meeting_id)");
+            } catch (PDOException $e) {
+                // Index existiert bereits - ignorieren
+            }
+            echo ".";
+        }
+    }
+
+    // Migration: voting_question zu svvotings hinzufügen
+    $stmt = $pdo->query("SHOW COLUMNS FROM svvotings LIKE 'voting_question'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge Spalte 'voting_question' zu svvotings hinzu...</p>";
+        $pdo->exec("ALTER TABLE svvotings ADD COLUMN voting_question VARCHAR(500) DEFAULT NULL COMMENT 'Frage bei Stimmungsbild (wenn kein Antrag)' AFTER initiated_by_member_id");
+        echo ".";
+    }
+
+    // Migration: abstimmregel zu beschluesse hinzufügen (falls Tabelle existiert)
+    $table_check = $pdo->query("SHOW TABLES LIKE 'beschluesse'");
+    if ($table_check->fetch()) {
+        $stmt = $pdo->query("SHOW COLUMNS FROM beschluesse LIKE 'abstimmregel'");
+        if (!$stmt->fetch()) {
+            echo "<p>Füge Spalte 'abstimmregel' zu beschluesse hinzu...</p>";
+            $pdo->exec("ALTER TABLE beschluesse ADD COLUMN abstimmregel VARCHAR(20) DEFAULT 'einfach' COMMENT 'Abstimmungsregel (einfach, 2/3, etc.)'");
+            echo ".";
+        }
+    }
+
+    // Migration: abstimmregel zu svbeschluesse hinzufügen (falls Tabelle existiert)
+    $table_check = $pdo->query("SHOW TABLES LIKE 'svbeschluesse'");
+    if ($table_check->fetch()) {
+        $stmt = $pdo->query("SHOW COLUMNS FROM svbeschluesse LIKE 'abstimmregel'");
+        if (!$stmt->fetch()) {
+            echo "<p>Füge Spalte 'abstimmregel' zu svbeschluesse hinzu...</p>";
+            $pdo->exec("ALTER TABLE svbeschluesse ADD COLUMN abstimmregel VARCHAR(20) DEFAULT 'einfach' COMMENT 'Abstimmungsregel (einfach, 2/3, etc.)'");
+            echo ".";
+        }
     }
 
     echo "<p style='color: green;'>✓ Migrations abgeschlossen!</p>";
@@ -920,6 +1328,148 @@ try {
         echo "<p style='color: green;'>✓ " . count($templates) . " Meinungsbild-Templates eingefügt!</p>";
     } else {
         echo "<p style='color: orange;'>⚠ Meinungsbild-Templates existieren bereits - überspringe</p>";
+    }
+
+    // System-Konfiguration einfügen (nur wenn leer)
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM svconfig");
+    if ($stmt->fetch()['count'] == 0) {
+        echo "<p>Füge System-Konfiguration ein...</p>";
+
+        $config_entries = [
+            // Aktiv-Level 0-19
+            ['aktiv_level_0', 'Beschlussdatenbanken-Zugriff', 'text', 'Berechtigung für Level 0', 'aktiv_levels'],
+            ['aktiv_level_1', 'Spezielle Zugriffe (Wiederaufnahmen)', 'text', 'Berechtigung für Level 1', 'aktiv_levels'],
+            ['aktiv_level_2', 'Kassenfunktionen', 'text', 'Berechtigung für Level 2', 'aktiv_levels'],
+            ['aktiv_level_3', 'Finanzprüfer', 'text', 'Berechtigung für Level 3', 'aktiv_levels'],
+            ['aktiv_level_4', 'NN (reserviert)', 'text', 'Berechtigung für Level 4', 'aktiv_levels'],
+            ['aktiv_level_5', 'NN (reserviert)', 'text', 'Berechtigung für Level 5', 'aktiv_levels'],
+            ['aktiv_level_6', 'NN (reserviert)', 'text', 'Berechtigung für Level 6', 'aktiv_levels'],
+            ['aktiv_level_7', 'NN (reserviert)', 'text', 'Berechtigung für Level 7', 'aktiv_levels'],
+            ['aktiv_level_8', 'Finanzverantwortliche in Teams', 'text', 'Berechtigung für Level 8', 'aktiv_levels'],
+            ['aktiv_level_9', 'Finanzverantwortliche in Teams', 'text', 'Berechtigung für Level 9', 'aktiv_levels'],
+            ['aktiv_level_10', 'Temporäre Aktive', 'text', 'Berechtigung für Level 10', 'aktiv_levels'],
+            ['aktiv_level_11', 'Teamleiter', 'text', 'Berechtigung für Level 11', 'aktiv_levels'],
+            ['aktiv_level_12', 'Projektleiter', 'text', 'Berechtigung für Level 12', 'aktiv_levels'],
+            ['aktiv_level_13', 'Projektleitung mit Budget', 'text', 'Berechtigung für Level 13', 'aktiv_levels'],
+            ['aktiv_level_14', 'Zweiter Ressortleiter', 'text', 'Berechtigung für Level 14', 'aktiv_levels'],
+            ['aktiv_level_15', 'Ressortleitung', 'text', 'Berechtigung für Level 15', 'aktiv_levels'],
+            ['aktiv_level_16', 'Sonderaufgaben', 'text', 'Berechtigung für Level 16', 'aktiv_levels'],
+            ['aktiv_level_17', 'Ressortleitung Finanzen', 'text', 'Berechtigung für Level 17', 'aktiv_levels'],
+            ['aktiv_level_18', 'Geschäftsführung/Admin', 'text', 'Berechtigung für Level 18', 'aktiv_levels'],
+            ['aktiv_level_19', 'Vorstandsmitglied', 'text', 'Berechtigung für Level 19', 'aktiv_levels'],
+
+            // Antragstypen
+            ['bart_V_aktiv', '1', 'boolean', 'Typ V (Verfügung) aktiviert', 'antragstypen'],
+            ['bart_V_bezeichnung', 'Verfügung', 'text', 'Anzeigename für Typ V', 'antragstypen'],
+            ['bart_V_beschreibung', 'Kleinere Ausgaben und operative Entscheidungen', 'text', 'Erklärung des Typs', 'antragstypen'],
+            ['bart_V_betrag_aktiv', '1', 'boolean', 'Betragsgrenze für Typ V aktiv', 'antragstypen'],
+            ['bart_V_betrag_limit', '500', 'number', 'Betragsgrenze für Typ V in Euro', 'antragstypen'],
+            ['bart_V_wartezeit_aktiv', '1', 'boolean', 'Wartezeit für Typ V aktiv', 'antragstypen'],
+            ['bart_V_wartezeit_tage', '3', 'number', 'Wartezeit für Typ V in Tagen', 'antragstypen'],
+            ['bart_V_freigabe_vereinfacht', '1', 'boolean', 'Vereinfachte Freigabe für Typ V', 'antragstypen'],
+
+            ['bart_R_aktiv', '1', 'boolean', 'Typ R (Ressortbeschluss) aktiviert', 'antragstypen'],
+            ['bart_R_bezeichnung', 'Ressortbeschluss', 'text', 'Anzeigename für Typ R', 'antragstypen'],
+            ['bart_R_beschreibung', 'Entscheidungen innerhalb eines Ressorts/Bereichs', 'text', 'Erklärung des Typs', 'antragstypen'],
+            ['bart_R_betrag_aktiv', '1', 'boolean', 'Betragsgrenze für Typ R aktiv', 'antragstypen'],
+            ['bart_R_betrag_limit', '2000', 'number', 'Betragsgrenze für Typ R in Euro', 'antragstypen'],
+            ['bart_R_wartezeit_aktiv', '1', 'boolean', 'Wartezeit für Typ R aktiv', 'antragstypen'],
+            ['bart_R_wartezeit_tage', '7', 'number', 'Wartezeit für Typ R in Tagen', 'antragstypen'],
+            ['bart_R_freigabe_vereinfacht', '1', 'boolean', 'Vereinfachte Freigabe für Typ R', 'antragstypen'],
+
+            ['bart_B_aktiv', '1', 'boolean', 'Typ B (Vorstandsbeschluss) aktiviert', 'antragstypen'],
+            ['bart_B_bezeichnung', 'Vorstandsbeschluss', 'text', 'Anzeigename für Typ B', 'antragstypen'],
+            ['bart_B_beschreibung', 'Entscheidungen des Vorstands', 'text', 'Erklärung des Typs', 'antragstypen'],
+            ['bart_B_betrag_aktiv', '0', 'boolean', 'Betragsgrenze für Typ B aktiv', 'antragstypen'],
+            ['bart_B_betrag_limit', '0', 'number', 'Betragsgrenze für Typ B in Euro', 'antragstypen'],
+            ['bart_B_wartezeit_aktiv', '1', 'boolean', 'Wartezeit für Typ B aktiv', 'antragstypen'],
+            ['bart_B_wartezeit_tage', '14', 'number', 'Wartezeit für Typ B in Tagen', 'antragstypen'],
+            ['bart_B_freigabe_vereinfacht', '0', 'boolean', 'Vereinfachte Freigabe für Typ B', 'antragstypen'],
+            ['bart_B_abstimmung_tage', '7', 'number', 'Abstimmungsdauer für Typ B in Tagen (Fristablauf-Auswertung via Cron)', 'antragstypen'],
+
+            ['bart_show_betrag_in_liste', '1', 'boolean', 'Beträge in Antragsliste anzeigen', 'antragstypen'],
+            ['bart_pflicht_bei_betrag', '100', 'number', 'Ab welchem Betrag ist Betragsangabe Pflicht', 'antragstypen'],
+            ['bart_verfuegung_monatslimit', '2000', 'number', 'Maximale Summe aller Verfügungen pro Monat (Ressortbeschluss erforderlich bei Überschreitung)', 'antragstypen'],
+
+            // Abstimmungsregeln
+            ['voting_default_rule', 'einfach', 'text', 'Standard-Abstimmungsregel für neue Anträge', 'voting'],
+            ['voting_rule_einfach_label', 'Einfache Mehrheit', 'text', 'Label für einfache Mehrheit', 'voting'],
+            ['voting_rule_einfach_desc', 'Mehr Ja als Nein (Enthaltungen zählen nicht)', 'text', 'Beschreibung einfache Mehrheit', 'voting'],
+            ['voting_rule_absolut_label', 'Absolute Mehrheit', 'text', 'Label für absolute Mehrheit', 'voting'],
+            ['voting_rule_absolut_desc', 'Mehr Ja als Nein+Enthaltung', 'text', 'Beschreibung absolute Mehrheit', 'voting'],
+            ['voting_rule_mehrheit_stimmber_label', 'Mehrheit der Stimmberechtigten', 'text', 'Label für Mehrheit Stimmberechtigte', 'voting'],
+            ['voting_rule_mehrheit_stimmber_desc', 'Mehr als 50% aller Stimmberechtigten stimmen Ja', 'text', 'Beschreibung Mehrheit Stimmberechtigte', 'voting'],
+            ['voting_rule_zweidrittel_label', '2/3-Mehrheit', 'text', 'Label für 2/3-Mehrheit', 'voting'],
+            ['voting_rule_zweidrittel_desc', 'Ja-Stimmen >= 2 × Nein-Stimmen', 'text', 'Beschreibung 2/3-Mehrheit', 'voting'],
+            ['voting_rule_einstimmig_label', 'Einstimmigkeit', 'text', 'Label für Einstimmigkeit', 'voting'],
+            ['voting_rule_einstimmig_desc', 'Alle Abstimmenden müssen Ja stimmen', 'text', 'Beschreibung Einstimmigkeit', 'voting'],
+            ['voting_enable_einfach', '1', 'boolean', 'Einfache Mehrheit aktiviert', 'voting'],
+            ['voting_enable_absolut', '1', 'boolean', 'Absolute Mehrheit aktiviert', 'voting'],
+            ['voting_enable_mehrheit_stimmber', '1', 'boolean', 'Mehrheit der Stimmberechtigten aktiviert', 'voting'],
+            ['voting_enable_zweidrittel', '1', 'boolean', '2/3-Mehrheit aktiviert', 'voting'],
+            ['voting_enable_einstimmig', '1', 'boolean', 'Einstimmigkeit aktiviert', 'voting'],
+
+            // Terminologie
+            ['term_ressort_singular', 'Ressort', 'text', 'Singular-Form für Ressort/Abteilung/Bereich', 'terminology'],
+            ['term_ressort_plural', 'Ressorts', 'text', 'Plural-Form für Ressort/Abteilung/Bereich', 'terminology'],
+            ['term_antrag_singular', 'Antrag', 'text', 'Singular-Form für Antrag/Beschlussvorlage', 'terminology'],
+            ['term_antrag_plural', 'Anträge', 'text', 'Plural-Form für Antrag/Beschlussvorlage', 'terminology'],
+            ['term_beschluss_singular', 'Beschluss', 'text', 'Singular-Form für Beschluss', 'terminology'],
+            ['term_beschluss_plural', 'Beschlüsse', 'text', 'Plural-Form für Beschluss', 'terminology'],
+            ['term_vorstand', 'Vorstand', 'text', 'Bezeichnung für Vorstand/Führungsgremium', 'terminology'],
+            ['term_geschaeftsfuehrer', 'Geschäftsführer', 'text', 'Bezeichnung für Geschäftsführer', 'terminology'],
+            ['term_ressortleiter', 'Ressortleiter', 'text', 'Bezeichnung für Ressortleiter/Abteilungsleiter', 'terminology'],
+            ['second_entity_name', '', 'text', 'Name der zweiten Einheit neben "Verein" (z.B. "Stiftung", leer = keine Differenzierung)', 'terminology'],
+            ['agenda_reminder_default_emails', '', 'text', 'Standard-Empfänger für Agenda-Erinnerungsmail (kommagetrennt, leer = nur Teilnehmer)', 'notifications'],
+        ];
+
+        $stmt = $pdo->prepare("
+            INSERT INTO svconfig (config_key, config_value, config_type, description, category)
+            VALUES (?, ?, ?, ?, ?)
+        ");
+
+        foreach ($config_entries as $entry) {
+            $stmt->execute($entry);
+            echo ".";
+        }
+
+        echo "<p style='color: green;'>✓ " . count($config_entries) . " Konfigurationseinträge eingefügt!</p>";
+    } else {
+        echo "<p style='color: orange;'>⚠ System-Konfiguration existiert bereits - überspringe</p>";
+    }
+
+    // Demo-Ressorts einfügen (nur wenn leer)
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM svressorts");
+    if ($stmt->fetch()['count'] == 0) {
+        echo "<p>Füge Demo-Ressorts ein...</p>";
+
+        $ressorts = [
+            ['Finanzen', 10],
+            ['Personal', 20],
+            ['IT & Digitalisierung', 30],
+            ['Marketing & Kommunikation', 40],
+            ['Veranstaltungen', 50],
+            ['Mitgliederverwaltung', 60],
+            ['Infrastruktur', 70],
+            ['Bildung & Weiterbildung', 80],
+        ];
+
+        $stmt = $pdo->prepare("
+            INSERT INTO svressorts (Ressort, Reihenfolge, aktiv)
+            VALUES (?, ?, 1)
+        ");
+
+        foreach ($ressorts as $ressort) {
+            $stmt->execute($ressort);
+            echo ".";
+        }
+
+        // Codes automatisch generieren (Rxx-Format)
+        $pdo->exec("UPDATE svressorts SET Code = CONCAT('R', LPAD(ID, 2, '0')) WHERE Code IS NULL");
+
+        echo "<p style='color: green;'>✓ " . count($ressorts) . " Demo-Ressorts eingefügt (mit Codes)!</p>";
+    } else {
+        echo "<p style='color: orange;'>⚠ Ressorts existieren bereits - überspringe</p>";
     }
 
     // Default-Admin anlegen (nur wenn members-Tabelle leer ist)

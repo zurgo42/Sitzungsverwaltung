@@ -4,33 +4,39 @@
  * Hier stehen alle individuellen Einstellungen
  */
 
+// Guard: verhindert Doppel-Ausführung wenn aus zwei verschiedenen Pfaden geladen
+if (defined('SV_CONFIG_LOADED')) return;
+define('SV_CONFIG_LOADED', true);
+
 // ============= UMGEBUNGS-ERKENNUNG =============
 /**
  * Erkennt automatisch, ob die Anwendung lokal (XAMPP) oder auf dem Produktivserver läuft
  *
  * @return bool true wenn lokal (XAMPP), false wenn Produktivserver
  */
-function is_local_environment() {
-    // Prüfe verschiedene Indikatoren für lokale Entwicklung
-    $local_indicators = [
-        // Prüfe Server-Name (localhost, 127.0.0.1, ::1)
-        isset($_SERVER['SERVER_NAME']) && in_array($_SERVER['SERVER_NAME'], ['localhost', '127.0.0.1', '::1']),
+if (!function_exists('is_local_environment')) {
+    function is_local_environment() {
+        // Prüfe verschiedene Indikatoren für lokale Entwicklung
+        $local_indicators = [
+            // Prüfe Server-Name (localhost, 127.0.0.1, ::1)
+            isset($_SERVER['SERVER_NAME']) && in_array($_SERVER['SERVER_NAME'], ['localhost', '127.0.0.1', '::1']),
 
-        // Prüfe HTTP-Host
-        isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false,
+            // Prüfe HTTP-Host
+            isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false,
 
-        // Prüfe Server-Adresse
-        isset($_SERVER['SERVER_ADDR']) && in_array($_SERVER['SERVER_ADDR'], ['127.0.0.1', '::1']),
+            // Prüfe Server-Adresse
+            isset($_SERVER['SERVER_ADDR']) && in_array($_SERVER['SERVER_ADDR'], ['127.0.0.1', '::1']),
 
-        // Prüfe ob im XAMPP-Pfad
-        stripos(__FILE__, 'xampp') !== false
-    ];
+            // Prüfe ob im XAMPP-Pfad
+            stripos(__FILE__, 'xampp') !== false
+        ];
 
-    return in_array(true, $local_indicators, true);
+        return in_array(true, $local_indicators, true);
+    }
 }
 
 // Umgebung setzen
-define('IS_LOCAL', is_local_environment());
+if (!defined('IS_LOCAL')) define('IS_LOCAL', is_local_environment());
 
 // ============= DATENBANK-ZUGANGSDATEN =============
 // BACKWARD COMPATIBILITY: Falls alte VTool config.php mit MYSQL_* Konstanten existiert
@@ -64,6 +70,23 @@ define('SESSION_TIMEOUT', 3600);  // in Sekunden (1 Stunde)
 
 // Tabs aktivieren/deaktivieren
 define('ENABLE_DOCUMENTS_TAB', true);  // Dokumenten-Verwaltung aktivieren/deaktivieren
+
+// ============= FEEDBACK-SYSTEM (für Testphase) =============
+// Zeigt ein Akkordeon auf allen Seiten, in dem Benutzer Fehlermeldungen/Anmerkungen eintragen können
+// Admins sehen alle Einträge, normale User nur ihre eigenen
+define('ENABLE_FEEDBACK_SYSTEM', false);  // Auf true setzen während der Testphase
+
+// ============= TABELLENNAMEN-KONFIGURATION =============
+// Für Systeme MIT vorhandenem VTool: 'antraege', 'beschluesse', 'mvbeschluesse' (empfohlen)
+// Für Clean-Installationen OHNE VTool: 'svantraege', 'svbeschluesse', 'svmvbeschluesse'
+// Dies ermöglicht nahtlose Migration und Kompatibilität mit bestehenden Systemen
+define('TABLE_ANTRAEGE', 'antraege');         // Tabelle für Anträge
+define('TABLE_BESCHLUESSE', 'beschluesse');   // Tabelle für Beschlüsse
+define('TABLE_MVBESCHLUESSE', 'mvbeschluesse'); // Tabelle für MV-Beschlüsse
+define('TABLE_RESSORTS', 'ressortliste');     // Tabelle für Ressorts (VTool: 'ressortliste', Login-System: 'svressorts')
+define('TABLE_RESSORTS_KEY', 'ID');           // Primärschlüssel der Ressort-Tabelle (VTool: 'ID' Rnn-String, Login-System: 'ID' Auto-Increment)
+define('TABLE_RESSORTS_AKTIV', false);        // Hat die Ressort-Tabelle eine aktiv-Spalte? (VTool: false, Login-System: true)
+define('TABLE_ANTRAEGE_HAS_ABSTIMMREGEL', false); // Hat die Anträge-Tabelle abstimmregel-Spalte? (VTool: false, Login-System: true)
 
 // ============= VOREINSTELLUNGEN FÜR MEETINGS =============
 define('DEFAULT_MEETING_NAME', 'Vorstandssitzung');
@@ -143,5 +166,27 @@ define('FOOTER_COPYRIGHT', '&copy; Dr. Hermann Meier, Horstmannsmühle 1a, 42781
 define('FOOTER_IMPRESSUM_URL', 'https://geschäftsordnung.com/?page_id=53');
 define('FOOTER_DATENSCHUTZ_URL', 'https://geschäftsordnung.com/?page_id=54');
 
+// ============= PDO-DATENBANKVERBINDUNG =============
+// Zentrale PDO-Verbindung für alle Skripte
+// Vermeidet redundante Definitionen in einzelnen Dateien
+try {
+    $pdo = new PDO(
+        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+        DB_USER,
+        DB_PASS,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ]
+    );
+} catch (PDOException $e) {
+    // Fehlerbehandlung: Im Produktivbetrieb generische Meldung
+    if (defined('DEBUG_MODE') && DEBUG_MODE) {
+        die("Datenbankverbindung fehlgeschlagen: " . $e->getMessage());
+    } else {
+        die("Datenbankverbindung fehlgeschlagen. Bitte kontaktieren Sie den Administrator.");
+    }
+}
 
 ?>

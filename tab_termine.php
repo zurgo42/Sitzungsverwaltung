@@ -1,6 +1,6 @@
 <?php
-require_once 'module_notifications.php';
-require_once 'external_participants_functions.php';
+require_once __DIR__ . '/module_notifications.php';
+require_once __DIR__ . '/external_participants_functions.php';
 
 /**
  * tab_termine.php - Terminplanung/Umfragen (Präsentation)
@@ -13,6 +13,11 @@ require_once 'external_participants_functions.php';
 // View-Parameter
 $view = $_GET['view'] ?? 'dashboard';
 $poll_id = intval($_GET['poll_id'] ?? 0);
+
+// Im MTool-Modus: absolute URL zu process_termine.php; in SV: relativer Pfad reicht
+$_tab_process_url = isset($terminplanung_process_url) ? $terminplanung_process_url : 'process_termine.php';
+// Redirect-Ziel nach POST: MTool-URL oder leer (process_termine.php kennt index.php als Default)
+$_tab_redirect_to = isset($terminplanung_share_url) ? $terminplanung_share_url : '';
 
 // Umfragen laden (nur die, bei denen User Teilnehmer oder Ersteller ist)
 $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
@@ -50,11 +55,12 @@ if ($is_admin) {
         WHERE (
             EXISTS (SELECT 1 FROM svpoll_participants WHERE poll_id = p.poll_id AND member_id = ?)
             OR p.created_by_member_id = ?
+            OR EXISTS (SELECT 1 FROM svpoll_responses WHERE poll_id = p.poll_id AND member_id = ?)
         )
         GROUP BY p.poll_id
         ORDER BY p.created_at DESC
     ");
-    $stmt->execute([$current_user['member_id'], $current_user['member_id']]);
+    $stmt->execute([$current_user['member_id'], $current_user['member_id'], $current_user['member_id']]);
 }
 $all_polls = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -106,9 +112,51 @@ function get_german_weekday_long($date_string) {
 ?>
 
 <style>
+/* Basis-Formularstyles (werden von SV-CSS überschrieben, decken MTool-Standalone-Betrieb ab) */
+body { background: #f0f2f5; color: #333; }
+h2, h3, h4 { color: #333 !important; background: transparent !important; padding: 0 !important; }
+.poll-header { background: transparent !important; }
+a { color: #007bff; }
+.btn-primary, a.btn-primary  { background: #007bff !important; color: white !important; }
+.btn-secondary, a.btn-secondary { background: #6c757d !important; color: white !important; }
+.btn-danger, a.btn-danger    { background: #dc3545 !important; color: white !important; }
+.accordion-button { background: #f5f5f5 !important; color: #333 !important; }
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="date"],
+.form-group input[type="datetime-local"],
+.form-group input[type="number"],
+.form-group input[type="time"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
 /* Poll-spezifische Styles */
 .poll-card {
-    background: white;
+    background: white !important;
     border: 1px solid #ddd;
     border-radius: 5px;
     padding: 15px;
@@ -139,7 +187,7 @@ function get_german_weekday_long($date_string) {
 .poll-title {
     font-size: 18px;
     font-weight: bold;
-    color: #333;
+    color: #333 !important;
     margin: 0;
     flex: 1;
 }
@@ -601,8 +649,8 @@ function copyToClipboard(text) {
 }
 </script>
 
-<!-- BENACHRICHTIGUNGEN -->
-<?php render_user_notifications($pdo, $current_user['member_id']); ?>
+<!-- BENACHRICHTIGUNGEN (nicht im MTool-Modus) -->
+<?php if (empty($TERMINPLANUNG_MTOOL_MODE)) render_user_notifications($pdo, $current_user['member_id']); ?>
 
 <h2>📆 Terminplanung & Umfragen</h2>
 
@@ -629,8 +677,9 @@ if (isset($_SESSION['error'])) {
     <div style="margin-bottom: 30px;">
         <button class="accordion-button create-poll-button" onclick="toggleAccordion(this)">➕ Neue Terminumfrage erstellen</button>
         <div class="accordion-content">
-            <form method="POST" action="process_termine.php" id="poll-create-form">
+            <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" id="poll-create-form">
                 <input type="hidden" name="action" value="create_poll">
+                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
 
                 <div class="form-group">
                     <label>Titel der Umfrage:*</label>
@@ -650,6 +699,10 @@ if (isset($_SESSION['error'])) {
                     </small>
                 </div>
 
+                <?php if (!empty($TERMINPLANUNG_MTOOL_MODE)): ?>
+                <!-- MTool-Modus: immer Individuell (Link), keine Auswahl -->
+                <input type="hidden" name="target_type" value="individual">
+                <?php else: ?>
                 <!-- Zielgruppe wählen -->
                 <div class="form-group" style="margin-top: 25px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
                     <h4 style="margin: 0 0 15px 0;">Zielgruppe wählen</h4>
@@ -662,7 +715,9 @@ if (isset($_SESSION['error'])) {
                         <strong>Ausgewählte registrierte Teilnehmer</strong>
                     </label>
                 </div>
+                <?php endif; ?>
 
+                <?php if (empty($TERMINPLANUNG_MTOOL_MODE)): ?>
                 <!-- Teilnehmer auswählen (nur bei target_type='list') -->
                 <div class="form-group" id="poll-participant-list-selection">
                     <label>Teilnehmer auswählen (nur diese sehen die Umfrage):*</label>
@@ -696,6 +751,7 @@ if (isset($_SESSION['error'])) {
                         </small>
                     </div>
                 </div>
+                <?php endif; // end !TERMINPLANUNG_MTOOL_MODE (Teilnehmer-Sektion) ?>
 
                 <!-- Terminvorschläge -->
                 <h3 style="margin-top: 25px; margin-bottom: 15px;">Terminvorschläge</h3>
@@ -797,28 +853,36 @@ if (isset($_SESSION['error'])) {
                 </div>
 
                 <div class="poll-actions" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; clear: both;">
-                    <a href="?tab=termine&view=poll&poll_id=<?php echo $poll['poll_id']; ?>" class="btn-primary" style="position: static; float: none;">
+                    <?php
+                        $_poll_view_url = !empty($_tab_redirect_to)
+                            ? $_tab_redirect_to . (strpos($_tab_redirect_to, '?') !== false ? '&' : '?') . 'view=poll&poll_id=' . $poll['poll_id']
+                            : '?tab=termine&view=poll&poll_id=' . $poll['poll_id'];
+                    ?>
+                    <a href="<?php echo htmlspecialchars($_poll_view_url); ?>" class="btn-primary" style="position: static; float: none;">
                         <?php echo $poll['status'] === 'open' ? '📝 Abstimmen' : '📊 Ergebnisse ansehen'; ?>
                     </a>
 
                     <?php if ($can_edit): ?>
                         <?php if ($poll['status'] === 'open'): ?>
-                            <form method="POST" action="process_termine.php" style="display: inline;">
+                            <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="display: inline;">
                                 <input type="hidden" name="action" value="close_poll">
                                 <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
+                                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
                                 <button type="submit" class="btn-secondary" onclick="return confirm('Umfrage schließen?')">🔒 Schließen</button>
                             </form>
                         <?php elseif ($poll['status'] === 'closed'): ?>
-                            <form method="POST" action="process_termine.php" style="display: inline;">
+                            <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="display: inline;">
                                 <input type="hidden" name="action" value="reopen_poll">
                                 <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
+                                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
                                 <button type="submit" class="btn-secondary">🔓 Wieder öffnen</button>
                             </form>
                         <?php endif; ?>
 
-                        <form method="POST" action="process_termine.php" style="display: inline;">
+                        <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="display: inline;">
                             <input type="hidden" name="action" value="delete_poll">
                             <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
+                            <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
                             <button type="submit" class="btn-danger" onclick="return confirm('Umfrage wirklich löschen? Alle Abstimmungen gehen verloren!')">🗑️ Löschen</button>
                         </form>
                     <?php endif; ?>
@@ -843,117 +907,130 @@ if (isset($_SESSION['error'])) {
 
     if (!$poll) {
         echo '<div class="error-message">Umfrage nicht gefunden</div>';
-        echo '<a href="?tab=termine" class="btn-secondary">← Zurück zur Übersicht</a>';
+        echo '<a href="' . htmlspecialchars(!empty($_tab_redirect_to) ? $_tab_redirect_to : '?tab=termine') . '" class="btn-secondary">← Zurück zur Übersicht</a>';
     } else {
-        // Creator-Namen über Adapter laden
-        if ($poll['created_by_member_id']) {
-            $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
-            if ($creator) {
-                $poll['creator_first_name'] = $creator['first_name'];
-                $poll['creator_last_name'] = $creator['last_name'];
-            }
-        }
-        // Terminvorschläge laden
-        $stmt = $pdo->prepare("
-            SELECT * FROM svpoll_dates
-            WHERE poll_id = ?
-            ORDER BY sort_order, suggested_date
-        ");
-        $stmt->execute([$poll_id]);
-        $poll_dates = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Alle Antworten laden
-        $stmt = $pdo->prepare("
-            SELECT pr.*
-            FROM svpoll_responses pr
-            WHERE pr.poll_id = ?
-        ");
-        $stmt->execute([$poll_id]);
-        $all_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Member- und Externe-Teilnehmer-Namen nachladen
-        foreach ($all_responses as &$response) {
-            if ($response['member_id']) {
-                // participant_key IMMER setzen (auch wenn get_member_by_id fehlschlägt)
-                $response['participant_key'] = 'member_' . $response['member_id'];
-
-                $member = get_member_by_id($pdo, $response['member_id']);
-                if ($member) {
-                    $response['first_name'] = $member['first_name'] ?? '';
-                    $response['last_name'] = $member['last_name'] ?? '';
-                } else {
-                    // Fallback: Member nicht gefunden
-                    $response['first_name'] = 'User';
-                    $response['last_name'] = '#' . $response['member_id'];
-                }
-            } elseif ($response['external_participant_id']) {
-                // participant_key IMMER setzen
-                $response['participant_key'] = 'external_' . $response['external_participant_id'];
-
-                // Externen Teilnehmer laden
-                $ext_stmt = $pdo->prepare("SELECT first_name, last_name FROM svexternal_participants WHERE external_id = ?");
-                $ext_stmt->execute([$response['external_participant_id']]);
-                $ext = $ext_stmt->fetch(PDO::FETCH_ASSOC);
-                if ($ext) {
-                    $response['first_name'] = $ext['first_name'] ?? '';
-                    $response['last_name'] = $ext['last_name'] ?? '';
-                } else {
-                    // Fallback: Externer Teilnehmer nicht gefunden
-                    $response['first_name'] = 'Extern';
-                    $response['last_name'] = '#' . $response['external_participant_id'];
+        $_poll_load_error = null;
+        try {
+            // Creator-Namen über Adapter laden
+            if ($poll['created_by_member_id']) {
+                $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
+                if ($creator) {
+                    $poll['creator_first_name'] = $creator['first_name'];
+                    $poll['creator_last_name'] = $creator['last_name'];
                 }
             }
-        }
+            // Terminvorschläge laden
+            $stmt = $pdo->prepare("
+                SELECT * FROM svpoll_dates
+                WHERE poll_id = ?
+                ORDER BY sort_order, suggested_date
+            ");
+            $stmt->execute([$poll_id]);
+            $poll_dates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Alle eingeladenen Teilnehmer laden
-        $stmt = $pdo->prepare("
-            SELECT pp.member_id
-            FROM svpoll_participants pp
-            WHERE pp.poll_id = ?
-        ");
-        $stmt->execute([$poll_id]);
-        $poll_participants_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Alle Antworten laden
+            $stmt = $pdo->prepare("
+                SELECT pr.*
+                FROM svpoll_responses pr
+                WHERE pr.poll_id = ?
+            ");
+            $stmt->execute([$poll_id]);
+            $all_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Member-Namen über Adapter nachladen und nur erfolgreiche behalten
-        $poll_participants = [];
-        foreach ($poll_participants_raw as $participant) {
-            if ($participant['member_id']) {
-                $member = get_member_by_id($pdo, $participant['member_id']);
-                if ($member) {
-                    $poll_participants[] = [
-                        'member_id' => $participant['member_id'],
-                        'first_name' => $member['first_name'] ?? '',
-                        'last_name' => $member['last_name'] ?? '',
-                        'participant_key' => 'member_' . $participant['member_id']
-                    ];
+            // Member- und Externe-Teilnehmer-Namen nachladen
+            foreach ($all_responses as &$response) {
+                if ($response['member_id']) {
+                    $response['participant_key'] = 'member_' . $response['member_id'];
+                    $member = get_member_by_id($pdo, $response['member_id']);
+                    if ($member) {
+                        $response['first_name'] = $member['first_name'] ?? '';
+                        $response['last_name'] = $member['last_name'] ?? '';
+                    } else {
+                        $response['first_name'] = 'User';
+                        $response['last_name'] = '#' . $response['member_id'];
+                    }
+                } elseif ($response['external_participant_id']) {
+                    $response['participant_key'] = 'external_' . $response['external_participant_id'];
+                    $ext_stmt = $pdo->prepare("SELECT first_name, last_name FROM svexternal_participants WHERE external_id = ?");
+                    $ext_stmt->execute([$response['external_participant_id']]);
+                    $ext = $ext_stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($ext) {
+                        $response['first_name'] = $ext['first_name'] ?? '';
+                        $response['last_name'] = $ext['last_name'] ?? '';
+                    } else {
+                        $response['first_name'] = 'Extern';
+                        $response['last_name'] = '#' . $response['external_participant_id'];
+                    }
                 }
             }
-        }
-        // Nach Nachname sortieren
-        usort($poll_participants, function($a, $b) {
-            return strcmp($a['last_name'] ?? '', $b['last_name'] ?? '');
-        });
 
-        // User's aktuelle Antworten laden
-        $stmt = $pdo->prepare("
-            SELECT date_id, vote
-            FROM svpoll_responses
-            WHERE poll_id = ? AND member_id = ?
-        ");
-        $stmt->execute([$poll_id, $current_user['member_id']]);
-        $user_votes = [];
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $user_votes[$row['date_id']] = (int)$row['vote'];
-        }
+            // Alle eingeladenen Teilnehmer laden
+            $stmt = $pdo->prepare("
+                SELECT pp.member_id
+                FROM svpoll_participants pp
+                WHERE pp.poll_id = ?
+            ");
+            $stmt->execute([$poll_id]);
+            $poll_participants_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Berechtigungen
-        $is_creator = ($poll['created_by_member_id'] == $current_user['member_id']);
-        $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
-        $can_edit = $is_creator || $is_admin;
-        $can_vote = $poll['status'] === 'open';
+            $poll_participants = [];
+            foreach ($poll_participants_raw as $participant) {
+                if ($participant['member_id']) {
+                    $member = get_member_by_id($pdo, $participant['member_id']);
+                    if ($member) {
+                        $poll_participants[] = [
+                            'member_id' => $participant['member_id'],
+                            'first_name' => $member['first_name'] ?? '',
+                            'last_name' => $member['last_name'] ?? '',
+                            'participant_key' => 'member_' . $participant['member_id']
+                        ];
+                    }
+                }
+            }
+            usort($poll_participants, function($a, $b) {
+                return strcmp($a['last_name'] ?? '', $b['last_name'] ?? '');
+            });
+
+            // User's aktuelle Antworten laden
+            $stmt = $pdo->prepare("
+                SELECT date_id, vote
+                FROM svpoll_responses
+                WHERE poll_id = ? AND member_id = ?
+            ");
+            $stmt->execute([$poll_id, $current_user['member_id']]);
+            $user_votes = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $user_votes[$row['date_id']] = (int)$row['vote'];
+            }
+
+            // Berechtigungen
+            $is_creator = ($poll['created_by_member_id'] == $current_user['member_id']);
+            $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
+            $can_edit = $is_creator || $is_admin;
+            $can_vote = $poll['status'] === 'open';
+
+        } catch (Exception $_poll_ex) {
+            $_poll_load_error = $_poll_ex->getMessage();
+            error_log('tab_termine.php poll view error: ' . $_poll_load_error);
+            // Sichere Defaults damit HTML nicht bricht
+            $poll_dates = [];
+            $all_responses = [];
+            $poll_participants = [];
+            $user_votes = [];
+            $is_creator = false;
+            $is_admin = false;
+            $can_edit = false;
+            $can_vote = false;
+        }
     ?>
 
-        <a href="?tab=termine" class="btn-secondary" style="margin-bottom: 20px;">← Zurück zur Übersicht</a>
+        <a href="<?php echo htmlspecialchars(!empty($_tab_redirect_to) ? $_tab_redirect_to : '?tab=termine'); ?>" class="btn-secondary" style="margin-bottom: 20px;">← Zurück zur Übersicht</a>
+
+        <?php if (!empty($_poll_load_error)): ?>
+        <div class="error-message" style="margin-bottom: 20px;">
+            Fehler beim Laden der Umfrage: <?php echo htmlspecialchars($_poll_load_error); ?>
+        </div>
+        <?php endif; ?>
 
         <div class="poll-card status-<?php echo $poll['status']; ?>" style="margin-bottom: 20px;">
             <div class="poll-header">
@@ -1065,9 +1142,10 @@ if (isset($_SESSION['error'])) {
                 <strong>❌ Passt nicht</strong> – Der Termin passt mir nicht
             </p>
 
-            <form method="POST" action="process_termine.php">
+            <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>">
                 <input type="hidden" name="action" value="submit_vote">
                 <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
+                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
 
                 <table class="vote-matrix">
                     <thead>
@@ -1283,9 +1361,10 @@ if (isset($_SESSION['error'])) {
                     🔒 Finalisierung
                 </button>
                 <div class="accordion-content <?php echo $is_creator ? 'active' : ''; ?>">
-            <form method="POST" action="process_termine.php">
+            <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>">
                 <input type="hidden" name="action" value="finalize_poll">
                 <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
+                <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?><?php if (!empty($TERMINPLANUNG_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
 
                 <div class="form-group">
                     <label>Finalen Termin auswählen:</label>
@@ -1304,7 +1383,8 @@ if (isset($_SESSION['error'])) {
                     </select>
                 </div>
 
-                <!-- Meeting-Option -->
+                <!-- Meeting-Option (nicht im MTool-Modus) -->
+                <?php if (empty($TERMINPLANUNG_MTOOL_MODE)): ?>
                 <div class="form-group" style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 5px;">
                     <label style="display: block; margin-bottom: 10px;">
                         <input type="checkbox" name="create_meeting" value="1" checked>
@@ -1314,8 +1394,10 @@ if (isset($_SESSION['error'])) {
                         Wenn aktiviert, wird automatisch ein Meeting mit dem finalen Termin, Titel und Teilnehmern erstellt
                     </small>
                 </div>
+                <?php endif; ?>
 
-                <!-- E-Mail-Optionen -->
+                <?php if (empty($TERMINPLANUNG_MTOOL_MODE)): ?>
+                <!-- E-Mail-Optionen (nicht im MTool-Modus) -->
                 <div class="form-group" style="margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px;">
                     <label style="font-weight: bold; display: block; margin-bottom: 10px;">📧 E-Mail-Benachrichtigungen:</label>
 
@@ -1349,6 +1431,7 @@ if (isset($_SESSION['error'])) {
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <button type="submit" class="btn-primary" onclick="return confirm('Finalen Termin festlegen? Die Umfrage wird damit abgeschlossen.')">
                     ✓ Finalen Termin festlegen

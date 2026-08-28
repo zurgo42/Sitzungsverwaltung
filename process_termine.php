@@ -44,6 +44,12 @@ if (isset($_SESSION['member_id'])) {
     }
 }
 
+// MTool-Fallback: MNr aus Hidden-Field → Mitglied aus DB laden
+// (MTool setzt $MNr und gibt sie als mtool_mnr mit; keine Session nötig)
+if (!$current_user && !empty($_POST['mtool_mnr'])) {
+    $current_user = get_member_by_membership_number($pdo, trim($_POST['mtool_mnr']));
+}
+
 // Externe Teilnehmer-Session prüfen
 $external_session = get_external_participant_session();
 $is_external_participant = ($external_session !== null);
@@ -54,6 +60,39 @@ if (!$current_user && !$is_external_participant) {
     $_SESSION['error'] = 'Du musst eingeloggt sein um Termine zu erstellen';
     header('Location: index.php');
     exit;
+}
+
+// ============================================
+// REDIRECT-BASIS
+// ============================================
+
+// MTool-Modus: redirect_to aus POST übernehmen wenn valide (gleicher Host)
+$_r_base = null;
+if (!empty($_POST['redirect_to'])) {
+    $rt = trim($_POST['redirect_to']);
+    $parsed = parse_url($rt);
+    if ($rt && strpos($rt, '//') !== 0 &&
+        (!isset($parsed['host']) || $parsed['host'] === $_SERVER['HTTP_HOST'])) {
+        $_r_base = $rt;
+    }
+}
+// Fallback: MTool-URL aus Session (dort gespeichert beim Rendern durch MTool)
+if (!$_r_base && !empty($_SESSION['terminplanung_mtool_share_url'])) {
+    $_r_base = $_SESSION['terminplanung_mtool_share_url'];
+}
+// Hilfsfunktion: URL für Poll-Ansicht
+function _r_poll($poll_id) {
+    global $_r_base;
+    if ($_r_base) {
+        $sep = strpos($_r_base, '?') !== false ? '&' : '?';
+        return $_r_base . $sep . 'view=poll&poll_id=' . intval($poll_id);
+    }
+    return 'index.php?tab=termine&view=poll&poll_id=' . intval($poll_id);
+}
+// Hilfsfunktion: URL für Dashboard
+function _r_dash() {
+    global $_r_base;
+    return $_r_base ?: 'index.php?tab=termine';
 }
 
 // ============================================
@@ -138,24 +177,25 @@ try {
 
             if (empty($title)) {
                 $_SESSION['error'] = 'Bitte gib einen Titel ein';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
             // Teilnehmer nur bei target_type='list' erforderlich
             if ($target_type === 'list' && empty($participant_ids)) {
                 $_SESSION['error'] = 'Bitte wähle mindestens einen Teilnehmer aus';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
-            // Umfrage erstellen (meeting_id wird später beim Finalisieren gesetzt)
-            // access_token wird automatisch via Trigger generiert wenn target_type='individual'
+            // access_token immer generieren (für alle target_types, damit Weitergabe-Links funktionieren)
+            $new_access_token = bin2hex(random_bytes(16));
+
             $stmt = $pdo->prepare("
-                INSERT INTO svpolls (title, description, location, created_by_member_id, meeting_id, target_type, status, created_at)
-                VALUES (?, ?, ?, ?, NULL, ?, 'open', NOW())
+                INSERT INTO svpolls (title, description, location, created_by_member_id, meeting_id, target_type, status, access_token, created_at)
+                VALUES (?, ?, ?, ?, NULL, ?, 'open', ?, NOW())
             ");
-            $stmt->execute([$title, $description, $location, $current_user['member_id'], $target_type]);
+            $stmt->execute([$title, $description, $location, $current_user['member_id'], $target_type, $new_access_token]);
             $poll_id = $pdo->lastInsertId();
 
             // Teilnehmer nur bei target_type='list' hinzufügen
@@ -213,7 +253,7 @@ try {
             }
 
             $_SESSION['success'] = $success_message;
-            header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+            header('Location: ' . _r_poll($poll_id));
             exit;
 
         // ====== ABSTIMMUNG ABGEBEN ======
@@ -223,13 +263,13 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
             if ($poll['status'] !== 'open') {
                 $_SESSION['error'] = 'Diese Umfrage ist geschlossen';
-                header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+                header('Location: ' . _r_poll($poll_id));
                 exit;
             }
 
@@ -283,7 +323,7 @@ try {
 
             // Redirect je nach Teilnehmer-Typ
             if ($current_user) {
-                header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+                header('Location: ' . _r_poll($poll_id));
             } else {
                 header('Location: terminplanung_standalone.php?poll_id=' . $poll_id);
             }
@@ -298,14 +338,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
             // Berechtigung prüfen
             if (!can_edit_poll($poll, $current_user)) {
                 $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+                header('Location: ' . _r_poll($poll_id));
                 exit;
             }
 
@@ -416,7 +456,7 @@ try {
             }
 
             $_SESSION['success'] = $success_message;
-            header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+            header('Location: ' . _r_poll($poll_id));
             exit;
 
         // ====== UMFRAGE SCHLIESSEN (ohne Finalisierung) ======
@@ -426,14 +466,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
             // Berechtigung prüfen
             if (!can_edit_poll($poll, $current_user)) {
                 $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+                header('Location: ' . _r_poll($poll_id));
                 exit;
             }
 
@@ -441,7 +481,7 @@ try {
             $stmt->execute([$poll_id]);
 
             $_SESSION['success'] = 'Umfrage wurde geschlossen';
-            header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+            header('Location: ' . _r_poll($poll_id));
             exit;
 
         // ====== UMFRAGE WIEDER ÖFFNEN ======
@@ -451,14 +491,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
             // Berechtigung prüfen
             if (!can_edit_poll($poll, $current_user)) {
                 $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+                header('Location: ' . _r_poll($poll_id));
                 exit;
             }
 
@@ -466,7 +506,7 @@ try {
             $stmt->execute([$poll_id]);
 
             $_SESSION['success'] = 'Umfrage wurde wieder geöffnet';
-            header('Location: index.php?tab=termine&view=poll&poll_id=' . $poll_id);
+            header('Location: ' . _r_poll($poll_id));
             exit;
 
         // ====== UMFRAGE LÖSCHEN ======
@@ -476,14 +516,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
             // Berechtigung prüfen
             if (!can_edit_poll($poll, $current_user)) {
                 $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: index.php?tab=termine');
+                header('Location: ' . _r_dash());
                 exit;
             }
 
@@ -492,18 +532,18 @@ try {
             $stmt->execute([$poll_id]);
 
             $_SESSION['success'] = 'Umfrage wurde gelöscht';
-            header('Location: index.php?tab=termine');
+            header('Location: ' . _r_dash());
             exit;
 
         default:
             $_SESSION['error'] = 'Unbekannte Aktion';
-            header('Location: index.php?tab=termine');
+            header('Location: ' . _r_dash());
             exit;
     }
 
 } catch (Exception $e) {
     $_SESSION['error'] = 'Ein Fehler ist aufgetreten: ' . $e->getMessage();
-    header('Location: index.php?tab=termine');
+    header('Location: ' . _r_dash());
     exit;
 }
 

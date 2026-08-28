@@ -1,15 +1,19 @@
 <?php
 /**
  * index.php - Hauptdatei der Sitzungsverwaltung
- * 
+ *
  * Diese Datei ist der zentrale Einstiegspunkt der Anwendung und koordiniert:
  * - Login/Logout-Verwaltung
  * - Session-Handling
  * - Routing zwischen verschiedenen Tabs
  * - Einbindung der Processing- und Presentation-Dateien
- * 
+ *
  * Letzte Aktualisierung: 28.10.2025 MEZ
  */
+
+// Fehleranzeige aktivieren (Debug-Modus)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 // Session-Konfiguration laden (VOR session_start!)
 require_once 'session_config.php';
@@ -21,10 +25,13 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Konfiguration laden
-require_once 'config.php';           // Datenbankverbindung und Konstanten
-require_once 'config_adapter.php';   // Konfiguration für Mitgliederquelle
-require_once 'member_functions.php'; // Prozedurale Wrapper-Funktionen für Mitglieder
-require_once 'functions.php';        // Wiederverwendbare Funktionen
+require_once 'config.php';                    // Datenbankverbindung und Konstanten
+require_once 'config_adapter.php';            // Konfiguration für Mitgliederquelle
+require_once 'member_functions.php';          // Prozedurale Wrapper-Funktionen für Mitglieder
+require_once 'functions.php';                 // Wiederverwendbare Funktionen
+require_once 'includes/antragstypen_helper.php'; // Antragstypen-Konfiguration
+require_once 'includes/voting_helper.php';    // Abstimmungsregeln
+require_once 'protokoll_helper.php';          // Aktions-Protokollierung
 
 // ============================================
 // GLOBALES MEMBERS-ARRAY (für SSO und Standard-Modus)
@@ -36,6 +43,17 @@ $GLOBALS['members_by_id'] = [];
 foreach ($GLOBALS['all_members'] as $member) {
     $GLOBALS['members_by_id'][$member['member_id']] = $member;
 }
+
+// ============================================
+// ANTRAGSTYPEN-KONFIGURATION
+// ============================================
+// Einmal laden und global verfügbar machen
+$GLOBALS['bart_config'] = lade_antragstypen_config($pdo);
+
+// ============================================
+// ABSTIMMUNGSREGELN-KONFIGURATION
+// ============================================
+$GLOBALS['voting_config'] = lade_voting_config($pdo);
 
 /**
  * Hilfsfunktion: Holt Member-Daten nach ID aus dem globalen Array
@@ -209,7 +227,7 @@ function show_access_denied_page($title, $message, $details = '') {
                     ℹ️ <?php echo htmlspecialchars($details); ?>
                 </div>
             <?php endif; ?>
-            <a href="<?php echo htmlspecialchars($back_url); ?>" class="back-button">
+            <a href="<?php echo htmlspecialchars($back_url); ?>" class="back-button" target="_top">
                 ← <?php echo htmlspecialchars($back_text); ?>
             </a>
             <div class="footer-note">
@@ -240,8 +258,8 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
             $_SESSION['role'] = $sso_user['role'];
             $_SESSION['MNr'] = $sso_mnr;  // Für config_adapter.php - damit API-Calls den richtigen Adapter verwenden
 
-            // Zur Hauptseite weiterleiten
-            header('Location: index.php');
+            // Zur ursprünglichen URL weiterleiten (erhält meeting_id und andere Parameter)
+            header('Location: ' . $_SERVER['REQUEST_URI']);
             exit;
         } else {
             // Mitglied nicht gefunden - Prüfen ob DB leer ist (nach Reset)
@@ -285,9 +303,9 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
                 $_SESSION['role'] = $sso_user['role'];
                 $_SESSION['MNr'] = $sso_mnr;
 
-                // Zur Hauptseite weiterleiten mit Hinweis
+                // Zur ursprünglichen URL weiterleiten mit Hinweis (erhält meeting_id und andere Parameter)
                 $_SESSION['success'] = 'Erste Anmeldung nach DB-Reset: Admin-Account wurde automatisch angelegt.';
-                header('Location: index.php');
+                header('Location: ' . $_SERVER['REQUEST_URI']);
                 exit;
             } else {
                 // DB ist nicht leer, aber User nicht gefunden
@@ -299,11 +317,11 @@ if (!REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
             }
         }
     } else {
-        // Keine Mitgliedsnummer übergeben
+        // SSO-Session abgelaufen oder keine MNr verfügbar
         show_access_denied_page(
-            'SSO-Fehler',
-            'Es wurde keine Mitgliedsnummer übergeben. Bitte versuche es über das VTool erneut.',
-            'Technischer Hinweis: SSO_SOURCE ist auf "' . SSO_SOURCE . '" konfiguriert'
+            'Anmeldung abgelaufen',
+            'Deine Sitzung ist abgelaufen. Bitte kehre zum VTool zurück, um dich erneut anzumelden.',
+            ''
         );
     }
 }
@@ -403,6 +421,18 @@ $active_tab = $_GET['tab'] ?? 'meetings';
 $current_meeting_id = isset($_GET['meeting_id']) ? intval($_GET['meeting_id']) : null;
 
 // ============================================
+// REDIRECT: PROPOSALS TAB
+// ============================================
+// Anträge & Beschlüsse werden nun direkt in index.php eingebunden (tab_proposals.php)
+// Redirect deaktiviert für einheitliche Darstellung
+/*
+if ($active_tab === 'proposals') {
+    header('Location: antragsliste.php');
+    exit;
+}
+*/
+
+// ============================================
 // DEMO-MODUS: DYNAMISCHE DATUMSANPASSUNG
 // ============================================
 if (defined('DEMO_MODE_ENABLED') && DEMO_MODE_ENABLED) {
@@ -452,8 +482,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'todos') {
 }
 
 // PROCESS ADMIN
-// Wird bei POST-Requests auf dem Admin-Tab eingebunden
-// Dies geschieht bereits in der Presentation-Datei (tab_admin.php)
+// Wird für Admin-Tab und Admin-Init-Tab geladen
+// WICHTIG: Muss VOR HTML-Output geladen werden wegen header() Redirects
+if ($active_tab === 'admin' || $active_tab === 'admin_init') {
+    require_once 'process_admin.php';
+}
 
 // ============================================
 // DISPLAY-MODUS ERKENNUNG
@@ -761,9 +794,11 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
     
     <!-- NAVIGATION / TABS -->
     <div class="navigation">
-        <!-- Termine-Tab (immer sichtbar) -->
-        <a href="?tab=termine" class="<?php echo $active_tab === 'termine' ? 'active' : ''; ?>">
-            📆 Termine
+        <!-- 1. ZEILE -->
+
+        <!-- Anträge & Beschlüsse-Tab (immer sichtbar) -->
+        <a href="?tab=proposals" class="<?php echo $active_tab === 'proposals' ? 'active' : ''; ?>">
+            📋 Anträge/Beschlüsse
         </a>
 
         <!-- Sitzungen-Tab (immer sichtbar) -->
@@ -779,6 +814,40 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             </a>
         <?php endif; ?>
 
+        <!-- Protokolle-Tab (immer sichtbar) -->
+        <a href="?tab=protokolle" class="<?php echo $active_tab === 'protokolle' ? 'active' : ''; ?>">
+            📋 Protokolle
+        </a>
+
+        <!-- Termin finden-Tab (immer sichtbar) -->
+        <a href="?tab=termine" class="<?php echo $active_tab === 'termine' ? 'active' : ''; ?>">
+            📆 Termin finden
+        </a>
+
+        <!-- ToDo/Erledigen-Tab (immer sichtbar) -->
+        <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
+            ✅ ToDo/Erledigen
+        </a>
+
+        <!-- Meinungsbild-Tab (immer sichtbar) -->
+        <a href="?tab=opinion" class="<?php echo $active_tab === 'opinion' ? 'active' : ''; ?>">
+            📊 Meinungsbild
+        </a>
+
+        <!-- 2. ZEILE -->
+
+        <!-- Dokumente-Tab (optional, siehe config.php) -->
+        <?php if (defined('ENABLE_DOCUMENTS_TAB') && ENABLE_DOCUMENTS_TAB): ?>
+        <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
+            📁 Dokumente
+        </a>
+        <?php endif; ?>
+
+        <!-- MV-Beschlüsse -->
+        <a href="?tab=mv_beschluesse" class="<?php echo $active_tab === 'mv_beschluesse' ? 'active' : ''; ?>">
+            📜 MV-Beschlüsse
+        </a>
+
         <!-- Textbearbeitung-Tab (nur für Vorstand/GF/Assistenz/Führungsteam, NICHT für Mitglied) -->
         <?php
         // Prüfen ob User Zugriff hat (Mitglieder niemals)
@@ -793,16 +862,6 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         </a>
         <?php endif; ?>
 
-        <!-- Protokolle-Tab (immer sichtbar) -->
-        <a href="?tab=protokolle" class="<?php echo $active_tab === 'protokolle' ? 'active' : ''; ?>">
-            📋 Protokolle
-        </a>
-
-        <!-- Erledigen-Tab (immer sichtbar) -->
-        <a href="?tab=todos" class="<?php echo $active_tab === 'todos' ? 'active' : ''; ?>">
-            ✅ Erledigen
-        </a>
-
         <!-- Abwesenheiten-Tab (nur für Leadership) -->
         <?php if (in_array(strtolower($current_user['role']), ['vorstand', 'gf', 'assistenz', 'führungsteam'])): ?>
         <a href="?tab=vertretung" class="<?php echo $active_tab === 'vertretung' ? 'active' : ''; ?>">
@@ -810,33 +869,63 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         </a>
         <?php endif; ?>
 
-        <!-- Meinungsbild-Tab (immer sichtbar) -->
-        <a href="?tab=opinion" class="<?php echo $active_tab === 'opinion' ? 'active' : ''; ?>">
-            📊 Meinungsbild
-        </a>
+        <!-- Benachrichtigungs-Center -->
+        <?php include 'notification_center.php'; ?>
 
-        <!-- Dokumente-Tab (optional, siehe config.php) -->
-        <?php if (defined('ENABLE_DOCUMENTS_TAB') && ENABLE_DOCUMENTS_TAB): ?>
-        <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
-            📁 Dokumente
-        </a>
-        <?php endif; ?>
-
-        <!-- Admin-Tab (nur für Vorstand und GF sichtbar) -->
-        <?php //if (in_array($current_user['role'], ['vorstand', 'gf'])):
-		if ($current_user['is_admin']):
-		?>
+        <!-- Admin-Tab (nur für Admins sichtbar) -->
+        <?php if ($current_user['is_admin']): ?>
             <a href="?tab=admin" class="<?php echo $active_tab === 'admin' ? 'active' : ''; ?>">
                 ⚙️ Admin
             </a>
         <?php endif; ?>
-
-        <!-- Benachrichtigungs-Center -->
-        <?php include 'notification_center.php'; ?>
     </div>
-    
+
     <!-- HAUPTINHALT / CONTENT -->
     <div class="container">
+        <?php if (defined('ENABLE_FEEDBACK_SYSTEM') && ENABLE_FEEDBACK_SYSTEM): ?>
+        <!-- FEEDBACK-AKKORDEON für Testphase -->
+        <div style="margin-bottom: 20px;">
+            <button class="accordion-button" onclick="toggleAccordion(this)" style="background: #003366; color: #FFEB3B; border: none; font-weight: bold;">
+                <strong>💬 Meldungen an den Admin</strong>
+                <span style="font-size: 0.9em; opacity: 0.9; margin-left: 10px;">(Feedback für Testphase)</span>
+            </button>
+            <div class="accordion-content" style="display: none;">
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 5px;">
+                    <!-- User-Feedback -->
+                    <div id="user-feedback-section">
+                        <p style="margin-bottom: 10px; color: #555;">
+                            <strong>Ihre Anmerkungen:</strong><br>
+                            <small>Ihre Eingaben werden automatisch gespeichert und sind nur für Sie und Admins sichtbar.</small>
+                        </p>
+                        <!-- Name und Datum-Anzeige -->
+                        <div id="user-feedback-header" style="padding: 8px 10px; background: #e8f4f8; border-left: 3px solid #2196F3; margin-bottom: 10px; border-radius: 3px; font-size: 0.9em; color: #555;">
+                            <strong><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?></strong>
+                            <span id="user-feedback-date" style="margin-left: 10px; color: #777;"></span>
+                        </div>
+                        <textarea
+                            id="user-feedback-text"
+                            placeholder="Fehlermeldungen, Verbesserungsvorschläge, Anmerkungen..."
+                            style="width: 100%; min-height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; resize: vertical;"
+                        ></textarea>
+                        <div style="margin-top: 10px; font-size: 0.85em; color: #666;">
+                            <span id="feedback-status">Lädt...</span>
+                        </div>
+                    </div>
+
+                    <?php if ($current_user['is_admin']): ?>
+                    <!-- Admin-Ansicht: Alle Feedbacks -->
+                    <div id="admin-feedback-section" style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd;">
+                        <h3 style="color: #d9534f; margin-bottom: 15px;">🔐 Admin-Ansicht: Alle Rückmeldungen</h3>
+                        <div id="all-feedbacks-container">
+                            <p style="text-align: center; color: #999;">Lädt Feedbacks...</p>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <?php
         /**
          * TAB-ROUTING
@@ -862,6 +951,16 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             case 'opinion':
                 // Meinungsbild-Tool anzeigen
                 include 'tab_opinion.php';
+                break;
+
+            case 'proposals':
+                // Anträge & Beschlüsse - direkt eingebunden für einheitliche Darstellung
+                include 'tab_proposals.php';
+                break;
+
+            case 'mv_beschluesse':
+                // MV-Beschlüsse anzeigen
+                include 'tab_mv_beschluesse.php';
                 break;
 
             case 'todos':
@@ -892,8 +991,7 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             case 'admin':
                 // Admin-Panel anzeigen (nur für berechtigte Benutzer)
                 if ($current_user['is_admin']) {
-                    // process_admin.php verarbeitet Admin-Aktionen
-                    include 'process_admin.php';
+                    // process_admin.php wurde bereits VOR HTML-Output geladen
                     // tab_admin.php zeigt das Admin-Panel an
                     include 'tab_admin.php';
                 } else {
@@ -904,7 +1002,19 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                     echo '</div>';
                 }
                 break;
-            
+
+            case 'admin_init':
+                // Grundkonfiguration / Initialisierung (nur für Admins mit Bestätigung)
+                if ($current_user['is_admin']) {
+                    include 'tab_admin_init.php';
+                } else {
+                    echo '<div style="max-width: 600px; margin: 40px auto; padding: 30px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
+                    echo '<h3 style="color: #856404; margin: 0 0 12px 0; font-size: 18px;">🔒 Zugriff nicht möglich</h3>';
+                    echo '<p style="color: #856404; margin: 0; line-height: 1.6;">Dieser Bereich ist nur für Administratoren zugänglich.</p>';
+                    echo '</div>';
+                }
+                break;
+
             default:
                 // Fallback: Bei unbekanntem Tab wird Sitzungen angezeigt
                 include 'tab_meetings.php';
@@ -1036,6 +1146,265 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
     } else {
         initDarkMode();
     }
+
+    <?php if (defined('ENABLE_FEEDBACK_SYSTEM') && ENABLE_FEEDBACK_SYSTEM): ?>
+    /**
+     * FEEDBACK-SYSTEM
+     * Autosave für User-Feedback und Admin-Ansicht
+     */
+    let feedbackSaveTimeout;
+    const feedbackTextarea = document.getElementById('user-feedback-text');
+    const feedbackStatus = document.getElementById('feedback-status');
+
+    // Feedback laden beim Seitenaufruf
+    function loadUserFeedback() {
+        fetch('ajax_feedback.php?action=load')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    if (feedbackTextarea) {
+                        feedbackTextarea.value = data.feedback || '';
+                    }
+                    // Datum im Header aktualisieren
+                    const dateElement = document.getElementById('user-feedback-date');
+                    if (dateElement && data.updated_at) {
+                        dateElement.textContent = '(zuletzt geändert: ' + data.updated_at + ')';
+                    }
+                    if (feedbackStatus) {
+                        feedbackStatus.textContent = data.updated_at
+                            ? 'Zuletzt gespeichert: ' + data.updated_at
+                            : 'Noch keine Eingaben';
+                        feedbackStatus.style.color = '#28a745';
+                    }
+                } else if (feedbackStatus) {
+                    feedbackStatus.textContent = '✗ ' + (data.error || 'Fehler beim Laden');
+                    feedbackStatus.style.color = '#dc3545';
+                    console.error('Feedback-Ladefehler:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Fehler beim Laden:', error);
+                if (feedbackStatus) {
+                    feedbackStatus.textContent = 'Fehler beim Laden: ' + error.message;
+                    feedbackStatus.style.color = '#dc3545';
+                }
+            });
+    }
+
+    // Autosave bei Eingabe
+    if (feedbackTextarea) {
+        feedbackTextarea.addEventListener('input', function() {
+            // Status während der Eingabe
+            if (feedbackStatus) {
+                feedbackStatus.textContent = 'Speichert...';
+                feedbackStatus.style.color = '#ffc107';
+            }
+
+            // Debounce: 2 Sekunden warten nach letzter Eingabe
+            clearTimeout(feedbackSaveTimeout);
+            feedbackSaveTimeout = setTimeout(() => {
+                saveFeedback();
+            }, 2000);
+        });
+    }
+
+    function saveFeedback() {
+        const formData = new FormData();
+        formData.append('action', 'save');
+        formData.append('feedback', feedbackTextarea.value);
+
+        fetch('ajax_feedback.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && feedbackStatus) {
+                feedbackStatus.textContent = '✓ Gespeichert um ' + data.timestamp;
+                feedbackStatus.style.color = '#28a745';
+
+                // Datum im Header aktualisieren
+                const dateElement = document.getElementById('user-feedback-date');
+                if (dateElement) {
+                    dateElement.textContent = '(zuletzt geändert: ' + data.timestamp + ')';
+                }
+            } else if (feedbackStatus) {
+                const errorMsg = data.error || 'Fehler beim Speichern';
+                const hint = data.hint ? ' (' + data.hint + ')' : '';
+                feedbackStatus.textContent = '✗ ' + errorMsg + hint;
+                feedbackStatus.style.color = '#dc3545';
+                console.error('Feedback-Fehler:', data);
+            }
+        })
+        .catch(error => {
+            console.error('Fehler:', error);
+            if (feedbackStatus) {
+                feedbackStatus.textContent = '✗ Netzwerkfehler: ' + error.message;
+                feedbackStatus.style.color = '#dc3545';
+            }
+        });
+    }
+
+    <?php if ($current_user['is_admin']): ?>
+    // Admin: Alle Feedbacks laden
+    function loadAllFeedbacks() {
+        const container = document.getElementById('all-feedbacks-container');
+        if (!container) return;
+
+        fetch('ajax_feedback.php?action=load_all')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    if (data.feedbacks.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: #999;">Noch keine Feedbacks vorhanden</p>';
+                        return;
+                    }
+
+                    let html = '';
+                    data.feedbacks.forEach(fb => {
+                        html += `
+                            <div style="background: white; padding: 15px; margin-bottom: 15px; border-radius: 5px; border-left: 4px solid #2196F3; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                <div style="background: #f8f9fa; padding: 10px; margin: -15px -15px 15px -15px; border-radius: 5px 5px 0 0; border-bottom: 1px solid #dee2e6;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                                        <div>
+                                            <strong style="color: #333; font-size: 1.05em;">👤 ${fb.member_name}</strong>
+                                        </div>
+                                        <div style="font-size: 0.85em; color: #666;">
+                                            <span style="display: inline-block; margin-right: 15px;">
+                                                <strong>📅 Erstellt:</strong> ${fb.created_at}
+                                            </span>
+                                            <span style="display: inline-block;">
+                                                <strong>✏️ Geändert:</strong> ${fb.updated_at}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <textarea
+                                    id="admin-feedback-${fb.id}"
+                                    style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; resize: vertical;"
+                                >${fb.feedback_text}</textarea>
+                                <div style="margin-top: 8px; text-align: right; display: flex; gap: 8px; justify-content: flex-end;">
+                                    <button
+                                        onclick="updateFeedback(${fb.id})"
+                                        style="padding: 6px 15px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;"
+                                    >💾 Speichern</button>
+                                    <button
+                                        onclick="deleteFeedback(${fb.id})"
+                                        style="padding: 6px 15px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;"
+                                    >🗑️ Löschen</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+                } else {
+                    const errorMsg = data.error || 'Unbekannter Fehler';
+                    container.innerHTML = '<p style="color: #dc3545;">Fehler: ' + errorMsg + '</p>';
+                    console.error('Admin-Feedback-Fehler:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Fehler:', error);
+                container.innerHTML = '<p style="color: #dc3545;">Fehler beim Laden: ' + error.message + '</p>';
+            });
+    }
+
+    function updateFeedback(id) {
+        const textarea = document.getElementById('admin-feedback-' + id);
+        if (!textarea) return;
+
+        // Visuelles Feedback während des Speicherns
+        textarea.style.borderColor = '#ffc107';
+
+        const formData = new FormData();
+        formData.append('action', 'update_single');
+        formData.append('id', id);
+        formData.append('feedback', textarea.value);
+
+        fetch('ajax_feedback.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Erfolgreich: Grüner Border kurz anzeigen
+                textarea.style.borderColor = '#28a745';
+                textarea.style.backgroundColor = '#f0fff0';
+                setTimeout(() => {
+                    textarea.style.borderColor = '#ddd';
+                    textarea.style.backgroundColor = 'white';
+                    loadAllFeedbacks(); // Neu laden um aktualisiertes Datum zu zeigen
+                }, 1500);
+            } else {
+                // Fehler: Roten Border
+                textarea.style.borderColor = '#dc3545';
+                textarea.style.backgroundColor = '#fff5f5';
+                alert('Fehler beim Speichern: ' + (data.error || 'Unbekannter Fehler'));
+                setTimeout(() => {
+                    textarea.style.borderColor = '#ddd';
+                    textarea.style.backgroundColor = 'white';
+                }, 2000);
+            }
+        })
+        .catch(error => {
+            textarea.style.borderColor = '#dc3545';
+            alert('Netzwerkfehler: ' + error.message);
+            setTimeout(() => { textarea.style.borderColor = '#ddd'; }, 2000);
+        });
+    }
+
+    function deleteFeedback(id) {
+        if (!confirm('Dieses Feedback wirklich löschen?')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'delete_single');
+        formData.append('id', id);
+
+        fetch('ajax_feedback.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadAllFeedbacks(); // Neu laden
+            } else {
+                alert('Fehler beim Löschen');
+            }
+        });
+    }
+
+    // Admin-Feedbacks beim Laden initialisieren
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadAllFeedbacks);
+    } else {
+        loadAllFeedbacks();
+    }
+    <?php endif; ?>
+
+    // User-Feedback beim Laden initialisieren
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadUserFeedback);
+    } else {
+        loadUserFeedback();
+    }
+    <?php endif; ?>
     </script>
 
     <!-- Externes JavaScript für Hamburger-Menü -->

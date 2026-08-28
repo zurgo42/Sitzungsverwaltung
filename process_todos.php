@@ -29,7 +29,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'change_status') {
     }
 
     // Berechtigung prüfen (nur Empfänger)
-    $stmt = $pdo->prepare("SELECT status, assigned_to_member_id FROM svtodos WHERE todo_id = ?");
+    $stmt = $pdo->prepare("SELECT status, assigned_to_member_id, title FROM svtodos WHERE todo_id = ?");
     $stmt->execute([$todo_id]);
     $todo = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -50,6 +50,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'change_status') {
         // Logging
         $logstmt = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'status-change', ?, ?)");
         $logstmt->execute([$todo_id, $currentMemberID, $todo['status'], $new_status]);
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Status', substr($todo['title'] ?? '', 0, 60) . ' → ' . $new_status);
 
         $_SESSION['success'] = 'Status geändert';
         header('Location: index.php?tab=todos');
@@ -95,6 +98,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'retract') {
 
         $delete = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
         $delete->execute([$todo_id]);
+
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Zurueckziehen', substr($todo['title'] ?? '', 0, 80));
 
         $_SESSION['success'] = 'ToDo zurückgezogen';
         header('Location: index.php?tab=todos');
@@ -149,6 +155,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
                 due_date, status, is_private, entry_date
             ) VALUES (?, ?, ?, ?, ?, 'open', ?, NOW())
         ");
+
         $stmt->execute([
             $title,
             $description,
@@ -164,12 +171,29 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
         $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'todo-erstellt', NULL, ?)");
         $log->execute([$todo_id, $currentMemberID, $title]);
 
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Erstellen', substr($title ?? '', 0, 80));
+
+        // E-Mail-Benachrichtigung: ToDo zugewiesen (nur wenn Empfänger ≠ Ersteller)
+        if ($assigned_to !== $currentMemberID) {
+            if (!function_exists('nm_event_todo_zugewiesen') && file_exists(__DIR__ . '/notification_mailer.php')) {
+                require_once __DIR__ . '/notification_mailer.php';
+            }
+            if (function_exists('nm_event_todo_zugewiesen')) {
+                $assignee_member = get_member_by_id($pdo, $assigned_to);
+                if ($assignee_member) {
+                    $creator_name = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
+                    nm_event_todo_zugewiesen($pdo, $assignee_member, $title, $description, $due_date, $creator_name);
+                }
+            }
+        }
+
         $_SESSION['success'] = 'ToDo erfolgreich erstellt';
         header('Location: index.php?tab=todos');
         exit;
     } catch (PDOException $e) {
         error_log('Todo Create Error: ' . $e->getMessage());
-        $_SESSION['error'] = 'Fehler beim Erstellen des ToDos';
+        $_SESSION['error'] = 'Fehler beim Erstellen des ToDos: ' . $e->getMessage();
         header('Location: index.php?tab=todos');
         exit;
     }

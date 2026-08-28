@@ -83,8 +83,8 @@ class StandardMemberAdapter implements MemberAdapterInterface {
         // membership_number ist optional
         if (isset($data['membership_number']) && $data['membership_number'] !== '') {
             $stmt = $this->pdo->prepare("
-                INSERT INTO svmembers (first_name, last_name, email, membership_number, password_hash, role, is_admin, is_confidential)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO svmembers (first_name, last_name, email, membership_number, password_hash, role, aktiv, funktion, is_admin, is_confidential)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $data['first_name'],
@@ -93,13 +93,15 @@ class StandardMemberAdapter implements MemberAdapterInterface {
                 $data['membership_number'],
                 $data['password_hash'],
                 $data['role'],
+                $data['aktiv'] ?? 1,
+                $data['funktion'] ?? null,
                 $data['is_admin'] ?? 0,
                 $data['is_confidential'] ?? 0
             ]);
         } else {
             $stmt = $this->pdo->prepare("
-                INSERT INTO svmembers (first_name, last_name, email, password_hash, role, is_admin, is_confidential)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO svmembers (first_name, last_name, email, password_hash, role, aktiv, funktion, is_admin, is_confidential)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $data['first_name'],
@@ -107,6 +109,8 @@ class StandardMemberAdapter implements MemberAdapterInterface {
                 $data['email'],
                 $data['password_hash'],
                 $data['role'],
+                $data['aktiv'] ?? 1,
+                $data['funktion'] ?? null,
                 $data['is_admin'] ?? 0,
                 $data['is_confidential'] ?? 0
             ]);
@@ -117,7 +121,7 @@ class StandardMemberAdapter implements MemberAdapterInterface {
     public function updateMember($id, $data) {
         $stmt = $this->pdo->prepare("
             UPDATE svmembers
-            SET first_name = ?, last_name = ?, email = ?, membership_number = ?, role = ?, is_admin = ?, is_confidential = ?
+            SET first_name = ?, last_name = ?, email = ?, membership_number = ?, role = ?, aktiv = ?, funktion = ?, is_admin = ?, is_confidential = ?
             WHERE member_id = ?
         ");
         return $stmt->execute([
@@ -126,6 +130,8 @@ class StandardMemberAdapter implements MemberAdapterInterface {
             $data['email'],
             $data['membership_number'] ?? null,
             $data['role'],
+            $data['aktiv'] ?? 1,
+            $data['funktion'] ?? null,
             $data['is_admin'] ?? 0,
             $data['is_confidential'] ?? 0,
             $id
@@ -176,6 +182,8 @@ class BerechtigteAdapter implements MemberAdapterInterface {
             'email' => $row['eMail'],
             'role' => $role_code,  // Interner Code (lowercase): 'gf', 'vorstand', etc.
             'role_display' => $this->getRoleDisplayName($role_code),  // Display-Name: 'Geschäftsführung', etc.
+            'aktiv' => $aktiv,  // Berechtigungslevel 0-19 (direkt aus berechtigte)
+            'funktion' => $funktion,  // Funktionscode (GF, SV, VA, RL, AD, FP)
             'is_admin' => $this->isAdmin($funktion, $row['MNr']),
             'is_confidential' => $this->isConfidential($funktion, $aktiv),
             'is_active' => ($aktiv > 17) ? 1 : 0, // Aktiv wenn shouldInclude() true zurückgibt
@@ -191,29 +199,55 @@ class BerechtigteAdapter implements MemberAdapterInterface {
      * WICHTIG: Gibt die gleichen Werte wie svmembers zurück (lowercase, Kurzformen)
      * damit JavaScript-Funktionen für Teilnehmerauswahl konsistent funktionieren
      *
-     * Regeln:
-     * - aktiv=19 → vorstand
-     * - Funktion=GF → gf
-     * - Funktion=SV → assistenz
-     * - Funktion=VA → assistenz (Vorstandsassistenz, gleiche Rechte wie SV)
-     * - Funktion=RL → fuehrungsteam (OHNE Umlaut!)
-     * - Funktion=AD → mitglied
-     * - Funktion=FP → mitglied
+     * Regeln (Priorität von oben nach unten):
+     * 1. aktiv=19 → vorstand (Vorstandsmitglied)
+     * 2. aktiv=18 → gf (Geschäftsführung/Admin)
+     * 3. Funktion bestimmt Rolle:
+     *    - Vo, FVo, FVv → vorstand
+     *    - GF → gf
+     *    - VA → assistenz (Vorstandsassistenz mit Vorstandsrechten außer Abstimmung)
+     *    - RL, PL, JT, TM → fuehrungsteam (Leitungsfunktionen)
+     *    - SV, MB, Ka, Orga → assistenz (Support-Funktionen)
+     *    - AD, FP → mitglied (Admin/Prüfer)
+     *    - Rx, Vx, Xx → mitglied (ehemalige, Aufbewahrungsfrist)
      */
     private function mapRole($funktion, $aktiv) {
-        // Vorstand hat höchste Priorität
+        // Vorstand hat höchste Priorität (aktiv=19)
         if ($aktiv == 19) {
             return 'vorstand';
         }
 
+        // Geschäftsführung/Admin (aktiv=18)
+        if ($aktiv == 18) {
+            return 'gf';
+        }
+
         // Dann Funktions-basierte Rollen (lowercase, Kurzformen wie in svmembers)
         $roleMapping = [
+            // Vorstand
+            'Vo' => 'vorstand',
+            'FVo' => 'vorstand',
+            'FVv' => 'vorstand',
+            // Geschäftsführung
             'GF' => 'gf',
-            'SV' => 'assistenz',
-            'VA' => 'assistenz',  // Vorstandsassistenz (gleiche Rechte wie SV)
-            'RL' => 'fuehrungsteam',  // OHNE Umlaut!
-            'AD' => 'mitglied',
-            'FP' => 'mitglied'
+            // Assistenz/Support
+            'VA' => 'assistenz',  // Vorstandsassistenz
+            'SV' => 'assistenz',  // Sekretariat Vorstand
+            'MB' => 'assistenz',  // Mitgliederbetreuung
+            'Ka' => 'assistenz',  // Kassenführung
+            'Orga' => 'assistenz',  // Hilfsfunktion Antragstellung
+            // Leitungsfunktionen
+            'RL' => 'fuehrungsteam',  // Ressortleiter
+            'PL' => 'fuehrungsteam',  // Projektleiter
+            'JT' => 'fuehrungsteam',  // Organisator Jahrestreffen
+            'TM' => 'fuehrungsteam',  // Teamleiter
+            // Admin/Prüfer
+            'AD' => 'mitglied',  // Technischer Admin
+            'FP' => 'mitglied',  // Finanzprüfer/Kassenprüfer
+            // Ehemalige (Aufbewahrungsfrist)
+            'Rx' => 'mitglied',  // ehemalige Ressortleitung
+            'Vx' => 'mitglied',  // ehemaliges Vorstandsmitglied
+            'Xx' => 'mitglied'   // früher berechtigtes sonstiges Mitglied
         ];
 
         return $roleMapping[$funktion] ?? 'mitglied';
@@ -298,11 +332,9 @@ class BerechtigteAdapter implements MemberAdapterInterface {
         $stmt = $this->pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
         $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($row && $this->shouldInclude($row)) {
-            return $this->mapToStandard($row);
-        }
-        return null;
+        // Kein shouldInclude-Filter: Wenn jemand mit dieser ID authentifiziert ist,
+        // muss er immer gefunden werden (unabhängig von Funktion/aktiv-Level).
+        return $row ? $this->mapToStandard($row) : null;
     }
 
     public function getAllMembers() {
@@ -343,11 +375,9 @@ class BerechtigteAdapter implements MemberAdapterInterface {
         $stmt = $this->pdo->prepare("SELECT * FROM berechtigte WHERE MNr = ?");
         $stmt->execute([$mnr]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($row && $this->shouldInclude($row)) {
-            return $this->mapToStandard($row);
-        }
-        return null;
+        // Kein shouldInclude-Filter: Jedes Mitglied mit gültiger MNr soll sich
+        // bei Meinungsumfragen ausweisen können (unabhängig von Funktion/aktiv).
+        return $row ? $this->mapToStandard($row) : null;
     }
 
     public function createMember($data) {

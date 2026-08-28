@@ -14,7 +14,8 @@ function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) 
     // Mitglieder über Adapter laden und zu Polls hinzufügen
     $sql = "
         SELECT op.*,
-               (SELECT COUNT(*) FROM svopinion_responses WHERE poll_id = op.poll_id) as response_count
+               (SELECT COUNT(*) FROM svopinion_responses WHERE poll_id = op.poll_id) as response_count,
+               (SELECT COUNT(*) FROM svopinion_poll_participants WHERE poll_id = op.poll_id) as participant_count
         FROM svopinion_polls op
         WHERE op.status != 'deleted'
     ";
@@ -25,12 +26,17 @@ function get_all_opinion_polls($pdo, $member_id = null, $include_public = true) 
         $sql .= " AND (
             op.creator_member_id = ?
             OR op.target_type = 'public'
+            OR op.target_type = 'authenticated'
             OR EXISTS (
                 SELECT 1 FROM svopinion_poll_participants opp
                 WHERE opp.poll_id = op.poll_id AND opp.member_id = ?
             )
+            OR EXISTS (
+                SELECT 1 FROM svopinion_responses r
+                WHERE r.poll_id = op.poll_id AND r.member_id = ?
+            )
         )";
-        $params = [$member_id, $member_id];
+        $params = [$member_id, $member_id, $member_id];
     } elseif (!$include_public) {
         return [];
     }
@@ -375,17 +381,21 @@ function get_answer_templates($pdo) {
 }
 
 /**
- * Generiert Zugriffs-Link für individual-Umfragen
- * Verwendet zentrale Funktion aus external_participants_functions.php
+ * Generiert Zugriffs-Link für Meinungsbilder
+ * - individual: Token-basierter Link
+ * - public:     poll_id-basierter Link
+ * - list:       kein externer Link (Teilnehmer werden direkt eingeladen)
  */
 function get_poll_access_link($poll, $base_url = null) {
-    if (empty($poll['access_token'])) {
-        return null;
-    }
-
-    // Zentrale Link-Generierung verwenden
     require_once __DIR__ . '/external_participants_functions.php';
-    return generate_external_access_link('meinungsbild', $poll['access_token'], true);
+
+    if (!empty($poll['access_token'])) {
+        return generate_external_access_link('meinungsbild', $poll['access_token'], true);
+    }
+    if (($poll['target_type'] ?? '') === 'public') {
+        return generate_external_access_link('meinungsbild', $poll['poll_id'], false);
+    }
+    return null;
 }
 
 /**

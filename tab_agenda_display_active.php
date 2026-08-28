@@ -6,15 +6,13 @@
 
 // Module laden
 require_once 'module_todos.php';
+require_once 'module_voting.php';
 require_once 'module_agenda_overview.php';
 
 if (empty($agenda_items)) {
     echo '<div class="info-box">Keine Tagesordnungspunkte vorhanden.</div>';
     return;
 }
-
-// Übersicht anzeigen (read-only während aktiver Sitzung)
-render_simple_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
 
 // Aktiven TOP ermitteln
 $stmt = $pdo->prepare("SELECT active_item_id FROM svmeetings WHERE meeting_id = ?");
@@ -43,7 +41,7 @@ $active_item_id = $stmt->fetchColumn();
 }
 </style>
 
-<h3 style="margin: 20px 0 15px 0;">🟢 Laufende Sitzung - Tagesordnungspunkte</h3>
+<h3 style="margin: 20px 0 15px 0;">🟢 Laufende Sitzung</h3>
 
 <!-- Direktlink zur Sitzung -->
 <?php
@@ -60,7 +58,7 @@ if (defined('DISPLAY_MODE_OVERRIDE') && DISPLAY_MODE_OVERRIDE === 'SSOdirekt') {
     $link_description = 'Link zur Sitzung:';
 }
 ?>
-<div style="margin: 15px 0; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+<div style="margin: 0 0 15px 0; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
     <strong style="color: #1976d2;">🔗 <?php echo $link_description; ?></strong>
     <div style="margin-top: 8px; display: flex; gap: 10px; align-items: center;">
         <input type="text" id="directLinkInput" readonly value="<?php echo htmlspecialchars($direct_link); ?>"
@@ -93,6 +91,14 @@ function copyDirectLink() {
     }
 }
 </script>
+
+<!-- Übersicht -->
+<?php
+// Übersicht anzeigen (read-only während aktiver Sitzung)
+render_simple_agenda_overview($agenda_items, $current_user, $current_meeting_id, $pdo);
+?>
+
+<h4 style="margin: 20px 0 10px 0; color: #333;">Tagesordnungspunkte</h4>
 
 <!-- TEILNEHMERLISTE -->
 <?php if ($is_secretary): ?>
@@ -134,10 +140,11 @@ function copyDirectLink() {
             }
         }
     </style>
-    <details open style="margin: 20px 0; padding: 15px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 8px;">
-        <summary style="cursor: pointer; font-weight: 600; color: #1976d2; font-size: 16px; margin-bottom: 10px;">
-            👥 Teilnehmerverwaltung (klicken zum Auf-/Zuklappen)
+    <details style="margin: 20px 0; padding: 15px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 8px;">
+        <summary style="cursor: pointer; font-weight: 600; color: #1976d2; font-size: 14px; padding: 8px 0;">
+            👥 Teilnehmerverwaltung
         </summary>
+        <div style="margin-top: 10px;">
 
         <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
             <input type="hidden" name="update_attendance" value="1">
@@ -285,6 +292,7 @@ function copyDirectLink() {
             });
         }
         </script>
+        </div>
     </details>
 <?php else: ?>
     <?php render_readonly_participant_list($pdo, $current_meeting_id, $participants); ?>
@@ -325,47 +333,285 @@ function copyDirectLink() {
         }
     }
 </style>
-<div class="form-section" style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0; border: 2px solid #4caf50;">
-    <h3 style="color: #2e7d32; margin-bottom: 15px;">➕ Neuen TOP hinzufügen (während Sitzung)</h3>
+<details style="margin: 20px 0; border: 2px solid #4caf50; border-radius: 8px; overflow: hidden;">
+    <summary style="padding: 15px; background: #4caf50; color: white; font-size: 16px; font-weight: 600; cursor: pointer; list-style: none;">
+        <span style="display: inline-block; width: 20px;">▶</span> ➕ Neuen Tagesordnungspunkt anlegen (während Sitzung)
+    </summary>
 
-    <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
+<div style="padding: 15px; background: #f1f8e9;">
+    <style>
+        .top-form-group {
+            margin-bottom: 15px;
+        }
+        .top-form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .priority-duration-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .top-submit-button {
+            width: 100%;
+            background: #4caf50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        @media (max-width: 768px) {
+            .priority-duration-grid {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+            .top-submit-button {
+                padding: 14px 20px;
+                font-size: 15px;
+            }
+        }
+    </style>
+    <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" enctype="multipart/form-data">
         <input type="hidden" name="add_agenda_item_active" value="1">
 
-        <div class="form-group">
-            <label>Titel:</label>
-            <input type="text" name="title" required placeholder="TOP-Titel...">
+        <div class="form-group top-form-group">
+            <label style="font-weight: 600;">Titel:</label>
+            <input type="text" name="title" required>
         </div>
 
         <div class="form-group">
-            <label>Beschreibung:</label>
-            <textarea name="description" rows="2" placeholder="Kurze Beschreibung..."></textarea>
+            <label style="font-weight: 600;">Beschreibung:</label>
+            <textarea name="description" rows="3"></textarea>
         </div>
 
         <div class="form-group">
-            <label>Kategorie:</label>
-            <?php render_category_select('category', 'active_new_category', 'information', 'toggleProposalField(\'active_new\')'); ?>
+            <label style="font-weight: 600;">Kategorie:</label>
+            <?php render_category_select('category', 'active_new_category', '', 'toggleProposalField(\'active_new\')', ($meeting['allow_decisions'] ?? 1) == 1); ?>
         </div>
 
+        <?php if (($meeting['allow_decisions'] ?? 1) == 1): ?>
+        <!-- Vollständiges Antragsformular (nur sichtbar wenn Kategorie "Antrag/Beschluss" gewählt) -->
+        <div id="active_new_proposal" style="display: none; border: 2px solid #4caf50; border-radius: 8px; padding: 20px; margin: 15px 0; background: #f9fff9;">
+            <h4 style="margin-top: 0; color: #4caf50; border-bottom: 2px solid #4caf50; padding-bottom: 10px;">📋 Vollständiger Antrag (Vorstandsbeschluss)</h4>
+            <small style="display: block; margin-bottom: 20px; color: #666;">
+                Der Antrag wird direkt als Vorstandsbeschluss angelegt und kann in der Sitzung abgestimmt werden.
+            </small>
+
+            <?php
+            // Ressorts laden
+            $ressorts = [];
+            try {
+                $ressorts_where = TABLE_RESSORTS_AKTIV ? "WHERE aktiv = 1" : "";
+                $ressorts_stmt = $pdo->query("SELECT " . TABLE_RESSORTS_KEY . " as Code, Ressort FROM " . TABLE_RESSORTS . " $ressorts_where ORDER BY Reihenfolge, Ressort");
+                $ressorts = $ressorts_stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (PDOException $e) {
+                error_log("Fehler beim Laden der Ressorts: " . $e->getMessage());
+                echo '<div style="color: red; padding: 10px; background: #ffe0e0; margin: 10px 0;">Fehler: ' . htmlspecialchars($e->getMessage()) . '</div>';
+            }
+            ?>
+
+            <!-- ========== SEKTION 1: STAMMDATEN ========== -->
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                <h5 style="margin-top: 0; color: #333; font-size: 14px; font-weight: 600; margin-bottom: 15px;">Stammdaten</h5>
+
+                <!-- Ressorts -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Ressort <span style="color: red;">*</span></label>
+                        <select name="proposal_ressort1" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">-- Bitte wählen --</option>
+                            <?php foreach ($ressorts as $r): ?>
+                                <option value="<?= htmlspecialchars($r['Code']) ?>"><?= htmlspecialchars($r['Ressort']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Mitwirkendes Ressort</label>
+                        <select name="proposal_ressort2" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">-- Optional --</option>
+                            <?php foreach ($ressorts as $r): ?>
+                                <option value="<?= htmlspecialchars($r['Code']) ?>"><?= htmlspecialchars($r['Ressort']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Verantwortlich -->
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600;">Verantwortlich für die Umsetzung <span style="color: red;">*</span></label>
+                    <input type="text" name="proposal_verant" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Name des Verantwortlichen">
+                </div>
+
+                <!-- Verein und Sichtbarkeit -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Verein/Stiftung</label>
+                        <select name="proposal_verein" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="V">Verein</option>
+                            <option value="S">Stiftung</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Sichtbarkeit</label>
+                        <select name="proposal_int_ext" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="e" selected>Extern (alle Mitglieder)</option>
+                            <option value="n">Nicht öffentlich (Führung)</option>
+                            <option value="i">Intern (nur Vorstand)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== SEKTION 2: ANTRAG ========== -->
+            <div style="background: #ffffff; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #dee2e6;">
+                <h5 style="margin-top: 0; color: #333; font-size: 14px; font-weight: 600; margin-bottom: 15px;">Antrag</h5>
+
+                <!-- Titel -->
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600;">Titel <span style="color: red;">*</span></label>
+                    <input type="text" name="proposal_titel" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Titel des Antrags (kann vom TOP-Titel abweichen)">
+                </div>
+
+                <!-- Beschlusstext -->
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600;">Beschlusstext <span style="color: red;">*</span></label>
+                    <textarea name="proposal_beschluss" rows="3" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px; resize: vertical; min-height: 50px;" placeholder="Der konkrete Beschluss, über den abgestimmt wird"></textarea>
+                </div>
+
+                <!-- Begründung -->
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600;">Begründung</label>
+                    <textarea name="proposal_begr" rows="4" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Ausführliche Begründung des Antrags"></textarea>
+                </div>
+
+                <!-- Betrag -->
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600;">Betrag (volle Euro)</label>
+                    <input type="number" name="proposal_fin" step="1" min="0" value="0" style="width: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+
+                <!-- Auswirkungen in einer Reihe -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Finanzielle Auswirkungen</label>
+                        <textarea name="proposal_fintext" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Personelle Auswirkungen</label>
+                        <textarea name="proposal_pers" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600;">Sachliche Auswirkungen</label>
+                        <textarea name="proposal_sach" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== SEKTION 3: ANGEBOTE/UNTERLAGEN ========== -->
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                <h5 style="margin-top: 0; color: #333; font-size: 14px; font-weight: 600; margin-bottom: 15px;">Angebote / Unterlagen</h5>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <?php for ($i = 1; $i <= 4; $i++): ?>
+                        <div>
+                            <label style="font-weight: 600; display: block; margin-bottom: 5px;">Datei <?= $i ?></label>
+                            <input type="file" name="proposal_file<?= $i ?>" style="font-size: 12px; padding: 4px; width: 100%; margin-bottom: 5px;">
+                            <input type="text" name="proposal_filetext<?= $i ?>" placeholder="Beschreibung (z.B. 'Angebot')" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                        </div>
+                    <?php endfor; ?>
+                </div>
+            </div>
+
+            <!-- ========== SEKTION 4: VEREINFACHTE FREIGABE ========== -->
+            <div style="background: #fff8dc; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #ffa500;">
+                <h5 style="margin-top: 0; color: #333; font-size: 14px; font-weight: 600; margin-bottom: 15px;">Vereinfachte Freigabe</h5>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: inline-flex; align-items: center; margin-right: 20px;">
+                        <input type="checkbox" name="proposal_sofort_1" value="1" style="margin-right: 8px;">
+                        <span style="font-size: 12px;">Wenn Rechnungsbetrag = Angebot, sofort überweisen</span>
+                    </label>
+
+                    <span style="margin: 0 10px;">ODER</span>
+
+                    <label style="display: inline-flex; align-items: center;">
+                        <input type="checkbox" name="proposal_sofort_2" value="2" style="margin-right: 8px;">
+                        <span style="font-size: 12px;">Nach Vorprüfung durch:</span>
+                    </label>
+                    <input type="text" name="proposal_durch" placeholder="Name" style="width: 120px; margin-left: 8px; padding: 4px; font-size: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                    <span style="margin-left: 4px; font-size: 12px;">überweisen</span>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <label style="display: inline-flex; align-items: center;">
+                        <input type="checkbox" name="proposal_zufin" value="1" style="margin-right: 8px;">
+                        <span style="font-size: 12px;">Freigabe durch GF zusätzlich erforderlich</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- ========== SEKTION 5: BEMERKUNGEN/HINWEISE ========== -->
+            <div style="background: #ffffff; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #dee2e6;">
+                <h5 style="margin-top: 0; color: #333; font-size: 14px; font-weight: 600; margin-bottom: 15px;">Bemerkungen / Hinweise</h5>
+
+                <div class="form-group">
+                    <label style="font-weight: 600;">Hinweis (wird mit Zeitstempel gespeichert)</label>
+                    <textarea name="proposal_hinweis" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Optionale Bemerkungen oder Hinweise zum Antrag"></textarea>
+                </div>
+            </div>
+
+            <small style="display: block; margin-top: 15px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; color: #856404;">
+                <strong>Hinweis:</strong> Der Antrag wird als <strong>Vorstandsbeschluss (B)</strong> mit praesenz=1 erstellt und erscheint in der Antragsliste. Felder mit <span style="color: red;">*</span> sind Pflichtfelder.
+            </small>
+        </div>
+        <?php else: ?>
+        <!-- Einfaches Antragstext-Feld wenn Beschlüsse deaktiviert -->
         <div class="form-group" id="active_new_proposal" style="display:none;">
-            <label style="font-weight: 600; color: #856404;">📄 Antragstext:</label>
-            <textarea name="proposal_text"
-                      rows="4"
-                      placeholder="Formulierung des Antrags..."
-                      style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+            <label style="font-weight: 600;">📄 Antragstext:</label>
+            <textarea name="proposal_text" rows="4" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px;"></textarea>
+        </div>
+        <?php endif; ?>
+
+        <?php
+        // Priorität/Dauer nur für Führungsteam
+        $is_leadership = in_array(strtolower($current_user['role'] ?? ''), ['vorstand', 'gf', 'assistenz', 'fuehrungsteam']);
+        if ($is_leadership):
+        ?>
+        <div class="priority-duration-grid">
+            <div class="form-group top-form-group">
+                <label style="font-weight: 600;">Priorität (1-10):</label>
+                <input type="number" name="priority" min="1" max="10" step="0.1" value="5" required>
+            </div>
+
+            <div class="form-group top-form-group">
+                <label style="font-weight: 600;">Geschätzte Dauer (Min.):</label>
+                <input type="number" name="duration" min="1" value="10" required>
+            </div>
+        </div>
+        <?php else: ?>
+        <!-- Hidden fields mit Standardwerten für nicht-Führungsteam -->
+        <input type="hidden" name="priority" value="5">
+        <input type="hidden" name="duration" value="10">
+        <?php endif; ?>
+
+        <div class="form-group top-form-group">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" name="is_confidential" value="1" style="margin-right: 8px;">
+                🔒 Vertraulich (nur für berechtigte Teilnehmer)
+            </label>
         </div>
 
-        <div class="top-add-form-footer">
-            <label style="display: flex; align-items: center; gap: 5px;">
-                <input type="checkbox" name="is_confidential" value="1" style="width: auto;">
-                <span>🔒 Vertraulich</span>
-            </label>
-
-            <button type="submit" class="top-add-submit-btn">
-                ➕ TOP hinzufügen
+        <div class="form-group top-form-group">
+            <button type="submit" class="top-submit-button">
+                ✅ TOP hinzufügen
             </button>
         </div>
     </form>
 </div>
+</details>
 <?php endif; ?>
 
 <!-- TOPS ANZEIGEN -->
@@ -510,22 +756,56 @@ foreach ($agenda_items as $item):
                         <input type="hidden" name="toggle_confidential" value="1">
                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                         <button type="submit" style="background: #2196f3; color: white; padding: 4px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">
-                            <?php echo $item['is_confidential'] ? '🔓 Öffentlich' : '🔒 Vertraulich'; ?>
+                            <?php echo $item['is_confidential'] ? '🔓 Verschieben zu Öffentlich' : '🔒 Verschieben zu Vertraulich'; ?>
                         </button>
                     </form>
                 </div>
             <?php endif; ?>
         </div>
-        
-        <?php render_proposal_display($item['proposal_text']); ?>
-        
+
         <!-- Beschreibung -->
         <?php if ($item['description']): ?>
             <div style="color: #666; margin: 8px 0; font-size: 14px;">
                 <?php echo nl2br(htmlspecialchars($item['description'])); ?>
             </div>
         <?php endif; ?>
-        
+
+        <!-- Vollständiger Antrag bei verlinktem Antrag -->
+        <?php if ($item['antrnr']): ?>
+            <?php
+            // Antragsdaten laden
+            $antrag_stmt = $pdo->prepare("SELECT titel, beschluss FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
+            $antrag_stmt->execute([$item['antrnr']]);
+            $antrag_data = $antrag_stmt->fetch(PDO::FETCH_ASSOC);
+            ?>
+            <?php if ($antrag_data): ?>
+            <div style="margin-bottom: 15px; border: 2px solid #4caf50; border-radius: 8px; padding: 15px; background: #f0f8f0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="color: #4caf50; font-size: 16px;">📋 Antrag <?php echo htmlspecialchars($item['antrnr']); ?></strong>
+                    <a href="antrag_ansehen.php?antrnr=<?php echo urlencode($item['antrnr']); ?>"
+                       target="_blank"
+                       style="background: #4caf50; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px;">
+                        🔗 Vollständigen Antrag öffnen
+                    </a>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <strong style="display: block; margin-bottom: 5px; color: #333;">Titel:</strong>
+                    <div style="padding: 8px; background: white; border-radius: 4px; border: 1px solid #ddd;">
+                        <?php echo nl2br(htmlspecialchars($antrag_data['titel'])); ?>
+                    </div>
+                </div>
+
+                <div>
+                    <strong style="display: block; margin-bottom: 5px; color: #333;">Beschlusstext:</strong>
+                    <div style="padding: 8px; background: white; border-radius: 4px; border: 1px solid #ddd;">
+                        <?php echo nl2br(htmlspecialchars($antrag_data['beschluss'])); ?>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+        <?php endif; ?>
+
         <!-- Meta-Info (nicht bei TOP 999) -->
         <?php if ($item['top_number'] != 999): ?>
             <div style="font-size: 12px; color: #999; margin: 8px 0;">
@@ -566,63 +846,59 @@ foreach ($agenda_items as $item):
             </div>
         <?php endif; ?>
         
-        <!-- Diskussionsbeiträge aus Vorbereitung -->
+        <!-- Diskussionsbeiträge aus Vorbereitung (nur wenn vorhanden) -->
+        <?php
+        $prep_comments = get_item_comments($pdo, $item['item_id']);
+        if (!empty($prep_comments)):
+        ?>
         <div style="margin-top: 12px;">
             <h4 style="font-size: 14px; color: #666; margin-bottom: 8px;">💬 Diskussionsbeiträge (Vorbereitung)</h4>
-            <?php
-            $prep_comments = get_item_comments($pdo, $item['item_id']);
-            if (!empty($prep_comments)):
-            ?>
-                <div style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 8px; max-height: 150px; overflow-y: auto;">
-                    <?php foreach ($prep_comments as $comment): ?>
-                        <?php render_comment_line($comment, 'full'); ?>
-                    <?php endforeach; ?>
-                </div>
-            <?php else: ?>
-                <div style="color: #999; font-size: 12px;">Keine Kommentare aus Vorbereitung</div>
-            <?php endif; ?>
+            <div style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 8px; max-height: 150px; overflow-y: auto;">
+                <?php foreach ($prep_comments as $comment): ?>
+                    <?php render_comment_line($comment, 'full'); ?>
+                <?php endforeach; ?>
+            </div>
         </div>
+        <?php endif; ?>
 
-        <!-- Dateianhänge (kompakt) -->
+        <!-- Dateianhänge (nur wenn vorhanden) -->
+        <?php
+        // Vorhandene Attachments laden
+        $stmt_attachments = $pdo->prepare("
+            SELECT aa.*
+            FROM svagenda_attachments aa
+            WHERE aa.item_id = ?
+            ORDER BY aa.uploaded_at DESC
+        ");
+        $stmt_attachments->execute([$item['item_id']]);
+        $attachments = $stmt_attachments->fetchAll(PDO::FETCH_ASSOC);
+
+        // Mitgliederdaten über Adapter laden
+        foreach ($attachments as &$att) {
+            if ($att['uploaded_by_member_id']) {
+                $member = get_member_by_id($pdo, $att['uploaded_by_member_id']);
+                if ($member) {
+                    $att['first_name'] = $member['first_name'];
+                    $att['last_name'] = $member['last_name'];
+                } else {
+                    $att['first_name'] = 'Unbekannt';
+                    $att['last_name'] = '';
+                }
+            } else {
+                $att['first_name'] = '';
+                $att['last_name'] = '';
+            }
+        }
+        unset($att);
+
+        if (!empty($attachments)):
+        ?>
         <details style="margin: 10px 0;">
             <summary style="cursor: pointer; padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
-                📎 Dateianhänge (<?php
-                // Anzahl vorhandener Attachments
-                $stmt_count = $pdo->prepare("SELECT COUNT(*) FROM svagenda_attachments WHERE item_id = ?");
-                $stmt_count->execute([$item['item_id']]);
-                echo $stmt_count->fetchColumn();
-                ?>)
+                📎 Dateianhänge (<?php echo count($attachments); ?>)
             </summary>
             <div style="margin-top: 10px; padding: 10px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px;">
-                <?php
-                // Vorhandene Attachments laden
-                $stmt_attachments = $pdo->prepare("
-                    SELECT aa.*
-                    FROM svagenda_attachments aa
-                    WHERE aa.item_id = ?
-                    ORDER BY aa.uploaded_at DESC
-                ");
-                $stmt_attachments->execute([$item['item_id']]);
-                $attachments = $stmt_attachments->fetchAll(PDO::FETCH_ASSOC);
-
-                // Mitgliederdaten über Adapter laden
-                foreach ($attachments as &$att) {
-                    if ($att['uploaded_by_member_id']) {
-                        $member = get_member_by_id($pdo, $att['uploaded_by_member_id']);
-                        if ($member) {
-                            $att['first_name'] = $member['first_name'];
-                            $att['last_name'] = $member['last_name'];
-                        } else {
-                            $att['first_name'] = 'Unbekannt';
-                            $att['last_name'] = '';
-                        }
-                    } else {
-                        $att['first_name'] = '';
-                        $att['last_name'] = '';
-                    }
-                }
-                unset($att);
-                ?>
+                <?php ?>
 
                 <!-- Vorhandene Dateien -->
                 <div id="attachments-list-<?php echo $item['item_id']; ?>">
@@ -674,6 +950,23 @@ foreach ($agenda_items as $item):
                 </div>
             </div>
         </details>
+        <?php endif; ?>
+
+        <!-- ABSTIMMUNG (nur im aktiven TOP) -->
+        <?php if ($is_active): ?>
+            <?php
+            // Prüfen ob aktive Abstimmung existiert
+            $active_voting = get_active_voting($pdo, $item['item_id']);
+
+            // Voting-UI rendern (zeigt Start-Button oder laufende Abstimmung)
+            render_voting_ui($item, $active_voting, $current_user, $meeting, $pdo);
+            ?>
+        <?php endif; ?>
+
+        <?php
+        // Abgeschlossene Abstimmungen anzeigen (bei allen TOPs)
+        render_closed_votings($item['item_id'], $pdo);
+        ?>
 
         <!-- LIVE-KOMMENTARE (dynamisch ein-/ausgeblendet je nach Aktiv-Status) -->
         <?php if ($item['top_number'] != 999): ?>
@@ -765,8 +1058,7 @@ foreach ($agenda_items as $item):
                     <h4 style="margin: 0 0 10px 0; color: #f57c00; font-size: 14px;">📌 ToDo anlegen</h4>
                     <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>"
                           onsubmit="return confirm('TODO wirklich anlegen?');">
-                        <input type="hidden" name="quick_todo_create" value="1">
-                        <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                        <input type="hidden" name="quick_todo_create" value="<?php echo $item['item_id']; ?>">
 
                         <!-- Responsive Grid: Titel + Fällig bis -->
                         <div class="todo-form-grid" style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px;">
@@ -774,7 +1066,7 @@ foreach ($agenda_items as $item):
                                 <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
                                     Titel:
                                 </label>
-                                <input type="text" name="todo_title" required
+                                <input type="text" name="todo_title_<?php echo $item['item_id']; ?>" required
                                        placeholder="z.B. Recherche für nächste Sitzung"
                                        style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
                             </div>
@@ -783,7 +1075,7 @@ foreach ($agenda_items as $item):
                                 <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
                                     Fällig bis:
                                 </label>
-                                <input type="date" name="todo_due_date" required
+                                <input type="date" name="todo_due_date_<?php echo $item['item_id']; ?>" required
                                        value="<?php echo $default_due_date; ?>"
                                        style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
                             </div>
@@ -793,7 +1085,7 @@ foreach ($agenda_items as $item):
                             <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
                                 Beschreibung (optional):
                             </label>
-                            <textarea name="todo_description" rows="3"
+                            <textarea name="todo_description_<?php echo $item['item_id']; ?>" rows="3"
                                       placeholder="Details zum TODO..."
                                       style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
                         </div>
@@ -870,13 +1162,8 @@ foreach ($agenda_items as $item):
                                       placeholder="Notizen zu diesem TOP..."
                                       style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
                     </div>
-                    
-                    <?php 
-                    // Abstimmungsfelder nur bei Antrag/Beschluss
-                    if ($item['category'] === 'antrag_beschluss') {
-                        render_voting_fields($item['item_id'], $item);
-                    }
-                    
+
+                    <?php
                     // ToDo-Vergabe (für Protokollant) - INNERHALB des Formulars!
                     render_todo_creation_form($pdo, $item, $current_meeting_id, $is_secretary, 'active', $participants);
                     ?>
@@ -903,13 +1190,13 @@ foreach ($agenda_items as $item):
                     
                     if (!empty($future_meetings)):
                 ?>
-                    <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="margin-top: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 5px;">
-                        <input type="hidden" name="save_resubmit" value="1">
-                        <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
-                        
-                        <div style="font-weight: 600; color: #1976d2; margin-bottom: 10px;">
+                    <details style="margin-top: 15px; border: 2px solid #2196f3; border-radius: 6px; overflow: hidden;">
+                        <summary style="padding: 8px 12px; background: #e3f2fd; cursor: pointer; font-weight: 600; color: #1976d2; font-size: 13px;">
                             🔄 Wiedervorlage für spätere Sitzung
-                        </div>
+                        </summary>
+                        <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>" style="padding: 12px; background: #f0f8ff;">
+                            <input type="hidden" name="save_resubmit" value="1">
+                            <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                         
                         <div style="margin-bottom: 10px;">
                             <label style="font-size: 13px;">Sitzung auswählen:</label>
@@ -942,10 +1229,11 @@ foreach ($agenda_items as $item):
                             🔄 Wiedervorlage speichern
                         </button>
                         
-                        <div style="font-size: 11px; color: #666; margin-top: 8px;">
-                            ℹ️ Der TOP wird mit "Wiedervorlage: [Titel]" in der gewählten Sitzung angelegt
-                        </div>
-                    </form>
+                            <div style="font-size: 11px; color: #666; margin-top: 8px;">
+                                ℹ️ Der TOP wird mit "Wiedervorlage: [Titel]" in der gewählten Sitzung angelegt
+                            </div>
+                        </form>
+                    </details>
                 <?php 
                     endif;
                 endif;
@@ -960,7 +1248,15 @@ foreach ($agenda_items as $item):
                     <?php echo nl2br(linkify_text($item['protocol_notes'] ?? 'Noch kein Protokolleintrag...')); ?>
                 </div>
                 <div id="vote-display-<?php echo $item['item_id']; ?>" style="margin-top: 8px;">
-                    <?php render_voting_result($item); ?>
+                    <?php if (!empty($item['vote_result'])): ?>
+                        <div style="padding: 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+                            <strong>Abstimmung:</strong>
+                            Ja: <?= (int)($item['vote_yes'] ?? 0) ?> |
+                            Nein: <?= (int)($item['vote_no'] ?? 0) ?> |
+                            Enthaltungen: <?= (int)($item['vote_abstain'] ?? 0) ?> →
+                            <strong><?= htmlspecialchars($item['vote_result']) ?></strong>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         <?php endif; ?>

@@ -292,6 +292,7 @@ function validate_external_email($email) {
 /**
  * Generiert einen Access-Link für externe Teilnehmer
  * ZENTRALE Funktion - verwendet STANDALONE_PATH aus config.php
+ * oder überschreibende svconfig-Einträge (opinion_standalone_url / terminplanung_standalone_url)
  *
  * @param string $poll_type 'termine' oder 'meinungsbild'
  * @param int|string $poll_id_or_token Poll-ID oder Access-Token
@@ -299,28 +300,44 @@ function validate_external_email($email) {
  * @return string
  */
 function generate_external_access_link($poll_type, $poll_id_or_token, $use_token = false) {
-    // Base URL ermitteln
-    if (defined('BASE_URL')) {
-        $base = BASE_URL;
-    } else {
-        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-        $base = $protocol . '://' . $_SERVER['HTTP_HOST'];
-    }
+    $param = $use_token ? "token=" . urlencode($poll_id_or_token) : "poll_id=" . intval($poll_id_or_token);
 
-    // Standalone-Pfad aus Konfiguration
-    $path = defined('STANDALONE_PATH') ? STANDALONE_PATH : '';
-
-    // Dateinamen und Parameter bestimmen
+    // Höchste Priorität: explizite Public-URL-Variablen (vom Aufrufer gesetzt, z.B. MTool mit steuer=221)
     if ($poll_type === 'termine') {
-        $file = 'terminplanung_standalone.php';
-    } else {
-        $file = 'opinion_standalone.php';
+        global $TERMINPLANUNG_PUBLIC_URL;
+        if (!empty($TERMINPLANUNG_PUBLIC_URL)) {
+            return rtrim($TERMINPLANUNG_PUBLIC_URL, '/') . '?' . $param;
+        }
+    }
+    if ($poll_type === 'meinungsbild') {
+        global $OPINION_PUBLIC_URL;
+        if (!empty($OPINION_PUBLIC_URL)) {
+            $sep = strpos($OPINION_PUBLIC_URL, '?') !== false ? '&' : '?';
+            return rtrim($OPINION_PUBLIC_URL, '/') . $sep . $param;
+        }
     }
 
-    $param = $use_token ? "token=$poll_id_or_token" : "poll_id=$poll_id_or_token";
+    // svconfig-Eintrag (konfigurierbare öffentliche URL, wird von explizitem $TERMINPLANUNG_PUBLIC_URL überstimmt)
+    global $pdo;
+    if ($pdo) {
+        $cfg_key = ($poll_type === 'termine') ? 'terminplanung_standalone_url' : 'opinion_standalone_url';
+        try {
+            $cfg_stmt = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ? LIMIT 1");
+            $cfg_stmt->execute([$cfg_key]);
+            $custom_url = $cfg_stmt->fetchColumn();
+            if ($custom_url) {
+                return rtrim($custom_url, '/') . '?' . $param;
+            }
+        } catch (Exception $e) {
+            // svconfig nicht verfügbar – weiter mit Auto-Erkennung
+        }
+    }
 
-    // Link zusammenbauen
-    return rtrim($base, '/') . rtrim($path, '/') . '/' . $file . '?' . $param;
+    // Auto-Erkennung: nur HTTP_HOST, kein BASE_URL (der zeigt auf den geschützten SV-Bereich)
+    // Für andere Pfade bitte svconfig.terminplanung_standalone_url konfigurieren
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+    $file = ($poll_type === 'termine') ? 'terminplanung_standalone.php' : 'opinion_standalone.php';
+    return $protocol . '://' . $_SERVER['HTTP_HOST'] . '/' . $file . '?' . $param;
 }
 
 /**

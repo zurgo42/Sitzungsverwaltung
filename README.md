@@ -79,6 +79,10 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
    - Prioritäten und Zeitschätzungen
    - Vertrauliche TOPs markieren
    - TOP-Gruppierungen
+   - 🆕 **Wiedervorlage-System:** TOPs zu künftigen Sitzungen verschieben
+     - Anträge werden automatisch mitverschoben
+     - Dokumentation in beiden Sitzungen
+     - Für Einladende, Protokollant und Sitzungsleiter
 
 3. **Kollaborative Vorbereitung:**
    - Kommentare zu jedem TOP
@@ -89,13 +93,78 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 4. **Meeting durchführen:**
    - Sitzungsleitung und Protokollführung festlegen
    - TOPs aktivieren und abarbeiten
-   - Abstimmungen dokumentieren
+   - 🆕 **Verbesserte Abstimmungen:**
+     - Meinungsbilder mit freier Fragestellung
+     - Beschlussabstimmungen mit Antrags-Integration
+     - Offene oder geheime Abstimmung
+     - Kompakte Ergebnisdarstellung
+     - Automatische Protokoll-Formatierung
    - Echtzeit-Protokollierung
 
 5. **Nachbereitung:**
    - Protokoll erstellen (öffentlich und vertraulich getrennt)
    - Änderungsanfragen verwalten
    - TODOs erfassen und zuweisen
+
+### 📋 Antrags- und Beschluss-System
+
+**Professionelles Workflow-Management für Anträge und Vorstandsbeschlüsse:**
+
+**🆕 Vollständig integriertes System mit VTool-Kompatibilität**
+
+- **Automatische Nummernvergabe:**
+  - Format: Präfix + Datum + Laufnummer (z.B. A26051401)
+  - Verschiedene Typen: Anträge (A), Vorstandsbeschlüsse (B), Beschlüsse (VS)
+  - Bis zu 99 Einträge pro Tag
+  
+- **Antragsverwaltung:**
+  - Übersicht aller offenen Anträge
+  - Filter nach Status, Typ, Antragsteller
+  - Volltextsuche in Nummer, Titel und Beschlusstext
+  - Mobile-responsive Darstellung
+  
+- **Vollständiges Formular:**
+  - **Stammdaten**: Ressort, Verantwortlicher, Verein/Stiftung, Sichtbarkeit (extern/intern/nicht öffentlich)
+  - **Antrag**: Titel, Beschlusstext, Begründung, finanzielle Auswirkungen
+  - **Unterlagen**: Bis zu 4 Datei-Uploads mit Beschreibungen
+  - **Freigabe**: Konfigurierbare Freigabeprozesse und Betragsgrenzwerte
+  - **Auswirkungen**: Finanzielle, personelle und sachliche Konsequenzen
+  
+- **Konfigurierbare Antragstypen:**
+  - V (Vorlage), R (Ressort), B (Vorstandsbeschluss)
+  - Individuelle Voting-Regeln pro Typ (Einstimmig, Mehrheit, etc.)
+  - Admin-konfigurierbare Betragsgrenzwerte
+  
+- **Integration mit Meetings:**
+  - Anträge direkt aus Tagesordnungspunkten erstellen
+  - Kategorie "Antrag/Beschluss" beim TOP
+  - Verknüpfung mit Sitzungsprotokollen
+  - Automatische Überführung in Beschlussbuch
+  
+- **Abstimmungs-Integration:**
+  - Direkte Abstimmung in Sitzungen
+  - Status: ANGENOMMEN/ABGELEHNT/VERTAGT
+  - Integration mit beschluesse-Tabelle
+  - Automatische Protokollierung
+  
+- **Beschlussbuch:**
+  - Alle angenommenen Beschlüsse (VS-Präfix)
+  - Suchfunktion mit Highlighting
+  - Dark Mode Support
+  - URL-Erkennung in Texten
+  
+- **Berechtigungssystem:**
+  - Rollenbasiert nach VTool-Standard (aktiv-Level)
+  - Interne vs. externe Sichtbarkeit
+  - Admin-Funktionen (Level 19+)
+  
+- **Workflow-Features:**
+  - Antrag duplizieren
+  - Wiedervorlage zu anderen Sitzungen
+  - Wartezeit-Verwaltung (Expedite)
+  - Versionshistorie
+
+**Ideal für:** Vorstandsbeschlüsse, Ressortan­träge, Finanzfreigaben, Vereinsbeschlüsse
 
 ### ✅ Aufgaben-Management (TODOs)
 
@@ -187,12 +256,16 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
   - Desktop: Tabellenansicht mit allen Details
   - Smartphone: Card-Layout für bessere Lesbarkeit
   - Farbliche Kennzeichnung (aktuell, zukünftig, vergangen)
+  - 🆕 **Intelligente Limitierung:** Zeigt die 4 nächsten Abwesenheiten
+  - 🆕 **Kollapsible Ansicht:** "weitere..." Link bei mehr als 4 Einträgen
+  - 🆕 **Benachrichtigungen:** Gelbe Infobox zeigt relevante Abwesenheiten kompakt
 
 - **Funktionen:**
   - Eigene Abwesenheiten verwalten
   - Aktuelle Vertretungen einsehen
   - Löschen von zukünftigen Abwesenheiten
   - Automatische Filterung nach Zeitraum
+  - Responsive Layout für mobile Geräte
 
 **Ideal für:** Urlaubsplanung, Vertretungsregelungen, Abwesenheitskalender
 
@@ -287,7 +360,7 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 
 - **Zugriffskontrolle:** Rollenbasierte Berechtigungen
 - **Vertraulichkeit:** Separate Speicherung sensibler Daten
-- **Audit-Log:** Nachverfolgung von Admin-Aktionen
+- **Audit-Log:** Vollständige Protokollierung aller user-verursachten Datenbankänderungen (siehe `docs/audit-logging.md`)
 - **Anonymität:** Optionen für anonyme Teilnahme bei Umfragen
 - **Session-Management:** Automatischer Logout bei Inaktivität
 
@@ -312,7 +385,9 @@ Nach dem Login sehen Sie:
 7. **🏖️ Vertretungen:** Abwesenheits- und Vertretungsverwaltung
 8. **🗳️ Meinungsbild:** Umfragen und Abstimmungen
 9. **📁 Dokumente:** Zentrale Dokumentenverwaltung
-10. **⚙️ Admin:** Verwaltung und Systemeinstellungen (nur für Admins)
+10. **📋 Anträge:** Antrags- und Beschlussverwaltung (🆕 Vollständiges Workflow-System)
+11. **📖 Beschlussbuch:** Alle beschlossenen Anträge (VS-Nummer)
+12. **⚙️ Admin:** Verwaltung und Systemeinstellungen (nur für Admins)
 
 ## Typische Anwendungsszenarien
 
@@ -417,6 +492,7 @@ Siehe [INSTALL.md](INSTALL.md) für detaillierte Installationsanweisungen.
 - **Entwickler-Dokumentation:** [DEVELOPER.md](DEVELOPER.md)
 - **Meinungsbild-Tool (Details):** [OPINION_TOOL_README.md](OPINION_TOOL_README.md)
 - **Dokumentenverwaltung (Details):** [DOCUMENTS_README.md](DOCUMENTS_README.md)
+- **Audit-Log / Protokollierung:** [docs/audit-logging.md](docs/audit-logging.md)
 
 ## Lizenz
 

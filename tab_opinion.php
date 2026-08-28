@@ -7,10 +7,55 @@
 require_once __DIR__ . '/opinion_functions.php';
 require_once __DIR__ . '/external_participants_functions.php';
 
-// Aktuellen User holen
-$current_user = null;
-if (isset($_SESSION['member_id'])) {
-    $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+// Aktuellen User holen — nicht überschreiben wenn bereits von opinion_standalone.php gesetzt (MTool-Modus)
+if (!isset($current_user) || $current_user === null) {
+    $current_user = null;
+    if (isset($_SESSION['member_id'])) {
+        $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+    }
+}
+
+// MTool-URL-Variablen (absolute URLs für Form-Actions und Navigation)
+$_tab_process_url  = isset($opinion_process_url) ? $opinion_process_url : 'process_opinion.php';
+$_tab_redirect_to  = isset($opinion_share_url)   ? $opinion_share_url   : '';
+// Öffentliche URL für Zugangslinks (externe Teilnehmer).
+// Im MTool-Kontext: $OPINION_PUBLIC_URL zeigt auf opinion_standalone.php (kein MTool-Login nötig).
+// Direkte Auswertung hier (gleicher Include-Scope) – kein 'global' in Funktionen nötig.
+$_tab_public_url   = !empty($OPINION_PUBLIC_URL) ? rtrim($OPINION_PUBLIC_URL, '/') : null;
+
+// DEBUG: Variablen-Status anzeigen wenn ?debug_opinion=1 gesetzt ist
+if (!empty($_GET['debug_opinion'])) {
+    echo '<div style="background:#fff3cd;border:2px solid #f90;padding:15px;margin:15px 0;font-family:monospace;font-size:13px;border-radius:6px;">';
+    echo '<strong>🔍 Debug opinion_standalone/tab_opinion</strong><br><br>';
+    echo 'OPINION_PUBLIC_URL  = ' . var_export($OPINION_PUBLIC_URL ?? null, true) . '<br>';
+    echo '$_tab_public_url    = ' . var_export($_tab_public_url, true) . '<br>';
+    echo '$opinion_share_url  = ' . var_export($opinion_share_url ?? null, true) . '<br>';
+    echo '$_tab_redirect_to   = ' . var_export($_tab_redirect_to, true) . '<br>';
+    echo '$opinion_process_url= ' . var_export($opinion_process_url ?? null, true) . '<br>';
+    echo '$_tab_process_url   = ' . var_export($_tab_process_url, true) . '<br>';
+    echo 'OPINION_MTOOL_MODE  = ' . var_export($OPINION_MTOOL_MODE ?? null, true) . '<br>';
+    echo 'GLOBALS[OPINION_PUBLIC_URL] = ' . var_export($GLOBALS['OPINION_PUBLIC_URL'] ?? null, true) . '<br>';
+    echo 'SESSION[opinion_mtool_share_url] = ' . var_export($_SESSION['opinion_mtool_share_url'] ?? null, true) . '<br>';
+    echo '_opinion_url("participate",1) = ' . _opinion_url('participate', 1) . '<br>';
+    echo '</div>';
+}
+
+// Hilfsfunktion: kontextsensitive URL für Navigation
+if (!function_exists('_opinion_url')) {
+    function _opinion_url($view = null, $poll_id = null) {
+        global $_tab_redirect_to;
+        if (!empty($_tab_redirect_to)) {
+            $sep = strpos($_tab_redirect_to, '?') !== false ? '&' : '?';
+            $url = $_tab_redirect_to;
+            if ($view)    { $url .= $sep . 'view=' . $view; $sep = '&'; }
+            if ($poll_id) { $url .= $sep . 'poll_id=' . intval($poll_id); }
+            return $url;
+        }
+        $url = '?tab=opinion';
+        if ($view)    $url .= '&view=' . $view;
+        if ($poll_id) $url .= '&poll_id=' . intval($poll_id);
+        return $url;
+    }
 }
 
 // View ermitteln
@@ -29,6 +74,15 @@ if ($access_token && !$poll_id) {
 ?>
 
 <style>
+/* MTool-CSS-Overrides: verhindert dass MTool-Styles Terminplanung überschreiben */
+body { background: #f0f2f5; color: #333; }
+h2, h3, h4 { color: #333 !important; background: transparent !important; padding: 0 !important; }
+a { color: #007bff; }
+.btn-primary, a.btn-primary   { background: #007bff !important; color: white !important; }
+.btn-secondary, a.btn-secondary { background: #6c757d !important; color: white !important; }
+.btn-danger, a.btn-danger     { background: #dc3545 !important; color: white !important; }
+.opinion-card, .opinion-container { background: white !important; }
+
 .opinion-container {
     max-width: 1200px;
     margin: 0 auto;
