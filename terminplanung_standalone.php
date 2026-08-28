@@ -435,6 +435,18 @@ if (isset($MNr) && empty($TERMINPLANUNG_PUBLIC_MODE) && $current_user && file_ex
             . $_mtp_relpath
             . ($_mtp_base_qs ? '?' . $_mtp_base_qs : '');
     }
+    // $TERMINPLANUNG_PUBLIC_URL nur setzen, wenn der MTool-Aufrufer sie nicht bereits gesetzt hat.
+    // Der Aufrufer kann z.B. 'https://aktive.mensa.de/terminplanung_standalone.php' setzen (korrekte
+    // öffentliche URL für externe Teilnehmer). Hier nur als Fallback die MTool-URL verwenden.
+    if (!isset($TERMINPLANUNG_PUBLIC_URL)) {
+        $TERMINPLANUNG_PUBLIC_URL = $terminplanung_share_url;
+    }
+    // Explizit in $GLOBALS schreiben: generate_external_access_link() nutzt 'global $TERMINPLANUNG_PUBLIC_URL'.
+    // Wenn MTool dieses Script aus einem Funktions-Scope per require_once einbindet, landet
+    // $TERMINPLANUNG_PUBLIC_URL nur im lokalen Scope – global findet es dann nicht.
+    $GLOBALS['TERMINPLANUNG_PUBLIC_URL'] = $TERMINPLANUNG_PUBLIC_URL;
+    // MTool-URL in Session speichern → process_termine.php kann sie als Fallback nutzen
+    $_SESSION['terminplanung_mtool_share_url'] = $terminplanung_share_url;
 
     if (file_exists(__DIR__ . '/functions.php')) {
         require_once __DIR__ . '/functions.php';

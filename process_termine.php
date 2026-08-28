@@ -76,6 +76,10 @@ if (!empty($_POST['redirect_to'])) {
         $_r_base = $rt;
     }
 }
+// Fallback: MTool-URL aus Session (dort gespeichert beim Rendern durch MTool)
+if (!$_r_base && !empty($_SESSION['terminplanung_mtool_share_url'])) {
+    $_r_base = $_SESSION['terminplanung_mtool_share_url'];
+}
 // Hilfsfunktion: URL für Poll-Ansicht
 function _r_poll($poll_id) {
     global $_r_base;
