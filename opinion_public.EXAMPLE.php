@@ -9,7 +9,7 @@
  * VERWENDUNG:
  * ========================================
  *
- * 1. Diese Datei als opinion_public.php in das öffentliche
+ * 1. Diese Datei als opinion_standalone.php in das öffentliche
  *    Verzeichnis (ohne SSO-Schutz) kopieren.
  *
  * 2. Die beiden Pfad-/URL-Angaben unten anpassen.
@@ -33,7 +33,7 @@ $OPINION_PUBLIC_MODE = true;
 
 // ANPASSEN: Öffentliche URL dieser Datei (wird für Weitergabe-Links in E-Mails und Umfragen verwendet)
 // Muss auf die URL dieser Datei zeigen, die auch ohne SSO erreichbar ist.
-$OPINION_PUBLIC_URL = 'https://ihre-domain.de/pfad-zum-oeffentlichen-bereich/opinion_public.php';
+$OPINION_PUBLIC_URL = 'https://ihre-domain.de/pfad-zum-oeffentlichen-bereich/opinion_standalone.php';
 
 // ANPASSEN: Absoluter Pfad zur echten opinion_standalone.php
 // (im SSO-geschützten Verzeichnis)
