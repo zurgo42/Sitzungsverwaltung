@@ -1,4 +1,14 @@
 <?php
+// DEBUG-BLOCK (temporär) – aktiv bei ?debug_opinion=1
+if (!empty($_GET['debug_opinion'])) {
+    // Ausgabe-Puffer leeren damit nichts die Ausgabe unterdrückt
+    while (ob_get_level()) { ob_end_flush(); }
+    echo '<div style="background:red;color:white;padding:15px;font-family:monospace;font-size:14px;z-index:9999;position:relative;">'
+        . '<strong>opinion_standalone.php ERREICHT</strong> – '
+        . date('H:i:s') . ' – __FILE__=' . __FILE__
+        . '</div>';
+    flush();
+}
 /**
  * opinion_standalone.php - Standalone Meinungsbild-Tool-Wrapper
  * Erstellt: 18.11.2025
