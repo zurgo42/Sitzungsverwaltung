@@ -379,9 +379,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
         <?php endif; ?>
 
         <?php
-        // Im SSO-Modus (REQUIRE_LOGIN=false) sind Mitglieder bereits auto-eingeloggt;
-        // das Mitgliedsnummer-Feld ist dann überflüssig.
-        $show_mnr_section = !defined('REQUIRE_LOGIN') || REQUIRE_LOGIN;
+        // Mitgliedsnummer-Eingabe deaktiviert: Ohne Passwort-Verifizierung könnte jeder
+        // eine beliebige Nummer eingeben und als fremdes Mitglied eingeloggt werden.
+        $show_mnr_section = false;
         ?>
 
         <div class="intro-text">
