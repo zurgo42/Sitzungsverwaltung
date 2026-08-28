@@ -441,6 +441,18 @@ if (isset($MNr) && empty($OPINION_PUBLIC_MODE) && $current_user && file_exists(_
     return;
 }
 
+// Absolute URL zu process_opinion.php setzen (damit Form-Actions auch funktionieren,
+// wenn das Script aus einem anderen Verzeichnis eingebunden wird, z.B. public wrapper)
+if (!isset($opinion_process_url) && $is_sitzungsverwaltung) {
+    $_svop_proto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $_svop_docroot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+    $_svop_proc    = realpath(__DIR__ . '/process_opinion.php');
+    if ($_svop_proc && strpos($_svop_proc, $_svop_docroot) === 0) {
+        $opinion_process_url = $_svop_proto . '://' . $_SERVER['HTTP_HOST']
+            . str_replace('\\', '/', substr($_svop_proc, strlen($_svop_docroot)));
+    }
+}
+
 // tab_opinion.php für SV-eingeloggte Benutzer laden
 // (externe Teilnehmer benötigen das Standalone-Rendering weiter unten)
 if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_opinion.php')) {
