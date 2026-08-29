@@ -423,7 +423,7 @@ render_user_notifications($pdo, $current_user['member_id']);
                 <?php endif; ?>
             </div>
             <div style="text-align: right; font-size: 12px; color: #666;">
-                <div><?= htmlspecialchars($a['KurzN']) ?></div>
+                <div><?= htmlspecialchars($a['KurzN'] ?? '') ?></div>
                 <?php if ($a['lzugriff']): ?>
                     <div style="font-size: 11px; color: #999;"><?= date('d.m.Y H:i', strtotime($a['lzugriff'])) ?></div>
                 <?php endif; ?>
