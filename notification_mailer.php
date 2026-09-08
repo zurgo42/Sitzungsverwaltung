@@ -305,10 +305,11 @@ function nm_event_antrag_beschlossen($pdo, $antrnr, $titel, $angenommen) {
     });
 }
 
-function nm_event_top_neu($pdo, $meeting_id, $top_title, $meeting_date, $meeting_name) {
+function nm_event_top_neu($pdo, $meeting_id, $top_title, $meeting_date, $meeting_name, $is_confidential = false) {
     $url   = nm_site_url($pdo) . 'index.php?tab=agenda&meeting_id=' . urlencode($meeting_id);
     $datum = $meeting_date ? date('d.m.Y', strtotime((string)$meeting_date)) : '—';
-    nm_notify_all($pdo, 'top_neu', function($m) use ($top_title, $datum, $meeting_name, $url, $pdo) {
+    nm_notify_all($pdo, 'top_neu', function($m) use ($top_title, $datum, $meeting_name, $url, $pdo, $is_confidential) {
+        if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
         $subj = 'Neuer TOP für ' . $datum . ': ' . mb_substr($top_title, 0, 55);
         $txt  = "Neuer Tagesordnungspunkt:\n\nSitzung: {$meeting_name} ({$datum})\nTOP: {$top_title}\n\nLink: {$url}";
         $html = nm_html_wrap($pdo,
@@ -320,10 +321,11 @@ function nm_event_top_neu($pdo, $meeting_id, $top_title, $meeting_date, $meeting
     });
 }
 
-function nm_event_top_kommentar($pdo, $meeting_id, $top_title, $meeting_date, $meeting_name, $comment_text, $author_name) {
+function nm_event_top_kommentar($pdo, $meeting_id, $top_title, $meeting_date, $meeting_name, $comment_text, $author_name, $is_confidential = false) {
     $url   = nm_site_url($pdo) . 'index.php?tab=agenda&meeting_id=' . urlencode($meeting_id);
     $datum = $meeting_date ? date('d.m.Y', strtotime((string)$meeting_date)) : '—';
-    nm_notify_all($pdo, 'top_kommentar', function($m) use ($top_title, $datum, $meeting_name, $comment_text, $author_name, $url, $pdo) {
+    nm_notify_all($pdo, 'top_kommentar', function($m) use ($top_title, $datum, $meeting_name, $comment_text, $author_name, $url, $pdo, $is_confidential) {
+        if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
         $subj = 'Kommentar zu TOP: ' . mb_substr($top_title, 0, 55);
         $txt  = "Kommentar zu einem TOP:\n\nSitzung: {$meeting_name} ({$datum})\nTOP: {$top_title}\nVon: {$author_name}\n\n{$comment_text}\n\nLink: {$url}";
         $html = nm_html_wrap($pdo,
