@@ -1053,6 +1053,27 @@ try {
     COMMENT='Pro-User-Ausblendung von Terminumfragen in der Listenansicht'";
 
     // Nutzer-individuelle Ausblendungen für Meinungsbilder (2026-08-28)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svnotification_prefs (
+        member_id   INT         NOT NULL,
+        event_type  VARCHAR(40) NOT NULL,
+        email       TINYINT(1)  NOT NULL DEFAULT 0,
+        PRIMARY KEY (member_id, event_type)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    $tables[] = "CREATE TABLE IF NOT EXISTS svmail_notifications (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        member_id   INT          NOT NULL,
+        event_type  VARCHAR(40)  NOT NULL,
+        subject     VARCHAR(255) NOT NULL,
+        body_text   TEXT,
+        body_html   MEDIUMTEXT,
+        is_digest   TINYINT(1)   NOT NULL DEFAULT 0,
+        created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        sent_at     DATETIME     DEFAULT NULL,
+        INDEX idx_pending (is_digest, sent_at),
+        INDEX idx_member  (member_id, sent_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
     $tables[] = "CREATE TABLE IF NOT EXISTS svopinion_user_hidden (
         poll_id   INT NOT NULL COMMENT 'FK zu svopinion_polls',
         member_id INT NOT NULL COMMENT 'FK zu svmembers',

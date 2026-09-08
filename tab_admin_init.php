@@ -993,6 +993,57 @@ body.dark-mode .init-danger-list {
         </div>
     </div>
 
+    <!-- BENACHRICHTIGUNGS-DIAGNOSE -->
+    <div class="admin-section">
+        <h3 class="admin-section-header init-section-header" onclick="toggleSection(this)">
+            🔍 Diagnose: Benachrichtigungs-Queue
+        </h3>
+        <div class="admin-section-content collapsed">
+            <?php
+            try {
+                $diag_pending = $pdo->query("SELECT COUNT(*) FROM svmail_notifications WHERE sent_at IS NULL")->fetchColumn();
+                $diag_total   = $pdo->query("SELECT COUNT(*) FROM svmail_notifications")->fetchColumn();
+                $diag_recent  = $pdo->query("
+                    SELECT n.event_type, n.subject, n.is_digest, n.created_at, n.sent_at,
+                           m.first_name, m.last_name, m.email
+                    FROM svmail_notifications n
+                    LEFT JOIN svmembers m ON m.member_id = n.member_id
+                    ORDER BY n.created_at DESC LIMIT 10
+                ")->fetchAll(PDO::FETCH_ASSOC);
+                ?>
+                <p>Ausstehend (nicht gesendet): <strong><?= (int)$diag_pending ?></strong> &nbsp;|&nbsp; Gesamt: <strong><?= (int)$diag_total ?></strong></p>
+                <?php if (!empty($diag_recent)): ?>
+                <table style="width:100%;font-size:12px;border-collapse:collapse;">
+                    <thead><tr style="background:#f0f0f0;">
+                        <th style="padding:4px 8px;text-align:left;">Zeitpunkt</th>
+                        <th style="padding:4px 8px;text-align:left;">Empfänger</th>
+                        <th style="padding:4px 8px;text-align:left;">Typ</th>
+                        <th style="padding:4px 8px;text-align:left;">Betreff</th>
+                        <th style="padding:4px 8px;text-align:left;">Gesendet</th>
+                    </tr></thead>
+                    <tbody>
+                    <?php foreach ($diag_recent as $r): ?>
+                    <tr style="border-top:1px solid #eee;">
+                        <td style="padding:4px 8px;"><?= htmlspecialchars($r['created_at']) ?></td>
+                        <td style="padding:4px 8px;"><?= htmlspecialchars(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '') . ' <' . ($r['email'] ?? '') . '>') ?></td>
+                        <td style="padding:4px 8px;"><?= htmlspecialchars($r['event_type']) ?></td>
+                        <td style="padding:4px 8px;"><?= htmlspecialchars(mb_substr($r['subject'], 0, 50)) ?></td>
+                        <td style="padding:4px 8px;"><?= $r['sent_at'] ? '✅ ' . htmlspecialchars($r['sent_at']) : '<span style="color:#c00;">⏳ ausstehend</span>' ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <?php else: ?>
+                <p style="color:#999;">Noch keine Einträge in svmail_notifications.</p>
+                <?php endif; ?>
+            <?php } catch (Exception $e) { ?>
+                <div style="background:#fff3cd;padding:10px;border-radius:4px;">
+                    ⚠️ Tabelle <code>svmail_notifications</code> fehlt – bitte <a href="init-db.php">init-db.php</a> ausführen.
+                </div>
+            <?php } ?>
+        </div>
+    </div>
+
     <!-- PLATZHALTER FÜR WEITERE BEREICHE -->
     <!-- Hier werden später weitere Konfigurationsbereiche hinzugefügt:
          - Workflow-Status (A, B, VS, X, Z) - NICHT konfigurierbar
