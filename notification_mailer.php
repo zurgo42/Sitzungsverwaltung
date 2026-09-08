@@ -186,7 +186,8 @@ function nm_notify_all($pdo, $event_type, $build_fn) {
 
 function nm_html_wrap($pdo, $content_html) {
     $name     = htmlspecialchars(nm_from_name($pdo));
-    $prefs    = htmlspecialchars(nm_site_url($pdo) . 'meine_benachrichtigungen.php');
+    $base     = nm_site_url($pdo);
+    $prefs    = htmlspecialchars($base . 'login.php?redirect=' . urlencode('meine_benachrichtigungen.php'));
     return '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">'
         . '<meta name="viewport" content="width=device-width,initial-scale=1"></head>'
         . '<body style="margin:0;padding:0;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'
@@ -219,9 +220,10 @@ function nm_tbl_row($label, $value) {
 // Event-Funktionen
 // ------------------------------------------------------------------
 
-function nm_event_antrag_neu($pdo, $antrnr, $titel, $bart_label) {
+function nm_event_antrag_neu($pdo, $antrnr, $titel, $bart_label, $is_confidential = false) {
     $url = nm_site_url($pdo) . 'antrag_bearbeiten.php?antrnr=' . urlencode($antrnr);
-    nm_notify_all($pdo, 'antrag_neu', function($m) use ($antrnr, $titel, $bart_label, $url, $pdo) {
+    nm_notify_all($pdo, 'antrag_neu', function($m) use ($antrnr, $titel, $bart_label, $url, $pdo, $is_confidential) {
+        if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
         $subj = 'Neuer Antrag: ' . $titel;
         $txt  = "Neuer Antrag eingestellt:\n\nNr.: {$antrnr}\nTyp: {$bart_label}\nTitel: {$titel}\n\nLink: {$url}";
         $html = nm_html_wrap($pdo,
@@ -233,11 +235,12 @@ function nm_event_antrag_neu($pdo, $antrnr, $titel, $bart_label) {
     });
 }
 
-function nm_event_antrag_geaendert($pdo, $antrnr, $titel, $diff_string) {
+function nm_event_antrag_geaendert($pdo, $antrnr, $titel, $diff_string, $is_confidential = false) {
     // Nicht senden wenn nichts geändert wurde
     if (substr($diff_string, -strlen('(unverändert)')) === '(unverändert)') return;
     $url = nm_site_url($pdo) . 'antrag_bearbeiten.php?antrnr=' . urlencode($antrnr);
-    nm_notify_all($pdo, 'antrag_geaendert', function($m) use ($antrnr, $titel, $diff_string, $url, $pdo) {
+    nm_notify_all($pdo, 'antrag_geaendert', function($m) use ($antrnr, $titel, $diff_string, $url, $pdo, $is_confidential) {
+        if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
         $subj = 'Antrag geändert: ' . $titel;
         $txt  = "Antrag {$antrnr} wurde geändert:\n\nTitel: {$titel}\n\nÄnderungen:\n{$diff_string}\n\nLink: {$url}";
         $html = nm_html_wrap($pdo,
@@ -254,9 +257,10 @@ function nm_event_antrag_geaendert($pdo, $antrnr, $titel, $diff_string) {
     });
 }
 
-function nm_event_antrag_hinweis($pdo, $antrnr, $titel, $hinweis_text) {
+function nm_event_antrag_hinweis($pdo, $antrnr, $titel, $hinweis_text, $is_confidential = false) {
     $url = nm_site_url($pdo) . 'abstimmungen.php?antrnr=' . urlencode($antrnr);
-    nm_notify_all($pdo, 'antrag_hinweis', function($m) use ($antrnr, $titel, $hinweis_text, $url, $pdo) {
+    nm_notify_all($pdo, 'antrag_hinweis', function($m) use ($antrnr, $titel, $hinweis_text, $url, $pdo, $is_confidential) {
+        if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
         $subj = 'Hinweis zu Antrag ' . $antrnr . ': ' . mb_substr($titel, 0, 55);
         $txt  = "Neuer Hinweis zu Antrag {$antrnr} ({$titel}):\n\n{$hinweis_text}\n\nLink: {$url}";
         $html = nm_html_wrap($pdo,
@@ -271,10 +275,11 @@ function nm_event_antrag_hinweis($pdo, $antrnr, $titel, $hinweis_text) {
     });
 }
 
-function nm_event_antrag_abstimmung($pdo, $antrnr, $neue_nr, $titel, $frist_datum) {
+function nm_event_antrag_abstimmung($pdo, $antrnr, $neue_nr, $titel, $frist_datum, $is_confidential = false) {
     $url   = nm_site_url($pdo) . 'abstimmungen.php?antrnr=' . urlencode($neue_nr);
     $frist = $frist_datum ? date('d.m.Y', strtotime((string)$frist_datum)) : '—';
-    nm_notify_all($pdo, 'antrag_abstimmung', function($m) use ($neue_nr, $titel, $frist, $url, $pdo) {
+    nm_notify_all($pdo, 'antrag_abstimmung', function($m) use ($neue_nr, $titel, $frist, $url, $pdo, $is_confidential) {
+        if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
         $subj = 'Abstimmung läuft: ' . $titel;
         $txt  = "Antrag zur Abstimmung eingestellt:\n\nNr.: {$neue_nr}\nTitel: {$titel}\nFrist: {$frist}\n\nLink: {$url}";
         $html = nm_html_wrap($pdo,
@@ -286,10 +291,11 @@ function nm_event_antrag_abstimmung($pdo, $antrnr, $neue_nr, $titel, $frist_datu
     });
 }
 
-function nm_event_antrag_beschlossen($pdo, $antrnr, $titel, $angenommen) {
+function nm_event_antrag_beschlossen($pdo, $antrnr, $titel, $angenommen, $is_confidential = false) {
     $ergebnis = $angenommen ? 'Angenommen' : 'Abgelehnt';
     $url = nm_site_url($pdo) . 'antrag_bearbeiten.php?antrnr=' . urlencode($antrnr);
-    nm_notify_all($pdo, 'antrag_beschlossen', function($m) use ($antrnr, $titel, $ergebnis, $angenommen, $url, $pdo) {
+    nm_notify_all($pdo, 'antrag_beschlossen', function($m) use ($antrnr, $titel, $ergebnis, $angenommen, $url, $pdo, $is_confidential) {
+        if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
         $subj  = 'Abstimmungsergebnis: ' . $titel;
         $txt   = "Abstimmung abgeschlossen:\n\nNr.: {$antrnr}\nTitel: {$titel}\nErgebnis: {$ergebnis}\n\nLink: {$url}";
         $color = $angenommen ? '#1a7c3e' : '#c0392b';

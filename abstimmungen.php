@@ -401,7 +401,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_hinweis'])) {
         protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Abstimmung-Hinweis', $antrnr);
 
         if (function_exists('nm_event_antrag_hinweis')) {
-            nm_event_antrag_hinweis($pdo, $antrnr, $antrag['titel'] ?? '', $neuer_hinweis);
+            nm_event_antrag_hinweis($pdo, $antrnr, $antrag['titel'] ?? '', $neuer_hinweis, ($antrag['int_ext'] ?? 'e') === 'i');
         }
 
         header("Location: abstimmungen.php?antrnr=" . urlencode($antrnr) . "&msg=hinweis");

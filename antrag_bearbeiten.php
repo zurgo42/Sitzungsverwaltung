@@ -239,7 +239,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 if (function_exists('nm_event_antrag_geaendert')) {
                     $notif_titel = trim($_POST['titel'] ?? ($antrag['titel'] ?? ''));
-                    nm_event_antrag_geaendert($pdo, $antrnr, $notif_titel, $prot_diff);
+                    $notif_intern = (($post['int_ext'] ?? $antrag['int_ext'] ?? 'e') === 'i');
+                    nm_event_antrag_geaendert($pdo, $antrnr, $notif_titel, $prot_diff, $notif_intern);
                 }
 
                 // Wartezeitverkürzung verarbeiten
@@ -627,7 +628,7 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         require_once __DIR__ . '/notification_mailer.php';
     }
     if (function_exists('nm_event_antrag_abstimmung')) {
-        nm_event_antrag_abstimmung($pdo, $antrnr, $neue_nr, $antrag['titel'] ?? '', '');
+        nm_event_antrag_abstimmung($pdo, $antrnr, $neue_nr, $antrag['titel'] ?? '', '', ($antrag['int_ext'] ?? 'e') === 'i');
     }
 }
 

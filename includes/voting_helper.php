@@ -290,7 +290,7 @@ function auswerten_abstimmung($pdo, $antrnr, $force = false) {
         } else {
             $nm_neue_nr = 'X' . substr($antrnr, 1);
         }
-        nm_event_antrag_beschlossen($pdo, $nm_neue_nr, $antrag['titel'] ?? '', $nm_angenommen);
+        nm_event_antrag_beschlossen($pdo, $nm_neue_nr, $antrag['titel'] ?? '', $nm_angenommen, ($antrag['int_ext'] ?? 'e') === 'i');
     }
 }
 
