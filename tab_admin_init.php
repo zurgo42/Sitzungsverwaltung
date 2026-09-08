@@ -1100,6 +1100,43 @@ body.dark-mode .init-danger-list {
             <?php } catch (Exception $e) {
                 echo '<p style="color:#c00;">Fehler bei Opt-in-Analyse: ' . htmlspecialchars($e->getMessage()) . '</p>';
             } ?>
+
+            <?php
+            // --- Test-Trigger für top_kommentar
+            $nm_test_result = '';
+            if (isset($_POST['nm_test_kommentar'])) {
+                try {
+                    if (!function_exists('nm_event_top_kommentar') && file_exists(__DIR__ . '/notification_mailer.php')) {
+                        require_once __DIR__ . '/notification_mailer.php';
+                    }
+                    if (function_exists('nm_event_top_kommentar')) {
+                        nm_event_top_kommentar(
+                            $pdo,
+                            0,
+                            '[TEST-TOP] Admin-Diagnose',
+                            date('Y-m-d'),
+                            '[TEST-Sitzung]',
+                            'Dies ist ein Test-Kommentar aus der Admin-Diagnose.',
+                            'Admin'
+                        );
+                        $nm_test_result = '<span style="color:green;">✅ nm_event_top_kommentar aufgerufen. Prüfe oben die Queue und pseudo_cron.log.</span>';
+                    } else {
+                        $nm_test_result = '<span style="color:#c00;">❌ nm_event_top_kommentar nicht gefunden (notification_mailer.php fehlt?)</span>';
+                    }
+                } catch (\Throwable $e) {
+                    $nm_test_result = '<span style="color:#c00;">❌ Fehler: ' . htmlspecialchars($e->getMessage()) . '</span>';
+                }
+            }
+            ?>
+            <hr style="margin:14px 0;">
+            <form method="POST" style="margin-bottom:8px;">
+                <?php if (!empty($nm_test_result)) echo '<p style="margin-bottom:8px;">' . $nm_test_result . '</p>'; ?>
+                <button type="submit" name="nm_test_kommentar" value="1"
+                        style="background:#0055aa;color:#fff;border:none;padding:7px 16px;border-radius:4px;cursor:pointer;font-size:13px;">
+                    🧪 Test: top_kommentar jetzt einreihen
+                </button>
+                <span style="font-size:11px;color:#888;margin-left:8px;">Trägt einen Test-Eintrag in svmail_notifications ein (Queue-Test, kein echter TOP).</span>
+            </form>
         </div>
     </div>
 
