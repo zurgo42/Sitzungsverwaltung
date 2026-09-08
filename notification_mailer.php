@@ -399,7 +399,9 @@ function nm_process_immediate($pdo) {
         error_log('nm_process_immediate: ' . $e->getMessage());
         return;
     }
-    if (empty($pending)) return;
+    $log_prefix = '[' . date('Y-m-d H:i:s') . '] NM-Sofort: ';
+    @file_put_contents(__DIR__ . '/pseudo_cron.log',
+        $log_prefix . count($pending) . " ausstehend, starte Versand\n", FILE_APPEND);
 
     if (!function_exists('get_all_members') && file_exists(__DIR__ . '/member_functions.php')) {
         require_once __DIR__ . '/member_functions.php';
@@ -416,14 +418,23 @@ function nm_process_immediate($pdo) {
         $member = $mmap[(int)$notif['member_id']] ?? null;
         $email  = $member['email'] ?? '';
         if (!$email) {
+            @file_put_contents(__DIR__ . '/pseudo_cron.log',
+                $log_prefix . "member_id={$notif['member_id']} hat keine E-Mail in get_all_members() – übersprungen\n", FILE_APPEND);
             $pdo->prepare("UPDATE svmail_notifications SET sent_at = ? WHERE id = ?")->execute([$now, $notif['id']]);
             continue;
         }
         try {
-            multipartmail($email, $notif['subject'], $notif['body_text'], $notif['body_html'], $from_addr, $from_name);
+            $ok = multipartmail($email, $notif['subject'], $notif['body_text'], $notif['body_html'], $from_addr, $from_name);
             $pdo->prepare("UPDATE svmail_notifications SET sent_at = ? WHERE id = ?")->execute([$now, $notif['id']]);
-            $sent++;
+            if ($ok === false) {
+                @file_put_contents(__DIR__ . '/pseudo_cron.log',
+                    $log_prefix . "multipartmail() gab false zurück für {$email} – mail() fehlgeschlagen?\n", FILE_APPEND);
+            } else {
+                $sent++;
+            }
         } catch (\Throwable $e) {
+            @file_put_contents(__DIR__ . '/pseudo_cron.log',
+                $log_prefix . "Exception für {$email}: " . $e->getMessage() . "\n", FILE_APPEND);
             error_log('nm_process_immediate member=' . $notif['member_id'] . ': ' . $e->getMessage());
         }
     }
