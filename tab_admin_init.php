@@ -1003,15 +1003,15 @@ body.dark-mode .init-danger-list {
             try {
                 $diag_pending = $pdo->query("SELECT COUNT(*) FROM svmail_notifications WHERE sent_at IS NULL")->fetchColumn();
                 $diag_total   = $pdo->query("SELECT COUNT(*) FROM svmail_notifications")->fetchColumn();
-                // Mitgliedsdaten: svmembers bevorzugt, Fallback auf berechtigte
+                // Mitgliedsdaten: Im Adapter-Modus berechtigte bevorzugt, Fallback auf svmembers
                 $_have_ber = $pdo->query("SHOW TABLES LIKE 'berechtigte'")->fetch();
                 $_member_join = $_have_ber
-                    ? "LEFT JOIN svmembers m ON m.member_id = n.member_id
-                       LEFT JOIN berechtigte b ON b.ID = n.member_id AND m.member_id IS NULL"
+                    ? "LEFT JOIN berechtigte b ON b.ID = n.member_id
+                       LEFT JOIN svmembers m ON m.member_id = n.member_id AND b.ID IS NULL"
                     : "LEFT JOIN svmembers m ON m.member_id = n.member_id";
                 $_name_expr = $_have_ber
-                    ? "COALESCE(CONCAT(m.first_name,' ',m.last_name), CONCAT(b.Vorname,' ',b.Name), '') AS member_name,
-                       COALESCE(m.email, b.eMail, '') AS member_email"
+                    ? "COALESCE(CONCAT(b.Vorname,' ',b.Name), CONCAT(m.first_name,' ',m.last_name), '') AS member_name,
+                       COALESCE(b.eMail, m.email, '') AS member_email"
                     : "CONCAT(m.first_name,' ',m.last_name) AS member_name, m.email AS member_email";
                 $diag_recent  = $pdo->query("
                     SELECT n.event_type, n.subject, n.is_digest, n.created_at, n.sent_at,
