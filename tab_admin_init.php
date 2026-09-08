@@ -1003,23 +1003,23 @@ body.dark-mode .init-danger-list {
             try {
                 $diag_pending = $pdo->query("SELECT COUNT(*) FROM svmail_notifications WHERE sent_at IS NULL")->fetchColumn();
                 $diag_total   = $pdo->query("SELECT COUNT(*) FROM svmail_notifications")->fetchColumn();
-                // Mitgliedsdaten: Im Adapter-Modus berechtigte bevorzugt, Fallback auf svmembers
-                $_have_ber = $pdo->query("SHOW TABLES LIKE 'berechtigte'")->fetch();
-                $_member_join = $_have_ber
-                    ? "LEFT JOIN berechtigte b ON b.ID = n.member_id
-                       LEFT JOIN svmembers m ON m.member_id = n.member_id AND b.ID IS NULL"
-                    : "LEFT JOIN svmembers m ON m.member_id = n.member_id";
-                $_name_expr = $_have_ber
-                    ? "COALESCE(CONCAT(b.Vorname,' ',b.Name), CONCAT(m.first_name,' ',m.last_name), '') AS member_name,
-                       COALESCE(b.eMail, m.email, '') AS member_email"
-                    : "CONCAT(m.first_name,' ',m.last_name) AS member_name, m.email AS member_email";
-                $diag_recent  = $pdo->query("
-                    SELECT n.event_type, n.subject, n.is_digest, n.created_at, n.sent_at,
-                           {$_name_expr}
-                    FROM svmail_notifications n
-                    {$_member_join}
-                    ORDER BY n.created_at DESC LIMIT 10
+                $diag_rows    = $pdo->query("
+                    SELECT member_id, event_type, subject, is_digest, created_at, sent_at
+                    FROM svmail_notifications
+                    ORDER BY created_at DESC LIMIT 10
                 ")->fetchAll(PDO::FETCH_ASSOC);
+
+                // Empfängerdaten über Adapter-Funktion (kein direkter Tabellenzugriff)
+                if (!function_exists('get_member_by_id') && file_exists(__DIR__ . '/member_functions.php')) {
+                    require_once __DIR__ . '/member_functions.php';
+                }
+                $diag_recent = [];
+                foreach ($diag_rows as $row) {
+                    $mbr = function_exists('get_member_by_id') ? get_member_by_id($pdo, (int)$row['member_id']) : null;
+                    $row['member_name']  = $mbr ? trim(($mbr['first_name'] ?? '') . ' ' . ($mbr['last_name'] ?? '')) : '';
+                    $row['member_email'] = $mbr['email'] ?? '';
+                    $diag_recent[] = $row;
+                }
                 ?>
                 <p>Ausstehend (nicht gesendet): <strong><?= (int)$diag_pending ?></strong> &nbsp;|&nbsp; Gesamt: <strong><?= (int)$diag_total ?></strong></p>
                 <?php if (!empty($diag_recent)): ?>
