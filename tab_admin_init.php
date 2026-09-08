@@ -956,12 +956,14 @@ body.dark-mode .init-danger-list {
                                     'meeting_system_url'              => 'Basis-URL Sitzungssystem (für Mail-Links)',
                                     'opinion_standalone_url'          => 'Öffentliche URL Meinungsbild (für Token-Links)',
                                     'terminplanung_standalone_url'    => 'Öffentliche URL Terminplanung (für Token-Links)',
+                                    'mail_from_name'                  => 'Absender-Name für Benachrichtigungs-Mails',
                                 ];
                                 $placeholder_map = [
                                     'agenda_reminder_default_emails'  => 'mail@beispiel.de, mail2@beispiel.de',
                                     'meeting_system_url'              => 'https://example.com/vorstand/Sitzungsverwaltung',
                                     'opinion_standalone_url'          => 'https://example.com/meinungsbild.php',
                                     'terminplanung_standalone_url'    => 'https://example.com/termine.php',
+                                    'mail_from_name'                  => 'Sitzungstool',
                                 ];
                                 echo htmlspecialchars($label_map[$cfg['config_key']] ?? $cfg['config_key']);
                                 ?>

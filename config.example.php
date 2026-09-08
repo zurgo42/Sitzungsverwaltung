@@ -99,7 +99,7 @@ define('PROTOCOL_FEEDBACK_HOURS', 48); // 48 Stunden = 2 Tage
 // ============= E-MAIL-EINSTELLUNGEN (optional) =============
 define('MAIL_ENABLED', false);  // E-Mail-Versand aktivieren/deaktivieren
 define('MAIL_FROM', 'meetings@example.com');
-define('MAIL_FROM_NAME', 'Meeting-System');
+define('MAIL_FROM_NAME', 'Sitzungstool');
 
 // Mail-Backend auswählen:
 // - 'mail':      Standard PHP mail() - funktioniert überall (empfohlen als Fallback)

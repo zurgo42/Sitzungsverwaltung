@@ -46,6 +46,25 @@ function nm_default_on_map() {
 /**
  * Liefert die Basis-URL der Anwendung (mit abschließendem /).
  */
+/**
+ * Liefert den Absender-Namen für Benachrichtigungs-Mails.
+ * Liest zuerst aus svconfig (admin-editierbar), fällt auf MAIL_FROM_NAME zurück.
+ */
+function nm_from_name($pdo = null) {
+    static $name = null;
+    if ($name !== null) return $name;
+    if ($pdo) {
+        try {
+            $stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'mail_from_name' LIMIT 1");
+            $val = $stmt ? $stmt->fetchColumn() : '';
+            if ($val !== '' && $val !== false) {
+                return $name = (string)$val;
+            }
+        } catch (Exception $e) {}
+    }
+    return $name = defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'Sitzungstool';
+}
+
 function nm_site_url($pdo = null) {
     static $url = null;
     if ($url !== null) return $url;
@@ -150,7 +169,7 @@ function nm_notify_all($pdo, $event_type, $build_fn) {
 // ------------------------------------------------------------------
 
 function nm_html_wrap($pdo, $content_html) {
-    $name     = defined('MAIL_FROM_NAME') ? htmlspecialchars(MAIL_FROM_NAME) : 'Sitzungsverwaltung';
+    $name     = htmlspecialchars(nm_from_name($pdo));
     $prefs    = htmlspecialchars(nm_site_url($pdo) . 'meine_benachrichtigungen.php');
     return '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">'
         . '<meta name="viewport" content="width=device-width,initial-scale=1"></head>'
@@ -369,17 +388,22 @@ function nm_process_immediate($pdo) {
     $mmap = [];
     foreach ($all_members as $m) $mmap[(int)$m['member_id']] = $m;
 
+    $from_name = nm_from_name($pdo);
+    $from_addr = defined('MAIL_FROM') ? MAIL_FROM : '';
     $now = date('Y-m-d H:i:s');
     $sent = 0;
     foreach ($pending as $notif) {
         $member = $mmap[(int)$notif['member_id']] ?? null;
         $email  = $member['email'] ?? '';
-        $pdo->prepare("UPDATE svmail_notifications SET sent_at = ? WHERE id = ?")->execute([$now, $notif['id']]);
-        if (!$email) continue;
+        if (!$email) {
+            $pdo->prepare("UPDATE svmail_notifications SET sent_at = ? WHERE id = ?")->execute([$now, $notif['id']]);
+            continue;
+        }
         try {
-            multipartmail($email, $notif['subject'], $notif['body_text'], $notif['body_html'], MAIL_FROM, MAIL_FROM_NAME);
+            multipartmail($email, $notif['subject'], $notif['body_text'], $notif['body_html'], $from_addr, $from_name);
+            $pdo->prepare("UPDATE svmail_notifications SET sent_at = ? WHERE id = ?")->execute([$now, $notif['id']]);
             $sent++;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('nm_process_immediate member=' . $notif['member_id'] . ': ' . $e->getMessage());
         }
     }
@@ -412,7 +436,7 @@ function nm_process_digest($pdo) {
     $mmap = [];
     foreach ($all_members as $m) $mmap[(int)$m['member_id']] = $m;
 
-    $site_name = defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'Sitzungsverwaltung';
+    $site_name = nm_from_name($pdo);
     $today = date('d.m.Y');
     $now   = date('Y-m-d H:i:s');
     $prefs_url = nm_site_url($pdo) . 'meine_benachrichtigungen.php';
@@ -474,9 +498,9 @@ function nm_process_digest($pdo) {
             . '</div></div></body></html>';
 
         try {
-            multipartmail($email, $subj, $txt, $html, MAIL_FROM, MAIL_FROM_NAME);
+            multipartmail($email, $subj, $txt, $html, defined('MAIL_FROM') ? MAIL_FROM : '', $site_name);
             $sent++;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('nm_process_digest member=' . $mid . ': ' . $e->getMessage());
         }
     }
