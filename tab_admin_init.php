@@ -1003,11 +1003,21 @@ body.dark-mode .init-danger-list {
             try {
                 $diag_pending = $pdo->query("SELECT COUNT(*) FROM svmail_notifications WHERE sent_at IS NULL")->fetchColumn();
                 $diag_total   = $pdo->query("SELECT COUNT(*) FROM svmail_notifications")->fetchColumn();
+                // Mitgliedsdaten: svmembers bevorzugt, Fallback auf berechtigte
+                $_have_ber = $pdo->query("SHOW TABLES LIKE 'berechtigte'")->fetch();
+                $_member_join = $_have_ber
+                    ? "LEFT JOIN svmembers m ON m.member_id = n.member_id
+                       LEFT JOIN berechtigte b ON b.ID = n.member_id AND m.member_id IS NULL"
+                    : "LEFT JOIN svmembers m ON m.member_id = n.member_id";
+                $_name_expr = $_have_ber
+                    ? "COALESCE(CONCAT(m.first_name,' ',m.last_name), CONCAT(b.Vorname,' ',b.Name), '') AS member_name,
+                       COALESCE(m.email, b.eMail, '') AS member_email"
+                    : "CONCAT(m.first_name,' ',m.last_name) AS member_name, m.email AS member_email";
                 $diag_recent  = $pdo->query("
                     SELECT n.event_type, n.subject, n.is_digest, n.created_at, n.sent_at,
-                           m.first_name, m.last_name, m.email
+                           {$_name_expr}
                     FROM svmail_notifications n
-                    LEFT JOIN svmembers m ON m.member_id = n.member_id
+                    {$_member_join}
                     ORDER BY n.created_at DESC LIMIT 10
                 ")->fetchAll(PDO::FETCH_ASSOC);
                 ?>
@@ -1025,7 +1035,7 @@ body.dark-mode .init-danger-list {
                     <?php foreach ($diag_recent as $r): ?>
                     <tr style="border-top:1px solid #eee;">
                         <td style="padding:4px 8px;"><?= htmlspecialchars($r['created_at']) ?></td>
-                        <td style="padding:4px 8px;"><?= htmlspecialchars(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '') . ' <' . ($r['email'] ?? '') . '>') ?></td>
+                        <td style="padding:4px 8px;"><?= htmlspecialchars(trim($r['member_name'] ?? '') . ' <' . ($r['member_email'] ?? '') . '>') ?></td>
                         <td style="padding:4px 8px;"><?= htmlspecialchars($r['event_type']) ?></td>
                         <td style="padding:4px 8px;"><?= htmlspecialchars(mb_substr($r['subject'], 0, 50)) ?></td>
                         <td style="padding:4px 8px;"><?= $r['sent_at'] ? '✅ ' . htmlspecialchars($r['sent_at']) : '<span style="color:#c00;">⏳ ausstehend</span>' ?></td>
