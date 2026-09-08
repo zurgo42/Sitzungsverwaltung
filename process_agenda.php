@@ -268,7 +268,7 @@ if (isset($_POST['add_agenda_item'])) {
                 require_once __DIR__ . '/notification_mailer.php';
             }
             if (function_exists('nm_event_top_neu') && isset($meeting)) {
-                nm_event_top_neu($pdo, $current_meeting_id, $title, $meeting['meeting_date'] ?? '', $meeting['meeting_name'] ?? '');
+                nm_event_top_neu($pdo, $current_meeting_id, $title, $meeting['meeting_date'] ?? '', $meeting['meeting_name'] ?? '', (bool)$is_confidential);
             }
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
@@ -1107,12 +1107,12 @@ if (isset($_POST['save_single_comment'])) {
                 require_once __DIR__ . '/notification_mailer.php';
             }
             if (function_exists('nm_event_top_kommentar')) {
-                $nm_item_stmt = $pdo->prepare("SELECT ai.title, m.meeting_date, m.meeting_name FROM svagenda_items ai JOIN svmeetings m ON ai.meeting_id = m.meeting_id WHERE ai.item_id = ?");
+                $nm_item_stmt = $pdo->prepare("SELECT ai.title, ai.is_confidential, m.meeting_date, m.meeting_name FROM svagenda_items ai JOIN svmeetings m ON ai.meeting_id = m.meeting_id WHERE ai.item_id = ?");
                 $nm_item_stmt->execute([$item_id]);
                 $nm_item = $nm_item_stmt->fetch(PDO::FETCH_ASSOC);
                 if ($nm_item) {
                     $nm_author = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
-                    nm_event_top_kommentar($pdo, $current_meeting_id, $nm_item['title'], $nm_item['meeting_date'], $nm_item['meeting_name'], $comment_text, $nm_author);
+                    nm_event_top_kommentar($pdo, $current_meeting_id, $nm_item['title'], $nm_item['meeting_date'], $nm_item['meeting_name'], $comment_text, $nm_author, (bool)$nm_item['is_confidential']);
                 }
             }
 
@@ -1185,12 +1185,12 @@ if (isset($_POST['save_comment'])) {
                 require_once __DIR__ . '/notification_mailer.php';
             }
             if (function_exists('nm_event_top_kommentar')) {
-                $nm_item_stmt2 = $pdo->prepare("SELECT ai.title, m.meeting_date, m.meeting_name FROM svagenda_items ai JOIN svmeetings m ON ai.meeting_id = m.meeting_id WHERE ai.item_id = ?");
+                $nm_item_stmt2 = $pdo->prepare("SELECT ai.title, ai.is_confidential, m.meeting_date, m.meeting_name FROM svagenda_items ai JOIN svmeetings m ON ai.meeting_id = m.meeting_id WHERE ai.item_id = ?");
                 $nm_item_stmt2->execute([$item_id]);
                 $nm_item2 = $nm_item_stmt2->fetch(PDO::FETCH_ASSOC);
                 if ($nm_item2) {
                     $nm_author2 = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
-                    nm_event_top_kommentar($pdo, $current_meeting_id, $nm_item2['title'], $nm_item2['meeting_date'], $nm_item2['meeting_name'], $comment_text, $nm_author2);
+                    nm_event_top_kommentar($pdo, $current_meeting_id, $nm_item2['title'], $nm_item2['meeting_date'], $nm_item2['meeting_name'], $comment_text, $nm_author2, (bool)$nm_item2['is_confidential']);
                 }
             }
 
@@ -1297,12 +1297,12 @@ if (isset($_POST['add_comment_preparation'])) {
                     require_once __DIR__ . '/notification_mailer.php';
                 }
                 if (function_exists('nm_event_top_kommentar')) {
-                    $nm_prep_stmt = $pdo->prepare("SELECT ai.title, m.meeting_date, m.meeting_name FROM svagenda_items ai JOIN svmeetings m ON ai.meeting_id = m.meeting_id WHERE ai.item_id = ?");
+                    $nm_prep_stmt = $pdo->prepare("SELECT ai.title, ai.is_confidential, m.meeting_date, m.meeting_name FROM svagenda_items ai JOIN svmeetings m ON ai.meeting_id = m.meeting_id WHERE ai.item_id = ?");
                     $nm_prep_stmt->execute([$item_id]);
                     $nm_prep_item = $nm_prep_stmt->fetch(PDO::FETCH_ASSOC);
                     if ($nm_prep_item) {
                         $nm_prep_author = trim(($current_user['first_name'] ?? '') . ' ' . ($current_user['last_name'] ?? ''));
-                        nm_event_top_kommentar($pdo, $current_meeting_id, $nm_prep_item['title'], $nm_prep_item['meeting_date'], $nm_prep_item['meeting_name'], $comment_text, $nm_prep_author);
+                        nm_event_top_kommentar($pdo, $current_meeting_id, $nm_prep_item['title'], $nm_prep_item['meeting_date'], $nm_prep_item['meeting_name'], $comment_text, $nm_prep_author, (bool)$nm_prep_item['is_confidential']);
                     }
                 }
             }
