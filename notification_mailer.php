@@ -156,10 +156,9 @@ function nm_notify_all($pdo, $event_type, $build_fn) {
         }
         $all = get_all_members($pdo);
         foreach ($all as $m) {
+            // get_all_members() already filters to active/relevant members; just require email
+            if (empty($m['email'])) continue;
             $aktiv = (int)($m['aktiv'] ?? 0);
-            // is_active=1 is set by BerechtigteAdapter; for svmembers aktiv is 0/1
-            $is_active = array_key_exists('is_active', $m) ? (bool)$m['is_active'] : ($aktiv > 0);
-            if (!$is_active || empty($m['email'])) continue;
             if (!nm_has_pref($pdo, $m['member_id'], $event_type, $aktiv)) continue;
             $result = $build_fn($m);
             if ($result === null) continue;
@@ -393,6 +392,9 @@ function nm_process_immediate($pdo) {
     }
     if (empty($pending)) return;
 
+    if (!function_exists('get_all_members') && file_exists(__DIR__ . '/member_functions.php')) {
+        require_once __DIR__ . '/member_functions.php';
+    }
     $all_members = function_exists('get_all_members') ? get_all_members($pdo) : [];
     $mmap = [];
     foreach ($all_members as $m) $mmap[(int)$m['member_id']] = $m;
@@ -441,6 +443,9 @@ function nm_process_digest($pdo) {
     }
     if (empty($member_ids)) return;
 
+    if (!function_exists('get_all_members') && file_exists(__DIR__ . '/member_functions.php')) {
+        require_once __DIR__ . '/member_functions.php';
+    }
     $all_members = function_exists('get_all_members') ? get_all_members($pdo) : [];
     $mmap = [];
     foreach ($all_members as $m) $mmap[(int)$m['member_id']] = $m;
