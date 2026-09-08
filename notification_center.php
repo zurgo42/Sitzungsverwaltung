@@ -148,11 +148,54 @@ $type_icons = [
     text-align: center;
     color: #999;
 }
+
+/* Dark Mode */
+body.dark-mode .notification-bell {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .notification-bell:hover {
+    background: var(--hover-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .notification-dropdown {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .notification-header {
+    background: var(--primary-light) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .notification-item {
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .notification-item:hover {
+    background: var(--hover-bg) !important;
+}
+
+body.dark-mode .notification-item-title {
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .notification-item-message {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-mode .notification-footer {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border-color) !important;
+}
 </style>
 
 <!-- Notification Bell -->
 <div class="notification-bell" id="notification-bell" onclick="toggleNotificationDropdown()">
-    🔔 Nachricht
+    🔔 Nachrichten
     <?php if ($unread_count > 0): ?>
         <span class="notification-badge" id="notification-badge"><?php echo $unread_count; ?></span>
     <?php endif; ?>
@@ -207,6 +250,13 @@ $type_icons = [
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
+    </div>
+    <div class="notification-footer">
+        <a href="meine_benachrichtigungen.php"
+           style="display:inline-block;background:#2196f3;color:#fff;font-weight:600;font-size:13px;
+                  padding:8px 20px;border-radius:5px;text-decoration:none;">
+            ⚙ E-Mail-Einstellungen
+        </a>
     </div>
 </div>
 

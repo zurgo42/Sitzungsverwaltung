@@ -22,7 +22,7 @@ $can_edit = $is_creator && $stats['total_responses'] <= 1;
 
 if (!$can_edit) {
     echo "<div class='error-box'>Du kannst diese Umfrage nicht mehr bearbeiten, da bereits " . $stats['total_responses'] . " Antworten vorhanden sind.</div>";
-    echo "<a href='?tab=opinion&view=detail&poll_id={$poll_id}' class='btn-secondary'>← Zurück</a>";
+    echo "<a href='" . _opinion_url('detail', $poll_id) . "' class='btn-secondary'>← Zurück</a>";
     return;
 }
 
@@ -61,10 +61,12 @@ if ($poll['target_type'] === 'list') {
     Sobald weitere Personen geantwortet haben, ist eine Bearbeitung nicht mehr möglich.
 </div>
 
-<form method="POST" action="process_opinion.php" onsubmit="return validateOpinionForm()">
+<form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" onsubmit="return validateOpinionForm()">
     <input type="hidden" name="action" value="update_opinion">
     <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
     <input type="hidden" name="template_id" id="template_id" value="">
+    <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
+    <?php if (!empty($OPINION_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
 
     <div class="opinion-card">
         <h4>1. Frage formulieren</h4>
@@ -195,7 +197,7 @@ if ($poll['target_type'] === 'list') {
 
     <div style="display: flex; gap: 15px;">
         <button type="submit" class="btn-primary">Änderungen speichern</button>
-        <a href="?tab=opinion&view=detail&poll_id=<?php echo $poll_id; ?>" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 10px 20px;">Abbrechen</a>
+        <a href="<?php echo _opinion_url('detail', $poll_id); ?>" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 10px 20px;">Abbrechen</a>
     </div>
 </form>
 

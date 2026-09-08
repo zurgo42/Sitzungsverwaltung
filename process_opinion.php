@@ -42,9 +42,47 @@ if (isset($_SESSION['member_id'])) {
     $is_authenticated = true;
 }
 
+// MTool-Fallback: MNr aus Hidden-Field → Mitglied aus DB laden
+if (!$current_user && !$is_authenticated && !empty($_POST['mtool_mnr'])) {
+    $current_user = get_member_by_membership_number($pdo, trim($_POST['mtool_mnr']));
+    if ($current_user) {
+        $is_authenticated = true;
+    }
+}
+
 // Externe Teilnehmer-Session prüfen
 $external_session = get_external_participant_session();
 $is_external_participant = ($external_session !== null);
+
+// ============================================
+// REDIRECT-BASIS (MTool-Modus)
+// ============================================
+$_r_base = null;
+// Priorität 1: redirect_to aus POST-Daten
+if (!empty($_POST['redirect_to'])) {
+    $rt = trim($_POST['redirect_to']);
+    $parsed = parse_url($rt);
+    if ($rt && strpos($rt, '//') !== 0 &&
+        (!isset($parsed['host']) || $parsed['host'] === $_SERVER['HTTP_HOST'])) {
+        $_r_base = $rt;
+    }
+}
+// Priorität 2: Fallback aus Session (dort gespeichert beim Rendern durch MTool)
+if (!$_r_base && !empty($_SESSION['opinion_mtool_share_url'])) {
+    $_r_base = $_SESSION['opinion_mtool_share_url'];
+}
+function _r_opinion_dash() {
+    global $_r_base;
+    return $_r_base ?: 'index.php?tab=opinion';
+}
+function _r_opinion_poll($poll_id, $view = 'detail') {
+    global $_r_base;
+    if ($_r_base) {
+        $sep = strpos($_r_base, '?') !== false ? '&' : '?';
+        return $_r_base . $sep . 'view=' . $view . '&poll_id=' . intval($poll_id);
+    }
+    return 'index.php?tab=opinion&view=' . $view . '&poll_id=' . intval($poll_id);
+}
 
 // ============================================
 // HILFSFUNKTIONEN
@@ -101,7 +139,7 @@ try {
         case 'create_opinion':
             if (!$is_authenticated) {
                 $_SESSION['error'] = 'Bitte melde dich an';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . _r_opinion_dash());
                 exit;
             }
 
@@ -114,26 +152,36 @@ try {
             $is_anonymous = !empty($_POST['is_anonymous']) ? 1 : 0;
             $duration_days = intval($_POST['duration_days'] ?? 14);
             $show_intermediate_after_days = intval($_POST['show_intermediate_after_days'] ?? 7);
-            $delete_after_days = intval($_POST['delete_after_days'] ?? 30);
+
+            // Löschdatum: aus Datumseingabe berechnen, Fallback auf Legacy-Feld
+            if (!empty($_POST['delete_at_date'])) {
+                $delete_ts = strtotime($_POST['delete_at_date']);
+                $delete_after_days = max(1, (int)ceil(($delete_ts - time()) / 86400));
+            } else {
+                $delete_after_days = intval($_POST['delete_after_days'] ?? 90);
+            }
 
             if (empty($title)) {
                 $_SESSION['error'] = 'Bitte gib eine Frage ein';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . _r_opinion_dash());
                 exit;
             }
+
+            // Enddatum berechnen
+            $ends_at = date('Y-m-d H:i:s', strtotime("+{$duration_days} days"));
 
             // Umfrage erstellen
             $stmt = $pdo->prepare("
                 INSERT INTO svopinion_polls
                 (title, creator_member_id, target_type, list_id, template_id,
                  allow_multiple_answers, is_anonymous, duration_days,
-                 show_intermediate_after_days, delete_after_days, status, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())
+                 show_intermediate_after_days, delete_after_days, status, created_at, ends_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), ?)
             ");
             $stmt->execute([
                 $title, $current_user['member_id'], $target_type, $list_id,
                 $template_id, $allow_multiple, $is_anonymous, $duration_days,
-                $show_intermediate_after_days, $delete_after_days
+                $show_intermediate_after_days, $delete_after_days, $ends_at
             ]);
             $poll_id = $pdo->lastInsertId();
 
@@ -217,7 +265,7 @@ try {
             }
 
             $_SESSION['success'] = 'Meinungsbild erfolgreich erstellt!';
-            header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+            header('Location: ' . _r_opinion_poll($poll_id, 'detail'));
             exit;
 
         // ====== ANTWORT ABGEBEN ======
@@ -227,14 +275,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . _r_opinion_dash());
                 exit;
             }
 
             // Prüfen ob Umfrage noch aktiv
             if ($poll['status'] !== 'active' || strtotime($poll['ends_at']) < time()) {
                 $_SESSION['error'] = 'Diese Umfrage ist bereits beendet';
-                header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+                header('Location: ' . _r_opinion_poll($poll_id, 'detail'));
                 exit;
             }
 
@@ -252,7 +300,7 @@ try {
             if ($participant['type'] === 'none' && !$session_token) {
                 $_SESSION['error'] = 'Teilnehmer konnte nicht identifiziert werden. Bitte registriere dich erneut.';
                 if ($current_user) {
-                    header('Location: index.php?tab=opinion&view=participate&poll_id=' . $poll_id);
+                    header('Location: ' . _r_opinion_poll($poll_id, 'participate'));
                 } else {
                     header('Location: opinion_standalone.php?poll_id=' . $poll_id);
                 }
@@ -266,7 +314,7 @@ try {
             if (empty($selected_options)) {
                 $_SESSION['error'] = 'Bitte wähle mindestens eine Antwort';
                 if ($current_user) {
-                    header('Location: index.php?tab=opinion&view=participate&poll_id=' . $poll_id);
+                    header('Location: ' . _r_opinion_poll($poll_id, 'participate'));
                 } else {
                     header('Location: opinion_standalone.php?poll_id=' . $poll_id);
                 }
@@ -307,7 +355,7 @@ try {
 
                 if (!$allow_edit) {
                     $_SESSION['error'] = 'Sie haben bereits geantwortet';
-                    header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+                    header('Location: ' . _r_opinion_poll($poll_id, 'detail'));
                     exit;
                 }
 
@@ -341,7 +389,7 @@ try {
 
             // Redirect je nach Teilnehmer-Typ
             if ($current_user) {
-                header('Location: index.php?tab=opinion&view=results&poll_id=' . $poll_id);
+                header('Location: ' . _r_opinion_poll($poll_id, 'results'));
             } else {
                 // Externe Teilnehmer: Zu participate zurück (zeigt Erfolg und aktuelle Antwort)
                 header('Location: opinion_standalone.php?poll_id=' . $poll_id);
@@ -352,7 +400,7 @@ try {
         case 'update_opinion':
             if (!$is_authenticated) {
                 $_SESSION['error'] = 'Bitte melde dich an';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . _r_opinion_dash());
                 exit;
             }
 
@@ -361,7 +409,7 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . _r_opinion_dash());
                 exit;
             }
 
@@ -371,7 +419,7 @@ try {
 
             if (!$is_creator || $stats['total_responses'] > 1) {
                 $_SESSION['error'] = 'Du kannst diese Umfrage nicht mehr bearbeiten';
-                header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+                header('Location: ' . _r_opinion_poll($poll_id, 'detail'));
                 exit;
             }
 
@@ -386,7 +434,7 @@ try {
 
             if (empty($title)) {
                 $_SESSION['error'] = 'Bitte gib eine Frage ein';
-                header('Location: index.php?tab=opinion&view=edit&poll_id=' . $poll_id);
+                header('Location: ' . _r_opinion_poll($poll_id, 'edit'));
                 exit;
             }
 
@@ -455,7 +503,7 @@ try {
             }
 
             $_SESSION['success'] = 'Meinungsbild erfolgreich aktualisiert!';
-            header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+            header('Location: ' . _r_opinion_poll($poll_id, 'detail'));
             exit;
 
         // ====== UMFRAGE LÖSCHEN ======
@@ -465,14 +513,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . _r_opinion_dash());
                 exit;
             }
 
             // Berechtigung prüfen
             if (!is_creator($poll, $current_user) && !is_admin($current_user)) {
                 $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . _r_opinion_dash());
                 exit;
             }
 
@@ -481,7 +529,7 @@ try {
                 ->execute([$poll_id]);
 
             $_SESSION['success'] = 'Meinungsbild wurde gelöscht';
-            header('Location: index.php?tab=opinion');
+            header('Location: ' . _r_opinion_dash());
             exit;
 
         // ====== UMFRAGE BEENDEN ======
@@ -491,14 +539,14 @@ try {
 
             if (!$poll) {
                 $_SESSION['error'] = 'Umfrage nicht gefunden';
-                header('Location: index.php?tab=opinion');
+                header('Location: ' . _r_opinion_dash());
                 exit;
             }
 
             // Berechtigung prüfen
             if (!is_creator($poll, $current_user) && !is_admin($current_user)) {
                 $_SESSION['error'] = 'Keine Berechtigung';
-                header('Location: index.php?tab=opinion&view=detail&poll_id=' . $poll_id);
+                header('Location: ' . _r_opinion_poll($poll_id, 'detail'));
                 exit;
             }
 
@@ -506,18 +554,42 @@ try {
                 ->execute([$poll_id]);
 
             $_SESSION['success'] = 'Meinungsbild wurde beendet';
-            header('Location: index.php?tab=opinion&view=results&poll_id=' . $poll_id);
+            header('Location: ' . _r_opinion_poll($poll_id, 'results'));
+            exit;
+
+        // ====== UMFRAGE FÜR DIESEN USER AUSBLENDEN ======
+        case 'hide_poll':
+            if (!$is_authenticated || !$current_user) {
+                header('Location: ' . _r_opinion_dash());
+                exit;
+            }
+            $poll_id = intval($_POST['poll_id'] ?? 0);
+            $pdo->prepare("INSERT IGNORE INTO svopinion_user_hidden (poll_id, member_id) VALUES (?, ?)")
+                ->execute([$poll_id, $current_user['member_id']]);
+            header('Location: ' . _r_opinion_dash());
+            exit;
+
+        // ====== AUSBLENDUNG RÜCKGÄNGIG MACHEN ======
+        case 'unhide_poll':
+            if (!$is_authenticated || !$current_user) {
+                header('Location: ' . _r_opinion_dash());
+                exit;
+            }
+            $poll_id = intval($_POST['poll_id'] ?? 0);
+            $pdo->prepare("DELETE FROM svopinion_user_hidden WHERE poll_id = ? AND member_id = ?")
+                ->execute([$poll_id, $current_user['member_id']]);
+            header('Location: ' . _r_opinion_dash());
             exit;
 
         default:
             $_SESSION['error'] = 'Ungültige Aktion';
-            header('Location: index.php?tab=opinion');
+            header('Location: ' . _r_opinion_dash());
             exit;
     }
 
 } catch (Exception $e) {
     error_log("Opinion Poll Error: " . $e->getMessage());
     $_SESSION['error'] = 'Ein Fehler ist aufgetreten: ' . $e->getMessage();
-    header('Location: index.php?tab=opinion');
+    header('Location: ' . _r_opinion_dash());
     exit;
 }

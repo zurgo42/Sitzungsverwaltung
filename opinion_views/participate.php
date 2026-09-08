@@ -14,7 +14,7 @@ if (!$poll) {
 $is_active = ($poll['status'] === 'active' && strtotime($poll['ends_at']) > time());
 if (!$is_active) {
     echo "<div class='opinion-card'><p>Diese Umfrage ist bereits beendet.</p>";
-    echo "<a href='?tab=opinion&view=results&poll_id={$poll_id}'>Zu den Ergebnissen →</a></div>";
+    echo "<a href='" . _opinion_url('results', $poll_id) . "'>Zu den Ergebnissen →</a></div>";
     return;
 }
 
@@ -52,7 +52,7 @@ $can_edit_poll = $is_creator && $stats['total_responses'] <= 1;
 ?>
 
 <div style="margin-bottom: 20px;">
-    <a href="?tab=opinion&view=detail&poll_id=<?php echo $poll_id; ?>" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">← Zurück</a>
+    <a href="<?php echo _opinion_url('detail', $poll_id); ?>" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">← Zurück</a>
 </div>
 
 <div class="opinion-card">
@@ -79,9 +79,11 @@ $can_edit_poll = $is_creator && $stats['total_responses'] <= 1;
         </div>
     <?php endif; ?>
 
-        <form method="POST" action="<?php echo $current_user ? 'process_opinion.php' : 'opinion_standalone.php'; ?>">
+        <form method="POST" action="<?php echo $current_user ? htmlspecialchars($_tab_process_url) : 'opinion_standalone.php'; ?>">
             <input type="hidden" name="action" value="submit_response">
             <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
+            <?php if ($current_user && !empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
+            <?php if ($current_user && !empty($OPINION_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
 
             <h4>Bitte wähle deine Antwort:
                 <?php if (!empty($poll['description'])): ?>
@@ -130,7 +132,7 @@ $can_edit_poll = $is_creator && $stats['total_responses'] <= 1;
                 <button type="submit" class="btn-primary">
                     <?php echo $existing_response ? 'Antwort aktualisieren' : 'Antwort absenden'; ?>
                 </button>
-                <a href="?tab=opinion&view=detail&poll_id=<?php echo $poll_id; ?>" class="btn-secondary" style="text-decoration: none; padding: 10px 20px;">
+                <a href="<?php echo _opinion_url('detail', $poll_id); ?>" class="btn-secondary" style="text-decoration: none; padding: 10px 20px;">
                     Abbrechen
                 </a>
             </div>

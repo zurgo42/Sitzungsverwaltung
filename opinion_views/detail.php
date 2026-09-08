@@ -19,7 +19,7 @@ $stats = get_opinion_results($pdo, $poll_id);
 ?>
 
 <div style="margin-bottom: 20px;">
-    <a href="?tab=opinion" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">← Zurück zur Übersicht</a>
+    <a href="<?php echo _opinion_url(); ?>" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">← Zurück zur Übersicht</a>
 </div>
 
 <div class="opinion-card">
@@ -60,33 +60,37 @@ $stats = get_opinion_results($pdo, $poll_id);
 
         <div style="display: flex; flex-direction: column; gap: 10px;">
             <?php if ($is_active): ?>
-                <a href="?tab=opinion&view=participate&poll_id=<?php echo $poll_id; ?>" class="btn-primary" style="text-decoration: none;">
+                <a href="<?php echo _opinion_url('participate', $poll_id); ?>" class="btn-primary" style="text-decoration: none;">
                     Teilnehmen / Antworten
                 </a>
             <?php endif; ?>
 
-            <a href="?tab=opinion&view=results&poll_id=<?php echo $poll_id; ?>" class="btn-secondary" style="text-decoration: none;">
+            <a href="<?php echo _opinion_url('results', $poll_id); ?>" class="btn-secondary" style="text-decoration: none;">
                 Ergebnisse anzeigen
             </a>
 
             <?php if ($is_creator && $stats['total_responses'] <= 1): ?>
-                <a href="?tab=opinion&view=edit&poll_id=<?php echo $poll_id; ?>" class="btn-secondary" style="text-decoration: none; background: #2196F3; color: white;">
+                <a href="<?php echo _opinion_url('edit', $poll_id); ?>" class="btn-secondary" style="text-decoration: none; background: #2196F3; color: white;">
                     ✏️ Bearbeiten
                 </a>
             <?php endif; ?>
 
             <?php if ($is_creator || $is_admin): ?>
                 <?php if ($is_active): ?>
-                    <form method="POST" action="process_opinion.php" style="margin: 0;" onsubmit="return confirm('Umfrage jetzt beenden?')">
+                    <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="margin: 0;" onsubmit="return confirm('Umfrage jetzt beenden?')">
                         <input type="hidden" name="action" value="end_opinion">
                         <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
+                        <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
+                        <?php if (!empty($OPINION_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
                         <button type="submit" class="btn-secondary" style="width: 100%;">⏸️ Beenden</button>
                     </form>
                 <?php endif; ?>
 
-                <form method="POST" action="process_opinion.php" style="margin: 0;" onsubmit="return confirm('Umfrage wirklich löschen?')">
+                <form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" style="margin: 0;" onsubmit="return confirm('Umfrage wirklich löschen?')">
                     <input type="hidden" name="action" value="delete_opinion">
                     <input type="hidden" name="poll_id" value="<?php echo $poll_id; ?>">
+                    <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
+                    <?php if (!empty($OPINION_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
                     <button type="submit" class="btn-secondary" style="width: 100%; background: #f44336; color: white;">🗑️ Löschen</button>
                 </form>
             <?php endif; ?>

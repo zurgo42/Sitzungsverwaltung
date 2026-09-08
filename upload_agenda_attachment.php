@@ -6,8 +6,9 @@
  */
 
 session_start();
-require_once 'config.php';
+require_once 'config.php';  // Beinhaltet jetzt $pdo
 require_once 'functions.php';
+require_once 'member_functions.php';
 
 header('Content-Type: application/json');
 
@@ -165,7 +166,7 @@ for ($i = 0; $i < $file_count; $i++) {
     } catch (PDOException $e) {
         // Bei DB-Fehler: Datei löschen
         unlink($filepath);
-        $errors[] = "$file_name: Datenbankfehler";
+        $errors[] = "$file_name: Datenbankfehler - " . $e->getMessage();
         error_log("Attachment DB Error: " . $e->getMessage());
     }
 }

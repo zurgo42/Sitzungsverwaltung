@@ -21,6 +21,10 @@
  * 3. Fertig! Keine weiteren Änderungen nötig.
  */
 
+// Guard: verhindert Doppel-Ausführung wenn aus zwei verschiedenen Pfaden geladen
+if (defined('SV_CONFIG_ADAPTER_LOADED')) return;
+define('SV_CONFIG_ADAPTER_LOADED', true);
+
 // ============================================
 // 1. IHR BESTEHENDES SYSTEM EINBINDEN
 // ============================================

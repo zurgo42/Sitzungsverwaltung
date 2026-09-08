@@ -93,6 +93,184 @@ if ($should_run) {
             @file_put_contents(__DIR__ . '/pseudo_cron.log', $log_msg, FILE_APPEND);
         }
 
+        // ---- Abstimmungsfrist-Check ----
+        // Abstimmungsdauer aus svconfig lesen (Default: 7 Tage)
+        $dauer_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'bart_B_abstimmung_tage' LIMIT 1");
+        $abstimmung_dauer = $dauer_stmt ? (int)($dauer_stmt->fetchColumn() ?: 7) : 7;
+
+        // Grenz-Datum im YYMMDD-Format (= Datum vor $abstimmung_dauer Tagen)
+        $grenz_yymmdd = date('ymd', strtotime("-{$abstimmung_dauer} days"));
+
+        // Alle B-Anträge suchen, deren Datum (YYMMDD in antrnr) die Frist überschritten hat
+        if (defined('TABLE_ANTRAEGE')) {
+            $b_stmt = @$pdo->query("
+                SELECT antrnr,
+                       VBedenk1, Votum1, VBedenk2, Votum2, VBedenk3, Votum3,
+                       VBedenk4, Votum4, VBedenk5, Votum5, VBedenk6, Votum6
+                FROM " . TABLE_ANTRAEGE . "
+                WHERE antrnr LIKE 'B%'
+                  AND LENGTH(antrnr) >= 8
+                  AND SUBSTR(antrnr, 2, 6) <= '" . $grenz_yymmdd . "'
+            ");
+
+            if ($b_stmt) {
+                // voting_helper.php laden falls noch nicht geschehen
+                if (!function_exists('auswerten_abstimmung')) {
+                    $helper = __DIR__ . '/includes/voting_helper.php';
+                    if (file_exists($helper)) require_once $helper;
+                    // member_functions.php wird von beschluss_annehmen() benötigt
+                    if (file_exists(__DIR__ . '/member_functions.php')) {
+                        require_once __DIR__ . '/member_functions.php';
+                    }
+                }
+
+                $ausgewertet = 0;
+                foreach ($b_stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                    // Prüfen ob eine Bedenkzeit noch aktiv ist
+                    $bedenkzeit_aktiv = false;
+                    for ($i = 1; $i <= 6; $i++) {
+                        if ((int)($row["Votum$i"] ?? 0) === 5
+                            && !empty($row["VBedenk$i"])
+                            && strtotime($row["VBedenk$i"]) > time()) {
+                            $bedenkzeit_aktiv = true;
+                            break;
+                        }
+                    }
+
+                    if (!$bedenkzeit_aktiv && function_exists('auswerten_abstimmung')) {
+                        auswerten_abstimmung($pdo, $row['antrnr'], true);
+                        $ausgewertet++;
+                    }
+                }
+
+                if ($ausgewertet > 0) {
+                    $log_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron: {$ausgewertet} Abstimmung(en) nach Fristablauf ausgewertet\n";
+                    @file_put_contents(__DIR__ . '/pseudo_cron.log', $log_msg, FILE_APPEND);
+                }
+            }
+        }
+
+        // ---- Agenda-Erinnerungsmail-Check ----
+        // Sitzungen finden, bei denen der Antragsschluss abgelaufen ist,
+        // Erinnerungsmail aktiviert und noch nicht versendet wurde
+        $col_check = @$pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'send_agenda_reminder'");
+        if ($col_check && $col_check->fetch()) {
+            $remind_stmt = @$pdo->query("
+                SELECT meeting_id
+                FROM svmeetings
+                WHERE send_agenda_reminder = 1
+                  AND agenda_reminder_sent = 0
+                  AND submission_deadline IS NOT NULL
+                  AND submission_deadline <= NOW()
+                  AND status IN ('preparation', 'active')
+            ");
+
+            if ($remind_stmt) {
+                // mail_functions.php laden falls noch nicht geschehen
+                if (!function_exists('send_agenda_reminder_mail')) {
+                    $mail_file = __DIR__ . '/mail_functions.php';
+                    if (file_exists($mail_file)) require_once $mail_file;
+                }
+                // member_functions.php für get_member_by_id() benötigt
+                if (!function_exists('get_member_by_id') && file_exists(__DIR__ . '/member_functions.php')) {
+                    require_once __DIR__ . '/member_functions.php';
+                }
+
+                // Basis-URL ermitteln (für Links in der Mail)
+                $base_url = '';
+                if (isset($_SERVER['HTTP_HOST'])) {
+                    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                    $base_url = $scheme . '://' . $_SERVER['HTTP_HOST'] . (defined('STANDALONE_PATH') ? STANDALONE_PATH : '');
+                }
+
+                $reminded = 0;
+                foreach ($remind_stmt->fetchAll(PDO::FETCH_COLUMN) as $mid) {
+                    if (function_exists('send_agenda_reminder_mail')) {
+                        $sent = send_agenda_reminder_mail($pdo, (int)$mid, $base_url);
+                        if ($sent >= 0) $reminded++;
+                    }
+                }
+
+                if ($reminded > 0) {
+                    $log_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron: {$reminded} Agenda-Erinnerungsmail(s) versendet\n";
+                    @file_put_contents(__DIR__ . '/pseudo_cron.log', $log_msg, FILE_APPEND);
+                }
+            }
+        }
+
+        // ---- Monatliche Protokoll-Archivierung ----
+        // Beim Monatswechsel: protokoll → YYYYMMprotokoll, neue leere Tabelle anlegen
+        $aktueller_monat = date('Ym'); // z.B. "202601"
+        try {
+            $last_arch_stmt = $pdo->query(
+                "SELECT config_value FROM svconfig WHERE config_key = 'protokoll_last_archive' LIMIT 1"
+            );
+            // fetchColumn() returns false (not null/empty) when the row doesn't exist
+            $last_archive = $last_arch_stmt ? $last_arch_stmt->fetchColumn() : false;
+
+            // Tabelle protokoll existiert prüfen
+            $tbl_check = $pdo->query("SHOW TABLES LIKE 'protokoll'");
+            $protokoll_exists = $tbl_check && $tbl_check->rowCount() > 0;
+
+            if ($last_archive === false) {
+                // Schlüssel existiert noch nicht → initialisieren, kein Archiv anlegen
+                $pdo->prepare(
+                    "INSERT INTO svconfig (config_key, config_value, config_type, description, category)
+                     VALUES ('protokoll_last_archive', ?, 'text', 'Letzter archivierter Protokoll-Monat (YYYYMM)', 'system')
+                     ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)"
+                )->execute([$aktueller_monat]);
+            } elseif ($protokoll_exists && $last_archive !== $aktueller_monat) {
+                $archiv_name = $aktueller_monat . 'protokoll'; // z.B. "202601protokoll"
+
+                // Archivtabelle anlegen und Daten kopieren
+                $pdo->exec("CREATE TABLE IF NOT EXISTS `{$archiv_name}` LIKE protokoll");
+                $pdo->exec("INSERT INTO `{$archiv_name}` SELECT * FROM protokoll");
+                $pdo->exec("TRUNCATE TABLE protokoll");
+
+                // letzten Archivmonat merken (INSERT … ON DUPLICATE KEY damit es auch klappt
+                // wenn der Schlüssel zwischenzeitlich gelöscht wurde)
+                $pdo->prepare(
+                    "INSERT INTO svconfig (config_key, config_value, config_type, description, category)
+                     VALUES ('protokoll_last_archive', ?, 'text', 'Letzter archivierter Protokoll-Monat (YYYYMM)', 'system')
+                     ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)"
+                )->execute([$aktueller_monat]);
+
+                $log_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron: protokoll archiviert als {$archiv_name}\n";
+                @file_put_contents(__DIR__ . '/pseudo_cron.log', $log_msg, FILE_APPEND);
+            }
+        } catch (Exception $e) {
+            $error_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron Archiv-Fehler: " . $e->getMessage() . "\n";
+            @file_put_contents(__DIR__ . '/pseudo_cron.log', $error_msg, FILE_APPEND);
+        }
+
+        // ---- E-Mail-Benachrichtigungen verarbeiten ----
+        if (!function_exists('nm_process_immediate')) {
+            $nm_file = __DIR__ . '/notification_mailer.php';
+            if (file_exists($nm_file)) require_once $nm_file;
+        }
+        if (function_exists('nm_process_immediate')) {
+            // Sofort-Nachrichten verarbeiten (jede Minute)
+            nm_process_immediate($pdo);
+
+            // Digest einmal täglich nach der konfigurierten Stunde versenden
+            $dh_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'notification_digest_hour' LIMIT 1");
+            $digest_hour = $dh_stmt ? (int)($dh_stmt->fetchColumn() ?: 18) : 18;
+
+            $ld_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'nm_last_digest_date' LIMIT 1");
+            $nm_last_digest_row = $ld_stmt ? $ld_stmt->fetchColumn() : false;
+            $nm_last_digest = ($nm_last_digest_row !== false) ? (string)$nm_last_digest_row : '';
+
+            $today_d = date('Y-m-d');
+            if ($nm_last_digest !== $today_d && (int)date('H') >= $digest_hour) {
+                nm_process_digest($pdo);
+                $pdo->prepare(
+                    "INSERT INTO svconfig (config_key, config_value, config_type, description, category)
+                     VALUES ('nm_last_digest_date', ?, 'text', 'Datum des letzten Digest-Versands', 'notifications')
+                     ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)"
+                )->execute([$today_d]);
+            }
+        }
+
     } catch (Exception $e) {
         // Fehler loggen aber nicht ausgeben (um Seite nicht zu stören)
         $error_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron Error: " . $e->getMessage() . "\n";

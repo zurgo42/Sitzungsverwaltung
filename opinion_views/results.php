@@ -34,7 +34,7 @@ if (!can_show_final_results($poll, $current_user, $has_responded)) {
         echo "Die Ergebnisse sind erst nach Ablauf der Umfrage sichtbar.";
     }
     echo "</p>";
-    echo "<a href='?tab=opinion&view=detail&poll_id={$poll_id}' class='btn-secondary' style='text-decoration: none; display: inline-block; padding: 8px 16px;'>Zurück zur Umfrage</a>";
+    echo "<a href='" . _opinion_url('detail', $poll_id) . "' class='btn-secondary' style='text-decoration: none; display: inline-block; padding: 8px 16px;'>Zurück zur Umfrage</a>";
     echo "</div>";
     return;
 }
@@ -49,7 +49,7 @@ $voters_per_option = get_voters_per_option($pdo, $poll_id, $show_voter_names);
 ?>
 
 <div style="margin-bottom: 20px;">
-    <a href="?tab=opinion&view=detail&poll_id=<?php echo $poll_id; ?>" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">← Zurück</a>
+    <a href="<?php echo _opinion_url('detail', $poll_id); ?>" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 8px 16px;">← Zurück</a>
 </div>
 
 <div class="opinion-card">

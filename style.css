@@ -44,7 +44,7 @@
 }
 
 /* Dark Mode Variablen */
-body.dark-mode {
+html.dark-mode {
     --bg-primary: #1a1a1a;
     --bg-secondary: #2d2d2d;
     --bg-tertiary: #3a3a3a;
@@ -62,6 +62,11 @@ body.dark-mode {
     /* Card-Farben für besseren Kontrast */
     --card-bg: #1e3a5f;        /* Dunkelblau für Cards */
     --card-border: #b8860b;    /* Dunkelgelb für Rahmen */
+}
+
+html.dark-mode body {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
 /* ==============================================
@@ -1172,13 +1177,13 @@ button:hover {
     background: #e8e8e8;
 }
 
-body.dark-mode .other-todos-accordion-header {
+html.dark-mode .other-todos-accordion-header {
     background: var(--bg-secondary) !important;
     color: var(--text-primary) !important;
     border-color: var(--card-border) !important;
 }
 
-body.dark-mode .other-todos-accordion-header:hover {
+html.dark-mode .other-todos-accordion-header:hover {
     background: var(--bg-tertiary) !important;
 }
 
@@ -2473,154 +2478,154 @@ body.dark-mode .other-todos-accordion-header:hover {
     transition: transform 0.3s ease;
 }
 
-body.dark-mode .dark-mode-toggle .icon {
+html.dark-mode .dark-mode-toggle .icon {
     transform: rotate(180deg);
 }
 
 /* Dark mode specific overrides for key components */
-body.dark-mode {
+html.dark-mode {
     background-color: var(--bg-secondary);
 }
 
-body.dark-mode .header {
+html.dark-mode .header {
     background: var(--bg-primary);
     border-bottom-color: var(--border-color);
 }
 
-body.dark-mode .content {
+html.dark-mode .content {
     background: var(--bg-primary);
 }
 
-body.dark-mode .tabs {
+html.dark-mode .tabs {
     background: var(--bg-secondary);
     border-bottom-color: var(--border-color);
 }
 
-body.dark-mode .tab {
+html.dark-mode .tab {
     color: var(--text-secondary);
     border-bottom-color: transparent;
 }
 
-body.dark-mode .tab:hover {
+html.dark-mode .tab:hover {
     background: var(--hover-bg);
     color: var(--text-primary);
 }
 
-body.dark-mode .tab.active {
+html.dark-mode .tab.active {
     background: var(--bg-primary);
     color: var(--primary-light);
     border-bottom-color: var(--primary-light);
 }
 
-body.dark-mode .tab-content {
+html.dark-mode .tab-content {
     background: var(--bg-primary);
 }
 
-body.dark-mode table {
+html.dark-mode table {
     background: var(--bg-primary);
     border-color: var(--border-color);
 }
 
-body.dark-mode th {
+html.dark-mode th {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border-color: var(--border-color);
 }
 
-body.dark-mode td {
+html.dark-mode td {
     border-color: var(--border-color);
     color: var(--text-primary);
 }
 
-body.dark-mode tr:hover {
+html.dark-mode tr:hover {
     background: var(--hover-bg);
 }
 
-body.dark-mode input[type="text"],
-body.dark-mode input[type="email"],
-body.dark-mode input[type="password"],
-body.dark-mode input[type="date"],
-body.dark-mode input[type="datetime-local"],
-body.dark-mode input[type="time"],
-body.dark-mode input[type="number"],
-body.dark-mode input[type="url"],
-body.dark-mode textarea,
-body.dark-mode select {
+html.dark-mode input[type="text"],
+html.dark-mode input[type="email"],
+html.dark-mode input[type="password"],
+html.dark-mode input[type="date"],
+html.dark-mode input[type="datetime-local"],
+html.dark-mode input[type="time"],
+html.dark-mode input[type="number"],
+html.dark-mode input[type="url"],
+html.dark-mode textarea,
+html.dark-mode select {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border-color: var(--border-color);
 }
 
-body.dark-mode input:focus,
-body.dark-mode textarea:focus,
-body.dark-mode select:focus {
+html.dark-mode input:focus,
+html.dark-mode textarea:focus,
+html.dark-mode select:focus {
     border-color: var(--primary-light);
     background: var(--bg-secondary);
 }
 
-body.dark-mode .message,
-body.dark-mode .error-message {
+html.dark-mode .message,
+html.dark-mode .error-message {
     background: var(--bg-tertiary);
     border-color: var(--border-color);
     color: var(--text-primary);
 }
 
-body.dark-mode .footer {
+html.dark-mode .footer {
     background: var(--bg-primary);
     color: var(--text-secondary);
     border-top-color: var(--border-color);
 }
 
-body.dark-mode details {
+html.dark-mode details {
     background: var(--bg-secondary);
     border-color: var(--border-color);
 }
 
-body.dark-mode summary {
+html.dark-mode summary {
     color: var(--text-primary);
 }
 
-body.dark-mode .admin-section-header {
+html.dark-mode .admin-section-header {
     background: var(--accent) !important;
     color: #333 !important;
 }
 
-body.dark-mode .admin-section-content {
+html.dark-mode .admin-section-content {
     background: var(--bg-primary);
 }
 
-body.dark-mode .card,
-body.dark-mode .meeting-card,
-body.dark-mode .agenda-card {
+html.dark-mode .card,
+html.dark-mode .meeting-card,
+html.dark-mode .agenda-card {
     background: var(--bg-secondary);
     border-color: var(--border-color);
     box-shadow: 0 2px 4px var(--shadow-color);
 }
 
-body.dark-mode .modal-content {
+html.dark-mode .modal-content {
     background: var(--bg-secondary);
     color: var(--text-primary);
 }
 
-body.dark-mode .modal-overlay {
+html.dark-mode .modal-overlay {
     background: rgba(0, 0, 0, 0.7);
 }
 
-body.dark-mode .quill-editor {
+html.dark-mode .quill-editor {
     background: var(--bg-primary);
     color: var(--text-primary);
 }
 
-body.dark-mode .ql-toolbar {
+html.dark-mode .ql-toolbar {
     background: var(--bg-tertiary);
     border-color: var(--border-color);
 }
 
-body.dark-mode .ql-container {
+html.dark-mode .ql-container {
     border-color: var(--border-color);
 }
 
-body.dark-mode .ql-editor {
+html.dark-mode .ql-editor {
     background: var(--bg-primary);
     color: var(--text-primary);
 }
@@ -2630,378 +2635,386 @@ body.dark-mode .ql-editor {
    ============================================== */
 
 /* Buttons im Dark Mode */
-body.dark-mode button,
-body.dark-mode .btn-primary,
-body.dark-mode .btn-secondary,
-body.dark-mode .btn-success,
-body.dark-mode .btn-danger,
-body.dark-mode .btn-warning {
+html.dark-mode button,
+html.dark-mode .btn-primary,
+html.dark-mode .btn-secondary,
+html.dark-mode .btn-success,
+html.dark-mode .btn-danger,
+html.dark-mode .btn-warning {
     border-color: var(--border-color);
 }
 
-body.dark-mode button:not([style*="background"]):not(.btn-primary):not(.btn-secondary) {
+html.dark-mode button:not([style*="background"]):not(.btn-primary):not(.btn-secondary) {
     background: var(--bg-tertiary);
     color: var(--text-primary);
 }
 
 /* Links im Dark Mode */
-body.dark-mode a:not(.logout-btn):not(.btn) {
+html.dark-mode a:not(.logout-btn):not(.btn) {
     color: var(--primary-light);
 }
 
-body.dark-mode a:hover {
+html.dark-mode a:hover {
     color: var(--accent-light);
 }
 
 /* Spezielle Overrides für inline-styled Elemente */
-body.dark-mode [style*="background: white"],
-body.dark-mode [style*="background:white"],
-body.dark-mode [style*="background: #fff"],
-body.dark-mode [style*="background:#fff"] {
+html.dark-mode [style*="background: white"],
+html.dark-mode [style*="background:white"],
+html.dark-mode [style*="background: #fff"],
+html.dark-mode [style*="background:#fff"] {
     background: var(--bg-secondary) !important;
 }
 
-body.dark-mode [style*="background: #f8f9fa"],
-body.dark-mode [style*="background:#f8f9fa"] {
+html.dark-mode [style*="background: #f8f9fa"],
+html.dark-mode [style*="background:#f8f9fa"],
+html.dark-mode [style*="background: #f1f3f5"],
+html.dark-mode [style*="background:#f1f3f5"] {
     background: var(--bg-tertiary) !important;
 }
 
-body.dark-mode [style*="color: #333"],
-body.dark-mode [style*="color:#333"],
-body.dark-mode [style*="color: #666"],
-body.dark-mode [style*="color:#666"] {
+html.dark-mode [style*="color: #333"],
+html.dark-mode [style*="color:#333"],
+html.dark-mode [style*="color: #666"],
+html.dark-mode [style*="color:#666"],
+html.dark-mode [style*="color: #000"],
+html.dark-mode [style*="color:#000"],
+html.dark-mode [style*="color: #495057"],
+html.dark-mode [style*="color:#495057"],
+html.dark-mode [style*="color: #6c757d"],
+html.dark-mode [style*="color:#6c757d"] {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode [style*="color: #999"],
-body.dark-mode [style*="color:#999"] {
+html.dark-mode [style*="color: #999"],
+html.dark-mode [style*="color:#999"] {
     color: var(--text-muted) !important;
 }
 
-body.dark-mode [style*="border: 1px solid #ddd"],
-body.dark-mode [style*="border:1px solid #ddd"],
-body.dark-mode [style*="border-color: #ddd"] {
+html.dark-mode [style*="border: 1px solid #ddd"],
+html.dark-mode [style*="border:1px solid #ddd"],
+html.dark-mode [style*="border-color: #ddd"] {
     border-color: var(--border-color) !important;
 }
 
 /* Admin-spezifische Anpassungen */
-body.dark-mode .admin-table {
+html.dark-mode .admin-table {
     background: var(--bg-primary);
 }
 
-body.dark-mode .admin-table th {
+html.dark-mode .admin-table th {
     background: var(--bg-tertiary);
     color: var(--text-primary);
 }
 
-body.dark-mode .admin-table td {
+html.dark-mode .admin-table td {
     color: var(--text-primary);
 }
 
 /* Details/Summary Elemente */
-body.dark-mode details[style] {
+html.dark-mode details[style] {
     background: var(--bg-secondary) !important;
     border-color: var(--border-color) !important;
 }
 
-body.dark-mode summary {
+html.dark-mode summary {
     color: var(--text-primary) !important;
 }
 
 /* Formulare - alle inputs */
-body.dark-mode input:not([type="checkbox"]):not([type="radio"]),
-body.dark-mode textarea,
-body.dark-mode select {
+html.dark-mode input:not([type="checkbox"]):not([type="radio"]),
+html.dark-mode textarea,
+html.dark-mode select {
     background-color: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border-color: var(--border-color) !important;
 }
 
-body.dark-mode input::placeholder,
-body.dark-mode textarea::placeholder {
+html.dark-mode input::placeholder,
+html.dark-mode textarea::placeholder {
     color: var(--text-muted) !important;
 }
 
 /* Labels */
-body.dark-mode label {
+html.dark-mode label {
     color: var(--text-primary) !important;
 }
 
 /* Small text */
-body.dark-mode small {
+html.dark-mode small {
     color: var(--text-secondary) !important;
 }
 
 /* Divs mit padding (oft Container) */
-body.dark-mode div[style*="padding"][style*="background"] {
+html.dark-mode div[style*="padding"][style*="background"] {
     background: var(--bg-secondary) !important;
 }
 
 /* Tabellen Header Row */
-body.dark-mode tr[style*="background: #f8f9fa"] {
+html.dark-mode tr[style*="background: #f8f9fa"] {
     background: var(--bg-tertiary) !important;
 }
 
-body.dark-mode tr[style*="background: white"],
-body.dark-mode tr[style*="background:#fff"] {
+html.dark-mode tr[style*="background: white"],
+html.dark-mode tr[style*="background:#fff"] {
     background: var(--bg-primary) !important;
 }
 
 /* Message boxes */
-body.dark-mode div[style*="background: #e8f5e9"],
-body.dark-mode div[style*="background:#e8f5e9"] {
+html.dark-mode div[style*="background: #e8f5e9"],
+html.dark-mode div[style*="background:#e8f5e9"] {
     background: var(--bg-tertiary) !important;
     color: var(--success) !important;
 }
 
 /* Code/Pre Blöcke */
-body.dark-mode code,
-body.dark-mode pre {
+html.dark-mode code,
+html.dark-mode pre {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border-color: var(--border-color);
 }
 
 /* User Info Bereich */
-body.dark-mode .user-info {
+html.dark-mode .user-info {
     color: var(--text-primary);
 }
 
-body.dark-mode .user-info span {
+html.dark-mode .user-info span {
     color: var(--text-primary);
 }
 
 /* Role Badges */
-body.dark-mode .role-badge {
+html.dark-mode .role-badge {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border-color: var(--border-color);
 }
 
 /* Logout Button */
-body.dark-mode .logout-btn {
+html.dark-mode .logout-btn {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border-color: var(--border-color);
 }
 
-body.dark-mode .logout-btn:hover {
+html.dark-mode .logout-btn:hover {
     background: var(--hover-bg);
 }
 
 /* Accordion/Collapsible */
-body.dark-mode .accordion-header,
-body.dark-mode .admin-section-header {
+html.dark-mode .accordion-header,
+html.dark-mode .admin-section-header {
     /* Keep yellow background for visibility */
     background: var(--accent) !important;
     color: #000 !important; /* Black text on yellow for contrast */
 }
 
-body.dark-mode .accordion-content,
-body.dark-mode .admin-section-content {
+html.dark-mode .accordion-content,
+html.dark-mode .admin-section-content {
     background: var(--bg-primary);
     color: var(--text-primary);
 }
 
 /* Footer */
-body.dark-mode .page-footer,
-body.dark-mode footer {
+html.dark-mode .page-footer,
+html.dark-mode footer {
     background: var(--bg-primary);
     color: var(--text-secondary);
     border-top-color: var(--border-color);
 }
 
-body.dark-mode .page-footer a {
+html.dark-mode .page-footer a {
     color: var(--primary-light);
 }
 
 /* Specific for agenda items, TOPs, etc */
-body.dark-mode .agenda-item,
-body.dark-mode .top-item,
-body.dark-mode .meeting-item {
+html.dark-mode .agenda-item,
+html.dark-mode .top-item,
+html.dark-mode .meeting-item {
     background: var(--bg-secondary);
     border-color: var(--border-color);
 }
 
 /* Modals */
-body.dark-mode .modal,
-body.dark-mode [class*="modal"] {
+html.dark-mode .modal,
+html.dark-mode [class*="modal"] {
     background: rgba(0, 0, 0, 0.8);
 }
 
-body.dark-mode .modal-content,
-body.dark-mode [class*="modal-content"] {
+html.dark-mode .modal-content,
+html.dark-mode [class*="modal-content"] {
     background: var(--bg-secondary);
     color: var(--text-primary);
     border-color: var(--border-color);
 }
 
 /* Tooltips */
-body.dark-mode [title]::after {
+html.dark-mode [title]::after {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border-color: var(--border-color);
 }
 
 /* HR Separator */
-body.dark-mode hr {
+html.dark-mode hr {
     border-color: var(--border-color);
 }
 
 /* Blockquote */
-body.dark-mode blockquote {
+html.dark-mode blockquote {
     background: var(--bg-tertiary);
     border-left-color: var(--primary-light);
     color: var(--text-primary);
 }
 
 /* Specific override for really bright backgrounds */
-body.dark-mode [style*="background: #fffbf0"],
-body.dark-mode [style*="background:#fffbf0"] {
+html.dark-mode [style*="background: #fffbf0"],
+html.dark-mode [style*="background:#fffbf0"] {
     background: var(--bg-tertiary) !important;
     border-left: 3px solid var(--warning) !important;
 }
 
 /* Gray backgrounds */
-body.dark-mode [style*="background: #f5f5f5"],
-body.dark-mode [style*="background:#f5f5f5"] {
+html.dark-mode [style*="background: #f5f5f5"],
+html.dark-mode [style*="background:#f5f5f5"] {
     background: var(--bg-tertiary) !important;
 }
 
 /* Strong/Bold text should be more visible */
-body.dark-mode strong,
-body.dark-mode b {
+html.dark-mode strong,
+html.dark-mode b {
     color: var(--text-primary);
     font-weight: 600;
 }
 
 /* Ensure readability for warning/info messages */
-body.dark-mode .warning,
-body.dark-mode .info,
-body.dark-mode .alert {
+html.dark-mode .warning,
+html.dark-mode .info,
+html.dark-mode .alert {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border-color: var(--warning);
 }
 
 /* Override ALL white backgrounds with !important */
-body.dark-mode [style*="background: white"],
-body.dark-mode [style*="background:white"],
-body.dark-mode [style*="background: #fff"],
-body.dark-mode [style*="background:#fff"],
-body.dark-mode [style*="background: #ffffff"],
-body.dark-mode [style*="background:#ffffff"] {
+html.dark-mode [style*="background: white"],
+html.dark-mode [style*="background:white"],
+html.dark-mode [style*="background: #fff"],
+html.dark-mode [style*="background:#fff"],
+html.dark-mode [style*="background: #ffffff"],
+html.dark-mode [style*="background:#ffffff"] {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Override light gray backgrounds */
-body.dark-mode [style*="background: #f8f9fa"],
-body.dark-mode [style*="background:#f8f9fa"],
-body.dark-mode [style*="background: #f9f9f9"],
-body.dark-mode [style*="background:#f9f9f9"] {
+html.dark-mode [style*="background: #f8f9fa"],
+html.dark-mode [style*="background:#f8f9fa"],
+html.dark-mode [style*="background: #f9f9f9"],
+html.dark-mode [style*="background:#f9f9f9"] {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
 }
 
 /* Collab Text specific classes */
-body.dark-mode .collab-text-card {
+html.dark-mode .collab-text-card {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .paragraph-container {
+html.dark-mode .paragraph-container {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .paragraph-container.editing {
+html.dark-mode .paragraph-container.editing {
     background: var(--bg-tertiary) !important;
     border-color: var(--primary-light) !important;
 }
 
-body.dark-mode .paragraph-container.locked {
+html.dark-mode .paragraph-container.locked {
     background: var(--bg-tertiary) !important;
     border-color: var(--warning) !important;
 }
 
-body.dark-mode .text-preview {
+html.dark-mode .text-preview {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border-color: var(--border-color) !important;
 }
 
 /* Dialog/Modal Content - force dark backgrounds */
-body.dark-mode div[style*="background: white"][style*="padding: 30px"],
-body.dark-mode div[style*="background:white"][style*="padding: 30px"] {
+html.dark-mode div[style*="background: white"][style*="padding: 30px"],
+html.dark-mode div[style*="background:white"][style*="padding: 30px"] {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Online users box */
-body.dark-mode .online-users {
+html.dark-mode .online-users {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border-left-color: var(--primary-light) !important;
 }
 
-body.dark-mode .online-user-badge {
+html.dark-mode .online-user-badge {
     background: var(--primary-light) !important;
     color: var(--bg-primary) !important;
 }
 
 /* Card class general override - Dunkelblau mit dunkelgelbem Rahmen */
-body.dark-mode .card {
+html.dark-mode .card {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Textareas in edit mode */
-body.dark-mode .paragraph-edit-area {
+html.dark-mode .paragraph-edit-area {
     background: var(--bg-primary) !important;
     color: var(--text-primary) !important;
     border-color: var(--border-color) !important;
 }
 
 /* Labels should be visible */
-body.dark-mode label {
+html.dark-mode label {
     color: var(--text-primary) !important;
 }
 
 /* Paragraph headers and metadata */
-body.dark-mode .paragraph-header span,
-body.dark-mode .paragraph-lock-info {
+html.dark-mode .paragraph-header span,
+html.dark-mode .paragraph-lock-info {
     color: var(--text-secondary) !important;
 }
 
 /* Status badges */
-body.dark-mode .collab-text-status {
+html.dark-mode .collab-text-status {
     filter: brightness(0.9);
 }
 
 /* Success/Info boxes with specific colors */
-body.dark-mode [style*="background: #e7f3ff"],
-body.dark-mode [style*="background:#e7f3ff"] {
+html.dark-mode [style*="background: #e7f3ff"],
+html.dark-mode [style*="background:#e7f3ff"] {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border-left-color: var(--primary-light) !important;
 }
 
-body.dark-mode [style*="background: #e8f5e9"],
-body.dark-mode [style*="background:#e8f5e9"] {
+html.dark-mode [style*="background: #e8f5e9"],
+html.dark-mode [style*="background:#e8f5e9"] {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border-left-color: var(--success) !important;
 }
 
 /* Yellow warning backgrounds */
-body.dark-mode [style*="background: #fff3cd"],
-body.dark-mode [style*="background:#fff3cd"] {
+html.dark-mode [style*="background: #fff3cd"],
+html.dark-mode [style*="background:#fff3cd"] {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border-color: var(--warning) !important;
@@ -3010,172 +3023,172 @@ body.dark-mode [style*="background:#fff3cd"] {
 /* Additional comprehensive overrides for remaining white/light elements */
 
 /* Tabs/Navigation - force dark on all occasions including mobile */
-body.dark-mode .tabs,
-body.dark-mode .navigation,
-body.dark-mode .tabs a,
-body.dark-mode .navigation a {
+html.dark-mode .tabs,
+html.dark-mode .navigation,
+html.dark-mode .tabs a,
+html.dark-mode .navigation a {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border-color: var(--border-color) !important;
 }
 
-body.dark-mode .tabs a.active,
-body.dark-mode .navigation a.active {
+html.dark-mode .tabs a.active,
+html.dark-mode .navigation a.active {
     background: var(--primary-light) !important;
     color: var(--bg-primary) !important;
 }
 
-body.dark-mode .tabs a:hover,
-body.dark-mode .navigation a:hover {
+html.dark-mode .tabs a:hover,
+html.dark-mode .navigation a:hover {
     background: var(--hover-bg) !important;
     color: var(--text-primary) !important;
 }
 
 /* Search inputs (Stichwortsuche in Termine, Protokolle etc.) */
-body.dark-mode .search-input,
-body.dark-mode .search-input-group input,
-body.dark-mode input.search-input {
+html.dark-mode .search-input,
+html.dark-mode .search-input-group input,
+html.dark-mode input.search-input {
     background: var(--bg-primary) !important;
     color: var(--text-primary) !important;
     border-color: var(--border-color) !important;
 }
 
-body.dark-mode .search-results-count {
+html.dark-mode .search-results-count {
     color: var(--text-secondary) !important;
 }
 
 /* Document cards/filecards */
-body.dark-mode .document-filecard,
-body.dark-mode .filecard,
-body.dark-mode .doc-card {
+html.dark-mode .document-filecard,
+html.dark-mode .filecard,
+html.dark-mode .doc-card {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .document-filecard-title,
-body.dark-mode .document-title,
-body.dark-mode .doc-title {
+html.dark-mode .document-filecard-title,
+html.dark-mode .document-title,
+html.dark-mode .doc-title {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode .document-filecard-meta,
-body.dark-mode .document-meta,
-body.dark-mode .doc-meta {
+html.dark-mode .document-filecard-meta,
+html.dark-mode .document-meta,
+html.dark-mode .doc-meta {
     color: var(--text-secondary) !important;
 }
 
-body.dark-mode .document-filecard-meta span,
-body.dark-mode .doc-badge {
+html.dark-mode .document-filecard-meta span,
+html.dark-mode .doc-badge {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
 }
 
-body.dark-mode .document-filecard-desc,
-body.dark-mode .doc-description {
+html.dark-mode .document-filecard-desc,
+html.dark-mode .doc-description {
     color: var(--text-secondary) !important;
 }
 
 /* ToDo items in Erledigen tab */
-body.dark-mode .todo-item,
-body.dark-mode .task-item,
-body.dark-mode .todo-card,
-body.dark-mode .task-card {
+html.dark-mode .todo-item,
+html.dark-mode .task-item,
+html.dark-mode .todo-card,
+html.dark-mode .task-card {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .todo-title,
-body.dark-mode .task-title {
+html.dark-mode .todo-title,
+html.dark-mode .task-title {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode .todo-description,
-body.dark-mode .task-description {
+html.dark-mode .todo-description,
+html.dark-mode .task-description {
     color: var(--text-secondary) !important;
 }
 
 /* Meinungsbilder / Polls */
-body.dark-mode .poll-container,
-body.dark-mode .opinion-container,
-body.dark-mode .poll-item,
-body.dark-mode .opinion-item {
+html.dark-mode .poll-container,
+html.dark-mode .opinion-container,
+html.dark-mode .poll-item,
+html.dark-mode .opinion-item {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .poll-title,
-body.dark-mode .opinion-title {
+html.dark-mode .poll-title,
+html.dark-mode .opinion-title {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode .poll-option,
-body.dark-mode .opinion-option {
+html.dark-mode .poll-option,
+html.dark-mode .opinion-option {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border-color: var(--border-color) !important;
 }
 
 /* Diskussion & Übersicht */
-body.dark-mode .discussion-container,
-body.dark-mode .discussion-item,
-body.dark-mode .comment-container,
-body.dark-mode .comment-item {
+html.dark-mode .discussion-container,
+html.dark-mode .discussion-item,
+html.dark-mode .comment-container,
+html.dark-mode .comment-item {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .discussion-title,
-body.dark-mode .comment-title {
+html.dark-mode .discussion-title,
+html.dark-mode .comment-title {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode .discussion-content,
-body.dark-mode .comment-content {
+html.dark-mode .discussion-content,
+html.dark-mode .comment-content {
     color: var(--text-primary) !important;
 }
 
 /* Überschriften in Dokumente und allen anderen Bereichen */
-body.dark-mode h1,
-body.dark-mode h2,
-body.dark-mode h3,
-body.dark-mode h4,
-body.dark-mode h5,
-body.dark-mode h6 {
+html.dark-mode h1,
+html.dark-mode h2,
+html.dark-mode h3,
+html.dark-mode h4,
+html.dark-mode h5,
+html.dark-mode h6 {
     color: var(--text-primary) !important;
 }
 
 /* Paragraph text */
-body.dark-mode p {
+html.dark-mode p {
     color: var(--text-primary);
 }
 
 /* Spans that might have color set */
-body.dark-mode span[style*="color: #666"],
-body.dark-mode span[style*="color:#666"],
-body.dark-mode span[style*="color: #999"],
-body.dark-mode span[style*="color:#999"] {
+html.dark-mode span[style*="color: #666"],
+html.dark-mode span[style*="color:#666"],
+html.dark-mode span[style*="color: #999"],
+html.dark-mode span[style*="color:#999"] {
     color: var(--text-secondary) !important;
 }
 
 /* Mobile hamburger menu */
-body.dark-mode .hamburger-menu {
+html.dark-mode .hamburger-menu {
     background: rgba(255,255,255,0.1) !important;
     border-color: var(--border-color) !important;
 }
 
-body.dark-mode .hamburger-menu .bar {
+html.dark-mode .hamburger-menu .bar {
     background: var(--text-primary) !important;
 }
 
 /* Ensure all divs with inline white backgrounds are dark */
-body.dark-mode div[style*="background:white"],
-body.dark-mode div[style*="background: white"],
-body.dark-mode section[style*="background:white"],
-body.dark-mode section[style*="background: white"] {
+html.dark-mode div[style*="background:white"],
+html.dark-mode div[style*="background: white"],
+html.dark-mode section[style*="background:white"],
+html.dark-mode section[style*="background: white"] {
     background: var(--card-bg) !important;
     border: 2px solid var(--card-border) !important;
 }
@@ -3185,175 +3198,175 @@ body.dark-mode section[style*="background: white"] {
    ============================================ */
 
 /* TERMINE - Poll Cards und Date Suggestions */
-body.dark-mode .poll-card {
+html.dark-mode .poll-card {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .poll-card .poll-meta,
-body.dark-mode .poll-card .poll-meta p {
+html.dark-mode .poll-card .poll-meta,
+html.dark-mode .poll-card .poll-meta p {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode .date-suggestion-header,
-body.dark-mode .date-suggestion-row {
+html.dark-mode .date-suggestion-header,
+html.dark-mode .date-suggestion-row {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border-color: var(--card-border) !important;
 }
 
 /* SITZUNGEN - Meeting Cards (nur äußere Border) */
-body.dark-mode .meeting-card-header {
+html.dark-mode .meeting-card-header {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .meeting-card-content,
-body.dark-mode .meeting-card-actions {
+html.dark-mode .meeting-card-content,
+html.dark-mode .meeting-card-actions {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: none !important; /* Keine innere Border */
 }
 
-body.dark-mode .agenda-meta {
+html.dark-mode .agenda-meta {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode .agenda-meta *,
-body.dark-mode .agenda-meta a,
-body.dark-mode .agenda-meta span,
-body.dark-mode .agenda-meta strong {
+html.dark-mode .agenda-meta *,
+html.dark-mode .agenda-meta a,
+html.dark-mode .agenda-meta span,
+html.dark-mode .agenda-meta strong {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode .agenda-title {
+html.dark-mode .agenda-title {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode .agenda-title * {
+html.dark-mode .agenda-title * {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode .meeting-edit-section,
-body.dark-mode .meeting-start-section {
+html.dark-mode .meeting-edit-section,
+html.dark-mode .meeting-start-section {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .meeting-status-badge {
+html.dark-mode .meeting-status-badge {
     background: var(--card-border) !important;
     color: var(--bg-primary) !important;
 }
 
 /* PROTOKOLLE - Stichwortsuche (verstärkt mit mehreren Selektoren) */
-body.dark-mode .search-input,
-body.dark-mode input.search-input,
-body.dark-mode .search-input-group input[type="text"],
-body.dark-mode input[placeholder*="Stichwort"],
-body.dark-mode input[placeholder*="suchen"] {
+html.dark-mode .search-input,
+html.dark-mode input.search-input,
+html.dark-mode .search-input-group input[type="text"],
+html.dark-mode input[placeholder*="Stichwort"],
+html.dark-mode input[placeholder*="suchen"] {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Anzeigen-Button dunkler */
-body.dark-mode button.btn-view,
-body.dark-mode .btn-view {
+html.dark-mode button.btn-view,
+html.dark-mode .btn-view {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border: 1px solid var(--card-border) !important;
 }
 
-body.dark-mode button.btn-view:hover,
-body.dark-mode .btn-view:hover {
+html.dark-mode button.btn-view:hover,
+html.dark-mode .btn-view:hover {
     background: var(--card-bg) !important;
 }
 
 /* ERLEDIGEN - ToDo Cards und Tabellen */
-body.dark-mode .todo-filecard,
-body.dark-mode .todo-filecard-content,
-body.dark-mode .todo-filecard-tab {
+html.dark-mode .todo-filecard,
+html.dark-mode .todo-filecard-content,
+html.dark-mode .todo-filecard-tab {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .todo-filecard-title {
+html.dark-mode .todo-filecard-title {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode .own-todos-done-section {
+html.dark-mode .own-todos-done-section {
     background: var(--card-bg) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .done-todos-table {
+html.dark-mode .done-todos-table {
     background: var(--card-bg) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .done-todos-table thead,
-body.dark-mode .done-todos-table thead tr,
-body.dark-mode .done-todos-table thead th {
+html.dark-mode .done-todos-table thead,
+html.dark-mode .done-todos-table thead tr,
+html.dark-mode .done-todos-table thead th {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border-color: var(--card-border) !important;
 }
 
-body.dark-mode .done-todos-table th,
-body.dark-mode .done-todos-table td {
+html.dark-mode .done-todos-table th,
+html.dark-mode .done-todos-table td {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border-color: var(--card-border) !important;
 }
 
-body.dark-mode .done-todos-table tbody,
-body.dark-mode .done-todos-table tbody tr {
+html.dark-mode .done-todos-table tbody,
+html.dark-mode .done-todos-table tbody tr {
     background: var(--card-bg) !important;
 }
 
-body.dark-mode .done-todos-cards {
+html.dark-mode .done-todos-cards {
     background: var(--card-bg) !important;
 }
 
 /* ERLEDIGEN - Weitere öffentliche ToDos Tabelle */
-body.dark-mode .other-todos-table {
+html.dark-mode .other-todos-table {
     background: var(--card-bg) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode table.other-todos-table thead,
-body.dark-mode table.other-todos-table thead tr,
-body.dark-mode table.other-todos-table thead th {
+html.dark-mode table.other-todos-table thead,
+html.dark-mode table.other-todos-table thead tr,
+html.dark-mode table.other-todos-table thead th {
     background: var(--bg-secondary) !important;
     color: var(--text-primary) !important;
     border: none !important;
 }
 
-body.dark-mode table.other-todos-table th,
-body.dark-mode table.other-todos-table td {
+html.dark-mode table.other-todos-table th,
+html.dark-mode table.other-todos-table td {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: none !important;
 }
 
-body.dark-mode table.other-todos-table tbody,
-body.dark-mode table.other-todos-table tbody tr {
+html.dark-mode table.other-todos-table tbody,
+html.dark-mode table.other-todos-table tbody tr {
     background: var(--card-bg) !important;
 }
 
 /* ABWESENHEITEN - Admin Section */
-body.dark-mode .admin-section,
-body.dark-mode .admin-section-content {
+html.dark-mode .admin-section,
+html.dark-mode .admin-section-content {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .admin-section-header {
+html.dark-mode .admin-section-header {
     /* Keep yellow background for visibility but with dark yellow */
     background: var(--card-border) !important;
     color: #000 !important;
@@ -3361,168 +3374,168 @@ body.dark-mode .admin-section-header {
 }
 
 /* MEINUNGSBILD - Opinion Container und Results */
-body.dark-mode .opinion-container,
-body.dark-mode .opinion-results,
-body.dark-mode .opinion-form {
+html.dark-mode .opinion-container,
+html.dark-mode .opinion-results,
+html.dark-mode .opinion-form {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .opinion-option,
-body.dark-mode .opinion-result-bar {
+html.dark-mode .opinion-option,
+html.dark-mode .opinion-result-bar {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border: 1px solid var(--card-border) !important;
 }
 
 /* DOKUMENTE - Filter, Titel, Cards und Tabellen */
-body.dark-mode .documents-header,
-body.dark-mode .filter-accordion,
-body.dark-mode .filter-accordion summary,
-body.dark-mode .filter-content,
-body.dark-mode details.filter-accordion {
+html.dark-mode .documents-header,
+html.dark-mode .filter-accordion,
+html.dark-mode .filter-accordion summary,
+html.dark-mode .filter-content,
+html.dark-mode details.filter-accordion {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .documents-table {
+html.dark-mode .documents-table {
     background: var(--card-bg) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .documents-table th,
-body.dark-mode .documents-table td {
+html.dark-mode .documents-table th,
+html.dark-mode .documents-table td {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border-color: var(--card-border) !important;
 }
 
-body.dark-mode .document-filecard {
+html.dark-mode .document-filecard {
     background: var(--card-bg) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .document-filecard-body {
+html.dark-mode .document-filecard-body {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
 }
 
 /* Generische White-Background Overrides für inline styles */
-body.dark-mode [style*="background: #f0f8ff"],
-body.dark-mode [style*="background:#f0f8ff"],
-body.dark-mode [style*="background: white"],
-body.dark-mode [style*="background:white"] {
+html.dark-mode [style*="background: #f0f8ff"],
+html.dark-mode [style*="background:#f0f8ff"],
+html.dark-mode [style*="background: white"],
+html.dark-mode [style*="background:white"] {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Tables generell */
-body.dark-mode table,
-body.dark-mode .table {
+html.dark-mode table,
+html.dark-mode .table {
     background: var(--card-bg) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode table thead,
-body.dark-mode table thead tr,
-body.dark-mode table thead th,
-body.dark-mode .table thead,
-body.dark-mode .table thead tr,
-body.dark-mode .table thead th {
+html.dark-mode table thead,
+html.dark-mode table thead tr,
+html.dark-mode table thead th,
+html.dark-mode .table thead,
+html.dark-mode .table thead tr,
+html.dark-mode .table thead th {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border-color: var(--card-border) !important;
 }
 
-body.dark-mode table th,
-body.dark-mode table td,
-body.dark-mode .table th,
-body.dark-mode .table td {
+html.dark-mode table th,
+html.dark-mode table td,
+html.dark-mode .table th,
+html.dark-mode .table td {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border-color: var(--card-border) !important;
 }
 
 /* TAGESORDNUNG - Korpus und Items */
-body.dark-mode .tab-content,
-body.dark-mode .agenda-item,
-body.dark-mode .top-item {
+html.dark-mode .tab-content,
+html.dark-mode .agenda-item,
+html.dark-mode .top-item {
     background: var(--card-bg) !important;
     color: var(--text-secondary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Tagesordnung - keine gelben Rahmen um Teilnehmer */
-body.dark-mode .attendance-radio,
-body.dark-mode .participant-checkbox,
-body.dark-mode .form-group {
+html.dark-mode .attendance-radio,
+html.dark-mode .participant-checkbox,
+html.dark-mode .form-group {
     border: none !important;
 }
 
 /* Tagesordnung - Übersicht ohne gelben Rahmen */
-body.dark-mode .meeting-info-box {
+html.dark-mode .meeting-info-box {
     background: var(--card-bg) !important;
     color: var(--text-secondary) !important;
     border: 1px solid var(--border-color) !important;
 }
 
-body.dark-mode .info-box {
+html.dark-mode .info-box {
     background: var(--card-bg) !important;
     color: var(--text-secondary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Tagesordnung - Form Section */
-body.dark-mode .form-section {
+html.dark-mode .form-section {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .live-comment-form {
+html.dark-mode .live-comment-form {
     background: var(--card-bg) !important;
     border: 1px solid var(--card-border) !important;
 }
 
 /* TEXTBEARBEITUNG - Dialog für neuen Text erstellen */
-body.dark-mode #createTextDialog > div,
-body.dark-mode #previewDialog > div,
-body.dark-mode #finalizeDialog > div {
+html.dark-mode #createTextDialog > div,
+html.dark-mode #previewDialog > div,
+html.dark-mode #finalizeDialog > div {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode #createTextDialog input,
-body.dark-mode #createTextDialog textarea {
+html.dark-mode #createTextDialog input,
+html.dark-mode #createTextDialog textarea {
     background: var(--bg-primary) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* MEINUNGSBILD - Ergebnisfelder nicht mehr weiß */
-body.dark-mode .opinion-results,
-body.dark-mode .opinion-result-item,
-body.dark-mode .poll-results {
+html.dark-mode .opinion-results,
+html.dark-mode .opinion-result-item,
+html.dark-mode .poll-results {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Inline styles mit background #e8f5e9 (grüne Info-Boxen) */
-body.dark-mode [style*="background: #e8f5e9"],
-body.dark-mode [style*="background:#e8f5e9"] {
+html.dark-mode [style*="background: #e8f5e9"],
+html.dark-mode [style*="background:#e8f5e9"] {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--success) !important;
 }
 
 /* Inline styles mit background #f9f9f9 */
-body.dark-mode [style*="background: #f9f9f9"],
-body.dark-mode [style*="background:#f9f9f9"] {
+html.dark-mode [style*="background: #f9f9f9"],
+html.dark-mode [style*="background:#f9f9f9"] {
     background: var(--card-bg) !important;
     color: var(--text-secondary) !important;
     border: 1px solid var(--border-color) !important;
@@ -3533,190 +3546,190 @@ body.dark-mode [style*="background:#f9f9f9"] {
    ============================================ */
 
 /* HINWEISFELDER - Alert Info/Warning mit gelbem Rahmen */
-body.dark-mode .alert,
-body.dark-mode .alert-info,
-body.dark-mode .alert-warning,
-body.dark-mode div.alert,
-body.dark-mode div.alert-info,
-body.dark-mode div.alert-warning {
+html.dark-mode .alert,
+html.dark-mode .alert-info,
+html.dark-mode .alert-warning,
+html.dark-mode div.alert,
+html.dark-mode div.alert-info,
+html.dark-mode div.alert-warning {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Gelbe Buttons - Schrift dunkelblau STATT weiß */
-body.dark-mode button[style*="background: #ffc107"],
-body.dark-mode button[style*="background:#ffc107"],
-body.dark-mode .btn-warning,
-body.dark-mode .accordion-button,
-body.dark-mode button.accordion-button {
+html.dark-mode button[style*="background: #ffc107"],
+html.dark-mode button[style*="background:#ffc107"],
+html.dark-mode .btn-warning,
+html.dark-mode .accordion-button,
+html.dark-mode button.accordion-button {
     background: var(--card-border) !important;
     color: #1e3a5f !important;
     font-weight: bold !important;
 }
 
-body.dark-mode .accordion-button.create-poll-button,
-body.dark-mode .accordion-button.create-meeting-button,
-body.dark-mode button.accordion-button.create-poll-button,
-body.dark-mode button.accordion-button.create-meeting-button {
+html.dark-mode .accordion-button.create-poll-button,
+html.dark-mode .accordion-button.create-meeting-button,
+html.dark-mode button.accordion-button.create-poll-button,
+html.dark-mode button.accordion-button.create-meeting-button {
     background: #2196f3 !important;
     color: white !important;
     border-color: #2196f3 !important;
 }
 
-body.dark-mode .accordion-button.create-poll-button:hover,
-body.dark-mode .accordion-button.create-meeting-button:hover,
-body.dark-mode button.accordion-button.create-poll-button:hover,
-body.dark-mode button.accordion-button.create-meeting-button:hover {
+html.dark-mode .accordion-button.create-poll-button:hover,
+html.dark-mode .accordion-button.create-meeting-button:hover,
+html.dark-mode button.accordion-button.create-poll-button:hover,
+html.dark-mode button.accordion-button.create-meeting-button:hover {
     background: #1976d2 !important;
     color: white !important;
 }
 
 /* TERMINE - Alle Buttons mit weißer Schrift */
-body.dark-mode .btn-primary,
-body.dark-mode .btn-secondary,
-body.dark-mode .btn-danger,
-body.dark-mode button.btn-primary,
-body.dark-mode button.btn-secondary,
-body.dark-mode button.btn-danger {
+html.dark-mode .btn-primary,
+html.dark-mode .btn-secondary,
+html.dark-mode .btn-danger,
+html.dark-mode button.btn-primary,
+html.dark-mode button.btn-secondary,
+html.dark-mode button.btn-danger {
     color: white !important;
 }
 
 /* SITZUNGEN - Neue Sitzung erstellen Card und Teilnehmerliste */
-body.dark-mode .accordion-content,
-body.dark-mode .meeting-form-grid-2,
-body.dark-mode .meeting-form-grid-equal,
-body.dark-mode div.accordion-content,
-body.dark-mode div.meeting-form-grid-2,
-body.dark-mode div.meeting-form-grid-equal {
+html.dark-mode .accordion-content,
+html.dark-mode .meeting-form-grid-2,
+html.dark-mode .meeting-form-grid-equal,
+html.dark-mode div.accordion-content,
+html.dark-mode div.meeting-form-grid-2,
+html.dark-mode div.meeting-form-grid-equal {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
 }
 
 /* Teilnehmerliste - Fläche dunkelblau (verstärkt) */
-body.dark-mode .participants-selector,
-body.dark-mode .participant-buttons,
-body.dark-mode div.participants-selector,
-body.dark-mode div.participant-buttons {
+html.dark-mode .participants-selector,
+html.dark-mode .participant-buttons,
+html.dark-mode div.participants-selector,
+html.dark-mode div.participant-buttons {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Teilnehmer-Labels - kein gelber Rahmen außer bei Abwesenheit */
-body.dark-mode .participant-label,
-body.dark-mode label.participant-label {
+html.dark-mode .participant-label,
+html.dark-mode label.participant-label {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border: 1px solid var(--border-color) !important;
 }
 
-body.dark-mode .participant-label[style*="background: #fff3cd"],
-body.dark-mode label.participant-label[style*="background: #fff3cd"] {
+html.dark-mode .participant-label[style*="background: #fff3cd"],
+html.dark-mode label.participant-label[style*="background: #fff3cd"] {
     background: var(--bg-tertiary) !important;
     border-left: 3px solid var(--warning) !important;
 }
 
 /* TAGESORDNUNG - Korpus dunkelblau (verstärkt) */
-body.dark-mode .tab-content,
-body.dark-mode div.tab-content {
+html.dark-mode .tab-content,
+html.dark-mode div.tab-content {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Teilnehmerliste für Protokollant - keine gelben Rahmen */
-body.dark-mode .attendance-radio,
-body.dark-mode .attendance-label,
-body.dark-mode input.attendance-radio,
-body.dark-mode label.attendance-label {
+html.dark-mode .attendance-radio,
+html.dark-mode .attendance-label,
+html.dark-mode input.attendance-radio,
+html.dark-mode label.attendance-label {
     border: none !important;
 }
 
 /* Übersicht Tabelle - WEISSE Schrift, keine gelben Rahmen um Elemente */
-body.dark-mode table tr,
-body.dark-mode table tbody tr {
+html.dark-mode table tr,
+html.dark-mode table tbody tr {
     border: none !important;
 }
 
-body.dark-mode table td,
-body.dark-mode table th {
+html.dark-mode table td,
+html.dark-mode table th {
     color: white !important;
 }
 
 /* Status Active - Wiedervorlage Hintergrund (verstärkt) */
-body.dark-mode [style*="background: #e8f5e9"],
-body.dark-mode [style*="background:#e8f5e9"],
-body.dark-mode div[style*="background: #e8f5e9"],
-body.dark-mode div[style*="background:#e8f5e9"],
-body.dark-mode .form-section[style*="background: #e8f5e9"] {
+html.dark-mode [style*="background: #e8f5e9"],
+html.dark-mode [style*="background:#e8f5e9"],
+html.dark-mode div[style*="background: #e8f5e9"],
+html.dark-mode div[style*="background:#e8f5e9"],
+html.dark-mode .form-section[style*="background: #e8f5e9"] {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--success) !important;
 }
 
 /* PROTOKOLLE - Stichwortsuche alle Inputs (VERSTÄRKT) */
-body.dark-mode input[type="text"],
-body.dark-mode input[type="search"],
-body.dark-mode .search-input,
-body.dark-mode input.search-input {
+html.dark-mode input[type="text"],
+html.dark-mode input[type="search"],
+html.dark-mode .search-input,
+html.dark-mode input.search-input {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Anzeigen-Button dunkler (verstärkt) */
-body.dark-mode button.btn-view,
-body.dark-mode .btn-view,
-body.dark-mode a.btn-view {
+html.dark-mode button.btn-view,
+html.dark-mode .btn-view,
+html.dark-mode a.btn-view {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border: 1px solid var(--card-border) !important;
 }
 
 /* ERLEDIGEN - Table thead VERSTÄRKT */
-body.dark-mode table thead,
-body.dark-mode table thead tr,
-body.dark-mode table thead th,
-body.dark-mode thead,
-body.dark-mode thead tr,
-body.dark-mode thead th {
+html.dark-mode table thead,
+html.dark-mode table thead tr,
+html.dark-mode table thead th,
+html.dark-mode thead,
+html.dark-mode thead tr,
+html.dark-mode thead th {
     background: var(--card-bg) !important;
     color: white !important;
     border-color: var(--card-border) !important;
 }
 
 /* QR-Code Hintergrund dunkelgrau (verstärkt) */
-body.dark-mode .todo-filecard-qr,
-body.dark-mode div.todo-filecard-qr,
-body.dark-mode [class*="qr-"],
-body.dark-mode div[class*="qr"] {
+html.dark-mode .todo-filecard-qr,
+html.dark-mode div.todo-filecard-qr,
+html.dark-mode [class*="qr-"],
+html.dark-mode div[class*="qr"] {
     background: var(--bg-tertiary) !important;
     padding: 10px !important;
 }
 
 /* MEINUNGSBILD - Alle Ergebnisfelder dunkelblau (VERSTÄRKT) */
-body.dark-mode .opinion-results,
-body.dark-mode .poll-results,
-body.dark-mode .opinion-result-item,
-body.dark-mode .poll-result-item,
-body.dark-mode div.opinion-results,
-body.dark-mode div.poll-results,
-body.dark-mode div[class*="result"] {
+html.dark-mode .opinion-results,
+html.dark-mode .poll-results,
+html.dark-mode .opinion-result-item,
+html.dark-mode .poll-result-item,
+html.dark-mode div.opinion-results,
+html.dark-mode div.poll-results,
+html.dark-mode div[class*="result"] {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--card-border) !important;
 }
 
 /* Alle weißen inline backgrounds VERSTÄRKT überschreiben */
-body.dark-mode [style*="background: white"],
-body.dark-mode [style*="background:white"],
-body.dark-mode [style*="background: #fff"],
-body.dark-mode [style*="background:#fff"],
-body.dark-mode [style*="background: #ffffff"],
-body.dark-mode [style*="background:#ffffff"],
-body.dark-mode div[style*="background: white"],
-body.dark-mode div[style*="background:white"] {
+html.dark-mode [style*="background: white"],
+html.dark-mode [style*="background:white"],
+html.dark-mode [style*="background: #fff"],
+html.dark-mode [style*="background:#fff"],
+html.dark-mode [style*="background: #ffffff"],
+html.dark-mode [style*="background:#ffffff"],
+html.dark-mode div[style*="background: white"],
+html.dark-mode div[style*="background:white"] {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
 }
@@ -3726,10 +3739,10 @@ body.dark-mode div[style*="background:white"] {
    ============================================ */
 
 /* Alle Tabellen - Kopfzeilen dunkelblau mit weißer Schrift */
-body.dark-mode table > thead > tr > th,
-body.dark-mode table thead th,
-body.dark-mode .table thead th,
-body.dark-mode thead > tr > th {
+html.dark-mode table > thead > tr > th,
+html.dark-mode table thead th,
+html.dark-mode .table thead th,
+html.dark-mode thead > tr > th {
     background-color: var(--card-bg) !important;
     background: var(--card-bg) !important;
     color: white !important;
@@ -3737,20 +3750,20 @@ body.dark-mode thead > tr > th {
 }
 
 /* Alle Tabellen - Zellen weiße Schrift */
-body.dark-mode table > tbody > tr > td,
-body.dark-mode table td,
-body.dark-mode table th,
-body.dark-mode .table td,
-body.dark-mode .table th {
+html.dark-mode table > tbody > tr > td,
+html.dark-mode table td,
+html.dark-mode table th,
+html.dark-mode .table td,
+html.dark-mode .table th {
     color: white !important;
     background-color: var(--card-bg) !important;
 }
 
 /* PROTOKOLLE - Stichwortsuche mit MAXIMALEM Override */
-body.dark-mode input[type="text"][placeholder],
-body.dark-mode input[type="text"][class*="search"],
-body.dark-mode input[placeholder*="Stichwort"],
-body.dark-mode input[placeholder*="suchen"] {
+html.dark-mode input[type="text"][placeholder],
+html.dark-mode input[type="text"][class*="search"],
+html.dark-mode input[placeholder*="Stichwort"],
+html.dark-mode input[placeholder*="suchen"] {
     background-color: var(--card-bg) !important;
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
@@ -3758,10 +3771,10 @@ body.dark-mode input[placeholder*="suchen"] {
 }
 
 /* Wiedervorlage und alle grünen Boxen */
-body.dark-mode div[style*="background: #e8f5e9"],
-body.dark-mode div[style*="background:#e8f5e9"],
-body.dark-mode *[style*="background: #e8f5e9"],
-body.dark-mode *[style*="background:#e8f5e9"] {
+html.dark-mode div[style*="background: #e8f5e9"],
+html.dark-mode div[style*="background:#e8f5e9"],
+html.dark-mode *[style*="background: #e8f5e9"],
+html.dark-mode *[style*="background:#e8f5e9"] {
     background-color: var(--card-bg) !important;
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
@@ -3769,21 +3782,21 @@ body.dark-mode *[style*="background:#e8f5e9"] {
 }
 
 /* Meinungsbild - Ergebnisfelder mit ALLEN möglichen Selektoren */
-body.dark-mode *[class*="opinion"],
-body.dark-mode *[class*="poll"],
-body.dark-mode *[class*="result"],
-body.dark-mode div[class*="opinion"],
-body.dark-mode div[class*="poll"],
-body.dark-mode div[class*="result"] {
+html.dark-mode *[class*="opinion"],
+html.dark-mode *[class*="poll"],
+html.dark-mode *[class*="result"],
+html.dark-mode div[class*="opinion"],
+html.dark-mode div[class*="poll"],
+html.dark-mode div[class*="result"] {
     background-color: var(--card-bg) !important;
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
 }
 
 /* Teilnehmerliste - ALLE Labels ohne Border außer Abwesenheit */
-body.dark-mode label[class*="participant"],
-body.dark-mode label.participant-label,
-body.dark-mode .participant-label {
+html.dark-mode label[class*="participant"],
+html.dark-mode label.participant-label,
+html.dark-mode .participant-label {
     background-color: var(--bg-tertiary) !important;
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
@@ -3791,9 +3804,9 @@ body.dark-mode .participant-label {
 }
 
 /* Korpus Tagesordnung */
-body.dark-mode .tab-content,
-body.dark-mode div.tab-content,
-body.dark-mode *[class*="tab-content"] {
+html.dark-mode .tab-content,
+html.dark-mode div.tab-content,
+html.dark-mode *[class*="tab-content"] {
     background-color: var(--card-bg) !important;
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
@@ -3801,25 +3814,25 @@ body.dark-mode *[class*="tab-content"] {
 }
 
 /* Tabellen-Zeilen - kein Border */
-body.dark-mode table tbody tr,
-body.dark-mode table > tbody > tr,
-body.dark-mode .table tbody tr {
+html.dark-mode table tbody tr,
+html.dark-mode table > tbody > tr,
+html.dark-mode .table tbody tr {
     border: none !important;
     border-top: none !important;
     border-bottom: none !important;
 }
 
 /* ABSOLUTER OVERRIDE für alle weißen Hintergründe */
-body.dark-mode *[style*="background: white"],
-body.dark-mode *[style*="background:white"],
-body.dark-mode *[style*="background: #fff"],
-body.dark-mode *[style*="background:#fff"] {
+html.dark-mode *[style*="background: white"],
+html.dark-mode *[style*="background:white"],
+html.dark-mode *[style*="background: #fff"],
+html.dark-mode *[style*="background:#fff"] {
     background-color: var(--card-bg) !important;
     background: var(--card-bg) !important;
 }
 
 /* Protokoll-Anzeige im Sitzungsverlauf */
-body.dark-mode div[id*="protocol-display"] {
+html.dark-mode div[id*="protocol-display"] {
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
     padding: 10px !important;
@@ -3827,10 +3840,10 @@ body.dark-mode div[id*="protocol-display"] {
 }
 
 /* ABSOLUTER OVERRIDE für alle hellen Hintergründe */
-body.dark-mode *[style*="background: #f9f9f9"],
-body.dark-mode *[style*="background:#f9f9f9"],
-body.dark-mode *[style*="background: #f8f9fa"],
-body.dark-mode *[style*="background:#f8f9fa"] {
+html.dark-mode *[style*="background: #f9f9f9"],
+html.dark-mode *[style*="background:#f9f9f9"],
+html.dark-mode *[style*="background: #f8f9fa"],
+html.dark-mode *[style*="background:#f8f9fa"] {
     background-color: var(--card-bg) !important;
     background: var(--card-bg) !important;
     color: var(--text-secondary) !important;
@@ -3841,146 +3854,188 @@ body.dark-mode *[style*="background:#f8f9fa"] {
    ========================================== */
 
 /* 1. PROTOKOLLE - Stichwortsuche */
-body.dark-mode .search-box {
+html.dark-mode .search-box {
     background: var(--card-bg) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode .search-input {
+html.dark-mode .search-input {
     background: var(--bg-secondary) !important;
     color: var(--text-primary) !important;
     border-color: var(--card-border) !important;
 }
 
 /* 2. HINWEISFELD (Abwesenheiten) - dünner hellgelber Rand */
-body.dark-mode *[style*="background: #f9f9f9"] {
+html.dark-mode *[style*="background: #f9f9f9"] {
     border: 1px solid var(--card-border) !important;
 }
 
-body.dark-mode *[style*="background: #f9f9f9"] strong {
+html.dark-mode *[style*="background: #f9f9f9"] strong {
     color: var(--text-primary) !important;
 }
 
 /* Gelbe Buttons im Hinweisfeld - dunkelblauer Text statt weiß */
-body.dark-mode .btn-warning,
-body.dark-mode button[style*="background: #ffc107"],
-body.dark-mode button[style*="background:#ffc107"],
-body.dark-mode a[style*="background: #ffc107"],
-body.dark-mode a[style*="background:#ffc107"] {
+html.dark-mode .btn-warning,
+html.dark-mode button[style*="background: #ffc107"],
+html.dark-mode button[style*="background:#ffc107"],
+html.dark-mode a[style*="background: #ffc107"],
+html.dark-mode a[style*="background:#ffc107"] {
     background: var(--card-border) !important;
     color: #1e3a5f !important;
     font-weight: bold !important;
 }
 
 /* 3. WIEDERVORLAGE - Form mit hellem Hintergrund */
-body.dark-mode *[style*="background: #e3f2fd"],
-body.dark-mode *[style*="background:#e3f2fd"] {
+html.dark-mode *[style*="background: #e3f2fd"],
+html.dark-mode *[style*="background:#e3f2fd"] {
     background-color: var(--card-bg) !important;
     background: var(--card-bg) !important;
     color: var(--text-primary) !important;
 }
 
-body.dark-mode *[style*="background: #e3f2fd"] div,
-body.dark-mode *[style*="background:#e3f2fd"] div {
+html.dark-mode *[style*="background: #e3f2fd"] div,
+html.dark-mode *[style*="background:#e3f2fd"] div {
     color: var(--text-primary) !important;
 }
 
 /* 4. MEINUNGSBILD - Buttons dunkel machen */
-body.dark-mode .btn-secondary {
+html.dark-mode .btn-secondary {
     background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
 }
 
-body.dark-mode .btn-secondary:hover {
+html.dark-mode .btn-secondary:hover {
     background: var(--bg-secondary) !important;
 }
 
 /* 5. TAGESORDNUNG - Teilnehmerliste ohne gelbe Rahmen */
-body.dark-mode label[style*="padding: 8px"],
-body.dark-mode label[style*="cursor: pointer"] {
+html.dark-mode label[style*="padding: 8px"],
+html.dark-mode label[style*="cursor: pointer"] {
     border: 1px solid #666 !important;
 }
 
 /* 6. TAGESORDNUNG - Übersichts-Tabelle ohne Umrandungen, weiße Schrift */
-body.dark-mode table[style*="border-collapse: collapse"] {
+html.dark-mode table[style*="border-collapse: collapse"] {
     background: var(--card-bg) !important;
     border: 2px solid var(--card-border) !important;
 }
 
-body.dark-mode table[style*="border-collapse: collapse"] thead tr {
+html.dark-mode table[style*="border-collapse: collapse"] thead tr {
     background: var(--bg-secondary) !important;
 }
 
-body.dark-mode table[style*="border-collapse: collapse"] th,
-body.dark-mode table[style*="border-collapse: collapse"] td {
+html.dark-mode table[style*="border-collapse: collapse"] th,
+html.dark-mode table[style*="border-collapse: collapse"] td {
     color: var(--text-primary) !important;
     border: none !important;
 }
 
-body.dark-mode table[style*="border-collapse: collapse"] td,
-body.dark-mode table[style*="border-collapse: collapse"] td * {
+html.dark-mode table[style*="border-collapse: collapse"] td,
+html.dark-mode table[style*="border-collapse: collapse"] td * {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode table[style*="border-collapse: collapse"] td a,
-body.dark-mode table[style*="border-collapse: collapse"] td a[style*="color: #333"],
-body.dark-mode table[style*="border-collapse: collapse"] td a[style*="color: #2c5aa0"] {
+html.dark-mode table[style*="border-collapse: collapse"] td a,
+html.dark-mode table[style*="border-collapse: collapse"] td a[style*="color: #333"],
+html.dark-mode table[style*="border-collapse: collapse"] td a[style*="color: #2c5aa0"] {
     color: var(--text-primary) !important;
 }
 
-body.dark-mode table[style*="border-collapse: collapse"] tr {
+html.dark-mode table[style*="border-collapse: collapse"] tr {
     border: none !important;
 }
 
 /* Teilnehmerliste - keine Borders, weniger Padding */
-body.dark-mode details table,
-body.dark-mode details table th,
-body.dark-mode details table td,
-body.dark-mode details table tr {
+html.dark-mode details table,
+html.dark-mode details table th,
+html.dark-mode details table td,
+html.dark-mode details table tr {
     border: none !important;
     color: var(--text-primary) !important;
 }
 
-body.dark-mode details table th,
-body.dark-mode details table td {
+html.dark-mode details table th,
+html.dark-mode details table td {
     padding: 2px 4px !important;
 }
 
-body.dark-mode details[style*="padding: 15px"] {
+html.dark-mode details[style*="padding: 15px"] {
     padding: 4px !important;
 }
 
-body.dark-mode details[open] {
+html.dark-mode details[open] {
     padding: 4px !important;
 }
 
 /* TAGESORDNUNG - Übersicht UL-Liste */
-body.dark-mode details ul[style*="list-style: none"] li {
+html.dark-mode details ul[style*="list-style: none"] li {
     background: var(--card-bg) !important;
 }
 
-body.dark-mode details ul[style*="list-style: none"] li a,
-body.dark-mode details ul[style*="list-style: none"] li a[style*="color: #2c5aa0"],
-body.dark-mode details ul[style*="list-style: none"] li span {
+html.dark-mode details ul[style*="list-style: none"] li a,
+html.dark-mode details ul[style*="list-style: none"] li a[style*="color: #2c5aa0"],
+html.dark-mode details ul[style*="list-style: none"] li span {
     color: var(--text-primary) !important;
 }
 
 /* TAGESORDNUNG - Hinweis-Text */
-body.dark-mode details p[style*="color: #555"],
-body.dark-mode details p[style*="color:#555"] {
+html.dark-mode details p[style*="color: #555"],
+html.dark-mode details p[style*="color:#555"] {
     color: var(--text-primary) !important;
 }
 
 /* TEILNEHMERLISTE - Grid Gap und Padding reduzieren */
-body.dark-mode details div[style*="display: grid"] {
+html.dark-mode details div[style*="display: grid"] {
     gap: 4px !important;
 }
 
-body.dark-mode details div[style*="padding: 8px"][style*="background: white"] {
+html.dark-mode details div[style*="padding: 8px"][style*="background: white"] {
     padding: 4px !important;
     background: var(--card-bg) !important;
 }
 
-body.dark-mode details div[style*="margin-bottom: 15px"] {
+html.dark-mode details div[style*="margin-bottom: 15px"] {
     margin-bottom: 8px !important;
+}
+
+/* Spezielle Kontrast-Fixes für Dark Mode */
+html.dark-mode .alert-warning [style*="color: #000"],
+html.dark-mode .alert-warning strong,
+html.dark-mode .alert [style*="color: #000"] {
+    color: #fff !important;
+}
+
+html.dark-mode .alert-warning [style*="color: #666"] {
+    color: #e0e0e0 !important;
+}
+
+/* Beschlussbuch Labels */
+html.dark-mode .content-box strong[style*="color: #495057"],
+html.dark-mode [style*="color: #6c757d"] {
+    color: var(--text-secondary) !important;
+}
+
+/* Buttons im Dark Mode besser sichtbar */
+html.dark-mode .btn:not(.btn-warning):not(.btn-danger) {
+    background: var(--primary) !important;
+    color: #fff !important;
+}
+
+html.dark-mode .btn-secondary {
+    background: var(--neutral-dark) !important;
+    color: #fff !important;
+}
+
+/* Tabellen im Dark Mode */
+html.dark-mode table td {
+    background: var(--bg-primary) !important;
+}
+
+html.dark-mode table td strong {
+    color: var(--text-primary) !important;
+}
+
+html.dark-mode table th {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
 }

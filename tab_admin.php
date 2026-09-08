@@ -11,7 +11,6 @@ require_once 'module_notifications.php';
  */
 
 // Logik einbinden
-require_once 'process_admin.php';
 ?>
 
 <style>
@@ -73,7 +72,64 @@ require_once 'process_admin.php';
 .compact-log-table td {
     padding: 6px 8px !important;
 }
+
+/* End Meeting Modal */
+#end-meeting-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+#end-meeting-modal .modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.btn-warning {
+    background: #ff9800;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-warning:hover {
+    background: #f57c00;
+}
 </style>
+
+<script>
+// Akkordion-Funktionalität für Admin-Sektionen
+function toggleSection(header) {
+    header.classList.toggle('collapsed');
+    const content = header.nextElementSibling;
+    content.classList.toggle('collapsed');
+}
+
+// Initialize: Start with all sections collapsed
+document.addEventListener('DOMContentLoaded', function() {
+    // Alle Sektionen initial eingeklappt
+    const allHeaders = document.querySelectorAll('.admin-section-header');
+    allHeaders.forEach(header => {
+        if (!header.classList.contains('collapsed')) {
+            toggleSection(header);
+        }
+    });
+});
+</script>
 
 <!-- BENACHRICHTIGUNGEN -->
 <?php render_user_notifications($pdo, $current_user['member_id']); ?>
@@ -106,8 +162,19 @@ require_once 'process_admin.php';
     <?php echo $stats['active']; ?> aktiv, 
     <?php echo $stats['ended']; ?> beendet, 
     <?php echo $stats['archived']; ?> archiviert) • 
-    <?php echo count($members); ?> Mitglieder • 
+    <?php echo count($members); ?> Mitglieder •
     <?php echo count($open_todos); ?> offene ToDos
+</div>
+
+<!-- Hinweis auf Grundkonfiguration -->
+<div style="margin-bottom: 30px; padding: 15px 20px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <strong style="color: #856404;">⚙️ Grundkonfiguration:</strong>
+        <span style="color: #856404;"> Ressorts, Antragstypen und weitere grundlegende Einstellungen</span>
+    </div>
+    <a href="?tab=admin_init" style="padding: 8px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 4px; font-weight: 600; white-space: nowrap;">
+        Zur Initialisierung →
+    </a>
 </div>
 
 <!-- Meeting-Verwaltung -->
@@ -163,6 +230,13 @@ require_once 'process_admin.php';
                     <td><?php echo $meeting['agenda_count']; ?></td>
                     <td class="action-buttons">
                         <button class="btn-view" onclick="editMeeting(<?php echo $meeting['meeting_id']; ?>)">✏️</button>
+                        <?php if ($meeting['status'] === 'active'): ?>
+                            <button class="btn-warning"
+                                    onclick="showEndMeetingModal(<?php echo $meeting['meeting_id']; ?>, '<?php echo htmlspecialchars($meeting['meeting_name'], ENT_QUOTES); ?>')"
+                                    title="Sitzung manuell beenden">
+                                ⏹️
+                            </button>
+                        <?php endif; ?>
                         <form method="POST" onsubmit="return confirm('Meeting wirklich löschen? Alle TOPs und Kommentare gehen verloren!');">
                             <input type="hidden" name="meeting_id" value="<?php echo $meeting['meeting_id']; ?>">
                             <button type="submit" name="delete_meeting" class="btn-delete">🗑️</button>
@@ -213,6 +287,7 @@ require_once 'process_admin.php';
                         <option value="preparation">Vorbereitung</option>
                         <option value="active">Aktiv</option>
                         <option value="ended">Beendet</option>
+                        <option value="protocol_ready">Protokoll zur Genehmigung</option>
                         <option value="archived">Archiviert</option>
                     </select>
                 </div>
@@ -274,6 +349,40 @@ require_once 'process_admin.php';
             </form>
         </div>
     </div>
+
+    <!-- End Meeting Modal (für Admins) -->
+    <div id="end-meeting-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>⏹️ Sitzung manuell beenden</h3>
+            <p style="color: #dc3545; margin-bottom: 15px;">
+                <strong>⚠️ Hinweis:</strong> Diese Funktion sollte nur verwendet werden, wenn der Protokollant
+                vergessen hat, die Sitzung zu beenden.
+            </p>
+            <form method="POST" id="end-meeting-form">
+                <input type="hidden" name="admin_end_meeting" value="1">
+                <input type="hidden" name="meeting_id" id="end_meeting_id">
+
+                <div class="form-group">
+                    <label>Meeting:</label>
+                    <input type="text" id="end_meeting_name" readonly style="background: #f5f5f5;">
+                </div>
+
+                <div class="form-group">
+                    <label>Endzeitpunkt:</label>
+                    <input type="datetime-local" name="end_time" id="end_meeting_time" required>
+                    <small style="display: block; margin-top: 5px; color: #666;">
+                        Trage hier den tatsächlichen Endzeitpunkt der Sitzung ein
+                    </small>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn-danger">Sitzung beenden</button>
+                    <button type="button" onclick="closeEndMeetingModal()" class="btn-secondary">Abbrechen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     </div> <!-- End admin-section-content -->
 </div>
 
@@ -527,6 +636,45 @@ require_once 'process_admin.php';
                     </label>
                 </div>
             </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Berechtigungslevel (aktiv):</label>
+                    <input type="number" name="aktiv" value="1" min="0" max="19" title="0-19: 0=öffentlich, 10=Aktive, 15=Ressortleitung, 18=GF, 19=Vorstand">
+                    <small style="color: #666;">0-19 (siehe Dokumentation für Details)</small>
+                </div>
+                <div class="form-group">
+                    <label>Funktion/Ressort:</label>
+                    <select name="funktion">
+                        <option value="">Keine</option>
+                        <optgroup label="Vorstand">
+                            <option value="Vo">Vo - Vorstandsmitglied</option>
+                            <option value="FVo">FVo - Vorstand Finanzen (Kassenwart)</option>
+                            <option value="FVv">FVv - Vorstand + Vertreter Finanzvorstand</option>
+                            <option value="GF">GF - Geschäftsführer</option>
+                            <option value="VA">VA - Vorstandsassistenz</option>
+                        </optgroup>
+                        <optgroup label="Leitungsfunktionen">
+                            <option value="RL">RL - Ressortleiter</option>
+                            <option value="PL">PL - Projektleiter</option>
+                            <option value="JT">JT - Organisator Jahrestreffen</option>
+                            <option value="TM">TM - Teamleiter</option>
+                            <option value="FP">FP - Finanzprüfer/Kassenprüfer</option>
+                        </optgroup>
+                        <optgroup label="Unterstützung">
+                            <option value="SV">SV - Sekretariat Vorstand</option>
+                            <option value="MB">MB - Mitgliederbetreuung</option>
+                            <option value="Ka">Ka - Kassenführung</option>
+                            <option value="Orga">Orga - Hilfsfunktion Antragstellung</option>
+                            <option value="AD">AD - Technischer Admin</option>
+                        </optgroup>
+                        <optgroup label="Ehemalige (Aufbewahrungsfrist)">
+                            <option value="Rx">Rx - ehemalige Ressortleitung</option>
+                            <option value="Vx">Vx - ehemaliges Vorstandsmitglied</option>
+                            <option value="Xx">Xx - früher berechtigtes sonstiges Mitglied</option>
+                        </optgroup>
+                    </select>
+                </div>
+            </div>
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" name="is_confidential" value="1">
@@ -549,6 +697,8 @@ require_once 'process_admin.php';
                 <th>Name</th>
                 <th>E-Mail</th>
                 <th>Rolle</th>
+                <th>Berechtigung</th>
+                <th>Funktion</th>
                 <th>Admin</th>
                 <th>Vertraulich</th>
                 <th>Aktionen</th>
@@ -561,6 +711,8 @@ require_once 'process_admin.php';
                     <td><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></td>
                     <td><?php echo htmlspecialchars($member['email']); ?></td>
                     <td><?php echo htmlspecialchars($member['role']); ?></td>
+                    <td><?php echo isset($member['aktiv']) ? $member['aktiv'] : '1'; ?></td>
+                    <td><?php echo isset($member['funktion']) && $member['funktion'] ? htmlspecialchars($member['funktion']) : '-'; ?></td>
                     <td><?php echo $member['is_admin'] ? '✅' : '❌'; ?></td>
                     <td><?php echo $member['is_confidential'] ? '✅' : '❌'; ?></td>
                     <td class="action-buttons">
@@ -617,6 +769,45 @@ require_once 'process_admin.php';
                         </label>
                     </div>
                 </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Berechtigungslevel (aktiv):</label>
+                        <input type="number" name="aktiv" id="edit_aktiv" min="0" max="19" title="0-19: 0=öffentlich, 10=Aktive, 15=Ressortleitung, 18=GF, 19=Vorstand">
+                        <small style="color: #666;">0-19 (siehe Dokumentation für Details)</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Funktion/Ressort:</label>
+                        <select name="funktion" id="edit_funktion">
+                            <option value="">Keine</option>
+                            <optgroup label="Vorstand">
+                                <option value="Vo">Vo - Vorstandsmitglied</option>
+                                <option value="FVo">FVo - Vorstand Finanzen (Kassenwart)</option>
+                                <option value="FVv">FVv - Vorstand + Vertreter Finanzvorstand</option>
+                                <option value="GF">GF - Geschäftsführer</option>
+                                <option value="VA">VA - Vorstandsassistenz</option>
+                            </optgroup>
+                            <optgroup label="Leitungsfunktionen">
+                                <option value="RL">RL - Ressortleiter</option>
+                                <option value="PL">PL - Projektleiter</option>
+                                <option value="JT">JT - Organisator Jahrestreffen</option>
+                                <option value="TM">TM - Teamleiter</option>
+                                <option value="FP">FP - Finanzprüfer/Kassenprüfer</option>
+                            </optgroup>
+                            <optgroup label="Unterstützung">
+                                <option value="SV">SV - Sekretariat Vorstand</option>
+                                <option value="MB">MB - Mitgliederbetreuung</option>
+                                <option value="Ka">Ka - Kassenführung</option>
+                                <option value="Orga">Orga - Hilfsfunktion Antragstellung</option>
+                                <option value="AD">AD - Technischer Admin</option>
+                            </optgroup>
+                            <optgroup label="Ehemalige (Aufbewahrungsfrist)">
+                                <option value="Rx">Rx - ehemalige Ressortleitung</option>
+                                <option value="Vx">Vx - ehemaliges Vorstandsmitglied</option>
+                                <option value="Xx">Xx - früher berechtigtes sonstiges Mitglied</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" name="is_confidential" id="edit_is_confidential" value="1">
@@ -633,6 +824,127 @@ require_once 'process_admin.php';
         </div>
     </div>
     </div> <!-- End admin-section-content -->
+</div>
+
+<!-- Terminabfragen-Verwaltung -->
+<div id="admin-polls" class="admin-section">
+    <h3 class="admin-section-header collapsed" onclick="toggleSection(this)">📅 Terminabfragen-Verwaltung</h3>
+
+    <div class="admin-section-content collapsed">
+        <?php if (isset($_GET['msg']) && $_GET['msg'] === 'poll_deleted'): ?>
+            <div class="message">✅ Terminabfrage erfolgreich gelöscht!</div>
+        <?php endif; ?>
+
+        <p style="margin-bottom: 15px; color: #666; font-size: 13px;">
+            Als Admin kannst du alle Terminabfragen verwalten und löschen,
+            auch wenn User das vergessen haben.
+        </p>
+
+        <?php
+        // Alle Umfragen laden (Member-Daten über Adapter)
+        $polls_stmt = $pdo->query("
+            SELECT p.*,
+                   (SELECT COUNT(*) FROM svpoll_dates WHERE poll_id = p.poll_id) as option_count,
+                   (SELECT COUNT(DISTINCT member_id) FROM svpoll_responses WHERE poll_id = p.poll_id) as response_count
+            FROM svpolls p
+            ORDER BY p.created_at DESC
+        ");
+        $polls = $polls_stmt->fetchAll();
+
+        // Member-Namen über Adapter hinzufügen
+        foreach ($polls as &$poll) {
+            if ($poll['created_by_member_id']) {
+                $creator = get_member_by_id($pdo, $poll['created_by_member_id']);
+                $poll['first_name'] = $creator ? $creator['first_name'] : 'Unbekannt';
+                $poll['last_name'] = $creator ? $creator['last_name'] : '';
+            } else {
+                $poll['first_name'] = 'System';
+                $poll['last_name'] = '';
+            }
+        }
+        unset($poll);
+        ?>
+
+        <?php if (empty($polls)): ?>
+            <div class="info-box">Keine Terminabfragen vorhanden.</div>
+        <?php else: ?>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Titel</th>
+                        <th>Ersteller</th>
+                        <th>Erstellt am</th>
+                        <th>Deadline</th>
+                        <th>Optionen</th>
+                        <th>Antworten</th>
+                        <th>Status</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($polls as $poll): ?>
+                        <tr>
+                            <td><?php echo $poll['poll_id']; ?></td>
+                            <td>
+                                <strong><?php echo htmlspecialchars($poll['title']); ?></strong>
+                                <?php if ($poll['description']): ?>
+                                    <br><small style="color: #666;">
+                                        <?php echo htmlspecialchars(substr($poll['description'], 0, 50)); ?>
+                                        <?php if (strlen($poll['description']) > 50) echo '...'; ?>
+                                    </small>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($poll['first_name']): ?>
+                                    <?php echo htmlspecialchars($poll['first_name'] . ' ' . $poll['last_name']); ?>
+                                <?php else: ?>
+                                    <span style="color: #999;">Externer Teilnehmer</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo date('d.m.Y H:i', strtotime($poll['created_at'])); ?></td>
+                            <td>
+                                <?php if ($poll['finalized_at']): ?>
+                                    <span style="color: #999;">
+                                        <?php echo date('d.m.Y', strtotime($poll['finalized_at'])); ?>
+                                        <small>(finalisiert)</small>
+                                    </span>
+                                <?php else: ?>
+                                    <span style="color: #999;">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td style="text-align: center;"><?php echo $poll['option_count']; ?></td>
+                            <td style="text-align: center;"><?php echo $poll['response_count']; ?></td>
+                            <td>
+                                <?php
+                                $status_icons = [
+                                    'open' => ['✓ Aktiv', '#28a745'],
+                                    'closed' => ['🔒 Geschlossen', '#999'],
+                                    'finalized' => ['✔️ Finalisiert', '#17a2b8']
+                                ];
+                                $status_info = $status_icons[$poll['status']] ?? ['?', '#666'];
+                                ?>
+                                <span style="color: <?php echo $status_info[1]; ?>;"><?php echo $status_info[0]; ?></span>
+                            </td>
+                            <td class="action-buttons">
+                                <a href="?tab=termine&poll_id=<?php echo $poll['poll_id']; ?>"
+                                   class="btn-view"
+                                   title="Ansehen">
+                                    👁️
+                                </a>
+                                <form method="POST" style="display: inline-block;"
+                                      onsubmit="return confirm('Terminabfrage wirklich löschen? Alle Antworten gehen verloren!');">
+                                    <input type="hidden" name="admin_delete_poll" value="1">
+                                    <input type="hidden" name="poll_id" value="<?php echo $poll['poll_id']; ?>">
+                                    <button type="submit" class="btn-delete" title="Löschen">🗑️</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+    </div>
 </div>
 
 <!-- Abwesenheiten-Verwaltung -->
@@ -1414,6 +1726,28 @@ function closeEditMeetingModal() {
     document.getElementById('edit-meeting-modal').classList.remove('show');
 }
 
+// Sitzung manuell beenden (Admin-Funktion)
+function showEndMeetingModal(meetingId, meetingName) {
+    document.getElementById('end_meeting_id').value = meetingId;
+    document.getElementById('end_meeting_name').value = meetingName;
+
+    // Aktuellen Zeitpunkt als Vorschlag eintragen
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const datetimeLocal = `${year}-${month}-${day}T${hours}:${minutes}`;
+    document.getElementById('end_meeting_time').value = datetimeLocal;
+
+    document.getElementById('end-meeting-modal').style.display = 'flex';
+}
+
+function closeEndMeetingModal() {
+    document.getElementById('end-meeting-modal').style.display = 'none';
+}
+
 // Mitglied bearbeiten
 function editMember(memberId) {
     const members = <?php echo json_encode($members); ?>;
@@ -1426,6 +1760,8 @@ function editMember(memberId) {
         document.getElementById('edit_email').value = member.email;
         document.getElementById('edit_membership_number').value = member.membership_number || '';
         document.getElementById('edit_role').value = member.role;
+        document.getElementById('edit_aktiv').value = member.aktiv || 1;
+        document.getElementById('edit_funktion').value = member.funktion || '';
         document.getElementById('edit_is_admin').checked = member.is_admin == 1;
         document.getElementById('edit_is_confidential').checked = member.is_confidential == 1;
         document.getElementById('edit_password').value = '';
@@ -1552,13 +1888,6 @@ function showExternalLogDetails(logId) {
     }
 }
 
-// Akkordion-Funktionalität
-function toggleSection(header) {
-    header.classList.toggle('collapsed');
-    const content = header.nextElementSibling;
-    content.classList.toggle('collapsed');
-}
-
 // ToDo bearbeiten
 function editTodo(todoId) {
     const todos = <?php echo json_encode($all_todos ?? []); ?>;
@@ -1587,13 +1916,4 @@ function showAddTodoForm() {
 function hideAddTodoForm() {
     document.getElementById('add-todo-form').style.display = 'none';
 }
-
-// Initialize: Start with all sections collapsed
-document.addEventListener('DOMContentLoaded', function() {
-    // Alle Sektionen initial eingeklappt
-    const allHeaders = document.querySelectorAll('.admin-section-header');
-    allHeaders.forEach(header => {
-        toggleSection(header);
-    });
-});
 </script>

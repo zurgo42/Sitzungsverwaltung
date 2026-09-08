@@ -30,9 +30,11 @@ if (!isset($all_members)) {
 
 <h3>Neues Meinungsbild erstellen</h3>
 
-<form method="POST" action="process_opinion.php" onsubmit="return validateOpinionForm()">
+<form method="POST" action="<?php echo htmlspecialchars($_tab_process_url); ?>" onsubmit="return validateOpinionForm()">
     <input type="hidden" name="action" value="create_opinion">
     <input type="hidden" name="template_id" id="template_id" value="">
+    <?php if (!empty($_tab_redirect_to)): ?><input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($_tab_redirect_to); ?>"><?php endif; ?>
+    <?php if (!empty($OPINION_MTOOL_MODE) && !empty($MNr)): ?><input type="hidden" name="mtool_mnr" value="<?php echo htmlspecialchars($MNr); ?>"><?php endif; ?>
 
     <div class="opinion-card">
         <h4>1. Frage formulieren</h4>
@@ -208,8 +210,9 @@ if (!isset($all_members)) {
             </div>
 
             <div class="form-group">
-                <label>Auto-Löschung nach (Tagen):*</label>
-                <input type="number" name="delete_after_days" value="30" min="1" max="365" required style="width: 100%;">
+                <label>Automatisch löschen am:*</label>
+                <input type="date" name="delete_at_date" id="delete_at_date" required style="width: 100%;">
+                <small style="color: #666;">Datum, zu dem die Umfrage endgültig gelöscht wird</small>
             </div>
         </div>
     </div>
@@ -238,11 +241,22 @@ if (!isset($all_members)) {
 
     <div style="display: flex; gap: 15px;">
         <button type="submit" class="btn-primary">Meinungsbild erstellen</button>
-        <a href="?tab=opinion" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 10px 20px;">Abbrechen</a>
+        <a href="<?php echo _opinion_url(); ?>" class="btn-secondary" style="text-decoration: none; display: inline-block; padding: 10px 20px;">Abbrechen</a>
     </div>
 </form>
 
 <script>
+// Löschdatum: min = morgen, default = heute + 90 Tage
+(function() {
+    const field = document.getElementById('delete_at_date');
+    if (!field) return;
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    const default90 = new Date(); default90.setDate(default90.getDate() + 90);
+    const fmt = d => d.toISOString().slice(0, 10);
+    field.min   = fmt(tomorrow);
+    field.value = fmt(default90);
+})();
+
 function updateTargetOptions() {
     const targetType = document.querySelector('input[name="target_type"]:checked').value;
     const listSelection = document.getElementById('list-selection');

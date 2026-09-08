@@ -4,9 +4,40 @@
  * Protokollant kann editieren, Teilnehmer können nachträgliche Kommentare hinzufügen
  */
 
+// DEBUG: Prüfe ob Datei geladen wird
+if (isset($_GET['debug_feedback'])) {
+    echo '<div style="background: #fffacd; padding: 15px; margin: 15px 0; border: 2px solid #ffc107;">';
+    echo '<strong>DEBUG: tab_agenda_display_ended.php geladen</strong><br>';
+    echo 'Is Secretary: ' . ($is_secretary ? 'JA' : 'NEIN') . '<br>';
+    echo 'Current User: ' . htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']) . '<br>';
+    echo 'User ID: ' . $current_user['member_id'] . '<br>';
+    echo 'Anzahl TOPs: ' . count($agenda_items ?? []) . '<br>';
+    echo '</div>';
+}
+
+// Voting-Modul laden
+require_once 'module_voting.php';
+
 if (empty($agenda_items)) {
     echo '<div class="info-box">Keine Tagesordnungspunkte vorhanden.</div>';
     return;
+}
+
+// DEBUG MODUS (immer sichtbar wenn ?debug=1)
+if (isset($_GET['debug']) && $_GET['debug'] == 1) {
+    echo '<div style="background: #fff3cd; padding: 15px; margin: 15px 0; border-left: 4px solid #ffc107; font-family: monospace; font-size: 13px;">';
+    echo '<strong style="font-size: 16px;">🔍 DEBUG-INFO</strong><br><br>';
+    echo '<strong>Meeting Status:</strong> ' . htmlspecialchars($meeting['status'] ?? 'undefined') . '<br>';
+    echo '<strong>Is Secretary:</strong> ' . ($is_secretary ? '✅ JA' : '❌ NEIN') . '<br>';
+    echo '<strong>Current User ID:</strong> ' . ($current_user['member_id'] ?? 'undefined') . '<br>';
+    echo '<strong>Secretary ID in Meeting:</strong> ' . ($meeting['secretary_member_id'] ?? 'undefined') . '<br>';
+    echo '<strong>POST submitted:</strong> ' . ($_SERVER['REQUEST_METHOD'] === 'POST' ? '✅ JA' : '❌ NEIN (GET)') . '<br>';
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        echo '<strong>POST save_ended_changes:</strong> ' . (isset($_POST['save_ended_changes']) ? '✅ Vorhanden' : '❌ Fehlt') . '<br>';
+    }
+    echo '<strong>URL Success Param:</strong> ' . (isset($_GET['success']) ? $_GET['success'] : 'keiner') . '<br>';
+    echo '<strong>URL Error Param:</strong> ' . (isset($_GET['error']) ? $_GET['error'] : 'keiner') . '<br>';
+    echo '</div>';
 }
 ?>
 
@@ -102,7 +133,7 @@ if (empty($agenda_items)) {
 <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
     <input type="hidden" name="save_ended_changes" value="1">
 
-<?php 
+<?php
 // Berechtigung für vertrauliche TOPs prüfen
 $can_see_confidential = (
     $current_user['is_admin'] == 1 ||
@@ -111,6 +142,16 @@ $can_see_confidential = (
     $is_secretary ||
     $is_chairman
 );
+
+// Debug-Info (nur für Secretary)
+if ($is_secretary && isset($_GET['debug'])) {
+    echo '<div style="background: #fff3cd; padding: 10px; margin: 10px 0; border-left: 4px solid #ffc107;">';
+    echo '🔍 <strong>Debug-Info:</strong><br>';
+    echo 'Meeting Status: ' . ($meeting['status'] ?? 'undefined') . '<br>';
+    echo 'Is Secretary: ' . ($is_secretary ? 'Ja' : 'Nein') . '<br>';
+    echo 'User ID: ' . $current_user['member_id'] . '<br>';
+    echo '</div>';
+}
 
 foreach ($agenda_items as $item): 
     // TOP 999 überspringen
@@ -136,9 +177,7 @@ foreach ($agenda_items as $item):
                 <span class="badge" style="background: #f39c12; color: white;">🔒 Vertraulich</span>
             <?php endif; ?>
         </div>
-        
-        <?php render_proposal_display($item['proposal_text']); ?>
-        
+
         <!-- Beschreibung -->
         <?php if ($item['description']): ?>
             <div style="color: #666; margin: 8px 0; font-size: 14px;">
@@ -167,15 +206,22 @@ foreach ($agenda_items as $item):
         
         <!-- Live-Kommentare (zugeklappt, falls vorhanden) -->
         <?php
+        // Live-Kommentare laden und Member-Daten über Adapter hinzufügen
         $stmt = $pdo->prepare("
-            SELECT alc.*, m.first_name, m.last_name
+            SELECT alc.*
             FROM svagenda_live_comments alc
-            JOIN svmembers m ON alc.member_id = m.member_id
             WHERE alc.item_id = ?
             ORDER BY alc.created_at ASC
         ");
         $stmt->execute([$item['item_id']]);
         $live_comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($live_comments as &$lc) {
+            $member = get_member_by_id($pdo, $lc['member_id']);
+            $lc['first_name'] = $member ? $member['first_name'] : 'Unbekannt';
+            $lc['last_name'] = $member ? $member['last_name'] : '';
+        }
+        unset($lc);
         
         if (!empty($live_comments)):
         ?>
@@ -207,9 +253,10 @@ foreach ($agenda_items as $item):
 
                 <?php
                 // Abstimmungsfelder bei Antrag/Beschluss
-                if ($item['category'] === 'antrag_beschluss') {
-                    render_voting_fields($item['item_id'], $item);
-                }
+                // TODO: render_voting_fields() muss noch implementiert werden
+                // if ($item['category'] === 'antrag_beschluss') {
+                //     render_voting_fields($item['item_id'], $item);
+                // }
                 ?>
 
                 <!-- TOP löschen (nur für Protokollant) -->
@@ -231,7 +278,15 @@ foreach ($agenda_items as $item):
                 <div style="margin-top: 6px; color: #333; font-size: 14px; line-height: 1.6;">
                     <?php echo nl2br(linkify_text($item['protocol_notes'])); ?>
                 </div>
-                <?php render_voting_result($item); ?>
+                <?php if (!empty($item['vote_result'])): ?>
+                    <div style="margin-top: 10px; padding: 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+                        <strong>Abstimmung:</strong>
+                        Ja: <?= (int)($item['vote_yes'] ?? 0) ?> |
+                        Nein: <?= (int)($item['vote_no'] ?? 0) ?> |
+                        Enthaltungen: <?= (int)($item['vote_abstain'] ?? 0) ?> →
+                        <strong><?= htmlspecialchars($item['vote_result']) ?></strong>
+                    </div>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
@@ -344,64 +399,62 @@ foreach ($agenda_items as $item):
             </summary>
 
             <div style="padding: 15px; background: #fffef5;">
-                <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>"
-                      onsubmit="return confirm('TODO wirklich anlegen?');">
-                    <input type="hidden" name="quick_todo_create" value="1">
-                    <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                <!-- KEIN verschachteltes Form-Tag mehr! Nutzt das Hauptformular -->
+                <input type="hidden" name="todo_item_id_<?php echo $item['item_id']; ?>" value="<?php echo $item['item_id']; ?>">
 
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
+                        Titel:
+                    </label>
+                    <input type="text" name="todo_title_<?php echo $item['item_id']; ?>"
+                           placeholder="z.B. Recherche für nächste Sitzung"
+                           style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
+                        Beschreibung (optional):
+                    </label>
+                    <textarea name="todo_description_<?php echo $item['item_id']; ?>" rows="3"
+                              placeholder="Details zum TODO..."
+                              style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
+                        Fällig bis (optional):
+                    </label>
+                    <input type="date" name="todo_due_date_<?php echo $item['item_id']; ?>"
+                           style="padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
+                </div>
+
+                <?php if ($is_secretary): ?>
                     <div style="margin-bottom: 10px;">
                         <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
-                            Titel:
+                            Zuweisen an (nur Protokollführer):
                         </label>
-                        <input type="text" name="todo_title" required
-                               placeholder="z.B. Recherche für nächste Sitzung"
-                               style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
+                        <select name="todo_assigned_to_<?php echo $item['item_id']; ?>"
+                                style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
+                            <option value="">Mir selbst</option>
+                            <?php foreach ($participants as $p): ?>
+                                <option value="<?php echo $p['member_id']; ?>">
+                                    <?php echo htmlspecialchars($p['first_name'] . ' ' . $p['last_name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
+                <?php endif; ?>
 
-                    <div style="margin-bottom: 10px;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
-                            Beschreibung (optional):
-                        </label>
-                        <textarea name="todo_description" rows="3"
-                                  placeholder="Details zum TODO..."
-                                  style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
-                    </div>
-
-                    <div style="margin-bottom: 10px;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
-                            Fällig bis (optional):
-                        </label>
-                        <input type="date" name="todo_due_date"
-                               style="padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
-                    </div>
-
-                    <?php if ($is_secretary): ?>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #333;">
-                                Zuweisen an (nur Protokollführer):
-                            </label>
-                            <select name="assigned_to_member_id"
-                                    style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-size: 14px;">
-                                <option value="">Mir selbst</option>
-                                <?php foreach ($participants as $p): ?>
-                                    <option value="<?php echo $p['member_id']; ?>">
-                                        <?php echo htmlspecialchars($p['first_name'] . ' ' . $p['last_name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    <?php endif; ?>
-
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <button type="submit"
-                                style="padding: 8px 16px; background: #ffc107; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px;">
-                            ✅ TODO anlegen
-                        </button>
-                        <span style="font-size: 12px; color: #666;">
-                            <?php echo $is_secretary ? '(Für dich oder andere Teilnehmer)' : '(Privat - nur für dich sichtbar)'; ?>
-                        </span>
-                    </div>
-                </form>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button type="submit" name="quick_todo_create" value="<?php echo $item['item_id']; ?>"
+                            onclick="return confirm('TODO wirklich anlegen?');"
+                            style="padding: 8px 16px; background: #ffc107; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                        ✅ TODO anlegen
+                    </button>
+                    <span style="font-size: 12px; color: #666;">
+                        <?php echo $is_secretary ? '(Für dich oder andere Teilnehmer)' : '(Privat - nur für dich sichtbar)'; ?>
+                    </span>
+                </div>
             </div>
 
             <style>

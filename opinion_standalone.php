@@ -44,6 +44,10 @@
 
 // Session starten falls noch nicht geschehen
 if (session_status() === PHP_SESSION_NONE) {
+    // session_config.php laden damit Cookie-Einstellungen mit index.php übereinstimmen
+    if (file_exists(__DIR__ . '/session_config.php')) {
+        require_once __DIR__ . '/session_config.php';
+    }
     session_start();
 }
 
@@ -87,10 +91,35 @@ if ($is_sitzungsverwaltung) {
     require_once __DIR__ . '/opinion_functions.php';
     require_once __DIR__ . '/external_participants_functions.php';
 
+    // config_adapter laden (enthält REQUIRE_LOGIN und get_sso_membership_number)
+    if (!defined('REQUIRE_LOGIN') && file_exists(__DIR__ . '/config_adapter.php')) {
+        require_once __DIR__ . '/config_adapter.php';
+    }
+
+    // SSO Auto-Login: wenn SSO-Modus aktiv und noch keine Session
+    if (!isset($_SESSION['member_id'])
+        && defined('REQUIRE_LOGIN') && !REQUIRE_LOGIN
+        && function_exists('get_sso_membership_number'))
+    {
+        $sso_mnr = get_sso_membership_number();
+        if ($sso_mnr) {
+            $sso_user = get_member_by_membership_number($pdo, $sso_mnr);
+            if ($sso_user) {
+                $_SESSION['member_id'] = $sso_user['member_id'];
+                $_SESSION['role']      = $sso_user['role'] ?? '';
+                $_SESSION['MNr']       = $sso_mnr;
+            }
+        }
+    }
+
     // User aus Session holen (kann NULL sein bei public/token/externem Zugriff)
     $current_user = null;
     if (isset($_SESSION['member_id'])) {
         $current_user = get_member_by_id($pdo, $_SESSION['member_id']);
+    }
+    // MTool-Kontext: $MNr gesetzt aber kein SV-Session → Mitglied per MNr laden
+    if (!$current_user && isset($MNr) && $MNr) {
+        $current_user = get_member_by_membership_number($pdo, $MNr);
     }
 
 } else {
@@ -129,18 +158,32 @@ if ($is_sitzungsverwaltung) {
     // Hilfsfunktionen für berechtigte-Mapping
     function determine_role_opinion($funktion, $aktiv) {
         if ($aktiv == 19) return 'vorstand';
+        if ($aktiv == 18) return 'gf';
         $roleMapping = [
-            'GF' => 'gf',
-            'SV' => 'assistenz',
-            'RL' => 'fuehrungsteam',
-            'AD' => 'Mitglied',
-            'FP' => 'Mitglied'
+            'Vo'   => 'vorstand',
+            'FVo'  => 'vorstand',
+            'FVv'  => 'vorstand',
+            'GF'   => 'gf',
+            'VA'   => 'assistenz',
+            'SV'   => 'assistenz',
+            'MB'   => 'assistenz',
+            'Ka'   => 'assistenz',
+            'Orga' => 'assistenz',
+            'RL'   => 'fuehrungsteam',
+            'PL'   => 'fuehrungsteam',
+            'JT'   => 'fuehrungsteam',
+            'TM'   => 'fuehrungsteam',
+            'AD'   => 'mitglied',
+            'FP'   => 'mitglied',
+            'Rx'   => 'mitglied',
+            'Vx'   => 'mitglied',
+            'Xx'   => 'mitglied',
         ];
-        return $roleMapping[$funktion] ?? 'Mitglied';
+        return $roleMapping[$funktion] ?? 'mitglied';
     }
 
     function is_admin_user_opinion($funktion, $mnr) {
-        return in_array($funktion, ['GF', 'SV']) || $mnr == '0495018';
+        return in_array($funktion, ['GF', 'SV', 'VA']) || $mnr == '0495018';
     }
 
     // Alle Mitglieder laden
@@ -195,8 +238,8 @@ if ($access_token) {
 // ÖFFENTLICHE UMFRAGEN-LISTE
 // ============================================
 
-// Wenn KEINE Token UND KEINE Poll-ID: Liste öffentlicher Umfragen anzeigen
-if (!$access_token && !$poll_id_param) {
+// Wenn KEINE Token UND KEINE Poll-ID UND kein MTool-Kontext: Liste öffentlicher Umfragen anzeigen
+if (!$access_token && !$poll_id_param && !isset($MNr)) {
     $stmt = $pdo->prepare("
         SELECT poll_id, title, created_at, ends_at, status
         FROM svopinion_polls
@@ -363,9 +406,70 @@ if ($is_sitzungsverwaltung && file_exists(__DIR__ . '/process_opinion.php') && $
 // VIEW RENDERING
 // ============================================
 
-// tab_opinion.php nur für eingeloggte Benutzer laden
-// (externe Teilnehmer benötigen das Standalone-Rendering weiter unten)
-if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_opinion.php')) {
+// MTool-Modus: $MNr gesetzt, kein Public-Wrapper → tab_opinion.php mit HTML-Wrapper laden
+// Szenario 2 (MTool/normales Mitglied): MTool-unpassende Bereiche werden per $OPINION_MTOOL_MODE ausgeblendet
+if (isset($MNr) && empty($OPINION_PUBLIC_MODE) && $current_user && file_exists(__DIR__ . '/tab_opinion.php')) {
+    $OPINION_MTOOL_MODE = true;
+
+    $_omtp_proto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $_omtp_docroot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+
+    // Absolute URL zu process_opinion.php (für Form-Actions aus beliebigem Verzeichnis)
+    $_omtp_proc = realpath(__DIR__ . '/process_opinion.php');
+    $opinion_process_url = $_omtp_proto . '://' . $_SERVER['HTTP_HOST']
+        . str_replace('\\', '/', substr($_omtp_proc, strlen($_omtp_docroot)));
+
+    // URL des aufrufenden MTool-Skripts — MTool-Routing-Parameter (z.B. steuer=221) erhalten
+    if (!isset($opinion_share_url)) {
+        $_omtp_caller = realpath($_SERVER['SCRIPT_FILENAME']);
+        $_omtp_relpath = str_replace('\\', '/', substr($_omtp_caller, strlen($_omtp_docroot)));
+        // $_GET direkt verwenden (zuverlässiger als QUERY_STRING bei manchen Server-Konfigurationen)
+        $_omtp_qparams = $_GET;
+        unset($_omtp_qparams['view'], $_omtp_qparams['poll_id'], $_omtp_qparams['token'], $_omtp_qparams['tab']);
+        $_omtp_base_qs = http_build_query($_omtp_qparams);
+        $opinion_share_url = $_omtp_proto . '://' . $_SERVER['HTTP_HOST']
+            . $_omtp_relpath
+            . ($_omtp_base_qs ? '?' . $_omtp_base_qs : '');
+    }
+    // MTool-URL in Session speichern → process_opinion.php kann sie als Fallback nutzen
+    $_SESSION['opinion_mtool_share_url'] = $opinion_share_url;
+
+    // $OPINION_PUBLIC_URL nur setzen, wenn der MTool-Aufrufer sie nicht bereits gesetzt hat.
+    // Der Aufrufer kann z.B. 'https://aktive.mensa.de/opinion_standalone.php' setzen (korrekte
+    // öffentliche URL für externe Teilnehmer). Hier nur als Fallback die MTool-URL verwenden.
+    if (!isset($OPINION_PUBLIC_URL)) {
+        $OPINION_PUBLIC_URL = $opinion_share_url;
+    }
+    // Explizit in $GLOBALS schreiben: generate_external_access_link() nutzt 'global $OPINION_PUBLIC_URL'.
+    // Wenn MTool dieses Script aus einem Funktions-Scope per require_once einbindet, landet
+    // $OPINION_PUBLIC_URL nur im lokalen Scope – global findet es dann nicht. $GLOBALS ist
+    // immer der echte globale Scope, unabhängig davon, wo der Aufruf stattfand.
+    $GLOBALS['OPINION_PUBLIC_URL'] = $OPINION_PUBLIC_URL;
+
+    echo '<!DOCTYPE html>' . "\n";
+    echo '<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Meinungsbild</title></head>';
+    echo '<body style="margin:0;padding:0;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;">';
+    echo '<div style="max-width:1100px;margin:0 auto;padding:20px;">';
+    include __DIR__ . '/tab_opinion.php';
+    echo '</div></body></html>';
+    return;
+}
+
+// Absolute URL zu process_opinion.php setzen (damit Form-Actions auch funktionieren,
+// wenn das Script aus einem anderen Verzeichnis eingebunden wird, z.B. public wrapper)
+if (!isset($opinion_process_url) && $is_sitzungsverwaltung) {
+    $_svop_proto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $_svop_docroot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+    $_svop_proc    = realpath(__DIR__ . '/process_opinion.php');
+    if ($_svop_proc && strpos($_svop_proc, $_svop_docroot) === 0) {
+        $opinion_process_url = $_svop_proto . '://' . $_SERVER['HTTP_HOST']
+            . str_replace('\\', '/', substr($_svop_proc, strlen($_svop_docroot)));
+    }
+}
+
+// tab_opinion.php für SV-eingeloggte Benutzer laden
+// (externe Teilnehmer und Public-Wrapper benötigen das Standalone-Rendering weiter unten)
+if ($is_sitzungsverwaltung && $current_user && empty($OPINION_PUBLIC_MODE) && file_exists(__DIR__ . '/tab_opinion.php')) {
     include __DIR__ . '/tab_opinion.php';
     return; // Beende hier
 }
@@ -373,6 +477,17 @@ if ($is_sitzungsverwaltung && $current_user && file_exists(__DIR__ . '/tab_opini
 // ============================================
 // STANDALONE-RENDERING
 // ============================================
+
+// _opinion_url() für standalone-Kontext (externe Teilnehmer, kein tab_opinion.php-Include)
+if (!function_exists('_opinion_url')) {
+    function _opinion_url($view = null, $poll_id = null) {
+        $url = basename($_SERVER['SCRIPT_NAME']);
+        $sep = '?';
+        if ($view)    { $url .= $sep . 'view=' . $view;            $sep = '&'; }
+        if ($poll_id) { $url .= $sep . 'poll_id=' . intval($poll_id); }
+        return $url;
+    }
+}
 
 // View bestimmen: Wenn poll_id vorhanden und kein User eingeloggt -> participate
 $view = $_GET['view'] ?? (($poll_id_param && !$current_user) ? 'participate' : 'list');
