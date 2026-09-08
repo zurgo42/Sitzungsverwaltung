@@ -155,6 +155,7 @@ function nm_notify_all($pdo, $event_type, $build_fn) {
             }
         }
         $all = get_all_members($pdo);
+        $enqueued = 0;
         foreach ($all as $m) {
             // get_all_members() already filters to active/relevant members; just require email
             if (empty($m['email'])) continue;
@@ -165,9 +166,17 @@ function nm_notify_all($pdo, $event_type, $build_fn) {
             [$subj, $txt, $html] = $result;
             $mode = nm_get_delivery_mode($pdo, $m['member_id']);
             nm_enqueue($pdo, $m['member_id'], $event_type, $subj, $txt, $html, $mode);
+            $enqueued++;
+        }
+        if ($event_type !== 'top_neu') { // log less common events
+            @file_put_contents(__DIR__ . '/pseudo_cron.log',
+                '[' . date('Y-m-d H:i:s') . "] nm_notify_all({$event_type}): "
+                . count($all) . " Mitglieder, {$enqueued} eingereiht\n", FILE_APPEND);
         }
     } catch (\Throwable $e) {
         error_log('nm_notify_all(' . $event_type . '): ' . $e->getMessage());
+        @file_put_contents(__DIR__ . '/pseudo_cron.log',
+            '[' . date('Y-m-d H:i:s') . "] nm_notify_all({$event_type}) ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
     }
 }
 

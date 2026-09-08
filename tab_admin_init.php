@@ -1051,6 +1051,55 @@ body.dark-mode .init-danger-list {
                     ⚠️ Tabelle <code>svmail_notifications</code> fehlt – bitte <a href="init-db.php">init-db.php</a> ausführen.
                 </div>
             <?php } ?>
+
+            <?php
+            // --- Opt-in-Analyse: Wer hat top_kommentar aktiviert?
+            try {
+                if (!function_exists('get_all_members') && file_exists(__DIR__ . '/member_functions.php')) {
+                    require_once __DIR__ . '/member_functions.php';
+                }
+                $optin_rows = $pdo->query(
+                    "SELECT member_id, email FROM svnotification_prefs WHERE event_type = 'top_kommentar'"
+                )->fetchAll(PDO::FETCH_ASSOC);
+                $all_mem = function_exists('get_all_members') ? get_all_members($pdo) : [];
+                $mmap_diag = [];
+                foreach ($all_mem as $mm) $mmap_diag[(int)$mm['member_id']] = $mm;
+                ?>
+                <hr style="margin:14px 0;">
+                <p style="font-weight:600;margin-bottom:6px;">Opt-in für <code>top_kommentar</code></p>
+                <?php if (empty($optin_rows)): ?>
+                    <p style="color:#c00;">Kein Mitglied hat <em>top_kommentar</em> in <code>svnotification_prefs</code> gespeichert.
+                    → In <a href="meine_benachrichtigungen.php">Benachrichtigungseinstellungen</a> aktivieren und speichern.</p>
+                <?php else: ?>
+                <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:8px;">
+                    <thead><tr style="background:#f0f0f0;">
+                        <th style="padding:4px 8px;text-align:left;">member_id</th>
+                        <th style="padding:4px 8px;text-align:left;">Aktiviert</th>
+                        <th style="padding:4px 8px;text-align:left;">In get_all_members()</th>
+                        <th style="padding:4px 8px;text-align:left;">E-Mail</th>
+                    </tr></thead>
+                    <tbody>
+                    <?php foreach ($optin_rows as $op):
+                        $mid  = (int)$op['member_id'];
+                        $on   = (bool)$op['email'];
+                        $mem  = $mmap_diag[$mid] ?? null;
+                        $found = $mem !== null;
+                        $em   = $mem['email'] ?? '';
+                    ?>
+                    <tr style="border-top:1px solid #eee;">
+                        <td style="padding:4px 8px;"><?= $mid ?></td>
+                        <td style="padding:4px 8px;"><?= $on ? '<span style="color:green;">✅ AN</span>' : '<span style="color:#999;">AUS</span>' ?></td>
+                        <td style="padding:4px 8px;"><?= $found ? '<span style="color:green;">✅ gefunden</span>' : '<span style="color:#c00;">❌ NICHT gefunden – member_id stimmt nicht überein!</span>' ?></td>
+                        <td style="padding:4px 8px;"><?= $em ? htmlspecialchars($em) : '<span style="color:#c00;">leer!</span>' ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <?php endif; ?>
+                <p style="font-size:11px;color:#888;">get_all_members() liefert <?= count($all_mem) ?> Mitglied(er).</p>
+            <?php } catch (Exception $e) {
+                echo '<p style="color:#c00;">Fehler bei Opt-in-Analyse: ' . htmlspecialchars($e->getMessage()) . '</p>';
+            } ?>
         </div>
     </div>
 
