@@ -1034,11 +1034,11 @@ body.dark-mode .init-danger-list {
                     <tbody>
                     <?php foreach ($diag_recent as $r): ?>
                     <tr style="border-top:1px solid #eee;">
-                        <td style="padding:4px 8px;"><?= htmlspecialchars($r['created_at']) ?></td>
+                        <td style="padding:4px 8px;"><?= $r['created_at'] ? date('d.m.Y H:i', strtotime($r['created_at'])) : '—' ?></td>
                         <td style="padding:4px 8px;"><?= htmlspecialchars(trim($r['member_name'] ?? '') . ' <' . ($r['member_email'] ?? '') . '>') ?></td>
                         <td style="padding:4px 8px;"><?= htmlspecialchars($r['event_type']) ?></td>
                         <td style="padding:4px 8px;"><?= htmlspecialchars(mb_substr($r['subject'], 0, 50)) ?></td>
-                        <td style="padding:4px 8px;"><?= $r['sent_at'] ? '✅ ' . htmlspecialchars($r['sent_at']) : '<span style="color:#c00;">⏳ ausstehend</span>' ?></td>
+                        <td style="padding:4px 8px;"><?= $r['sent_at'] ? '✅ ' . date('d.m.Y H:i', strtotime($r['sent_at'])) : '<span style="color:#c00;">⏳ ausstehend</span>' ?></td>
                     </tr>
                     <?php endforeach; ?>
                     </tbody>

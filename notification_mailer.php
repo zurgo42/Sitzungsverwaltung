@@ -147,11 +147,19 @@ function nm_enqueue($pdo, $member_id, $event_type, $subject, $body_text, $body_h
  */
 function nm_notify_all($pdo, $event_type, $build_fn) {
     try {
-        if (!function_exists('get_all_members')) return;
+        if (!function_exists('get_all_members')) {
+            if (file_exists(__DIR__ . '/member_functions.php')) {
+                require_once __DIR__ . '/member_functions.php';
+            } else {
+                return;
+            }
+        }
         $all = get_all_members($pdo);
         foreach ($all as $m) {
             $aktiv = (int)($m['aktiv'] ?? 0);
-            if ($aktiv <= 10 || empty($m['email'])) continue;
+            // is_active=1 is set by BerechtigteAdapter; for svmembers aktiv is 0/1
+            $is_active = array_key_exists('is_active', $m) ? (bool)$m['is_active'] : ($aktiv > 0);
+            if (!$is_active || empty($m['email'])) continue;
             if (!nm_has_pref($pdo, $m['member_id'], $event_type, $aktiv)) continue;
             $result = $build_fn($m);
             if ($result === null) continue;
@@ -159,7 +167,7 @@ function nm_notify_all($pdo, $event_type, $build_fn) {
             $mode = nm_get_delivery_mode($pdo, $m['member_id']);
             nm_enqueue($pdo, $m['member_id'], $event_type, $subj, $txt, $html, $mode);
         }
-    } catch (Exception $e) {
+    } catch (\Throwable $e) {
         error_log('nm_notify_all(' . $event_type . '): ' . $e->getMessage());
     }
 }
