@@ -244,6 +244,7 @@ if ($should_run) {
         }
 
         // ---- E-Mail-Benachrichtigungen verarbeiten ----
+        try {
         if (!function_exists('nm_process_immediate')) {
             $nm_file = __DIR__ . '/notification_mailer.php';
             if (file_exists($nm_file)) require_once $nm_file;
@@ -269,6 +270,10 @@ if ($should_run) {
                      ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)"
                 )->execute([$today_d]);
             }
+        }
+        } catch (\Throwable $e) {
+            $error_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron NM-Fehler: " . $e->getMessage() . "\n";
+            @file_put_contents(__DIR__ . '/pseudo_cron.log', $error_msg, FILE_APPEND);
         }
 
     } catch (Exception $e) {

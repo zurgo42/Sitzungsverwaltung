@@ -148,15 +148,20 @@ function send_meeting_reminder($pdo, $meeting_id) {
     $link = "?tab=agenda&meeting_id=" . $meeting_id;
 
     foreach ($participants as $member_id) {
-        create_notification(
-            $pdo,
-            $member_id,
-            'reminder',
-            $title,
-            $message,
-            $link,
-            ['meeting_id' => $meeting_id]
-        );
+        try {
+            create_notification(
+                $pdo,
+                $member_id,
+                'reminder',
+                $title,
+                $message,
+                $link,
+                ['meeting_id' => $meeting_id]
+            );
+        } catch (\Throwable $e) {
+            // FK-Verletzung wenn member_id nicht in svmembers (berechtigte-Adapter) – ignorieren
+            error_log('send_meeting_reminder: create_notification member=' . $member_id . ': ' . $e->getMessage());
+        }
 
         // Optional: Browser-Push senden
         send_browser_push($pdo, $member_id, $title, $message, $link);
