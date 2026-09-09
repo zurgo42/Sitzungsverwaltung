@@ -18,7 +18,7 @@
  * @param int $member_id ID des aktuellen Benutzers
  * @return void (gibt direkt HTML aus)
  */
-function render_user_notifications($pdo, $member_id) {
+function render_user_notifications($pdo, $member_id, $options = []) {
     // Mitglied-Rolle ermitteln - über Adapter!
     $member = get_member_by_id($pdo, $member_id);
     $member_role = $member['role'] ?? '';
@@ -300,6 +300,7 @@ function render_user_notifications($pdo, $member_id) {
     }
 
     // 9. ABWESENHEITEN (AM ENDE, NACH TERMINEN)
+    if (!empty($options['hide_absences'])) return;
     $all_absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
 
     // is_current Flag hinzufügen

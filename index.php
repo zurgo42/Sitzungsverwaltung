@@ -454,7 +454,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $active_tab === 'meetings') {
 
 // PROCESS ABSENCES
 // Wird bei POST-Requests auf dem Sitzungen-Tab oder Vertretung-Tab für Abwesenheiten ausgeführt
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($active_tab === 'meetings' || $active_tab === 'vertretung')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($active_tab === 'meetings' || $active_tab === 'vertretung' || $active_tab === 'admin')) {
     require_once 'process_absences.php';
 }
 

@@ -20,8 +20,8 @@ $absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
 $my_absences = get_absences_with_names($pdo, "a.member_id = ?", [$current_user['member_id']]);
 ?>
 
-<!-- BENACHRICHTIGUNGEN -->
-<?php render_user_notifications($pdo, $current_user['member_id']); ?>
+<!-- BENACHRICHTIGUNGEN (ohne Abwesenheiten – werden unten als Tabelle angezeigt) -->
+<?php render_user_notifications($pdo, $current_user['member_id'], ['hide_absences' => true]); ?>
 
 <h2>🏖️ Vertretungen & Abwesenheiten</h2>
 
