@@ -239,7 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 if (function_exists('nm_event_antrag_geaendert')) {
                     $notif_titel = trim($_POST['titel'] ?? ($antrag['titel'] ?? ''));
-                    $notif_intern = (($post['int_ext'] ?? $antrag['int_ext'] ?? 'e') === 'i');
+                    $notif_intern = (($_POST['int_ext'] ?? $antrag['int_ext'] ?? 'e') === 'i');
                     nm_event_antrag_geaendert($pdo, $antrnr, $notif_titel, $prot_diff, $notif_intern);
                 }
 
