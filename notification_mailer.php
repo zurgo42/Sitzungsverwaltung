@@ -204,6 +204,10 @@ function nm_html_wrap($pdo, $content_html) {
         . '</p></div></div></body></html>';
 }
 
+function nm_deep_url($pdo, $path) {
+    return nm_site_url($pdo) . 'login.php?redirect=' . urlencode($path);
+}
+
 function nm_btn($url, $label) {
     return '<a href="' . htmlspecialchars($url) . '" style="display:inline-block;margin-top:18px;'
         . 'padding:10px 22px;background:#0055aa;color:#fff;text-decoration:none;'
@@ -221,7 +225,7 @@ function nm_tbl_row($label, $value) {
 // ------------------------------------------------------------------
 
 function nm_event_antrag_neu($pdo, $antrnr, $titel, $bart_label, $is_confidential = false) {
-    $url = nm_site_url($pdo) . 'antrag_bearbeiten.php?antrnr=' . urlencode($antrnr);
+    $url = nm_deep_url($pdo, 'antrag_bearbeiten.php?antrnr=' . urlencode($antrnr));
     nm_notify_all($pdo, 'antrag_neu', function($m) use ($antrnr, $titel, $bart_label, $url, $pdo, $is_confidential) {
         if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
         $subj = 'Neuer Antrag: ' . $titel;
@@ -238,7 +242,7 @@ function nm_event_antrag_neu($pdo, $antrnr, $titel, $bart_label, $is_confidentia
 function nm_event_antrag_geaendert($pdo, $antrnr, $titel, $diff_string, $is_confidential = false) {
     // Nicht senden wenn nichts geändert wurde
     if (substr($diff_string, -strlen('(unverändert)')) === '(unverändert)') return;
-    $url = nm_site_url($pdo) . 'antrag_bearbeiten.php?antrnr=' . urlencode($antrnr);
+    $url = nm_deep_url($pdo, 'antrag_bearbeiten.php?antrnr=' . urlencode($antrnr));
     nm_notify_all($pdo, 'antrag_geaendert', function($m) use ($antrnr, $titel, $diff_string, $url, $pdo, $is_confidential) {
         if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
         $subj = 'Antrag geändert: ' . $titel;
@@ -258,7 +262,7 @@ function nm_event_antrag_geaendert($pdo, $antrnr, $titel, $diff_string, $is_conf
 }
 
 function nm_event_antrag_hinweis($pdo, $antrnr, $titel, $hinweis_text, $is_confidential = false) {
-    $url = nm_site_url($pdo) . 'abstimmungen.php?antrnr=' . urlencode($antrnr);
+    $url = nm_deep_url($pdo, 'abstimmungen.php?antrnr=' . urlencode($antrnr));
     nm_notify_all($pdo, 'antrag_hinweis', function($m) use ($antrnr, $titel, $hinweis_text, $url, $pdo, $is_confidential) {
         if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
         $subj = 'Hinweis zu Antrag ' . $antrnr . ': ' . mb_substr($titel, 0, 55);
@@ -276,7 +280,7 @@ function nm_event_antrag_hinweis($pdo, $antrnr, $titel, $hinweis_text, $is_confi
 }
 
 function nm_event_antrag_abstimmung($pdo, $antrnr, $neue_nr, $titel, $frist_datum, $is_confidential = false) {
-    $url   = nm_site_url($pdo) . 'abstimmungen.php?antrnr=' . urlencode($neue_nr);
+    $url   = nm_deep_url($pdo, 'abstimmungen.php?antrnr=' . urlencode($neue_nr));
     $frist = $frist_datum ? date('d.m.Y', strtotime((string)$frist_datum)) : '—';
     nm_notify_all($pdo, 'antrag_abstimmung', function($m) use ($neue_nr, $titel, $frist, $url, $pdo, $is_confidential) {
         if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
@@ -293,7 +297,7 @@ function nm_event_antrag_abstimmung($pdo, $antrnr, $neue_nr, $titel, $frist_datu
 
 function nm_event_antrag_beschlossen($pdo, $antrnr, $titel, $angenommen, $is_confidential = false) {
     $ergebnis = $angenommen ? 'Angenommen' : 'Abgelehnt';
-    $url = nm_site_url($pdo) . 'antrag_bearbeiten.php?antrnr=' . urlencode($antrnr);
+    $url = nm_deep_url($pdo, 'antrag_bearbeiten.php?antrnr=' . urlencode($antrnr));
     nm_notify_all($pdo, 'antrag_beschlossen', function($m) use ($antrnr, $titel, $ergebnis, $angenommen, $url, $pdo, $is_confidential) {
         if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
         $subj  = 'Abstimmungsergebnis: ' . $titel;
@@ -312,7 +316,7 @@ function nm_event_antrag_beschlossen($pdo, $antrnr, $titel, $angenommen, $is_con
 }
 
 function nm_event_top_neu($pdo, $meeting_id, $top_title, $meeting_date, $meeting_name, $is_confidential = false) {
-    $url   = nm_site_url($pdo) . 'index.php?tab=agenda&meeting_id=' . urlencode($meeting_id);
+    $url   = nm_deep_url($pdo, 'index.php?tab=agenda&meeting_id=' . urlencode($meeting_id));
     $datum = $meeting_date ? date('d.m.Y', strtotime((string)$meeting_date)) : '—';
     nm_notify_all($pdo, 'top_neu', function($m) use ($top_title, $datum, $meeting_name, $url, $pdo, $is_confidential) {
         if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
@@ -328,7 +332,7 @@ function nm_event_top_neu($pdo, $meeting_id, $top_title, $meeting_date, $meeting
 }
 
 function nm_event_top_kommentar($pdo, $meeting_id, $top_title, $meeting_date, $meeting_name, $comment_text, $author_name, $is_confidential = false) {
-    $url   = nm_site_url($pdo) . 'index.php?tab=agenda&meeting_id=' . urlencode($meeting_id);
+    $url   = nm_deep_url($pdo, 'index.php?tab=agenda&meeting_id=' . urlencode($meeting_id));
     $datum = $meeting_date ? date('d.m.Y', strtotime((string)$meeting_date)) : '—';
     nm_notify_all($pdo, 'top_kommentar', function($m) use ($top_title, $datum, $meeting_name, $comment_text, $author_name, $url, $pdo, $is_confidential) {
         if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
@@ -355,7 +359,7 @@ function nm_event_todo_zugewiesen($pdo, $assignee_member, $todo_title, $todo_des
     if ($aktiv <= 10) return;
     if (!nm_has_pref($pdo, $assignee_member['member_id'], 'todo_zugewiesen', $aktiv)) return;
 
-    $url    = nm_site_url($pdo) . 'index.php?tab=todos';
+    $url    = nm_deep_url($pdo, 'index.php?tab=todos');
     $due    = $due_date ? date('d.m.Y', strtotime((string)$due_date)) : 'kein Fälligkeitsdatum';
     $vorname = $assignee_member['first_name'] ?? '';
     $subj   = 'Neues ToDo: ' . $todo_title;
