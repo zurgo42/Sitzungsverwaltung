@@ -89,6 +89,20 @@ if (isset($_POST['edit_absence'])) {
     }
 }
 
+// Alle vergangenen Abwesenheiten löschen (nur Admin)
+if (isset($_POST['delete_past_absences']) && $current_user['is_admin']) {
+    try {
+        $stmt = $pdo->prepare("DELETE FROM svabsences WHERE end_date < CURDATE()");
+        $stmt->execute();
+        header('Location: index.php?tab=admin&msg=past_absences_deleted');
+        exit;
+    } catch (PDOException $e) {
+        error_log('Fehler beim Löschen vergangener Abwesenheiten: ' . $e->getMessage());
+        header('Location: index.php?tab=admin&error=past_absences_delete_failed');
+        exit;
+    }
+}
+
 // Abwesenheit löschen
 if (isset($_POST['delete_absence'])) {
     $absence_id = $_POST['absence_id'] ?? null;

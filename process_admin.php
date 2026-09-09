@@ -1815,7 +1815,7 @@ unset($meeting); // Wichtig: Referenz auflösen, um Duplikate zu vermeiden
 $members = get_all_members($pdo);
 
 // Alle Abwesenheiten laden (für Admin-Verwaltung)
-$all_absences = get_absences_with_names($pdo);
+$all_absences = array_reverse(get_absences_with_names($pdo));
 
 // Offene ToDos laden
 $open_todos = $pdo->query("

@@ -300,59 +300,60 @@ function render_user_notifications($pdo, $member_id, $options = []) {
     }
 
     // 9. ABWESENHEITEN (AM ENDE, NACH TERMINEN)
-    if (!empty($options['hide_absences'])) return;
-    $all_absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
+    if (empty($options['hide_absences'])) {
+        $all_absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
 
-    // is_current Flag hinzufügen
-    foreach ($all_absences as &$abs) {
-        $abs['is_current'] = (strtotime('today') >= strtotime($abs['start_date']) &&
-                              strtotime('today') <= strtotime($abs['end_date'])) ? 1 : 0;
-    }
-
-    if (!empty($all_absences)) {
-        $total_absences = count($all_absences);
-        // Nur die ersten 4 Abwesenheiten anzeigen
-        $display_absences = array_slice($all_absences, 0, 4);
-
-        $absence_items = [];
-        foreach ($display_absences as $abs) {
-            // Zeitraum (strong) + Doppelpunkt
-            $dates = '<strong>' . date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date'])) . ':</strong>';
-
-            // Vorname + erster Buchstabe Nachname mit Punkt
-            $first_name = htmlspecialchars($abs['first_name']);
-            $last_initial = strtoupper(substr($abs['last_name'], 0, 1)) . '.';
-            $name = $first_name . ' ' . $last_initial;
-
-            // Vertretung (falls vorhanden)
-            $vertr = '';
-            if ($abs['substitute_member_id']) {
-                $sub_first = htmlspecialchars($abs['sub_first_name']);
-                $sub_initial = strtoupper(substr($abs['sub_last_name'], 0, 1)) . '.';
-                $vertr = ' Vertr.: ' . $sub_first . ' ' . $sub_initial;
-            }
-
-            $text = $dates . ' ' . $name . $vertr;
-
-            // Aktuelle Abwesenheiten in rot
-            if ($abs['is_current']) {
-                $absence_items[] = '<span style="color: #d32f2f;">' . $text . '</span>';
-            } else {
-                $absence_items[] = $text;
-            }
+        // is_current Flag hinzufügen
+        foreach ($all_absences as &$abs) {
+            $abs['is_current'] = (strtotime('today') >= strtotime($abs['start_date']) &&
+                                  strtotime('today') <= strtotime($abs['end_date'])) ? 1 : 0;
         }
 
-        // Link-Text: "Details" wenn 4 oder weniger, "weitere..." wenn mehr als 4
-        $link_text = ($total_absences <= 4) ? 'Details' : 'weitere...';
+        if (!empty($all_absences)) {
+            $total_absences = count($all_absences);
+            // Nur die ersten 4 Abwesenheiten anzeigen
+            $display_absences = array_slice($all_absences, 0, 4);
 
-        $notifications[] = [
-            'type' => 'absences',
-            'icon' => '🏖️',
-            'text' => implode(' <span style="color: #ffc107; font-weight: 900; font-size: 18px;">•</span> ', $absence_items),
-            'link' => '?tab=vertretung',
-            'link_text' => $link_text,
-            'button' => true
-        ];
+            $absence_items = [];
+            foreach ($display_absences as $abs) {
+                // Zeitraum (strong) + Doppelpunkt
+                $dates = '<strong>' . date('d.m.', strtotime($abs['start_date'])) . '-' . date('d.m.', strtotime($abs['end_date'])) . ':</strong>';
+
+                // Vorname + erster Buchstabe Nachname mit Punkt
+                $first_name = htmlspecialchars($abs['first_name']);
+                $last_initial = strtoupper(substr($abs['last_name'], 0, 1)) . '.';
+                $name = $first_name . ' ' . $last_initial;
+
+                // Vertretung (falls vorhanden)
+                $vertr = '';
+                if ($abs['substitute_member_id']) {
+                    $sub_first = htmlspecialchars($abs['sub_first_name']);
+                    $sub_initial = strtoupper(substr($abs['sub_last_name'], 0, 1)) . '.';
+                    $vertr = ' Vertr.: ' . $sub_first . ' ' . $sub_initial;
+                }
+
+                $text = $dates . ' ' . $name . $vertr;
+
+                // Aktuelle Abwesenheiten in rot
+                if ($abs['is_current']) {
+                    $absence_items[] = '<span style="color: #d32f2f;">' . $text . '</span>';
+                } else {
+                    $absence_items[] = $text;
+                }
+            }
+
+            // Link-Text: "Details" wenn 4 oder weniger, "weitere..." wenn mehr als 4
+            $link_text = ($total_absences <= 4) ? 'Details' : 'weitere...';
+
+            $notifications[] = [
+                'type' => 'absences',
+                'icon' => '🏖️',
+                'text' => implode(' <span style="color: #ffc107; font-weight: 900; font-size: 18px;">•</span> ', $absence_items),
+                'link' => '?tab=vertretung',
+                'link_text' => $link_text,
+                'button' => true
+            ];
+        }
     }
 
     // AUSGABE

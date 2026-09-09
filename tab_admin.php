@@ -962,6 +962,9 @@ document.addEventListener('DOMContentLoaded', function() {
         <?php if (isset($_GET['msg']) && $_GET['msg'] === 'absence_deleted'): ?>
             <div class="message">✅ Abwesenheit erfolgreich gelöscht!</div>
         <?php endif; ?>
+        <?php if (isset($_GET['msg']) && $_GET['msg'] === 'past_absences_deleted'): ?>
+            <div class="message">✅ Alle vergangenen Abwesenheiten wurden gelöscht!</div>
+        <?php endif; ?>
 
         <!-- Neue Abwesenheit hinzufügen -->
         <details style="margin-bottom: 20px; border: 1px solid #ddd; border-radius: 4px; padding: 10px;">
@@ -1015,7 +1018,15 @@ document.addEventListener('DOMContentLoaded', function() {
         </details>
 
         <!-- Liste aller Abwesenheiten -->
-        <h4 style="margin-top: 20px; margin-bottom: 10px;">📅 Alle Abwesenheiten</h4>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px; margin-bottom: 10px;">
+            <h4 style="margin: 0;">📅 Alle Abwesenheiten</h4>
+            <form method="POST" action="?tab=admin" onsubmit="return confirm('Alle vergangenen Abwesenheiten wirklich löschen?');">
+                <input type="hidden" name="delete_past_absences" value="1">
+                <button type="submit" style="background: #f44336; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600;">
+                    🗑️ Alle vergangenen löschen
+                </button>
+            </form>
+        </div>
 
         <?php if (empty($all_absences)): ?>
             <p style="color: #666;">Keine Abwesenheiten eingetragen.</p>
