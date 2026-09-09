@@ -780,7 +780,7 @@ if ($user['aktiv'] >= 19) {
 
         <div class="header">
             <div>
-                <h1>Antrag bearbeiten</h1>
+                <h1>Antrag bearbeiten: <?= htmlspecialchars($antrag['titel'] ?? '') ?></h1>
                 <span class="antrnr">
                     <?= htmlspecialchars($antrag['antrnr']) ?>
                     <?php
