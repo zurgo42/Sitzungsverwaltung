@@ -457,6 +457,57 @@ if (!isset($_SESSION['member_id'])) {
 - `send_poll_finalization_notification($pdo, $poll_id, $recipients)` - Bestätigung
 - `send_poll_reminder($pdo, $poll_id)` - Erinnerungsmail
 
+#### notification_mailer.php
+
+**E-Mail-Benachrichtigungssystem** (ereignisgetrieben, asynchron):
+
+Die Datei steuert alle automatischen Benachrichtigungs-E-Mails. Das System funktioniert ausschließlich über Ereignisfunktionen — direktes Versenden ist nicht vorgesehen.
+
+**Pipeline:**
+```
+nm_event_*()  →  nm_notify_all()  →  nm_enqueue()
+→  svmail_notifications (Tabelle)
+→  pseudo_cron.php (bei Seitenaufruf, max. 1×/60 s)
+→  nm_process_immediate() / nm_process_digest()
+→  multipartmail() → PHP mail()
+```
+
+**Kernfunktionen:**
+- `nm_site_url($pdo)` – Basis-URL aus svconfig (`site_url`), Fallback auf `BASE_URL`
+- `nm_from_name($pdo)` – Absendername aus svconfig (`site_name`)
+- `nm_deep_url($pdo, $path)` – Deep-Link via `login.php?redirect=<path>`; nicht eingeloggte Empfänger landen nach dem Login direkt auf dem Vorgang
+- `nm_html_wrap($pdo, $content_html)` – HTML-E-Mail-Rahmen mit Header, Inhalt und Footer (inkl. Abbestell-Link via `login.php?redirect=meine_benachrichtigungen.php`)
+- `nm_btn($url, $label)` – Schaltflächen-HTML für E-Mails
+- `nm_tbl_row($label, $value)` – Tabellenzeile für Detaildaten
+- `nm_has_pref($pdo, $member_id, $event_type, $aktiv)` – prüft svnotification_prefs
+- `nm_notify_all($pdo, $event_type, $callback)` – iteriert alle berechtigten Mitglieder, ruft Callback auf; Rückgabe `null` = E-Mail überspringen
+- `nm_enqueue($pdo, $member_id, $event_type, $subj, $txt, $html, $is_digest)` – schreibt in `svmail_notifications`
+
+**Ereignisfunktionen:**
+| Funktion | Ereignis | Ziel-URL |
+|---|---|---|
+| `nm_event_antrag_neu` | Neuer Antrag | `antrag_bearbeiten.php?antrnr=…` |
+| `nm_event_antrag_geaendert` | Antrag bearbeitet | `antrag_bearbeiten.php?antrnr=…` |
+| `nm_event_antrag_hinweis` | Hinweis zu Antrag | `abstimmungen.php?antrnr=…` |
+| `nm_event_antrag_abstimmung` | Abstimmung gestartet | `abstimmungen.php?antrnr=…` |
+| `nm_event_antrag_beschlossen` | Abstimmung beendet | `antrag_bearbeiten.php?antrnr=…` |
+| `nm_event_top_neu` | Neuer TOP | `index.php?tab=agenda&meeting_id=…` |
+| `nm_event_top_kommentar` | TOP-Kommentar | `index.php?tab=agenda&meeting_id=…` |
+| `nm_event_todo_zugewiesen` | ToDo zugewiesen (direkt, kein Queue) | `index.php?tab=todos` |
+
+**Vertraulichkeitsfilter:**
+Jede `nm_event_*`-Funktion hat den optionalen Parameter `$is_confidential = false`. Ist er `true`, empfangen nur Mitglieder mit `is_confidential = 1` die E-Mail. Anwendungsfälle:
+- Vertrauliche TOPs: `svagenda_items.is_confidential = 1`
+- Interne Anträge: `int_ext = 'i'` (Vorstand-only)
+
+```php
+// Beispiel: Kommentar zu vertraulichem TOP
+nm_event_top_kommentar($pdo, $meeting_id, $title, $date, $name,
+    $comment, $author, true /* is_confidential */);
+```
+
+**Adapter-Regel:** `nm_notify_all()` ruft intern `get_all_members($pdo)` auf — kein direkter SQL-Zugriff auf `berechtigte` oder `svmembers`.
+
 #### opinion_functions.php
 **Meinungsbild-Tool Helpers:**
 - `get_all_opinion_polls($pdo, $member_id, $include_public)` - Liste Polls

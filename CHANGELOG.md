@@ -8,6 +8,44 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### E-Mail-Benachrichtigungssystem – Erweiterungen (2026-09-13)
+
+**Datei `notification_mailer.php`:**
+- **Vertraulichkeitsfilter**: Nachrichten zu vertraulichen TOPs (`svagenda_items.is_confidential = 1`) und internen Anträgen (`int_ext = 'i'`) werden nur an Mitglieder mit `is_confidential = 1` zugestellt. Alle `nm_event_*`-Funktionen haben dafür den optionalen Parameter `$is_confidential = false` erhalten. Im Callback: `if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;`
+- **Neue Hilfsfunktion `nm_deep_url($pdo, $path)`**: Erzeugt Deep-Links für E-Mails als `login.php?redirect=<Ziel>`. Nicht eingeloggte Empfänger landen nach dem Login direkt auf dem referenzierten Vorgang. Bereits eingeloggte User werden von `login.php` sofort weitergeleitet. Betrifft alle 7 Event-Funktionen: `antrag_neu`, `antrag_geaendert`, `antrag_hinweis`, `antrag_abstimmung`, `antrag_beschlossen`, `top_neu`, `top_kommentar`, `todo_zugewiesen`.
+- **Abbestell-Link**: Footer-Link führt nun via `login.php?redirect=meine_benachrichtigungen.php` zu den Benachrichtigungseinstellungen statt zur Startseite.
+
+**Datei `process_agenda.php`:**
+- `add_comment_preparation`-Handler löst nun `nm_event_top_kommentar` aus (war bisher nicht implementiert; die anderen drei Kommentar-Handler hatten die Benachrichtigung bereits).
+
+#### Abwesenheiten-Verwaltung – Admin-Erweiterungen (2026-09-13)
+
+- **Admin: Liste neueste zuerst** (`process_admin.php`): `get_absences_with_names()` wird mit `array_reverse()` umgekehrt, sodass die neueste Abwesenheit oben erscheint.
+- **Admin: "Alle vergangenen löschen"-Button** (`tab_admin.php`, `process_absences.php`): Schaltfläche mit Bestätigungsdialog über der Abwesenheitsliste; löscht alle `svabsences`-Einträge mit `end_date < CURDATE()`. Nur für Admins (`is_admin`). Erfolgs-/Fehlermeldung via `?msg=past_absences_deleted`.
+- **Admin: `process_absences.php` auch für `tab=admin`** (`index.php`): Die Abwesenheitsverarbeitung wird nun auch geladen, wenn die aktive Seite `admin` ist (vorher: nur `meetings` und `vertretung`).
+
+### Fixed (Behoben)
+
+#### Doppelte Abwesenheitsanzeige in Übersichtskachel (2026-09-13)
+
+**Ursache**: PHP-Referenzfehler nach `foreach ($array as &$var)`. Nach der Schleife zeigt `$var` noch auf das letzte Array-Element. Wenn anschließend `array_slice()` eine Kopie anfertigt und ein zweites `foreach` denselben Variablennamen verwendet, werden die referenzierten Slots bei jeder Iteration überschrieben, sodass das letzte Element in der Kachel doppelt erscheint.
+
+**Behoben in:**
+- `module_notifications.php`: `unset($abs)` nach dem `foreach ($all_absences as &$abs)` für das `is_current`-Flag
+- `functions.php` (`get_absences_with_names`): `unset($absence)` nach dem Namens-Auflösungs-Foreach
+
+#### `render_user_notifications()` unterdrückte alle Benachrichtigungen bei `hide_absences` (2026-09-13)
+
+- `module_notifications.php`: Das frühe `return` bei `hide_absences = true` brach die Funktion ab, bevor die gesammelten Benachrichtigungen (Todos, Termine, Abstimmungen …) ausgegeben wurden. Ersetzt durch einen konditionalen Block `if (empty($options['hide_absences'])) { ... }` um nur den Abwesenheiten-Abschnitt zu überspringen.
+
+#### Admin konnte Abwesenheit einer anderen Person nicht speichern (2026-09-09)
+
+- `index.php`: `process_absences.php` wurde nur bei `tab=meetings` und `tab=vertretung` geladen, nicht bei `tab=admin`. Daher wurden Admin-Speicherungen auf der Admin-Seite ohne Verarbeitung weitergeleitet. Behoben durch Ergänzung von `|| $active_tab === 'admin'` in der Routing-Bedingung.
+
+#### Antrag bearbeiten: Seitentitel ohne Antragstitel (2026-09-13)
+
+- `antrag_bearbeiten.php`: `<h1>`-Überschrift zeigt nun den Antragstitel: „Antrag bearbeiten: [Titel]".
+
 #### MTool-Integration & Listenbereinigung für Meinungsbilder und Terminplanung (2026-08-28)
 
 **Meinungsbilder – MTool-Integration:**
