@@ -991,6 +991,7 @@ try {
     // =========================================================
 
     // Feedback-Tabelle für Benutzer-Rückmeldungen während Testphase
+    // KEIN Foreign Key auf svmembers: Im Adapter-Modus kommen IDs aus berechtigte
     $tables[] = "CREATE TABLE IF NOT EXISTS feedback (
         id INT AUTO_INCREMENT PRIMARY KEY,
         member_id INT NOT NULL,
@@ -999,8 +1000,7 @@ try {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         is_deleted TINYINT(1) DEFAULT 0,
         INDEX idx_member_id (member_id),
-        INDEX idx_created_at (created_at),
-        FOREIGN KEY (member_id) REFERENCES svmembers(member_id) ON DELETE CASCADE
+        INDEX idx_created_at (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Feedback und Fehlermeldungen für Testphase'";
 
     // =========================================================
@@ -1317,6 +1317,21 @@ try {
     echo "<p style='color: green;'>✓ Migrations abgeschlossen!</p>";
 
     // =========================================================
+    // Migration: Foreign Key auf svmembers aus feedback-Tabelle entfernen
+    // (Im Adapter-Modus kommen IDs aus berechtigte, nicht aus svmembers)
+    $fk_check = $pdo->query("
+        SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'feedback'
+          AND REFERENCED_TABLE_NAME = 'svmembers'
+        LIMIT 1
+    ")->fetch();
+    if ($fk_check) {
+        echo "<p>Entferne Foreign-Key-Constraint '" . htmlspecialchars($fk_check['CONSTRAINT_NAME']) . "' aus feedback-Tabelle...</p>";
+        $pdo->exec("ALTER TABLE feedback DROP FOREIGN KEY " . $fk_check['CONSTRAINT_NAME']);
+        echo ".";
+    }
+
     // TRIGGER & INITIALDATEN
     // =========================================================
 
