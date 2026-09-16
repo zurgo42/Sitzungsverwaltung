@@ -1064,11 +1064,25 @@ if ($user['aktiv'] >= 19) {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="thread">Forum-ID</label>
-                        <input type="number" id="thread" name="thread" min="0" value="<?= htmlspecialchars($antrag['thread'] ?? '') ?>">
-                        <?php if (($antrag['thread'] ?? 0) > 0): ?>
-                            <a href="https://vorstand.mensa.de/forum/index.php?id=<?= $antrag['thread'] ?>" target="forum" style="font-size: 11px;">→ Forum</a>
-                        <?php endif; ?>
+                        <label for="thread">Forum-Link</label>
+                        <input type="text" id="thread" name="thread" value="<?= htmlspecialchars($antrag['thread'] ?? '') ?>" placeholder="https://... oder alte Thread-ID">
+                        <?php
+                        $thread_val = $antrag['thread'] ?? '';
+                        if ($thread_val !== '' && $thread_val !== null) {
+                            if (substr($thread_val, 0, 4) === 'http') {
+                                $thread_url = $thread_val;
+                                $thread_label = htmlspecialchars(strlen($thread_val) > 50 ? substr($thread_val, 0, 47) . '...' : $thread_val);
+                            } elseif (is_numeric($thread_val) && (int)$thread_val > 0) {
+                                $thread_url = 'https://vorstand.mensa.de/forum/index.php?id=' . (int)$thread_val;
+                                $thread_label = '→ Thread #' . (int)$thread_val;
+                            } else {
+                                $thread_url = '';
+                            }
+                            if (!empty($thread_url)): ?>
+                                <a href="<?= htmlspecialchars($thread_url) ?>" target="_blank" rel="noopener" style="font-size: 11px; display: block; margin-top: 3px; word-break: break-all;"><?= $thread_label ?></a>
+                            <?php endif;
+                        }
+                        ?>
                     </div>
                 </div>
 

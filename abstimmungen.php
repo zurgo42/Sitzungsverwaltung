@@ -184,14 +184,25 @@ function render_antrag_detail($pdo, $antrag) {
                 <div><?= $antrag['praesenz'] == 1 ? 'Präsenzsitzung' : 'Online' ?></div>
                 <?php endif; ?>
 
-                <?php if ($antrag['thread']): ?>
-                <div style="font-weight: 600; color: #666;">Forum-Thread:</div>
+                <?php
+                $thread_val = $antrag['thread'] ?? '';
+                if ($thread_val !== '' && $thread_val !== null) {
+                    if (substr($thread_val, 0, 4) === 'http') {
+                        $thread_url = $thread_val;
+                        $thread_label = '→ Forum-Link öffnen';
+                    } elseif (is_numeric($thread_val) && (int)$thread_val > 0) {
+                        $thread_url = 'https://vorstand.mensa.de/forum/index.php?id=' . (int)$thread_val;
+                        $thread_label = '→ Thread #' . (int)$thread_val . ' öffnen';
+                    } else { $thread_url = ''; }
+                    if (!empty($thread_url)): ?>
+                <div style="font-weight: 600; color: #666;">Forum-Link:</div>
                 <div>
-                    <a href="https://vorstand.mensa.de/forum/index.php?id=<?= (int)$antrag['thread'] ?>" target="forum" style="color: #0066cc;">
-                        → Thread #<?= (int)$antrag['thread'] ?> öffnen
+                    <a href="<?= htmlspecialchars($thread_url) ?>" target="_blank" rel="noopener" style="color: #0066cc;">
+                        <?= $thread_label ?>
                     </a>
                 </div>
-                <?php endif; ?>
+                    <?php endif;
+                } ?>
 
                 <div style="font-weight: 600; color: #666;">Letzter Zugriff:</div>
                 <div><?= $antrag['lzugriff'] ? date('d.m.Y H:i', strtotime($antrag['lzugriff'])) : '-' ?></div>

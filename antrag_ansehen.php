@@ -338,12 +338,23 @@ $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: ''
                 </div>
                     <?php endif; ?>
                 <?php endif; ?>
-                <?php if ($antrag['thread']): ?>
+                <?php
+                $thread_val = $antrag['thread'] ?? '';
+                if ($thread_val !== '' && $thread_val !== null) {
+                    if (substr($thread_val, 0, 4) === 'http') {
+                        $thread_url = $thread_val;
+                        $thread_label = '→ Forum öffnen';
+                    } elseif (is_numeric($thread_val) && (int)$thread_val > 0) {
+                        $thread_url = 'https://vorstand.mensa.de/forum/index.php?id=' . (int)$thread_val;
+                        $thread_label = '→ Thread #' . (int)$thread_val;
+                    } else { $thread_url = ''; }
+                    if (!empty($thread_url)): ?>
                 <div class="compact-row">
                     <div class="compact-label">Forum:</div>
-                    <div class="compact-value"><a href="https://vorstand.mensa.de/forum/index.php?id=<?= (int)$antrag['thread'] ?>" target="forum" style="color: var(--primary);">→ Thread #<?= (int)$antrag['thread'] ?></a></div>
+                    <div class="compact-value"><a href="<?= htmlspecialchars($thread_url) ?>" target="_blank" rel="noopener" style="color: var(--primary);"><?= $thread_label ?></a></div>
                 </div>
-                <?php endif; ?>
+                    <?php endif;
+                } ?>
                 <?php
                 preg_match('/[A-Z]+(\d{6})/', $antrnr, $_antrnr_m);
                 $_yymmdd = $_antrnr_m[1] ?? '';
