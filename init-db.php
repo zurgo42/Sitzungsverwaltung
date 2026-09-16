@@ -1328,6 +1328,17 @@ try {
         echo ".";
     }
 
+    // Migration: b_date-Spalte in antraege hinzufügen (Finalisierungsdatum A→B)
+    $bdate_col = $pdo->query("
+        SELECT COLUMN_NAME FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . TABLE_ANTRAEGE . "' AND COLUMN_NAME = 'b_date'
+    ")->fetch();
+    if (!$bdate_col) {
+        echo "<p>Füge b_date-Spalte zu " . TABLE_ANTRAEGE . " hinzu...</p>";
+        $pdo->exec("ALTER TABLE " . TABLE_ANTRAEGE . " ADD COLUMN b_date DATE NULL COMMENT 'Datum der Finalisierung (A→B)' AFTER antrnr");
+        echo ".";
+    }
+
     // Migration: Foreign Key auf svmembers aus feedback-Tabelle entfernen
     // (Im Adapter-Modus kommen IDs aus berechtigte, nicht aus svmembers)
     $fk_check = $pdo->query("

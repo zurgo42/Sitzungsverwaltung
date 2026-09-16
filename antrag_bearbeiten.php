@@ -607,7 +607,7 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     $neue_nr = 'B' . substr($antrnr, 1);
 
     // VName-Felder in UPDATE-Statement aufbauen
-    $update_parts = ['antrnr = ?'];
+    $update_parts = ['antrnr = ?', 'b_date = CURDATE()'];
     $update_values = [$neue_nr];
 
     foreach ($vname_fields as $field => $value) {
@@ -1319,12 +1319,6 @@ if ($user['aktiv'] >= 19) {
                     </div>
                 <?php endif; ?>
 
-                <?php if ($kann_verwerfen && substr($antrnr, 0, 1) === 'A'): ?>
-                    <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107; margin-bottom: 12px;">
-                        <strong>Nur für Vorstand, GF und Antragsteller:</strong>
-                        Wenn der Antrag obsolet ist und nicht mehr benötigt wird, kannst du ihn löschen.
-                    </div>
-                <?php endif; ?>
 
                 <?php if (substr($antrnr, 0, 1) === 'A' && $wartezeit && $wartezeit !== 'erfüllt' && !$antrag['verk1'] && !$antrag['verk2'] && $antrag['antrst'] == $user['member_id']): ?>
                     <div style="background: #fff8dc; padding: 10px; margin-bottom: 12px; border-radius: 4px; border-left: 3px solid #ffa500;">
@@ -1395,15 +1389,14 @@ if ($user['aktiv'] >= 19) {
         </form>
 
         <?php if ($kann_verwerfen && substr($antrnr, 0, 1) === 'A'): ?>
-        <div style="margin-top: 30px; padding: 16px 20px; border: 2px solid #f44336; border-radius: 6px; background: #fff8f8;">
-            <p style="margin: 0 0 10px; font-weight: 600; color: #c62828;">⚠️ Gefahrenbereich: Antrag zurückziehen</p>
-            <p style="margin: 0 0 12px; font-size: 13px; color: #555;">
-                Der Antrag wird unwiderruflich als zurückgezogen markiert (X-Präfix). Diese Aktion kann nur von einem Administrator rückgängig gemacht werden.
+        <div style="margin-top: 16px; padding: 12px 16px; border: 1px solid #ffc107; border-radius: 6px; background: #fffde7;">
+            <p style="margin: 0 0 10px; font-size: 13px; color: #555;">
+                Nur für Vorstand, GF und Antragsteller: Wenn der Antrag obsolet ist und nicht mehr benötigt wird, kannst du ihn zurückziehen.
             </p>
-            <form method="post" action="" onsubmit="return confirm('Antrag wirklich zurückziehen und löschen?\n\nDer Antrag erhält ein X-Präfix und kann danach nicht mehr normal bearbeitet werden.\n\nNur fortfahren wenn du dir sicher bist!');">
+            <form method="post" action="" onsubmit="return confirm('Antrag wirklich zurückziehen?\n\nDer Antrag erhält ein X-Präfix und kann danach nicht mehr normal bearbeitet werden.');">
                 <button type="submit" name="action" value="delete"
-                        style="background: #c62828; color: white; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600;">
-                    🗑️ Antrag zurückziehen (unwiderruflich)
+                        style="background: #f57f17; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                    Antrag zurückziehen
                 </button>
             </form>
         </div>

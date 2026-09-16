@@ -98,10 +98,13 @@ if ($should_run) {
         $dauer_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'bart_B_abstimmung_tage' LIMIT 1");
         $abstimmung_dauer = $dauer_stmt ? (int)($dauer_stmt->fetchColumn() ?: 7) : 7;
 
-        // Grenz-Datum im YYMMDD-Format (= Datum vor $abstimmung_dauer Tagen)
+        // Grenz-Datum (= Datum vor $abstimmung_dauer Tagen)
+        $grenz_date = date('Y-m-d', strtotime("-{$abstimmung_dauer} days"));
         $grenz_yymmdd = date('ymd', strtotime("-{$abstimmung_dauer} days"));
 
-        // Alle B-Anträge suchen, deren Datum (YYMMDD in antrnr) die Frist überschritten hat
+        // Alle B-Anträge suchen, deren Abstimmungsfrist abgelaufen ist.
+        // Neue Anträge: b_date (Finalisierungsdatum) verwenden.
+        // Alte Anträge ohne b_date: Datum aus antrnr als Fallback.
         if (defined('TABLE_ANTRAEGE')) {
             $b_stmt = @$pdo->query("
                 SELECT antrnr,
@@ -110,7 +113,11 @@ if ($should_run) {
                 FROM " . TABLE_ANTRAEGE . "
                 WHERE antrnr LIKE 'B%'
                   AND LENGTH(antrnr) >= 8
-                  AND SUBSTR(antrnr, 2, 6) <= '" . $grenz_yymmdd . "'
+                  AND (
+                    (b_date IS NOT NULL AND b_date <= '" . $grenz_date . "')
+                    OR
+                    (b_date IS NULL AND SUBSTR(antrnr, 2, 6) <= '" . $grenz_yymmdd . "')
+                  )
             ");
 
             if ($b_stmt) {
