@@ -1378,8 +1378,8 @@ if ($user['aktiv'] >= 19) {
                     <button type="submit" name="action" value="save" class="btn btn-primary">💾 Speichern</button>
 
                     <?php if ($kann_finalisieren): ?>
-                        <button type="submit" name="action" value="finalize" class="btn btn-success" id="finalizeButton"
-                                onclick="if(!confirm('Antrag verbindlich einstellen? Nicht mehr änderbar!')) return false; this.disabled=true; this.textContent='⏳ Wird eingestellt…'; return true;">
+                        <button type="button" class="btn btn-success" id="finalizeButton"
+                                onclick="if(!confirm('Antrag verbindlich einstellen? Nicht mehr änderbar!')) return; var f=this.form; var h=f.querySelector('#_finalize_hidden'); if(!h){h=document.createElement('input');h.type='hidden';h.name='action';h.value='finalize';h.id='_finalize_hidden';f.appendChild(h);} this.disabled=true; this.textContent='⏳ Wird eingestellt…'; f.submit();">
                             ✅ Verbindlich einstellen
                         </button>
                     <?php elseif (substr($antrnr, 0, 1) === 'A'): ?>
