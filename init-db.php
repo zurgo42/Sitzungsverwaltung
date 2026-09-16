@@ -401,7 +401,7 @@ try {
         pers TEXT DEFAULT NULL,
         sach TEXT DEFAULT NULL,
         begr TEXT DEFAULT NULL,
-        thread VARCHAR(64) DEFAULT NULL,
+        thread VARCHAR(500) DEFAULT NULL,
         hinweis TEXT DEFAULT NULL,
         verant TEXT DEFAULT NULL,
         file1 VARCHAR(128) DEFAULT NULL,
@@ -1317,6 +1317,17 @@ try {
     echo "<p style='color: green;'>✓ Migrations abgeschlossen!</p>";
 
     // =========================================================
+    // Migration: thread-Spalte in antraege auf VARCHAR(500) für URL-Unterstützung erweitern
+    $thread_col = $pdo->query("
+        SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . TABLE_ANTRAEGE . "' AND COLUMN_NAME = 'thread'
+    ")->fetch();
+    if ($thread_col && (int)$thread_col['CHARACTER_MAXIMUM_LENGTH'] < 500) {
+        echo "<p>Erweitere thread-Spalte in " . TABLE_ANTRAEGE . " auf VARCHAR(500)...</p>";
+        $pdo->exec("ALTER TABLE " . TABLE_ANTRAEGE . " MODIFY COLUMN thread VARCHAR(500) DEFAULT NULL");
+        echo ".";
+    }
+
     // Migration: Foreign Key auf svmembers aus feedback-Tabelle entfernen
     // (Im Adapter-Modus kommen IDs aus berechtigte, nicht aus svmembers)
     $fk_check = $pdo->query("
