@@ -642,6 +642,11 @@ function verwerfenAntrag($pdo, $antrnr, $antrag, $user) {
         throw new Exception("Nur Antragsteller, Vorstand und GF dürfen Anträge verwerfen.");
     }
 
+    // Nur A-Anträge dürfen zurückgezogen werden (server-seitige Absicherung)
+    if (substr($antrnr, 0, 1) !== 'A') {
+        throw new Exception("Nur Anträge im Editiermodus (A-Präfix) können zurückgezogen werden.");
+    }
+
     // Antragsnummer zu X ändern (zurückgezogen)
     $neue_antrnr = 'X' . substr($antrnr, 1);
     $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ? WHERE antrnr = ?")->execute([$neue_antrnr, $antrnr]);
@@ -1374,7 +1379,7 @@ if ($user['aktiv'] >= 19) {
 
                     <?php if ($kann_finalisieren): ?>
                         <button type="submit" name="action" value="finalize" class="btn btn-success" id="finalizeButton"
-                                onclick="return confirm('Antrag verbindlich einstellen? Nicht mehr änderbar!');">
+                                onclick="if(!confirm('Antrag verbindlich einstellen? Nicht mehr änderbar!')) return false; this.disabled=true; this.textContent='⏳ Wird eingestellt…'; return true;">
                             ✅ Verbindlich einstellen
                         </button>
                     <?php elseif (substr($antrnr, 0, 1) === 'A'): ?>
