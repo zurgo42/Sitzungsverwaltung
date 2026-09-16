@@ -1383,18 +1383,26 @@ if ($user['aktiv'] >= 19) {
                         </button>
                     <?php endif; ?>
 
-                    <?php if ($kann_verwerfen && substr($antrnr, 0, 1) === 'A'): ?>
-                        <button type="submit" name="action" value="delete" class="btn btn-danger"
-                                onclick="return confirm('Antrag löschen? Der Antrag wird als zurückgezogen markiert (X-Präfix).');">
-                            🗑️ Löschen
-                        </button>
-                    <?php endif; ?>
-
                     <a href="index.php?tab=proposals" class="btn btn-secondary">❌ Abbrechen</a>
                 </div>
             </div>
 
         </form>
+
+        <?php if ($kann_verwerfen && substr($antrnr, 0, 1) === 'A'): ?>
+        <div style="margin-top: 30px; padding: 16px 20px; border: 2px solid #f44336; border-radius: 6px; background: #fff8f8;">
+            <p style="margin: 0 0 10px; font-weight: 600; color: #c62828;">⚠️ Gefahrenbereich: Antrag zurückziehen</p>
+            <p style="margin: 0 0 12px; font-size: 13px; color: #555;">
+                Der Antrag wird unwiderruflich als zurückgezogen markiert (X-Präfix). Diese Aktion kann nur von einem Administrator rückgängig gemacht werden.
+            </p>
+            <form method="post" action="" onsubmit="return confirm('Antrag wirklich zurückziehen und löschen?\n\nDer Antrag erhält ein X-Präfix und kann danach nicht mehr normal bearbeitet werden.\n\nNur fortfahren wenn du dir sicher bist!');">
+                <button type="submit" name="action" value="delete"
+                        style="background: #c62828; color: white; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600;">
+                    🗑️ Antrag zurückziehen (unwiderruflich)
+                </button>
+            </form>
+        </div>
+        <?php endif; ?>
 
         <!-- Mini-Formulare für Wartezeitverkürzung (außerhalb des Hauptformulars) -->
         <form id="wz-request-form" method="post" action="">
