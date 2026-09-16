@@ -248,7 +248,7 @@ function render_antrag_detail($pdo, $antrag) {
                         $has_files = true;
                     }
                     echo '<div style="margin-bottom: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">';
-                    echo '<a href="' . htmlspecialchars(implode('/', array_map('rawurlencode', explode('/', $antrag["file$i"])))) . '" target="_blank" style="color: #0066cc; font-weight: 600; text-decoration: none;">';
+                    echo '<a href="download_scan.php?f=' . urlencode(basename($antrag["file$i"])) . '" target="_blank" style="color: #0066cc; font-weight: 600; text-decoration: none;">';
                     echo '📎 ' . htmlspecialchars(basename($antrag["file$i"])) . '</a>';
                     if (!empty($antrag["filetext$i"])) {
                         echo '<div style="margin-top: 3px; font-size: 12px; color: #666; margin-left: 20px;">' . htmlspecialchars($antrag["filetext$i"]) . '</div>';

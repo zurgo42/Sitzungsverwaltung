@@ -394,7 +394,7 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     for ($i = 1; $i <= 4; $i++) {
         $file_field = "file$i";
         if (isset($_FILES[$file_field]) && $_FILES[$file_field]['error'] === UPLOAD_ERR_OK) {
-            $upload_dir = __DIR__ . '/Scans/';
+            $upload_dir = __DIR__ . '/../Scans/';
             if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
             $filename = $antrnr . '_f' . $i . '_' . preg_replace('/\s+/', '_', basename($_FILES[$file_field]['name']));
@@ -1187,7 +1187,7 @@ if ($user['aktiv'] >= 19) {
                             <label for="file<?= $i ?>">Datei <?= $i ?></label>
                             <?php if (!empty($antrag["file$i"])): ?>
                                 <div style="font-size: 11px; color: #666; margin-bottom: 4px;">
-                                    Aktuell: <a href="<?= htmlspecialchars(implode('/', array_map('rawurlencode', explode('/', $antrag["file$i"])))) ?>" target="_blank"><?= htmlspecialchars(basename($antrag["file$i"])) ?></a>
+                                    Aktuell: <a href="download_scan.php?f=<?= urlencode(basename($antrag["file$i"])) ?>" target="_blank"><?= htmlspecialchars(basename($antrag["file$i"])) ?></a>
                                 </div>
                             <?php endif; ?>
                             <input type="file" id="file<?= $i ?>" name="file<?= $i ?>" style="font-size: 12px; padding: 4px;">

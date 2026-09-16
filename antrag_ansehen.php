@@ -544,7 +544,7 @@ $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: ''
                 <?php for ($i = 1; $i <= 4; $i++): ?>
                     <?php if (!empty($antrag["file$i"])): ?>
                     <div style="margin-bottom: 6px;">
-                        <a href="<?= htmlspecialchars(implode('/', array_map('rawurlencode', explode('/', $antrag["file$i"])))) ?>" target="_blank" style="color: var(--primary); font-weight: 600; font-size: 12px; text-decoration: none;">
+                        <a href="download_scan.php?f=<?= urlencode(basename($antrag["file$i"])) ?>" target="_blank" style="color: var(--primary); font-weight: 600; font-size: 12px; text-decoration: none;">
                             📎 <?= htmlspecialchars(basename($antrag["file$i"])) ?>
                         </a>
                         <?php if (!empty($antrag["filetext$i"])): ?>
