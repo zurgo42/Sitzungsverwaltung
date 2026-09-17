@@ -10,7 +10,7 @@
  * - Demo-Ressorts
  */
 
-require_once 'config.php';
+require_once __DIR__ . '/../config.php';
 
 try {
     $pdo = new PDO(
@@ -24,10 +24,10 @@ try {
     );
 
     echo "<h1>Demo-Konfiguration initialisieren</h1>";
-    echo "<p>Führe Migration aus migrations/init_demo_config.sql aus...</p>";
+    echo "<p>Führe Migration aus init_demo_config.sql aus...</p>";
 
     // SQL-Datei einlesen
-    $sql_file = __DIR__ . '/migrations/init_demo_config.sql';
+    $sql_file = __DIR__ . '/init_demo_config.sql';
 
     if (!file_exists($sql_file)) {
         die("<p style='color: red;'>✗ Fehler: Datei $sql_file nicht gefunden!</p>");

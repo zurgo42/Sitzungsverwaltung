@@ -10,9 +10,9 @@
  */
 
 session_start();
-require_once 'config.php';
-require_once 'config_adapter.php';
-require_once 'functions.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../config_adapter.php';
+require_once __DIR__ . '/../functions.php';
 ?>
 <!DOCTYPE html>
 <html lang="de">

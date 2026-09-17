@@ -13,16 +13,16 @@
 session_start();
 
 // Config laden (falls in Sitzungsverwaltung)
-if (file_exists(__DIR__ . '/config.php')) {
-    require_once __DIR__ . '/config.php';
+if (file_exists(__DIR__ . '/../config.php')) {
+    require_once __DIR__ . '/../config.php';
 }
 
 // Mail-Funktionen laden
-if (file_exists(__DIR__ . '/mail_functions.php')) {
-    require_once __DIR__ . '/mail_functions.php';
+if (file_exists(__DIR__ . '/../mail_functions.php')) {
+    require_once __DIR__ . '/../mail_functions.php';
     $use_integrated = true;
 } else {
-    require_once __DIR__ . '/mail_standalone.php';
+    require_once __DIR__ . '/../mail_standalone.php';
     $use_integrated = false;
 }
 

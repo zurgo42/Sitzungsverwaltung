@@ -284,7 +284,7 @@ if (!$password_correct) {
         echo '<li><strong>Auf dem Zielserver:</strong>';
         echo '<ul>';
         echo '<li>Stelle sicher, dass <code>config.php</code> die Einstellung <code>DEMO_MODE_ENABLED = true</code> hat</li>';
-        echo '<li>Führe zuerst <code>init-db.php</code> aus, um die Tabellen anzulegen</li>';
+        echo '<li>Führe zuerst <code>tools/init-db.php</code> aus, um die Tabellen anzulegen</li>';
         echo '<li>Rufe dann <code>tools/demo_import.php</code> im Browser auf</li>';
         echo '</ul></li>';
         echo '<li><strong>Lokaler Test:</strong> Du kannst die Demo-Daten auch lokal testen mit <code>demo_import.php</code></li>';

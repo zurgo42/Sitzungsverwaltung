@@ -11,7 +11,7 @@ session_start();
 require_once 'config.php';
 require_once 'config_adapter.php';
 require_once 'member_functions.php';
-require_once 'includes/voting_helper.php';
+require_once 'voting_helper.php';
 require_once 'protokoll_helper.php';
 require_once 'notification_mailer.php';
 
@@ -509,7 +509,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zurueckziehen'])) {
 
 // Funktion: Abstimmung auswerten
 // auswerten_abstimmung(), beschluss_annehmen(), beschluss_ablehnen()
-// sind in includes/voting_helper.php definiert (wird oben per require_once geladen)
+// sind in voting_helper.php definiert (wird oben per require_once geladen)
 
 // Einzelnen Antrag anzeigen?
 $antrnr = $_GET['antrnr'] ?? '';

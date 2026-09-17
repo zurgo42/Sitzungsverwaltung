@@ -4,7 +4,7 @@
  * Hilft beim Debuggen von Cookie-Sharing-Problemen
  */
 
-require_once 'session_config.php';
+require_once __DIR__ . '/../session_config.php';
 session_start();
 
 header('Content-Type: text/html; charset=utf-8');

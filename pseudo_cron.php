@@ -123,7 +123,7 @@ if ($should_run) {
             if ($b_stmt) {
                 // voting_helper.php laden falls noch nicht geschehen
                 if (!function_exists('auswerten_abstimmung')) {
-                    $helper = __DIR__ . '/includes/voting_helper.php';
+                    $helper = __DIR__ . '/voting_helper.php';
                     if (file_exists($helper)) require_once $helper;
                     // member_functions.php wird von beschluss_annehmen() benötigt
                     if (file_exists(__DIR__ . '/member_functions.php')) {

@@ -7,9 +7,9 @@
  */
 
 // Konfiguration laden
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/config_adapter.php';
-require_once __DIR__ . '/member_functions.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../config_adapter.php';
+require_once __DIR__ . '/../member_functions.php';
 
 session_start();
 ?>

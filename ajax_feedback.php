@@ -114,7 +114,7 @@ switch ($action) {
             echo json_encode([
                 'success' => false,
                 'error' => 'Datenbankfehler: ' . $e->getMessage(),
-                'hint' => 'Wurde die feedback-Tabelle mit init-db.php erstellt?'
+                'hint' => 'Wurde die feedback-Tabelle mit tools/init-db.php erstellt?'
             ]);
         }
         break;

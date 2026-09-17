@@ -983,7 +983,7 @@ body.dark-mode .init-danger-list {
                     </tbody>
                 </table>
                 <?php else: ?>
-                <p style="color: #999; font-style: italic;">Keine Benachrichtigungs-Einstellungen in svconfig gefunden. Bitte init-db.php ausführen.</p>
+                <p style="color: #999; font-style: italic;">Keine Benachrichtigungs-Einstellungen in svconfig gefunden. Bitte tools/init-db.php ausführen.</p>
                 <?php endif; ?>
 
                 <div style="margin-top: 20px;">
@@ -1048,7 +1048,7 @@ body.dark-mode .init-danger-list {
                 <?php endif; ?>
             <?php } catch (Exception $e) { ?>
                 <div style="background:#fff3cd;padding:10px;border-radius:4px;">
-                    ⚠️ Tabelle <code>svmail_notifications</code> fehlt – bitte <a href="init-db.php">init-db.php</a> ausführen.
+                    ⚠️ Tabelle <code>svmail_notifications</code> fehlt – bitte <a href="tools/init-db.php">tools/init-db.php</a> ausführen.
                 </div>
             <?php } ?>
 

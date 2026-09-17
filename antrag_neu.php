@@ -11,7 +11,7 @@ session_start();
 require_once 'config.php';
 require_once 'config_adapter.php';
 require_once 'member_functions.php';
-require_once 'includes/antragstypen_helper.php';
+require_once 'antragstypen_helper.php';
 require_once 'protokoll_helper.php';
 
 // Prüfen ob eingeloggt

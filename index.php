@@ -29,8 +29,8 @@ require_once 'config.php';                    // Datenbankverbindung und Konstan
 require_once 'config_adapter.php';            // Konfiguration für Mitgliederquelle
 require_once 'member_functions.php';          // Prozedurale Wrapper-Funktionen für Mitglieder
 require_once 'functions.php';                 // Wiederverwendbare Funktionen
-require_once 'includes/antragstypen_helper.php'; // Antragstypen-Konfiguration
-require_once 'includes/voting_helper.php';    // Abstimmungsregeln
+require_once 'antragstypen_helper.php'; // Antragstypen-Konfiguration
+require_once 'voting_helper.php';    // Abstimmungsregeln
 require_once 'protokoll_helper.php';          // Aktions-Protokollierung
 
 // ============================================

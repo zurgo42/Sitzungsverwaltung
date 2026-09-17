@@ -9,8 +9,8 @@ session_start();
 require_once 'config.php';
 require_once 'config_adapter.php';
 require_once 'member_functions.php';
-require_once 'includes/antragstypen_helper.php';
-require_once 'includes/voting_helper.php';
+require_once 'antragstypen_helper.php';
+require_once 'voting_helper.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));

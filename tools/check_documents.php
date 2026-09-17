@@ -6,12 +6,12 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once 'session_config.php';
+require_once __DIR__ . '/../session_config.php';
 session_start();
-require_once 'config.php';
-require_once 'functions.php';
-require_once 'member_functions.php';
-require_once 'documents_functions.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../functions.php';
+require_once __DIR__ . '/../member_functions.php';
+require_once __DIR__ . '/../documents_functions.php';
 
 echo "<!DOCTYPE html>
 <html lang='de'>

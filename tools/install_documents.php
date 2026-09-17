@@ -44,11 +44,11 @@ if (!$is_cli) {
 }
 
 // Config laden
-if (!file_exists(__DIR__ . '/config.php')) {
+if (!file_exists(__DIR__ . '/../config.php')) {
     die('FEHLER: config.php nicht gefunden!');
 }
 
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/../config.php';
 
 // DB-Verbindung
 try {

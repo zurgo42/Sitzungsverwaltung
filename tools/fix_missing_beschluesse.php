@@ -12,8 +12,8 @@
  */
 
 // Config laden
-if (file_exists(__DIR__ . '/config.php')) {
-    require_once __DIR__ . '/config.php';
+if (file_exists(__DIR__ . '/../config.php')) {
+    require_once __DIR__ . '/../config.php';
     $db_host = DB_HOST;
     $db_name = DB_NAME;
     $db_user = DB_USER;

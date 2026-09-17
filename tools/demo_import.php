@@ -236,7 +236,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             <h3>✅ Checkliste vor dem Import</h3>
             <ol>
                 <li>✓ <code>config.php</code> hat <code>DEMO_MODE_ENABLED = true</code> <?php echo DEMO_MODE_ENABLED ? '✅' : '❌'; ?></li>
-                <li>✓ <code>init-db.php</code> wurde ausgeführt (Tabellen existieren)</li>
+                <li>✓ <code>tools/init-db.php</code> wurde ausgeführt (Tabellen existieren)</li>
                 <li>✓ <code>tools/demo_data.json</code> existiert <?php echo file_exists($demo_file) ? '✅' : '❌'; ?></li>
             </ol>
             <?php if (!DEMO_MODE_ENABLED): ?>

@@ -4,7 +4,7 @@
  * Applies meeting decisions migration manually
  */
 
-require_once 'config.php';
+require_once __DIR__ . '/../config.php';
 
 try {
     $pdo = new PDO(
