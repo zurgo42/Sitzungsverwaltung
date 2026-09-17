@@ -425,6 +425,17 @@ function beschluss_annehmen($pdo, $antrnr, $antrag) {
     }
     $ressort_name = implode(', ', $ressort_parts);
 
+    // fintext für Beschluss: fin-Betrag + fintext kombinieren
+    $fin_val = (float)($antrag['fin'] ?? 0);
+    $fintext_raw = trim($antrag['fintext'] ?? '');
+    if ($fin_val != 0 && $fintext_raw !== '') {
+        $beschluss_fintext = number_format($fin_val, 2, ',', '.') . ' Euro – ' . $fintext_raw;
+    } elseif ($fin_val != 0) {
+        $beschluss_fintext = number_format($fin_val, 2, ',', '.') . ' Euro';
+    } else {
+        $beschluss_fintext = $fintext_raw ?: null;
+    }
+
     $pdo->prepare("
         INSERT INTO " . TABLE_BESCHLUESSE . "
             (antrnr, fertig, titel, beschluss, begr, fintext, pers, sach, ressort, int_ext,
@@ -434,7 +445,7 @@ function beschluss_annehmen($pdo, $antrnr, $antrag) {
     ")->execute([
         $neue_nr,
         $antrag['titel'], $antrag['beschluss'], $antrag['begr'],
-        $antrag['fintext'], $antrag['pers'], $antrag['sach'],
+        $beschluss_fintext, $antrag['pers'], $antrag['sach'],
         $ressort_name, $antrag['int_ext'],
         $dafuer_text,
         $antrag['abstimmregel'] ?? 'einfach',
