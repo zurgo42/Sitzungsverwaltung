@@ -222,7 +222,7 @@ require_once __DIR__ . '/../functions.php';
         ?>
 
         <h3>📚 Dokumentation</h3>
-        <p>Siehe <a href="README_HTTP_AUTH.md">README_HTTP_AUTH.md</a> für detaillierte Setup-Anleitung.</p>
+        <p>Siehe <a href="../docs/README_HTTP_AUTH.md">README_HTTP_AUTH.md</a> für detaillierte Setup-Anleitung.</p>
     </div>
 
     <div class="box">
