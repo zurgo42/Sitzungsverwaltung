@@ -6,6 +6,82 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed (Behoben)
+
+#### Antrag-Finalisierung erzeugte X- statt B-Präfix (2026-09-16)
+
+**Ursache:** `pseudo_cron.php` verwendete das Erstellungsdatum aus dem `antrnr`-String (YYMMDD) als Startpunkt für die Abstimmungsfrist. Ein Antrag, der 7 Tage nach Erstellung finalisiert wurde, galt bei der nächsten Cron-Ausführung sofort als abgelaufen (0 Stimmen → X-Präfix).
+
+**Behoben in:**
+- Neue Spalte `b_date DATE NULL` in der `antraege`-Tabelle: Wird beim A→B-Umbenennen (Finalisierung) auf `CURDATE()` gesetzt
+- `antrag_bearbeiten.php` (`finalisiereAntrag()`): Setzt `b_date = CURDATE()` beim Umbenennen
+- `pseudo_cron.php`: Nutzt jetzt `b_date` als Fristbeginn; Anträge ohne `b_date` (Altdaten) verwenden weiterhin das Datum aus `antrnr`
+- `tools/init-db.php`: Migration für `b_date`-Spalte (wird beim Aufruf automatisch ergänzt)
+
+#### Finalize-Button: Aktion fehlte nach Deaktivierung (2026-09-16)
+
+- `antrag_bearbeiten.php`: "Verbindlich einstellen"-Button von `type="submit"` auf `type="button"` umgestellt
+- Hintergrund: Browser senden den `name/value` von deaktivierten Submit-Buttons nicht mit — der `action=finalize`-Wert fehlte im POST, wenn der Button nach Klick gesperrt wurde
+- Lösung: JavaScript erzeugt ein verstecktes `<input name="action" value="finalize">` und ruft `form.submit()` auf; der Button wird dann optisch deaktiviert
+
+#### Server-seitige Prüfung in verwerfenAntrag() (2026-09-16)
+
+- `antrag_bearbeiten.php`: `verwerfenAntrag()` prüft nun serverseitig, dass der Antrag das A-Präfix hat
+- Verhindert das versehentliche Zurückziehen von B-Anträgen (zur Abstimmung stehend) durch direkte POST-Anfragen
+
+#### fin-Betrag fehlte in beschluesse.fintext (2026-09-16)
+
+- `voting_helper.php` (`beschluss_annehmen()`): Kombiniert jetzt `fin` und `fintext` aus der `antraege`-Tabelle:
+  - Betrag + Text: `"1.234,56 Euro – Beschreibung"`
+  - Nur Betrag: `"1.234,56 Euro"`
+  - Nur Text / kein Betrag: unverändert wie bisher
+- Vorher wurde `fin` (Geldwert) ignoriert, wenn `fintext` leer war
+
+### Changed (Geändert)
+
+#### Löschbereich in Antrag-Bearbeitungsseite (2026-09-16)
+
+- `antrag_bearbeiten.php`: "Gefahrenbereich"-Box von rot auf bernsteinfarben/gelb umgestaltet (weniger alarmierend)
+- Doppelter gelber Hinweis-Kasten über der Löschzone entfernt
+
+### Added (Neu)
+
+#### SCANS_DIR-Konstante für Upload-Verzeichnis (2026-09-16)
+
+- `config.example.php`: Neue Konstante `SCANS_DIR` definiert das Verzeichnis für Antragsunterlagen
+  - Neuinstallation: `__DIR__ . '/Scans/'` (Scans/ innerhalb Sitzungsverwaltung)
+  - Altsystem/Legacy: `__DIR__ . '/../Scans/'` (eine Ebene höher, für Kompatibilität)
+- `antrag_bearbeiten.php`, `process_agenda.php`: Nutzen jetzt `SCANS_DIR` statt hartkodierter Pfade
+- `download_scan.php`: Lädt `SCANS_DIR` aus `config.php`
+
+### Changed (Geändert)
+
+#### Verzeichnisstruktur bereinigt (2026-09-17)
+
+Produktivskripte liegen jetzt ausschließlich im Root. Wartungs- und Diagnose-Skripte sind in `tools/` zentralisiert.
+
+**Verschoben: `includes/` → Root**
+- `includes/antragstypen_helper.php` → `antragstypen_helper.php`
+- `includes/voting_helper.php` → `voting_helper.php`
+- `includes/`-Verzeichnis gelöscht
+
+**Gelöscht: `deprecated/`**
+- `ajax_get_protocol.php`, `ajax_meeting_actions.php` nicht mehr referenziert
+
+**In `tools/` zentralisiert (waren im Root):**
+- `init-db.php`, `fix_missing_beschluesse.php`, `diagnose_antraege.php`
+- `apply_meeting_decisions_migration.php`, `install_documents.php`, `debug_post_comments.php`
+- `run_init_demo_config.php`, `check_documents.php`
+- `test_http_auth.php`, `test_mail_system.php`, `test_session_info.php`, `test_sso.php`
+
+**`migrations/` → `tools/`** (alle SQL- und PHP-Migrationsdateien)
+
+**Gelöscht: `sql/`** (veraltete SQL-Dateien: `add_verfuegung_monatslimit.sql`, `create_feedback_table.sql`, `create_members_view.sql.DEPRECATED`)
+
+**require_once-Pfade** in allen verschobenen Skripten aktualisiert (`require_once 'config.php'` → `require_once __DIR__ . '/../config.php'`).
+
+---
+
 ### Added (Neu)
 
 #### MTool-Integration & Listenbereinigung für Meinungsbilder und Terminplanung (2026-08-28)

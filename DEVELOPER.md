@@ -21,64 +21,86 @@ Technische Dokumentation für Entwickler, die das System verstehen, warten oder 
 
 ## Verzeichnisstruktur
 
+Alle produktiven PHP-Skripte liegen im Root. Wartungs-, Diagnose- und Migrations-Skripte liegen in `tools/`. Dokumentation in `docs/`.
+
 ```
 /
 ├── config.php                  # Datenbank & Konfiguration (nicht im Repo)
-├── config.example.php          # Konfigurations-Vorlage
+├── config.example.php          # Konfigurations-Vorlage (inkl. SCANS_DIR)
 ├── config_adapter.php          # Adapter für verschiedene DB-Schemas
-├── init-db.php                 # Datenbank-Initialisierung + Default-Admin
-├── index.php                   # Haupt-Entry-Point / Routing
-├── login.php                   # Login-Seite
-├── logout.php                  # Logout-Handler
+├── session_config.php          # Session-Konfiguration (vor session_start)
+│
+├── index.php                   # Haupt-Entry-Point / Routing + pseudo_cron
+├── login.php / logout.php      # Login / Logout
 │
 ├── functions.php               # Core-Hilfsfunktionen
-├── member_functions.php        # Mitglieder-Management
+├── member_functions.php        # Mitglieder-Management (Adapter-Aufrufe)
 ├── mail_functions.php          # E-Mail-Versand
-├── opinion_functions.php       # Meinungsbild-Tool Helpers
+├── notification_mailer.php     # Ereignisgetriebenes Benachrichtigungssystem
+├── antragstypen_helper.php     # Konfigurationsfunktionen für Antragstypen
+├── voting_helper.php           # Abstimmungs-Logik, beschluss_annehmen()
+├── protokoll_helper.php        # Aktions-Protokollierung
 │
-├── process_meeting.php         # Meeting-Actions Backend
-├── process_termine.php         # Terminplanung Backend
-├── process_opinion.php         # Meinungsbild Backend
-├── process_admin.php           # Admin-Aktionen Backend
+├── antrag_neu.php              # Antrag erstellen
+├── antrag_bearbeiten.php       # Antrag bearbeiten (Formular + Aktionen)
+├── antrag_ansehen.php          # Antrag-Detailansicht
+├── abstimmungen.php            # Abstimmungsseite für B-Anträge
+├── tab_proposals.php           # Antragsverwaltung-Tab
+├── beschlussbuch.php           # Beschlussbuch (VS-Anträge)
 │
-├── tab_dashboard.php           # Dashboard-View
-├── tab_meetings.php            # Meetings-Übersicht
-├── tab_termine.php             # Terminplanung-UI
-├── tab_opinion.php             # Meinungsbild-UI
-├── tab_members.php             # Mitglieder-Verwaltung
-├── tab_todos.php               # TODO-Liste
-├── tab_admin_log.php           # Admin-Log
+├── process_agenda.php          # Tagesordnungs-Aktionen
+├── process_meetings.php        # Meeting-Aktionen
+├── process_todos.php           # TODO-Aktionen
+├── process_protocol.php        # Protokoll-Aktionen
+├── process_admin.php           # Admin-Aktionen
+│
+├── tab_*.php                   # Tab-Views (dashboard, meetings, agenda, …)
+├── tab_agenda_display_*.php    # Sitzungs-Ansichten je Status
 │
 ├── opinion_views/              # Unterviews für Meinungsbild-Tool
-│   ├── list.php                # Übersicht Meinungsbilder
-│   ├── create.php              # Meinungsbild erstellen
-│   ├── detail.php              # Details anzeigen
-│   ├── participate.php         # Teilnahme-Formular
-│   └── results.php             # Ergebnisse anzeigen
+├── api/                        # API-Endpunkte (externe Teilnehmer etc.)
 │
-├── cron_poll_reminders.php     # Cronjob: Poll-Erinnerungen
-├── cron_process_mail_queue.php # Cronjob: E-Mail-Queue abarbeiten
-├── cron_delete_expired_opinions.php # Cronjob: Alte Polls löschen
+├── pseudo_cron.php             # Cron-Ersatz (wird in index.php geladen)
+├── download_scan.php           # Geschützter Datei-Download aus SCANS_DIR
 │
-├── terminplanung_standalone.php # Standalone-Version: Terminplanung
-├── opinion_standalone.php      # Standalone-Version: Meinungsbild
-│
-├── migrations/                 # SQL & PHP Migrations
-│   ├── create_polls.sql
-│   ├── add_poll_reminders.sql
-│   ├── create_opinion_polls.sql
-│   ├── insert_opinion_templates.sql
-│   └── add_location_to_polls.php
-│
-├── tools/                      # Hilfs-Tools
+├── tools/                      # Wartungs-, Diagnose- & Migrations-Skripte
+│   ├── init-db.php             # Datenbank-Initialisierung (einmalig)
 │   ├── demo_export.php         # Demo-Daten exportieren
-│   └── demo_import.php         # Demo-Daten importieren
+│   ├── demo_import.php         # Demo-Daten importieren
+│   ├── fix_missing_beschluesse.php
+│   ├── diagnose_antraege.php
+│   ├── check_documents.php
+│   ├── install_documents.php
+│   ├── run_init_demo_config.php
+│   ├── apply_meeting_decisions_migration.php
+│   ├── *.sql                   # SQL-Migrationsdateien
+│   └── README.md               # Übersicht der Tools
 │
-└── README.md                   # User-Dokumentation
-    INSTALL.md                  # Installations-Anleitung
-    DEVELOPER.md                # Diese Datei
-    OPINION_TOOL_README.md      # Meinungsbild-Tool Doku
+├── docs/                       # Technische Dokumentation
+│   ├── audit-logging.md
+│   ├── ANTRAGSTYPEN_KONFIGURATION.md
+│   ├── session-cookie-configuration.md
+│   └── …
+│
+├── README.md                   # User-Dokumentation
+├── CHANGELOG.md                # Versionshistorie
+└── DEVELOPER.md                # Diese Datei
 ```
+
+### Wichtige Konstanten (config.php / config.example.php)
+
+| Konstante | Bedeutung |
+|---|---|
+| `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME` | Datenbankzugang |
+| `TABLE_ANTRAEGE` | Tabellenname für Anträge (`antraege` oder `svantraege`) |
+| `TABLE_BESCHLUESSE` | Tabellenname für Beschlüsse |
+| `TABLE_RESSORTS` | Tabellenname für Ressorts |
+| `SCANS_DIR` | Absoluter Pfad zum Verzeichnis der Antragsunterlagen |
+| `ENABLE_DOCUMENTS_TAB` | Dokumenten-Tab aktivieren |
+| `STANDALONE_PATH` | URL-Pfad für Standalone-Skripte (ohne .htaccess-Schutz) |
+| `TOP_CONFIDENTIAL_START` | Ab welcher TOP-Nummer gilt ein TOP als vertraulich |
+| `PROTOCOL_FEEDBACK_HOURS` | Stunden für Änderungswünsche nach Sitzungsende |
+| `DEMO_MODE_ENABLED` | Demo-Funktionen (DB-Reset etc.) erlauben |
 
 ## Datenbank-Schema
 
@@ -361,19 +383,20 @@ END
 
 **Hinweis:** Nicht im Git-Repository, wird aus `config.example.php` kopiert
 
-#### init-db.php
-**Zweck:** Datenbank-Initialisierung
+#### tools/init-db.php
+**Zweck:** Datenbank-Initialisierung und inkrementelle Migration
 **Funktionen:**
-- Datenbank erstellen (falls nicht vorhanden)
-- Alle 24 Tabellen mit CREATE TABLE IF NOT EXISTS
-- Trigger für opinion_polls erstellen
-- 13 Meinungsbild-Templates einfügen
+- Alle Tabellen mit CREATE TABLE IF NOT EXISTS (idempotent)
+- Fehlende Spalten ergänzen (ALTER TABLE … ADD COLUMN IF NOT EXISTS)
+- Trigger und Default-Konfigurationseinträge anlegen
 - **Default-Admin-User anlegen** (admin@example.com / admin123)
-  - Nur wenn members-Tabelle leer ist
-  - Rolle: gf, is_admin: 1
+  - Nur wenn svmembers-Tabelle leer ist
 
-**Verwendung:** Einmalig nach Installation über Browser aufrufen
+**Verwendung:** Nach Installation und nach Updates über Browser aufrufen (`/Sitzungsverwaltung/tools/init-db.php`)
 **Wichtig:** Default-Admin-Passwort sofort ändern!
+
+Relevante Migrationen (werden automatisch ausgeführt):
+- `b_date DATE NULL` in `antraege`-Tabelle (Finalisierungsdatum A→B)
 
 #### tools/demo_export.php
 **Zweck:** Demo-Daten exportieren
@@ -720,9 +743,9 @@ log_admin_action($pdo, $admin_id, 'delete_meeting', 'Meeting gelöscht',
 ### Neues Feature hinzufügen
 
 1. **Datenbank-Schema erweitern:**
-   - Neue SQL-Datei in `migrations/` erstellen
+   - Neue SQL-Datei in `tools/` erstellen (Namensschema: `add_<feature>.sql`)
    - Tabellen/Spalten hinzufügen
-   - `init-db.php` aktualisieren
+   - `tools/init-db.php` aktualisieren (idempotente Migration)
 
 2. **Backend-Logik erstellen:**
    - Funktionen in entsprechende `*_functions.php` einfügen
@@ -745,7 +768,7 @@ log_admin_action($pdo, $admin_id, 'delete_meeting', 'Meeting gelöscht',
 
 ### Beispiel: Neues Feld für Meetings
 
-**1. Migration erstellen (`migrations/add_meeting_budget.sql`):**
+**1. Migration erstellen (`tools/add_meeting_budget.sql`):**
 ```sql
 ALTER TABLE meetings
 ADD COLUMN budget DECIMAL(10,2) DEFAULT NULL COMMENT 'Budget für Meeting in EUR';
@@ -848,9 +871,9 @@ Aktuell kein Caching implementiert. Potenzielle Erweiterung:
 - [ ] `config.php` mit Production-Daten
 - [ ] Default-Admin-Passwort ändern (admin@example.com)
 - [ ] HTTPS erzwingen
-- [ ] `init-db.php` löschen/sperren
-- [ ] `tools/demo_export.php` und `tools/demo_import.php` löschen/sperren
-- [ ] `migrations/*.php` löschen/sperren (nach erfolgter Migration)
+- [ ] `tools/init-db.php` sperren (z. B. via `.htaccess`)
+- [ ] `tools/demo_export.php` und `tools/demo_import.php` sperren/löschen
+- [ ] Alle `tools/*.php`-Wartungsskripte für Nicht-Admins sperren
 - [ ] Demo-Accounts löschen (falls demo_import verwendet wurde)
 - [ ] PHP-Fehleranzeige deaktivieren (`display_errors = Off`)
 - [ ] Error-Logging aktivieren
