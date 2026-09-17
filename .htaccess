@@ -1,0 +1,8 @@
+# Zeichensatz für Markdown-Dateien explizit auf UTF-8 setzen
+AddCharset UTF-8 .md
+
+# README.md ausliefern erlauben (manche Apache-Configs blocken den Namen "README")
+<Files "README.md">
+    Order allow,deny
+    Allow from all
+</Files>
