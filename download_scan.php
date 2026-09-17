@@ -2,12 +2,13 @@
 /**
  * download_scan.php - Geschützter Download für Antragsunterlagen aus Scans/
  *
- * Dateien liegen in ../Scans/ (eine Ebene über dem Webroot von Sitzungsverwaltung).
+ * Pfad zum Scans-Verzeichnis wird über SCANS_DIR aus config.php gesteuert.
  * Nur eingeloggte User dürfen herunterladen.
  */
 
 require_once 'session_config.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
+if (!defined('SCANS_DIR')) require_once __DIR__ . '/config.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('HTTP/1.1 403 Forbidden');
@@ -23,9 +24,9 @@ if ($filename === '' || $filename === '.' || $filename === '..') {
     exit('Ungültiger Dateiname.');
 }
 
-$filepath = __DIR__ . '/../Scans/' . $filename;
+$filepath = rtrim(SCANS_DIR, '/\\') . DIRECTORY_SEPARATOR . $filename;
 $realpath = realpath($filepath);
-$scans_dir = realpath(__DIR__ . '/../Scans');
+$scans_dir = realpath(rtrim(SCANS_DIR, '/\\'));
 
 // Sicherstellen, dass die Datei wirklich im Scans-Verzeichnis liegt
 if ($realpath === false || $scans_dir === false || strpos($realpath, $scans_dir . DIRECTORY_SEPARATOR) !== 0) {

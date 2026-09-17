@@ -165,7 +165,7 @@ if (isset($_POST['add_agenda_item'])) {
                 for ($i = 1; $i <= 4; $i++) {
                     $file_field = "proposal_file$i";
                     if (isset($_FILES[$file_field]) && $_FILES[$file_field]['error'] === UPLOAD_ERR_OK) {
-                        $upload_dir = __DIR__ . '/../Scans/';
+                        $upload_dir = SCANS_DIR;
                         if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
                         $filename = $antrnr . '_f' . $i . '_' . preg_replace('/\s+/', '_', basename($_FILES[$file_field]['name']));
@@ -1868,7 +1868,7 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
                 for ($i = 1; $i <= 4; $i++) {
                     $file_field = "proposal_file$i";
                     if (isset($_FILES[$file_field]) && $_FILES[$file_field]['error'] === UPLOAD_ERR_OK) {
-                        $upload_dir = __DIR__ . '/../Scans/';
+                        $upload_dir = SCANS_DIR;
                         if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
                         $filename = $antrnr . '_f' . $i . '_' . preg_replace('/\s+/', '_', basename($_FILES[$file_field]['name']));

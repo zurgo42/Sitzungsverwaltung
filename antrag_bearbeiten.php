@@ -394,7 +394,7 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     for ($i = 1; $i <= 4; $i++) {
         $file_field = "file$i";
         if (isset($_FILES[$file_field]) && $_FILES[$file_field]['error'] === UPLOAD_ERR_OK) {
-            $upload_dir = __DIR__ . '/../Scans/';
+            $upload_dir = SCANS_DIR;
             if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
             $filename = $antrnr . '_f' . $i . '_' . preg_replace('/\s+/', '_', basename($_FILES[$file_field]['name']));

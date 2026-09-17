@@ -68,6 +68,12 @@ if (defined('MYSQL_HOST')) {
 define('TIMEZONE', 'Europe/Berlin');
 define('SESSION_TIMEOUT', 3600);  // in Sekunden (1 Stunde)
 
+// ============= DATEI-UPLOAD-PFADE =============
+// Verzeichnis für Antragsunterlagen (Scans/Anhänge zu Anträgen)
+// Neuinstallation:  __DIR__ . '/Scans/'          → Scans/ liegt im Sitzungsverwaltung-Verzeichnis
+// Altsystem/Legacy: __DIR__ . '/../Scans/'       → Scans/ liegt eine Ebene höher (Kompatibilität)
+define('SCANS_DIR', __DIR__ . '/Scans/');
+
 // Tabs aktivieren/deaktivieren
 define('ENABLE_DOCUMENTS_TAB', true);  // Dokumenten-Verwaltung aktivieren/deaktivieren
 
