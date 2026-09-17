@@ -274,7 +274,7 @@ if (isset($_GET['demo_email'])) {
             <?php endif; ?>
 
             <div class="doc-links">
-                <a href="README.md" target="_blank">📖 Dokumentation</a>
+                <a href="doku.php" target="_blank">📖 Dokumentation</a>
                 <a href="docs/INSTALL.md" target="_blank">⚙️ Installation</a>
                 <a href="https://github.com/zurgo42/Sitzungsverwaltung" target="_blank">GitHub</a>
             </div>
