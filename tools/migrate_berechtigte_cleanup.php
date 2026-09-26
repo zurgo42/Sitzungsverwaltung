@@ -48,21 +48,38 @@ $done = $skip = $err = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['confirm'] ?? '') === 'JA') {
 
-    // Spalten löschen
-    foreach ($drop_cols as $col) {
-        if (!col_exists($pdo, 'berechtigte', $col)) {
-            $skip[] = "DROP $col (existiert nicht)";
-            continue;
+    // Schritt 0: ROW_FORMAT auf DYNAMIC setzen.
+    // InnoDB COMPACT hat ein Zeilengröße-Limit von 8126 Bytes (bei utf8mb4).
+    // DYNAMIC erlaubt variable Spalten off-page zu speichern → kein Limit-Problem mehr.
+    try {
+        $row_fmt = $pdo->query("SELECT ROW_FORMAT FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'berechtigte'")->fetchColumn();
+        if (strtoupper($row_fmt ?? '') !== 'DYNAMIC') {
+            $pdo->exec("ALTER TABLE berechtigte ROW_FORMAT=DYNAMIC");
+            $done[] = "✓ ROW_FORMAT auf DYNAMIC gesetzt (war: $row_fmt)";
+        } else {
+            $skip[] = "ROW_FORMAT bereits DYNAMIC";
         }
-        try {
-            $pdo->exec("ALTER TABLE berechtigte DROP COLUMN `$col`");
-            $done[] = "✓ Spalte <code>$col</code> gelöscht";
-        } catch (PDOException $e) {
-            $err[] = "✗ DROP $col: " . htmlspecialchars($e->getMessage());
-        }
+    } catch (PDOException $e) {
+        $err[] = "✗ ROW_FORMAT: " . htmlspecialchars($e->getMessage());
     }
 
-    // Spalten ergänzen
+    // Schritt 1: Alle zu löschenden Spalten in einem einzigen ALTER TABLE bündeln.
+    // Das ist schneller und umgeht intermittente Zeilengröße-Fehler beim Einzel-DROP.
+    $cols_to_drop = array_filter($drop_cols, fn($c) => col_exists($pdo, 'berechtigte', $c));
+    if ($cols_to_drop) {
+        $drop_sql = implode(', ', array_map(fn($c) => "DROP COLUMN `$c`", $cols_to_drop));
+        try {
+            $pdo->exec("ALTER TABLE berechtigte $drop_sql");
+            foreach ($cols_to_drop as $c) $done[] = "✓ Spalte <code>$c</code> gelöscht";
+        } catch (PDOException $e) {
+            $err[] = "✗ DROP (gebündelt): " . htmlspecialchars($e->getMessage());
+        }
+    }
+    $skipped_drops = array_diff($drop_cols, $cols_to_drop);
+    foreach ($skipped_drops as $c) $skip[] = "DROP $c (existiert nicht)";
+
+    // Schritt 2: Neue Spalten ergänzen
     foreach ($add_cols as $col => $def) {
         if (col_exists($pdo, 'berechtigte', $col)) {
             $skip[] = "ADD $col (existiert bereits)";
