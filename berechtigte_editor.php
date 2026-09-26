@@ -90,8 +90,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($chk->fetch()) {
                 $flash = 'err:ID ' . $new_id . ' existiert bereits.';
             } else {
-                $pdo->prepare("INSERT INTO berechtigte (ID, angelegt) VALUES (?, ?)")
-                    ->execute([$new_id, date('Y-m-d H:i:s')]);
+                $pdo->prepare("INSERT INTO berechtigte
+                    (ID, MNr, Vorname, Name, KurzN, eMail, aktiv, angelegt)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+                    ->execute([
+                        $new_id,
+                        trim($_POST['new_mnr']     ?? ''),
+                        trim($_POST['new_vorname'] ?? ''),
+                        trim($_POST['new_name']    ?? ''),
+                        trim($_POST['new_kurzn']   ?? ''),
+                        trim($_POST['new_email']   ?? ''),
+                        (int)($_POST['new_aktiv']  ?? 10),
+                        date('Y-m-d H:i:s'),
+                    ]);
                 header('Location: berechtigte_editor.php?id=' . $new_id . '&msg=created');
                 exit;
             }
@@ -239,9 +250,12 @@ table.list td a:hover { text-decoration: underline; }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:hover { background: var(--accent-hover); }
 .btn-sm { padding: 5px 12px; font-size: 12px; }
-.new-form { padding: 16px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--border); }
-.new-form label { font-size: 13px; color: var(--label); }
-.new-form input[type=number] { width: 80px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); font-size: 13px; }
+.new-form { padding: 16px 20px; border-top: 1px solid var(--border); }
+.new-form h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--label); margin-bottom: 12px; }
+.new-form-grid { display: grid; grid-template-columns: 80px 120px 1fr 1fr 100px 1fr; gap: 8px; align-items: end; }
+@media (max-width: 900px) { .new-form-grid { grid-template-columns: 1fr 1fr; } }
+.new-form-grid .field-row { margin-bottom: 0; }
+.new-form-actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
 .hint { font-size: 11px; color: var(--label); }
 .form-actions { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center; }
 .explanation { padding: 16px; background: var(--th-bg); border-radius: 6px; font-size: 12px; line-height: 1.6; color: var(--label); border: 1px solid var(--border); }
@@ -481,10 +495,42 @@ if ($flash) {
 
     <form method="post" action="berechtigte_editor.php" class="new-form">
         <input type="hidden" name="action" value="create">
-        <label>Neuen Berechtigten anlegen – ID:</label>
-        <input type="number" name="new_id" value="<?= $next_id ?>" min="1">
-        <button type="submit" class="btn btn-primary btn-sm">+ Anlegen</button>
-        <span class="hint">Konvention: Führungskreis/Vorstand &lt;100, Andere &lt;900, Admin/Sonstige &gt;900</span>
+        <h3>Neuen Berechtigten anlegen</h3>
+        <div class="new-form-grid">
+            <div class="field-row">
+                <label>ID *</label>
+                <input type="number" name="new_id" value="<?= $next_id ?>" min="1" required>
+            </div>
+            <div class="field-row">
+                <label>MNr</label>
+                <input type="text" name="new_mnr" placeholder="z.&nbsp;B. M0042">
+            </div>
+            <div class="field-row">
+                <label>Vorname</label>
+                <input type="text" name="new_vorname" placeholder="Vorname">
+            </div>
+            <div class="field-row">
+                <label>Name (Nachname)</label>
+                <input type="text" name="new_name" placeholder="Nachname">
+            </div>
+            <div class="field-row">
+                <label>KurzN</label>
+                <input type="text" name="new_kurzn" placeholder="z.&nbsp;B. MMax">
+            </div>
+            <div class="field-row">
+                <label>E-Mail</label>
+                <input type="email" name="new_email" placeholder="name@example.org">
+            </div>
+        </div>
+        <div class="new-form-actions">
+            <select name="new_aktiv" style="padding:6px 8px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-size:13px">
+                <?php foreach ($aktiv_labels as $val => $lbl): ?>
+                    <option value="<?= $val ?>" <?= $val === 10 ? 'selected' : '' ?>><?= h($lbl) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">+ Anlegen</button>
+            <span class="hint">ID-Konvention: Führungskreis/Vorstand &lt;100 · Andere &lt;900 · Admin/Sonstige &gt;900</span>
+        </div>
     </form>
 </div>
 
