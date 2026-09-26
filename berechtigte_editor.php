@@ -52,11 +52,26 @@ $funktion_options = [
 ];
 
 $aktiv_labels = [
-    0  => '0 – Inaktiv / Ausgeschieden',
-    10 => '10 – Aktives Mitglied',
+    0  => '0 – Nur Beschlussdatenbank-Zugriff',
+    1  => '1 – Spezielle Zugriffe (z.B. Wiederaufnahmen)',
+    2  => '2 – Kassenfunktionen',
+    3  => '3 – Finanzprüfer / Steuerberater',
+    4  => '4',
+    5  => '5',
+    6  => '6',
+    7  => '7',
+    8  => '8 – JT-Orga-Finanzen: Freigaben sehen/erteilen',
+    9  => '9 – Team-Finanzen: Freigaben sehen/erteilen',
+    10 => '10 – Aktive (Terminabstimmung etc.)',
+    11 => '11 – Teamleiter zentral',
+    12 => '12 – Projektleiter',
+    13 => '13 – Projektleitung mit Budget',
+    14 => '14 – Zweiter Ressortleiter',
     15 => '15 – Ressortleitung',
-    18 => '18 – GF / Verwaltung',
-    19 => '19 – Vorstand / Admin',
+    16 => '16 – Sonderaufgaben',
+    17 => '17 – Ressortleitung Finanzen',
+    18 => '18 – Geschäftsführung / Admin',
+    19 => '19 – Vorstandsmitglied',
 ];
 
 // Ressortliste laden
@@ -496,14 +511,25 @@ if ($flash) {
                 <div class="explanation">
                     <h4>Erläuterung aktiv-Level</h4>
                     <dl>
-                        <dt>0</dt><dd>Inaktiv / ausgeschieden – kein Zugriff (Daten 10 Jahre aufbewahren)</dd>
-                        <dt>10</dt><dd>Aktives Mitglied – Standard-Zugriff</dd>
-                        <dt>15</dt><dd>Ressortleitung – erweiterte Rechte (Antragsfreigabe etc.)</dd>
-                        <dt>18</dt><dd>GF / Verwaltung – Admin-Zugang, kann Anträge aller sehen</dd>
-                        <dt>19</dt><dd>Vorstand – höchste Berechtigung, vertrauliche Inhalte sichtbar</dd>
+                        <dt>0</dt><dd>Nur Beschlussdatenbank – sonst kein Zugriff</dd>
+                        <dt>1</dt><dd>Spezielle Zugriffe (z.B. Wiederaufnahmen)</dd>
+                        <dt>2</dt><dd>Kassenfunktionen: Buchen, Zahlungen, alle Beschlüsse</dd>
+                        <dt>3</dt><dd>Finanzprüfer/Steuerberater: alles sehen, keine aktiven Handlungen</dd>
+                        <dt>8</dt><dd>JT-Orga-Finanzen: Freigaben sehen/erteilen</dd>
+                        <dt>9</dt><dd>Team-Finanzen: Freigaben sehen/erteilen</dd>
+                        <dt>10</dt><dd>Aktive (temporär): Terminabstimmungen, DS-Team, Schlichter</dd>
+                        <dt>11</dt><dd>Teamleiter zentral: Freigaben + Anträge sehen/bearbeiten</dd>
+                        <dt>12</dt><dd>Projektleiter: Anträge + Freigaben eigenes Ressort</dd>
+                        <dt>13</dt><dd>Projektleitung mit Budget</dd>
+                        <dt>14</dt><dd>Zweiter Ressortleiter + Führungsteam-Rechte</dd>
+                        <dt>15</dt><dd>Ressortleitung + Führungsteam-Rechte</dd>
+                        <dt>16</dt><dd>Sonderaufgaben (z.B. Notvorstand)</dd>
+                        <dt>17</dt><dd>Ressortleitung Finanzen: alle Freigaben</dd>
+                        <dt>18</dt><dd>Geschäftsführung/Admin: sieht alles, Benutzerverwaltung</dd>
+                        <dt>19</dt><dd>Vorstandsmitglied: alle Rechte inkl. andere Ressorts</dd>
                     </dl>
                     <br>
-                    <strong>Löschen ist nicht vorgesehen</strong> – steuerliche Aufbewahrungsfrist 10 Jahre. Ausgeschiedene Mitglieder auf aktiv=0 setzen.
+                    <strong>Löschen ist nicht vorgesehen</strong> – steuerliche Aufbewahrungsfrist 10 Jahre. Ausgeschiedene auf aktiv=0 setzen.
                 </div>
             </div>
         </div>
