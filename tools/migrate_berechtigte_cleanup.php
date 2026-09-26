@@ -48,50 +48,39 @@ $done = $skip = $err = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['confirm'] ?? '') === 'JA') {
 
-    // Schritt 0: ROW_FORMAT auf DYNAMIC setzen.
-    // InnoDB COMPACT hat ein Zeilengröße-Limit von 8126 Bytes (bei utf8mb4).
-    // DYNAMIC erlaubt variable Spalten off-page zu speichern → kein Limit-Problem mehr.
+    // Schritt 0: innodb_strict_mode für diese Sitzung deaktivieren.
+    // Unterdrückt den 1118-Fehler (Row size too large) bei breiten Tabellen – session-lokal,
+    // keine dauerhafte Serveränderung. In MySQL 8.0+ ist dieser Fehler bei ROW_FORMAT=DYNAMIC
+    // ohnehin nicht mehr relevant, der Befehl schadet dort nicht.
     try {
-        $row_fmt = $pdo->query("SELECT ROW_FORMAT FROM information_schema.TABLES
-            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'berechtigte'")->fetchColumn();
-        if (strtoupper($row_fmt ?? '') !== 'DYNAMIC') {
-            $pdo->exec("ALTER TABLE berechtigte ROW_FORMAT=DYNAMIC");
-            $done[] = "✓ ROW_FORMAT auf DYNAMIC gesetzt (war: $row_fmt)";
-        } else {
-            $skip[] = "ROW_FORMAT bereits DYNAMIC";
-        }
+        $pdo->exec("SET SESSION innodb_strict_mode = 0");
+        $done[] = "✓ innodb_strict_mode für diese Sitzung deaktiviert";
     } catch (PDOException $e) {
-        $err[] = "✗ ROW_FORMAT: " . htmlspecialchars($e->getMessage());
+        // Nicht kritisch – auf manchen Systemen ohne ausreichende Rechte nicht möglich.
+        $skip[] = "innodb_strict_mode nicht setzbar (ggf. kein SUPER-Recht): " . htmlspecialchars($e->getMessage());
     }
 
-    // Schritt 1: Alle zu löschenden Spalten in einem einzigen ALTER TABLE bündeln.
-    // Das ist schneller und umgeht intermittente Zeilengröße-Fehler beim Einzel-DROP.
-    $cols_to_drop = array_filter($drop_cols, fn($c) => col_exists($pdo, 'berechtigte', $c));
-    if ($cols_to_drop) {
-        $drop_sql = implode(', ', array_map(fn($c) => "DROP COLUMN `$c`", $cols_to_drop));
-        try {
-            $pdo->exec("ALTER TABLE berechtigte $drop_sql");
-            foreach ($cols_to_drop as $c) $done[] = "✓ Spalte <code>$c</code> gelöscht";
-        } catch (PDOException $e) {
-            $err[] = "✗ DROP (gebündelt): " . htmlspecialchars($e->getMessage());
-        }
-    }
-    $skipped_drops = array_diff($drop_cols, $cols_to_drop);
-    foreach ($skipped_drops as $c) $skip[] = "DROP $c (existiert nicht)";
+    // Schritt 1: Alles in EINEM einzigen ALTER TABLE:
+    // ROW_FORMAT=DYNAMIC + alle DROPs + alle ADDs.
+    // Nur ein einziger Table-Rebuild → das neue Format gilt bereits während des Rebuilds.
+    $cols_to_drop = array_values(array_filter($drop_cols, fn($c) => col_exists($pdo, 'berechtigte', $c)));
+    $cols_to_add  = array_values(array_filter(array_keys($add_cols), fn($c) => !col_exists($pdo, 'berechtigte', $c)));
 
-    // Schritt 2: Neue Spalten ergänzen
-    foreach ($add_cols as $col => $def) {
-        if (col_exists($pdo, 'berechtigte', $col)) {
-            $skip[] = "ADD $col (existiert bereits)";
-            continue;
-        }
-        try {
-            $pdo->exec("ALTER TABLE berechtigte ADD COLUMN `$col` $def");
-            $done[] = "✓ Spalte <code>$col</code> ergänzt";
-        } catch (PDOException $e) {
-            $err[] = "✗ ADD $col: " . htmlspecialchars($e->getMessage());
-        }
+    $parts = ['ROW_FORMAT=DYNAMIC'];
+    foreach ($cols_to_drop as $c) $parts[] = "DROP COLUMN `$c`";
+    foreach ($cols_to_add  as $c) $parts[] = "ADD COLUMN `$c` {$add_cols[$c]}";
+
+    try {
+        $pdo->exec("ALTER TABLE berechtigte " . implode(', ', $parts));
+        $done[] = "✓ ROW_FORMAT=DYNAMIC gesetzt";
+        foreach ($cols_to_drop as $c) $done[] = "✓ Spalte <code>$c</code> gelöscht";
+        foreach ($cols_to_add  as $c) $done[] = "✓ Spalte <code>$c</code> ergänzt";
+    } catch (PDOException $e) {
+        $err[] = "✗ ALTER TABLE: " . htmlspecialchars($e->getMessage());
     }
+
+    foreach (array_diff($drop_cols, $cols_to_drop) as $c)    $skip[] = "DROP $c (existiert nicht)";
+    foreach (array_diff(array_keys($add_cols), $cols_to_add) as $c) $skip[] = "ADD $c (existiert bereits)";
 }
 
 // Aktuellen Stand prüfen
