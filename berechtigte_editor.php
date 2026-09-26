@@ -67,6 +67,11 @@ try {
     $ressorts = array_filter($ressorts, fn($r) => preg_match('/^R\d{2}$/', $r[TABLE_RESSORTS_KEY] ?? ''));
 } catch (Exception $e) {}
 
+// LDAP
+if (defined('LDAP_ENABLED') && LDAP_ENABLED) {
+    require_once __DIR__ . '/ldap_functions.php';
+}
+
 // sv_*-Spalten vorhanden?
 $sv_cols = false;
 try {
@@ -78,9 +83,28 @@ $all_rows = $pdo->query("SELECT ID, KurzN, Vorname, Name, aktiv FROM berechtigte
 $active_rows = array_filter($all_rows, fn($r) => (int)$r['aktiv'] >= 10);
 
 // ── POST: Aktionen ────────────────────────────────────────────────────────────
-$flash = '';
+$flash        = '';
+$ldap_prefill = null;   // vorausgefüllte Werte nach LDAP-Lookup
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+
+    if ($action === 'ldap_lookup') {
+        $mnr = trim($_POST['new_mnr'] ?? '');
+        if ($mnr === '') {
+            $flash = 'err:Bitte zuerst eine MNr eingeben.';
+        } elseif (!defined('LDAP_ENABLED') || !LDAP_ENABLED) {
+            $flash = 'err:LDAP ist nicht aktiviert (LDAP_ENABLED in config.php).';
+        } else {
+            $ldap_prefill = ldap_lookup_by_mnr($mnr);
+            if (isset($ldap_prefill['error'])) {
+                $flash = 'err:LDAP: ' . $ldap_prefill['error'];
+                $ldap_prefill = null;
+            } else {
+                $flash = 'ok:LDAP-Daten geladen – bitte prüfen und ggf. anpassen.';
+            }
+        }
+        // Kein redirect – Seite direkt rendern, Formular bleibt ausgefüllt
+    }
 
     if ($action === 'create') {
         $new_id  = (int)($_POST['new_id']  ?? 0);
@@ -525,74 +549,90 @@ if ($flash) {
         </tbody>
     </table>
 
+    <?php
+    // Formularwerte: nach LDAP-Lookup aus $ldap_prefill, sonst aus $_POST (Retry), sonst leer
+    $cv = fn(string $key, string $default = '') =>
+        h($_POST[$key] ?? $default);
+    $sel = fn(string $key, $val) =>
+        (string)($val) === (string)($_POST[$key] ?? '') ? 'selected' : '';
+    ?>
     <form method="post" action="berechtigte_editor.php" class="new-form">
         <input type="hidden" name="action" value="create">
         <h3>Neuen Berechtigten anlegen</h3>
 
-        <!-- Zeile 1: Funktion → ID-Vorschlag, MNr + LDAP-Button -->
+        <!-- Zeile 1: Funktion → ID-Vorschlag, MNr + optionaler LDAP-Button -->
         <div class="new-form-row1">
             <div class="field-row">
                 <label>Funktion</label>
                 <select name="new_funktion" id="new_funktion" onchange="suggestId()">
                     <?php foreach ($funktion_options as $val => $lbl): ?>
-                        <option value="<?= h($val) ?>"><?= h($lbl) ?></option>
+                        <option value="<?= h($val) ?>" <?= $sel('new_funktion', $val) ?>><?= h($lbl) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="field-row">
                 <label>ID *</label>
-                <input type="number" name="new_id" id="new_id_field" value="<?= $next_id ?>" min="1" required>
+                <input type="number" name="new_id" id="new_id_field"
+                       value="<?= h($_POST['new_id'] ?? $next_id) ?>" min="1" required>
             </div>
             <div class="field-row mnr-wrap">
                 <label>MNr</label>
                 <input type="text" name="new_mnr" id="new_mnr_field"
-                       placeholder="z.&nbsp;B. M0042"
+                       value="<?= $cv('new_mnr') ?>"
+                       placeholder="z.&nbsp;B. 12345"
                        oninput="checkMnrDuplicate()" onblur="checkMnrDuplicate()">
                 <div class="mnr-status" id="mnr-status"></div>
             </div>
+            <?php if (defined('LDAP_ENABLED') && LDAP_ENABLED): ?>
             <div class="ldap-btn-wrap">
-                <button type="button" id="ldap-btn" class="btn-ldap"
-                        onclick="ldapLookup()" style="<?= $ldap_js === 'true' ? '' : 'display:none' ?>">
+                <button type="submit" name="action" value="ldap_lookup" class="btn-ldap">
                     🔍 Aus Mitgliederdatenbank laden
                 </button>
             </div>
+            <?php endif; ?>
         </div>
 
-        <!-- Zeile 2: Stammdaten -->
+        <!-- Zeile 2: Stammdaten (ggf. aus LDAP vorausgefüllt) -->
         <div class="new-form-row2">
             <div class="field-row">
                 <label>Vorname</label>
-                <input type="text" name="new_vorname" id="new_vorname" placeholder="Vorname">
+                <input type="text" name="new_vorname"
+                       value="<?= h($ldap_prefill['vorname'] ?? $_POST['new_vorname'] ?? '') ?>"
+                       placeholder="Vorname">
             </div>
             <div class="field-row">
                 <label>Name (Nachname)</label>
-                <input type="text" name="new_name" id="new_name" placeholder="Nachname">
+                <input type="text" name="new_name"
+                       value="<?= h($ldap_prefill['name'] ?? $_POST['new_name'] ?? '') ?>"
+                       placeholder="Nachname">
             </div>
             <div class="field-row">
                 <label>KurzN</label>
-                <input type="text" name="new_kurzn" placeholder="z.&nbsp;B. MMax">
+                <input type="text" name="new_kurzn" value="<?= $cv('new_kurzn') ?>"
+                       placeholder="z.&nbsp;B. MMax">
             </div>
             <div class="field-row">
                 <label>E-Mail</label>
-                <input type="email" name="new_email" id="new_email" placeholder="name@example.org">
+                <input type="email" name="new_email"
+                       value="<?= h($ldap_prefill['email'] ?? $_POST['new_email'] ?? '') ?>"
+                       placeholder="name@example.org">
             </div>
         </div>
 
         <div class="new-form-actions">
             <select name="new_aktiv" style="padding:6px 8px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-size:13px">
                 <?php foreach ($aktiv_labels as $val => $lbl): ?>
-                    <option value="<?= $val ?>" <?= $val === 10 ? 'selected' : '' ?>><?= h($lbl) ?></option>
+                    <option value="<?= $val ?>" <?= $sel('new_aktiv', $val) ?: ($val === 10 ? 'selected' : '') ?>><?= h($lbl) ?></option>
                 <?php endforeach; ?>
             </select>
-            <button type="submit" class="btn btn-primary btn-sm">+ Anlegen</button>
+            <button type="submit" name="action" value="create" class="btn btn-primary btn-sm">+ Anlegen</button>
             <span class="hint">ID: Vo/FVo/FVv/GF/VA → &lt;100 · Sonstige Aktive → &lt;900 · AD/Rx/Vx/Xx → ≥900</span>
         </div>
     </form>
 
 <script>
-const takenIds  = <?= $js_taken_ids ?>;
-const mnrList   = <?= $js_mnr_list ?>;
-const ldapOn    = <?= $ldap_js ?>;
+const takenIds = <?= $js_taken_ids ?>;
+const mnrList  = <?= $js_mnr_list ?>;
 
 const FUNKTION_RANGES = {
     'Vo': [1,99], 'FVo': [1,99], 'FVv': [1,99], 'GF': [1,99], 'VA': [1,99],
@@ -606,7 +646,7 @@ function nextFreeId(min, max) {
 }
 
 function suggestId() {
-    const fn  = document.getElementById('new_funktion').value;
+    const fn = document.getElementById('new_funktion').value;
     const [min, max] = FUNKTION_RANGES[fn] ?? [100, 899];
     document.getElementById('new_id_field').value = nextFreeId(min, max);
 }
@@ -622,31 +662,6 @@ function checkMnrDuplicate() {
     } else {
         el.textContent = '✓ frei';
         el.className = 'mnr-status free';
-    }
-}
-
-async function ldapLookup() {
-    const mnr = document.getElementById('new_mnr_field').value.trim();
-    if (!mnr) { alert('Bitte zuerst eine MNr eingeben.'); return; }
-    const btn = document.getElementById('ldap-btn');
-    btn.disabled = true;
-    const orig = btn.textContent;
-    btn.textContent = '⏳ Lade…';
-    try {
-        const res  = await fetch('ajax/ldap_mnr_lookup.php?mnr=' + encodeURIComponent(mnr));
-        const data = await res.json();
-        if (data.error) {
-            alert('LDAP: ' + data.error);
-        } else {
-            if (data.vorname) document.getElementById('new_vorname').value = data.vorname;
-            if (data.name)    document.getElementById('new_name').value    = data.name;
-            if (data.email)   document.getElementById('new_email').value   = data.email;
-        }
-    } catch (e) {
-        alert('Fehler beim LDAP-Lookup.');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = orig;
     }
 }
 </script>
