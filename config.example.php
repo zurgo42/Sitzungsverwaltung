@@ -130,8 +130,8 @@ define('LDAP_ENABLED',      false);
 define('LDAP_HOST',         'localhost');
 define('LDAP_PORT',         389);
 define('LDAP_BASE_DN',      'cn=aktive,ou=applications,dc=mensa,dc=de');
-define('LDAP_BIND_DN',      'cn=aktive,ou=applications,dc=mensa,dc=de');
-define('LDAP_BIND_PW',      '');                // LDAP-Passwort eintragen
+define('LDAP_BIND_DN',      'cn=aktive,ou=applications,dc=mensa,dc=de'); // Benutzername (Bind-DN)
+define('LDAP_BIND_PW',      '');                                            // Passwort eintragen
 define('LDAP_MNR_ATTR',     'uid');             // Attribut, das die MNr enthält
 define('LDAP_VORNAME_ATTR', 'givenname');       // lowercase – so liefert ldap_get_entries()
 define('LDAP_NAME_ATTR',    'sn');

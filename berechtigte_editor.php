@@ -79,7 +79,7 @@ try {
 } catch (Exception $e) {}
 
 // Alle Berechtigten (für Dropdown + Liste)
-$all_rows = $pdo->query("SELECT ID, KurzN, Vorname, Name, aktiv FROM berechtigte ORDER BY aktiv DESC, KurzN ASC")->fetchAll();
+$all_rows = $pdo->query("SELECT ID, MNr, KurzN, Vorname, Name, aktiv FROM berechtigte ORDER BY aktiv DESC, KurzN ASC")->fetchAll();
 $active_rows = array_filter($all_rows, fn($r) => (int)$r['aktiv'] >= 10);
 
 // ── POST: Aktionen ────────────────────────────────────────────────────────────
