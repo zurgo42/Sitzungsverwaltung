@@ -35,11 +35,6 @@ function _ldap_open(): mixed {
     return $ldap;
 }
 
-/** UID (mit "049"-Präfix) → MNr wie in berechtigte gespeichert (ohne Präfix). */
-function _uid_to_mnr(string $uid): string {
-    return str_starts_with($uid, '049') ? substr($uid, 3) : $uid;
-}
-
 const LDAP_DN      = 'ou=members,dc=mensa,dc=de';
 const LDAP_GROUP_A = '(memberof=cn=MinD-MIGS,ou=login,ou=groups,dc=mensa,dc=de)';
 const LDAP_ATTRS   = ['uid', 'givenname', 'sn', 'mail'];
@@ -87,8 +82,9 @@ function ldap_search_by_name(string $query, int $limit = 30): array {
     $ldap = _ldap_open();
     if (is_array($ldap)) return $ldap;
 
+    // Teilstring-Suche (Groß-/Klein egal, kein Soundex) – findet Namen, die $query enthalten
     $q      = ldap_escape($query, '', LDAP_ESCAPE_FILTER);
-    $filter = '(&(|(sn~=' . $q . ')(givenname~=' . $q . '))' . LDAP_GROUP_A . ')';
+    $filter = '(&(|(sn=*' . $q . '*)(givenname=*' . $q . '*))' . LDAP_GROUP_A . ')';
     $sr     = @ldap_search($ldap, LDAP_DN, $filter, LDAP_ATTRS, 0, $limit);
 
     if (!$sr) {
@@ -103,7 +99,7 @@ function ldap_search_by_name(string $query, int $limit = 30): array {
     for ($i = 0; $i < $entries['count']; $i++) {
         $e = $entries[$i];
         $results[] = [
-            'mnr'     => _uid_to_mnr($e['uid'][0] ?? ''),
+            'mnr'     => $e['uid'][0] ?? '',   // voller UID inkl. "049"-Präfix
             'vorname' => $e['givenname'][0] ?? '',
             'name'    => $e['sn'][0]        ?? '',
             'email'   => $e['mail'][0]      ?? '',
