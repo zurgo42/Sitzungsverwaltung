@@ -83,10 +83,27 @@ $all_rows = $pdo->query("SELECT ID, MNr, KurzN, Vorname, Name, aktiv FROM berech
 $active_rows = array_filter($all_rows, fn($r) => (int)$r['aktiv'] >= 10);
 
 // ── POST: Aktionen ────────────────────────────────────────────────────────────
-$flash        = '';
-$ldap_prefill = null;   // vorausgefüllte Werte nach LDAP-Lookup
+$flash              = '';
+$ldap_prefill       = null;   // vorausgefüllte Werte nach MNr-Lookup
+$ldap_search_query  = '';
+$ldap_search_result = null;   // Suchergebnisse nach Namenssuche
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+
+    if ($action === 'ldap_search') {
+        $ldap_search_query = trim($_POST['ldap_query'] ?? '');
+        if (!defined('LDAP_ENABLED') || !LDAP_ENABLED) {
+            $flash = 'err:LDAP ist nicht aktiviert.';
+        } else {
+            $ldap_search_result = ldap_search_by_name($ldap_search_query);
+            if (isset($ldap_search_result['error'])) {
+                $flash = 'err:LDAP: ' . $ldap_search_result['error'];
+                $ldap_search_result = null;
+            } elseif (empty($ldap_search_result)) {
+                $flash = 'ok:Keine Treffer für „' . htmlspecialchars($ldap_search_query) . '".';
+            }
+        }
+    }
 
     if ($action === 'ldap_lookup') {
         $mnr = trim($_POST['new_mnr'] ?? '');
@@ -664,6 +681,15 @@ function checkMnrDuplicate() {
         el.className = 'mnr-status free';
     }
 }
+
+function fillFromSearch(r) {
+    document.getElementById('new_mnr_field').value  = r.mnr;
+    document.querySelector('[name=new_vorname]').value = r.vorname;
+    document.querySelector('[name=new_name]').value    = r.name;
+    document.querySelector('[name=new_email]').value   = r.email;
+    checkMnrDuplicate();
+    document.getElementById('new_id_field').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 </script>
 </div>
 
@@ -671,6 +697,55 @@ function checkMnrDuplicate() {
 <div class="flash err" style="font-size:12px">
     ⚠️ Die Spalten <code>sv_admin</code> und <code>sv_confidential</code> fehlen noch in der Datenbank.
     Bitte zuerst <a href="tools/migrate_berechtigte_cleanup.php">tools/migrate_berechtigte_cleanup.php</a> ausführen.
+</div>
+<?php endif; ?>
+
+<?php if (defined('LDAP_ENABLED') && LDAP_ENABLED): ?>
+<!-- ── LDAP-Namenssuche ───────────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom: 20px;">
+    <form method="post" action="berechtigte_editor.php" style="padding: 14px 20px; display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; border-bottom: 1px solid var(--border);">
+        <input type="hidden" name="action" value="ldap_search">
+        <div class="field-row" style="margin: 0; flex: 1; min-width: 180px;">
+            <label style="font-size: 13px; font-weight: 700;">🔍 LDAP-Suche nach Name</label>
+            <input type="text" name="ldap_query" value="<?= h($ldap_search_query) ?>"
+                   placeholder="Vor- oder Nachname (mind. 2 Zeichen)" autocomplete="off">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" style="margin-bottom: 1px;">Suchen</button>
+    </form>
+
+    <?php if (is_array($ldap_search_result) && !isset($ldap_search_result['error'])): ?>
+    <div style="padding: 10px 20px 6px; font-size: 12px; color: var(--label);">
+        <?= count($ldap_search_result) ?> Treffer für „<?= h($ldap_search_query) ?>"
+        – Klick auf „↓" übernimmt die Daten in das Anlegen-Formular.
+    </div>
+    <table class="list" style="font-size: 13px;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Vorname</th>
+                <th>MNr</th>
+                <th>E-Mail</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($ldap_search_result as $r): ?>
+        <tr>
+            <td><?= h($r['name']) ?></td>
+            <td><?= h($r['vorname']) ?></td>
+            <td><?= h($r['mnr']) ?></td>
+            <td><?= h($r['email']) ?></td>
+            <td>
+                <button type="button" class="btn-ldap btn-sm"
+                    onclick="fillFromSearch(<?= htmlspecialchars(json_encode($r), ENT_QUOTES) ?>)">
+                    ↓ Übernehmen
+                </button>
+            </td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+    <?php endif; ?>
 </div>
 <?php endif; ?>
 

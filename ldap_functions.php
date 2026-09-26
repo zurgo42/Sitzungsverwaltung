@@ -6,56 +6,102 @@
  * Konfiguration über LDAP_* Konstanten in config.php.
  */
 
-/**
- * Sucht einen Eintrag per Mitgliedsnummer im LDAP.
- *
- * Mensa-Konvention: UIDs beginnen mit "049"; fehlt das Präfix, wird es ergänzt.
- * Sucht nur in der Gruppe MinD-MIGS (ANB-zugestimmt), analog zu mname() mit Funktion "a".
- *
- * @return array  ['vorname', 'name', 'email'] bei Erfolg,
- *                ['error' => '...']           bei Fehler oder nicht gefunden
- */
-function ldap_lookup_by_mnr(string $mnr): array {
+/** Verbindung aufbauen und binden. Gibt LDAP-Handle zurück oder ['error' => '...']. */
+function _ldap_open(): mixed {
     if (!function_exists('ldap_connect')) {
-        return ['error' => 'PHP-Extension php-ldap fehlt (sudo apt install php-ldap)'];
+        return ['error' => 'PHP-Extension php-ldap fehlt (apt install php-ldap)'];
     }
-
-    // MNr → UID: Mensa-Nummern beginnen mit "049"
-    $uid = ($mnr !== '' && $mnr[0] !== '0') ? '049' . $mnr : $mnr;
-
     $ldap = @ldap_connect(LDAP_HOST, LDAP_PORT);
     if (!$ldap) {
         return ['error' => 'Keine Verbindung zu ' . LDAP_HOST];
     }
     ldap_set_option($ldap, LDAP_OPT_PROTOCOL_VERSION, 3);
     ldap_set_option($ldap, LDAP_OPT_REFERRALS, 0);
-
     if (!@ldap_bind($ldap, LDAP_BIND_DN, LDAP_BIND_PW)) {
         $err = ldap_error($ldap);
         ldap_close($ldap);
         return ['error' => 'LDAP-Bind fehlgeschlagen: ' . $err];
     }
+    return $ldap;
+}
 
-    $dn = 'ou=members,dc=mensa,dc=de';
-    // UID-Filter + Gruppenfilter "a" (MinD-MIGS mit ANB), wie in mname()
-    $filter = '(&(uid=' . ldap_escape($uid, '', LDAP_ESCAPE_FILTER) . ')'
-            . '(memberof=cn=MinD-MIGS,ou=login,ou=groups,dc=mensa,dc=de))';
+/** UID (mit "049"-Präfix) → MNr wie in berechtigte gespeichert (ohne Präfix). */
+function _uid_to_mnr(string $uid): string {
+    return str_starts_with($uid, '049') ? substr($uid, 3) : $uid;
+}
 
-    $attrs = ['givenname', 'sn', 'mail'];
-    $sr    = @ldap_search($ldap, $dn, $filter, $attrs);
+const LDAP_DN      = 'ou=members,dc=mensa,dc=de';
+const LDAP_GROUP_A = '(memberof=cn=MinD-MIGS,ou=login,ou=groups,dc=mensa,dc=de)';
+const LDAP_ATTRS   = ['uid', 'givenname', 'sn', 'mail'];
+
+/**
+ * Sucht per Mitgliedsnummer (exakt).
+ * Mensa-Konvention: UIDs beginnen mit "049"; fehlt das Präfix, wird es ergänzt.
+ *
+ * @return array  ['vorname', 'name', 'email'] oder ['error' => '...']
+ */
+function ldap_lookup_by_mnr(string $mnr): array {
+    $ldap = _ldap_open();
+    if (is_array($ldap)) return $ldap;
+
+    $uid    = ($mnr !== '' && $mnr[0] !== '0') ? '049' . $mnr : $mnr;
+    $filter = '(&(uid=' . ldap_escape($uid, '', LDAP_ESCAPE_FILTER) . ')' . LDAP_GROUP_A . ')';
+    $sr     = @ldap_search($ldap, LDAP_DN, $filter, LDAP_ATTRS);
 
     if (!$sr || ldap_count_entries($ldap, $sr) === 0) {
         ldap_close($ldap);
-        return ['error' => 'MNr ' . $mnr . ' nicht gefunden (Suche als UID ' . $uid . ')'];
+        return ['error' => 'MNr ' . $mnr . ' nicht gefunden (UID ' . $uid . ')'];
     }
 
-    $entries = ldap_get_entries($ldap, $sr);
+    $row = ldap_get_entries($ldap, $sr)[0];
     ldap_close($ldap);
-
-    $row = $entries[0];
     return [
         'vorname' => $row['givenname'][0] ?? '',
         'name'    => $row['sn'][0]        ?? '',
         'email'   => $row['mail'][0]      ?? '',
     ];
+}
+
+/**
+ * Sucht per Name (Vor- oder Nachname, unscharf).
+ * Gibt bis zu $limit Treffer zurück.
+ *
+ * @return array  Liste von ['mnr', 'vorname', 'name', 'email']
+ *                oder ['error' => '...'] bei Verbindungsfehler
+ */
+function ldap_search_by_name(string $query, int $limit = 30): array {
+    if (strlen($query) < 2) {
+        return ['error' => 'Bitte mindestens 2 Zeichen eingeben.'];
+    }
+
+    $ldap = _ldap_open();
+    if (is_array($ldap)) return $ldap;
+
+    $q      = ldap_escape($query, '', LDAP_ESCAPE_FILTER);
+    $filter = '(&(|(sn~=' . $q . ')(givenname~=' . $q . '))' . LDAP_GROUP_A . ')';
+    $sr     = @ldap_search($ldap, LDAP_DN, $filter, LDAP_ATTRS, 0, $limit);
+
+    if (!$sr) {
+        ldap_close($ldap);
+        return ['error' => 'LDAP-Suche fehlgeschlagen: ' . ldap_error($ldap)];
+    }
+
+    $entries = ldap_get_entries($ldap, $sr);
+    ldap_close($ldap);
+
+    $results = [];
+    for ($i = 0; $i < $entries['count']; $i++) {
+        $e = $entries[$i];
+        $results[] = [
+            'mnr'     => _uid_to_mnr($e['uid'][0] ?? ''),
+            'vorname' => $e['givenname'][0] ?? '',
+            'name'    => $e['sn'][0]        ?? '',
+            'email'   => $e['mail'][0]      ?? '',
+        ];
+    }
+
+    // Nach Nachname sortieren
+    usort($results, fn($a, $b) => strcmp($a['name'] . $a['vorname'], $b['name'] . $b['vorname']));
+
+    return $results;
 }
