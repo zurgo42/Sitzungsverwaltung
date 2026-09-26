@@ -83,31 +83,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'create') {
-        $new_id = (int)($_POST['new_id'] ?? 0);
-        if ($new_id > 0) {
+        $new_id  = (int)($_POST['new_id']  ?? 0);
+        $new_mnr = trim($_POST['new_mnr']  ?? '');
+
+        if ($new_id <= 0) {
+            $flash = 'err:Bitte eine gültige ID (> 0) eingeben.';
+        } else {
             $chk = $pdo->prepare("SELECT 1 FROM berechtigte WHERE ID = ?");
             $chk->execute([$new_id]);
             if ($chk->fetch()) {
                 $flash = 'err:ID ' . $new_id . ' existiert bereits.';
-            } else {
+            } elseif ($new_mnr !== '') {
+                $dup = $pdo->prepare("SELECT ID, KurzN, Vorname, Name FROM berechtigte WHERE MNr = ?");
+                $dup->execute([$new_mnr]);
+                $dup_row = $dup->fetch();
+                if ($dup_row) {
+                    $dn = $dup_row['KurzN'] ?: trim($dup_row['Vorname'] . ' ' . $dup_row['Name']);
+                    $flash = 'err:MNr ' . $new_mnr . ' ist bereits vergeben (ID ' . $dup_row['ID'] . ' – ' . $dn . ').';
+                }
+            }
+
+            if (!$flash) {
                 $pdo->prepare("INSERT INTO berechtigte
-                    (ID, MNr, Vorname, Name, KurzN, eMail, aktiv, angelegt)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+                    (ID, MNr, Vorname, Name, KurzN, eMail, Funktion, aktiv, angelegt)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
                     ->execute([
                         $new_id,
-                        trim($_POST['new_mnr']     ?? ''),
+                        $new_mnr,
                         trim($_POST['new_vorname'] ?? ''),
                         trim($_POST['new_name']    ?? ''),
                         trim($_POST['new_kurzn']   ?? ''),
                         trim($_POST['new_email']   ?? ''),
+                        trim($_POST['new_funktion']?? ''),
                         (int)($_POST['new_aktiv']  ?? 10),
                         date('Y-m-d H:i:s'),
                     ]);
                 header('Location: berechtigte_editor.php?id=' . $new_id . '&msg=created');
                 exit;
             }
-        } else {
-            $flash = 'err:Bitte eine gültige ID (> 0) eingeben.';
         }
     }
 
@@ -180,6 +193,14 @@ if (!$flash && isset($_GET['msg'])) {
 function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
 $next_id = max(array_column($all_rows, 'ID') ?: [0]) + 1;
+
+$js_taken_ids = json_encode(array_map('intval', array_column($all_rows, 'ID')));
+$js_mnr_list  = json_encode(array_values(array_map(fn($r) => [
+    'id'   => (int)$r['ID'],
+    'mnr'  => (string)$r['MNr'],
+    'name' => $r['KurzN'] ?: trim($r['Vorname'] . ' ' . $r['Name']),
+], array_filter($all_rows, fn($r) => $r['MNr'] !== '' && $r['MNr'] !== null))));
+$ldap_js = (defined('LDAP_ENABLED') && LDAP_ENABLED) ? 'true' : 'false';
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -252,9 +273,20 @@ table.list td a:hover { text-decoration: underline; }
 .btn-sm { padding: 5px 12px; font-size: 12px; }
 .new-form { padding: 16px 20px; border-top: 1px solid var(--border); }
 .new-form h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--label); margin-bottom: 12px; }
-.new-form-grid { display: grid; grid-template-columns: 80px 120px 1fr 1fr 100px 1fr; gap: 8px; align-items: end; }
-@media (max-width: 900px) { .new-form-grid { grid-template-columns: 1fr 1fr; } }
-.new-form-grid .field-row { margin-bottom: 0; }
+.new-form-row1 { display: grid; grid-template-columns: minmax(160px,1.5fr) 80px minmax(130px,1fr) auto; gap: 8px; align-items: end; margin-bottom: 8px; }
+.new-form-row2 { display: grid; grid-template-columns: 1fr 1fr 100px 1fr; gap: 8px; align-items: end; }
+@media (max-width: 820px) {
+    .new-form-row1, .new-form-row2 { grid-template-columns: 1fr 1fr; }
+    .ldap-btn-wrap { grid-column: 1 / -1; }
+}
+.new-form-row1 .field-row, .new-form-row2 .field-row { margin-bottom: 0; }
+.mnr-wrap { position: relative; }
+.mnr-status { font-size: 11px; margin-top: 3px; min-height: 15px; }
+.mnr-status.dup  { color: var(--err-text); }
+.mnr-status.free { color: var(--ok-text); }
+.ldap-btn-wrap { display: flex; align-items: flex-end; padding-bottom: 0; }
+.btn-ldap { padding: 6px 10px; background: var(--th-bg); border: 1px solid var(--border); border-radius: 5px; cursor: pointer; font-size: 12px; white-space: nowrap; color: var(--text); }
+.btn-ldap:hover { border-color: var(--accent); color: var(--accent); }
 .new-form-actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
 .hint { font-size: 11px; color: var(--label); }
 .form-actions { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center; }
@@ -496,22 +528,45 @@ if ($flash) {
     <form method="post" action="berechtigte_editor.php" class="new-form">
         <input type="hidden" name="action" value="create">
         <h3>Neuen Berechtigten anlegen</h3>
-        <div class="new-form-grid">
+
+        <!-- Zeile 1: Funktion → ID-Vorschlag, MNr + LDAP-Button -->
+        <div class="new-form-row1">
+            <div class="field-row">
+                <label>Funktion</label>
+                <select name="new_funktion" id="new_funktion" onchange="suggestId()">
+                    <?php foreach ($funktion_options as $val => $lbl): ?>
+                        <option value="<?= h($val) ?>"><?= h($lbl) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
             <div class="field-row">
                 <label>ID *</label>
-                <input type="number" name="new_id" value="<?= $next_id ?>" min="1" required>
+                <input type="number" name="new_id" id="new_id_field" value="<?= $next_id ?>" min="1" required>
             </div>
-            <div class="field-row">
+            <div class="field-row mnr-wrap">
                 <label>MNr</label>
-                <input type="text" name="new_mnr" placeholder="z.&nbsp;B. M0042">
+                <input type="text" name="new_mnr" id="new_mnr_field"
+                       placeholder="z.&nbsp;B. M0042"
+                       oninput="checkMnrDuplicate()" onblur="checkMnrDuplicate()">
+                <div class="mnr-status" id="mnr-status"></div>
             </div>
+            <div class="ldap-btn-wrap">
+                <button type="button" id="ldap-btn" class="btn-ldap"
+                        onclick="ldapLookup()" style="<?= $ldap_js === 'true' ? '' : 'display:none' ?>">
+                    🔍 Aus Mitgliederdatenbank laden
+                </button>
+            </div>
+        </div>
+
+        <!-- Zeile 2: Stammdaten -->
+        <div class="new-form-row2">
             <div class="field-row">
                 <label>Vorname</label>
-                <input type="text" name="new_vorname" placeholder="Vorname">
+                <input type="text" name="new_vorname" id="new_vorname" placeholder="Vorname">
             </div>
             <div class="field-row">
                 <label>Name (Nachname)</label>
-                <input type="text" name="new_name" placeholder="Nachname">
+                <input type="text" name="new_name" id="new_name" placeholder="Nachname">
             </div>
             <div class="field-row">
                 <label>KurzN</label>
@@ -519,9 +574,10 @@ if ($flash) {
             </div>
             <div class="field-row">
                 <label>E-Mail</label>
-                <input type="email" name="new_email" placeholder="name@example.org">
+                <input type="email" name="new_email" id="new_email" placeholder="name@example.org">
             </div>
         </div>
+
         <div class="new-form-actions">
             <select name="new_aktiv" style="padding:6px 8px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text);font-size:13px">
                 <?php foreach ($aktiv_labels as $val => $lbl): ?>
@@ -529,9 +585,71 @@ if ($flash) {
                 <?php endforeach; ?>
             </select>
             <button type="submit" class="btn btn-primary btn-sm">+ Anlegen</button>
-            <span class="hint">ID-Konvention: Führungskreis/Vorstand &lt;100 · Andere &lt;900 · Admin/Sonstige &gt;900</span>
+            <span class="hint">ID: Vo/FVo/FVv/GF/VA → &lt;100 · Sonstige Aktive → &lt;900 · AD/Rx/Vx/Xx → ≥900</span>
         </div>
     </form>
+
+<script>
+const takenIds  = <?= $js_taken_ids ?>;
+const mnrList   = <?= $js_mnr_list ?>;
+const ldapOn    = <?= $ldap_js ?>;
+
+const FUNKTION_RANGES = {
+    'Vo': [1,99], 'FVo': [1,99], 'FVv': [1,99], 'GF': [1,99], 'VA': [1,99],
+    'AD': [900,9999], 'Rx': [900,9999], 'Vx': [900,9999], 'Xx': [900,9999],
+};
+
+function nextFreeId(min, max) {
+    const taken = new Set(takenIds);
+    for (let i = min; i <= max; i++) if (!taken.has(i)) return i;
+    return max + 1;
+}
+
+function suggestId() {
+    const fn  = document.getElementById('new_funktion').value;
+    const [min, max] = FUNKTION_RANGES[fn] ?? [100, 899];
+    document.getElementById('new_id_field').value = nextFreeId(min, max);
+}
+
+function checkMnrDuplicate() {
+    const mnr = document.getElementById('new_mnr_field').value.trim();
+    const el  = document.getElementById('mnr-status');
+    if (!mnr) { el.textContent = ''; el.className = 'mnr-status'; return; }
+    const dup = mnrList.find(r => r.mnr === mnr);
+    if (dup) {
+        el.textContent = '⚠ bereits vergeben: ID ' + dup.id + ' (' + dup.name + ')';
+        el.className = 'mnr-status dup';
+    } else {
+        el.textContent = '✓ frei';
+        el.className = 'mnr-status free';
+    }
+}
+
+async function ldapLookup() {
+    const mnr = document.getElementById('new_mnr_field').value.trim();
+    if (!mnr) { alert('Bitte zuerst eine MNr eingeben.'); return; }
+    const btn = document.getElementById('ldap-btn');
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = '⏳ Lade…';
+    try {
+        const res  = await fetch('ajax/ldap_mnr_lookup.php?mnr=' + encodeURIComponent(mnr));
+        const data = await res.json();
+        if (data.error) {
+            alert('LDAP: ' + data.error);
+        } else {
+            if (data.vorname) document.getElementById('new_vorname').value = data.vorname;
+            if (data.name)    document.getElementById('new_name').value    = data.name;
+            if (data.email)   document.getElementById('new_email').value   = data.email;
+        }
+    } catch (e) {
+        alert('Fehler beim LDAP-Lookup.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+    }
+}
+</script>
 </div>
 
 <?php if (!$sv_cols): ?>
