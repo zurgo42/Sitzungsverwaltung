@@ -18,9 +18,19 @@ function _ldap_open(): mixed {
     ldap_set_option($ldap, LDAP_OPT_PROTOCOL_VERSION, 3);
     ldap_set_option($ldap, LDAP_OPT_REFERRALS, 0);
     if (!@ldap_bind($ldap, LDAP_BIND_DN, LDAP_BIND_PW)) {
-        $err = ldap_error($ldap);
+        $err  = ldap_error($ldap);
+        $code = ldap_errno($ldap);
         ldap_close($ldap);
-        return ['error' => 'LDAP-Bind fehlgeschlagen: ' . $err];
+        // DN für Diagnose teilweise anzeigen (kein Passwort)
+        $dn_hint = strlen(LDAP_BIND_DN) > 4
+            ? substr(LDAP_BIND_DN, 0, 6) . '…' . substr(LDAP_BIND_DN, -10)
+            : '(leer)';
+        $hint = match($code) {
+            34 => ' – LDAP_BIND_DN hat ungültiges Format (aktuell: „' . $dn_hint . '"). Prüfen in config.php.',
+            49 => ' – Falsches Passwort (LDAP_BIND_PW).',
+            default => ' (Code ' . $code . ')',
+        };
+        return ['error' => 'LDAP-Bind: ' . $err . $hint];
     }
     return $ldap;
 }
