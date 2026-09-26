@@ -124,15 +124,16 @@ define('SMTP_PASS', '');           // SMTP-Passwort
 
 // ============= LDAP-MITGLIEDERDATENBANK (optional) =============
 // Wird im berechtigte_editor.php genutzt, um Vorname/Name/E-Mail per MNr
-// aus dem LDAP-Verzeichnis des Vereins vorzubefüllen.
+// aus dem LDAP-Verzeichnis vorzubefüllen.
+// Verbindungslogik entspricht ldapsuche_neu() im VTool.
 define('LDAP_ENABLED',      false);
-define('LDAP_HOST',         'ldap.example.org');
-define('LDAP_PORT',         389);               // 636 für LDAPS
-define('LDAP_BASE_DN',      'ou=members,dc=example,dc=org');
-define('LDAP_BIND_DN',      '');                // leer = anonymes Bind
-define('LDAP_BIND_PW',      '');
+define('LDAP_HOST',         'localhost');
+define('LDAP_PORT',         389);
+define('LDAP_BASE_DN',      'cn=aktive,ou=applications,dc=mensa,dc=de');
+define('LDAP_BIND_DN',      'cn=aktive,ou=applications,dc=mensa,dc=de');
+define('LDAP_BIND_PW',      '');                // LDAP-Passwort eintragen
 define('LDAP_MNR_ATTR',     'uid');             // Attribut, das die MNr enthält
-define('LDAP_VORNAME_ATTR', 'givenName');
+define('LDAP_VORNAME_ATTR', 'givenname');       // lowercase – so liefert ldap_get_entries()
 define('LDAP_NAME_ATTR',    'sn');
 define('LDAP_EMAIL_ATTR',   'mail');
 
