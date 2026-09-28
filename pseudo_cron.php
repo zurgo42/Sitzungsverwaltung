@@ -250,6 +250,22 @@ if ($should_run) {
             @file_put_contents(__DIR__ . '/pseudo_cron.log', $error_msg, FILE_APPEND);
         }
 
+        // ---- Abgelaufene Meeting-Benachrichtigungen automatisch auf gelesen setzen ----
+        // Typ 'meeting' oder 'reminder', Sitzung > 1 Stunde vorbei → is_read = 1
+        $expired = @$pdo->exec("
+            UPDATE svnotifications n
+            JOIN svmeetings m ON n.related_meeting_id = m.meeting_id
+            SET n.is_read = 1
+            WHERE n.is_read = 0
+              AND n.related_meeting_id IS NOT NULL
+              AND n.type IN ('meeting', 'reminder')
+              AND m.meeting_date < DATE_SUB(NOW(), INTERVAL 1 HOUR)
+        ");
+        if ($expired > 0) {
+            $log_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron: {$expired} abgelaufene Meeting-Benachrichtigung(en) auf gelesen gesetzt\n";
+            @file_put_contents(__DIR__ . '/pseudo_cron.log', $log_msg, FILE_APPEND);
+        }
+
         // ---- E-Mail-Benachrichtigungen verarbeiten ----
         try {
         if (!function_exists('nm_process_immediate')) {
