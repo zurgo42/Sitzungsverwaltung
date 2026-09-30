@@ -39,6 +39,7 @@
  * @param string|null $from_name Optional: Absender-Name (Standard: aus config.php)
  * @return bool true bei Erfolg, false bei Fehler
  */
+if (!function_exists('multipartmail')):
 function multipartmail($to, $subject, $message_text, $message_html = '', $from_email = null, $from_name = null) {
     // Mail-Versand deaktiviert?
     if (!defined('MAIL_ENABLED') || !MAIL_ENABLED) {
@@ -71,6 +72,7 @@ function multipartmail($to, $subject, $message_text, $message_html = '', $from_e
             return send_via_mail($to, $subject, $message_text, $message_html, $from_email, $from_name);
     }
 }
+endif; // function_exists('multipartmail')
 
 /**
  * Sendet E-Mail via PHP mail() - Standard-Backend
