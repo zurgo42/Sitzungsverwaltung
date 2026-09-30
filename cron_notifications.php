@@ -1,27 +1,33 @@
 <?php
 /**
- * cron_notifications.php – Standalone-Skript für den stündlichen Cron-Job
+ * cron_notifications.php – Benachrichtigungs-Logik für den stündlichen Cron-Job
  *
- * Führt dieselbe Benachrichtigungs-Logik wie pseudo_cron.php aus,
- * aber ohne Lock-File-Drosselung und mit eigenem DB-Aufbau.
+ * Kann auf zwei Arten eingesetzt werden:
  *
- * Aufruf im Cron-Job (Beispiel, stündlich):
- *   0 * * * *  php /pfad/zu/vorstand/Sitzungsverwaltung/cron_notifications.php >> /pfad/pseudo_cron.log 2>&1
+ * 1. Include im bestehenden Cron-Skript (empfohlen):
+ *      require_once '/pfad/zu/vorstand/Sitzungsverwaltung/cron_notifications.php';
+ *    Das Cron-Skript muss $pdo vorher bereitgestellt haben.
+ *
+ * 2. Direkte Ausführung via PHP-CLI (eigenständig):
+ *      php /pfad/zu/vorstand/Sitzungsverwaltung/cron_notifications.php
  *
  * Der pseudo_cron.php übernimmt weiterhin die Echtzeit-Verarbeitung während
  * aktiver Nutzung; dieses Skript schließt die Lücken bei Inaktivität.
  */
 
-// Bootstrapping – gleiche Includes wie index.php
-define('CRON_RUN', true);
-require_once __DIR__ . '/session_config.php';
-if (!defined('SV_CONFIG_LOADED')) require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/config_adapter.php';
+// $pdo aus dem aufrufenden Skript verwenden, sonst selbst bootstrappen
+if (!isset($pdo)) {
+    if (!defined('SV_CONFIG_LOADED')) {
+        require_once __DIR__ . '/session_config.php';
+        require_once __DIR__ . '/config.php';
+    }
+    require_once __DIR__ . '/config_adapter.php';
+}
 
-// $pdo muss durch config.php / config_adapter.php bereitgestellt worden sein
 if (!isset($pdo)) {
     echo "[" . date('Y-m-d H:i:s') . "] cron_notifications: kein \$pdo – Abbruch\n";
-    exit(1);
+    if (php_sapi_name() === 'cli') exit(1);
+    return;
 }
 
 $log = function (string $msg) {
