@@ -584,8 +584,12 @@ function dok_href(array $doc): string {
                 <?php if ($doc['stichworte']): ?>
                     <small style="color:#999;">🏷 <?= htmlspecialchars($doc['stichworte']) ?></small>
                 <?php endif; ?>
-                <?php if ($doc['verz'] && !$is_link): ?>
-                    <br><small><embed src="<?= htmlspecialchars($doc['verz'].$doc['name']) ?>" width="100%" height="180px" type="application/pdf"></small>
+                <?php if (!$is_link):
+                    $preview_src = $dok_base_url !== ''
+                        ? $dok_base_url . basename($doc['name'])
+                        : $doc['verz'] . $doc['name'];
+                ?>
+                    <br><embed src="<?= htmlspecialchars($preview_src) ?>" width="100%" height="200px" type="application/pdf">
                 <?php endif; ?>
             </details>
             <?php else: ?>
