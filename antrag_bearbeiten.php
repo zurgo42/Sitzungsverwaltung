@@ -202,11 +202,16 @@ if ($antragsteller) {
 $prefix = substr($antrnr, 0, 1);
 $ist_admin = ($user_aktiv >= 19 || ($user['is_admin'] ?? 0) == 1);
 
-if ($prefix === 'A') {
+if ($prefix === 'B') {
+    // B-Anträge (in Abstimmung): niemand darf mehr bearbeiten
+    die("⚠️ Dieser Antrag befindet sich in Abstimmung und kann nicht mehr bearbeitet werden.<br><br>" .
+        "<a href='index.php?tab=proposals'>← Zurück zur Liste</a> | " .
+        "<a href='antrag_ansehen.php?antrnr=" . urlencode($antrnr) . "'>Antrag ansehen</a>");
+} elseif ($prefix === 'A') {
     // A-Anträge: Alle mit aktiv > 10 dürfen bearbeiten (bereits geprüft oben)
     $darf_bearbeiten = true;
 } else {
-    // B/VS/X/Z-Anträge: Nur Admins dürfen bearbeiten
+    // VS/X/Z-Anträge: Nur Admins dürfen bearbeiten
     $darf_bearbeiten = $ist_admin;
 }
 

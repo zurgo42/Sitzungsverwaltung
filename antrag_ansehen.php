@@ -98,8 +98,11 @@ $ist_admin = ((int)($user['aktiv'] ?? 0) >= 19 || ($user['is_admin'] ?? 0) == 1)
 if ($prefix === 'A') {
     // A-Anträge: Antragsteller oder Vorstand darf bearbeiten
     $kann_bearbeiten = (($user['aktiv'] > 10) && ($antrag['antrst'] == $user['member_id'] || $user['aktiv'] >= 18));
+} elseif ($prefix === 'B') {
+    // B-Anträge (in Abstimmung): niemand darf mehr bearbeiten
+    $kann_bearbeiten = false;
 } else {
-    // B/VS/X/Z-Anträge: Nur Admins dürfen bearbeiten
+    // VS/X/Z-Anträge: Nur Admins dürfen bearbeiten
     $kann_bearbeiten = $ist_admin;
 }
 
