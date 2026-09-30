@@ -1151,34 +1151,48 @@ body.dark-mode .init-danger-list {
             $dm_current = $dm_stmt ? ($dm_stmt->fetchColumn() ?: 'internal') : 'internal';
             $du_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'documents_external_url' LIMIT 1");
             $du_current = $du_stmt ? ($du_stmt->fetchColumn() ?: '') : '';
+            $di_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'documents_include_path' LIMIT 1");
+            $di_current = $di_stmt ? ($di_stmt->fetchColumn() ?: '') : '';
             ?>
             <p style="color:#555;font-size:13px;margin-bottom:18px;">
-                Der Dokumenten-Tab kann entweder die interne Dateiverwaltung zeigen oder als direkter Link
-                auf eine externe Dokumentensammlung (z.&thinsp;B. Nextcloud, SharePoint, …) dienen.
+                Der Dokumenten-Tab kann die interne Dateiverwaltung zeigen, als Link auf eine externe
+                Dokumentensammlung dienen oder ein vereinsspezifisches PHP-Skript einbinden.
             </p>
             <form method="POST" action="?tab=admin_init">
                 <input type="hidden" name="save_documents_config" value="1">
 
-                <div style="display:flex;flex-direction:column;gap:14px;max-width:600px;">
-                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-                        <input type="radio" name="documents_mode" value="internal"
-                               <?= $dm_current !== 'external' ? 'checked' : '' ?>>
-                        <span><strong>Interne Verwaltung</strong> – normaler Dokumenten-Tab (erfordert <code>ENABLE_DOCUMENTS_TAB = true</code> in config.php)</span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-                        <input type="radio" name="documents_mode" value="external"
-                               <?= $dm_current === 'external' ? 'checked' : '' ?>>
-                        <span><strong>Externer Link</strong> – Tab öffnet direkt die unten eingetragene URL in einem neuen Fenster</span>
+                <div style="display:flex;flex-direction:column;gap:14px;max-width:640px;">
+                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+                        <input type="radio" name="documents_mode" value="internal" style="margin-top:3px;"
+                               <?= $dm_current === 'internal' ? 'checked' : '' ?>>
+                        <span><strong>Interne Verwaltung</strong> – normaler Dokumenten-Tab
+                            <br><small style="color:#888;">(erfordert <code>ENABLE_DOCUMENTS_TAB = true</code> in config.php)</small></span>
                     </label>
 
-                    <div style="margin-top:6px;">
-                        <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px;">
-                            Externe URL (nur relevant wenn „Externer Link" gewählt):
-                        </label>
+                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+                        <input type="radio" name="documents_mode" value="external" style="margin-top:3px;"
+                               <?= $dm_current === 'external' ? 'checked' : '' ?>>
+                        <span><strong>Externer Link (neues Fenster)</strong> – Tab öffnet direkt die eingetragene URL
+                            <br><small style="color:#888;">z.&thinsp;B. Nextcloud, SharePoint, eigene Website</small></span>
+                    </label>
+                    <div style="margin-left:28px;">
                         <input type="url" name="documents_external_url"
                                value="<?= htmlspecialchars($du_current) ?>"
                                placeholder="https://cloud.example.com/Dokumente"
-                               style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:4px;font-size:13px;">
+                               style="width:100%;padding:7px 11px;border:1px solid #ddd;border-radius:4px;font-size:13px;">
+                    </div>
+
+                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+                        <input type="radio" name="documents_mode" value="include" style="margin-top:3px;"
+                               <?= $dm_current === 'include' ? 'checked' : '' ?>>
+                        <span><strong>PHP-Skript einbinden</strong> – Tab führt ein eigenes PHP-Skript aus
+                            <br><small style="color:#888;">Relativer Pfad zum Sitzungsverwaltungs-Verzeichnis oder absoluter Pfad</small></span>
+                    </label>
+                    <div style="margin-left:28px;">
+                        <input type="text" name="documents_include_path"
+                               value="<?= htmlspecialchars($di_current) ?>"
+                               placeholder="tab_documents_custom.php"
+                               style="width:100%;padding:7px 11px;border:1px solid #ddd;border-radius:4px;font-size:13px;font-family:monospace;">
                     </div>
                 </div>
 
