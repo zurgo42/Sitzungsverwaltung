@@ -383,7 +383,7 @@ function dok_href(array $doc): string {
 <button class="accordion-button" onclick="toggleAccordion(this)" style="margin-bottom:12px;">
     ➕ Neues Dokument / Link hinzufügen
 </button>
-<div class="accordion-content" style="padding:16px;background:#f9f9f9;border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:18px;">
+<div class="accordion-content" style="padding:16px;border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:18px;">
     <div style="display:flex;gap:30px;flex-wrap:wrap;">
 
         <!-- Datei hochladen -->
@@ -751,7 +751,7 @@ function dok_href(array $doc): string {
 <button class="accordion-button" onclick="toggleAccordion(this)" style="margin-top:14px;">
     ➕ Neue Link-Kollektion hinzufügen
 </button>
-<div class="accordion-content" style="padding:14px;background:#f9f9f9;border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:18px;">
+<div class="accordion-content" style="padding:14px;border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:18px;">
     <?php if (!$has_sammler_tbl): ?>
     <p style="color:#c00;">Tabelle <code>doksammler</code> fehlt. <a href="tools/install_dokumente.php">→ Anlegen</a></p>
     <?php else: ?>
@@ -773,21 +773,21 @@ function dok_href(array $doc): string {
 <!-- Admin: Upload-Verzeichnis konfigurieren -->
 <?php if ($user_is_admin): ?>
 <button class="accordion-button" onclick="toggleAccordion(this)" style="margin-top:8px;background:#555;">
-    ⚙️ Upload-Verzeichnis konfigurieren
+    ⚙️ Verzeichnis &amp; URL konfigurieren
 </button>
-<div class="accordion-content" style="padding:14px;background:#f5f5f5;border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:18px;">
+<div class="accordion-content" style="padding:14px;border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:18px;color:inherit;">
     <form method="POST" action="?tab=admin_init" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:780px;">
         <input type="hidden" name="save_notifications" value="1">
         <div>
             <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px;">Server-Pfad (Upload-Verzeichnis)</label>
             <input type="text" name="config[dokumente_upload_dir]" value="<?= htmlspecialchars($upload_dir) ?>"
-                   placeholder="../docs/" style="width:100%;padding:7px;border:1px solid #ccc;border-radius:4px;font-family:monospace;box-sizing:border-box;">
+                   placeholder="../docs/" style="width:100%;padding:7px;border:1px solid #ccc;border-radius:4px;font-family:monospace;box-sizing:border-box;color:inherit;background:inherit;">
             <small style="color:#888;">Wo Dateien gespeichert werden (relativer oder absoluter Serverpfad).<br>Beispiel: <code>../docs/</code></small>
         </div>
         <div>
             <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px;">Basis-URL (Browser-Zugriff)</label>
             <input type="text" name="config[dokumente_base_url]" value="<?= htmlspecialchars($dok_base_url) ?>"
-                   placeholder="https://aktive.mensa.de/docs/" style="width:100%;padding:7px;border:1px solid #ccc;border-radius:4px;font-family:monospace;box-sizing:border-box;">
+                   placeholder="https://aktive.mensa.de/docs/" style="width:100%;padding:7px;border:1px solid #ccc;border-radius:4px;font-family:monospace;box-sizing:border-box;color:inherit;background:inherit;">
             <small style="color:#888;">URL, unter der die Dateien im Browser erreichbar sind.<br>Beispiel: <code>https://aktive.mensa.de/docs/</code></small>
         </div>
         <div style="grid-column:span 2;">

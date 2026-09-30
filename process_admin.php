@@ -1966,12 +1966,19 @@ if (isset($_POST['save_notifications'])) {
                 $old_value = $stmt->fetchColumn();
 
                 if ($old_value !== $value) {
-                    $update_stmt = $pdo->prepare("
-                        UPDATE svconfig
-                        SET config_value = ?, updated_by = ?, updated_at = NOW()
-                        WHERE config_key = ?
-                    ");
-                    $update_stmt->execute([$value, $current_user['member_id'], $key]);
+                    if ($old_value === false) {
+                        // Zeile existiert noch nicht → anlegen
+                        $pdo->prepare("
+                            INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                            VALUES (?, ?, 'text', ?, 'system', ?)
+                        ")->execute([$key, $value, $key, $current_user['member_id']]);
+                    } else {
+                        $pdo->prepare("
+                            UPDATE svconfig
+                            SET config_value = ?, updated_by = ?, updated_at = NOW()
+                            WHERE config_key = ?
+                        ")->execute([$value, $current_user['member_id'], $key]);
+                    }
                     $updated_count++;
                 }
             }
