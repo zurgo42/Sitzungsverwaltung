@@ -35,13 +35,14 @@ $log = function (string $msg) {
 };
 
 // --- Hilfsfunktionen laden ---
+// functions.php wird bewusst ausgelassen – es setzt $pdo selbst auf und
+// braucht DB_HOST; wenn wir hier ankommen, ist $pdo bereits vorhanden.
 foreach ([
     'notifications_functions.php',
     'voting_helper.php',
     'member_functions.php',
     'mail_functions.php',
     'notification_mailer.php',
-    'functions.php',
 ] as $f) {
     if (file_exists(__DIR__ . '/' . $f)) {
         require_once __DIR__ . '/' . $f;
