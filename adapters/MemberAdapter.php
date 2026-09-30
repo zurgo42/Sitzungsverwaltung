@@ -184,8 +184,9 @@ class BerechtigteAdapter implements MemberAdapterInterface {
             'role_display' => $this->getRoleDisplayName($role_code),  // Display-Name: 'Geschäftsführung', etc.
             'aktiv' => $aktiv,  // Berechtigungslevel 0-19 (direkt aus berechtigte)
             'funktion' => $funktion,  // Funktionscode (GF, SV, VA, RL, AD, FP)
-            'is_admin' => $this->isAdmin($funktion, $row['MNr']),
-            'is_confidential' => $this->isConfidential($funktion, $aktiv),
+            'is_admin' => isset($row['sv_admin']) ? (int)$row['sv_admin'] : $this->isAdmin($funktion, $row['MNr']),
+            'is_confidential' => isset($row['sv_confidential']) ? (int)$row['sv_confidential'] : $this->isConfidential($funktion, $aktiv),
+            'sv_admin' => (int)($row['sv_admin'] ?? 0),
             'is_active' => ($aktiv > 17) ? 1 : 0, // Aktiv wenn shouldInclude() true zurückgibt
             'password_hash' => '', // Kein Passwort bei SSO
             'created_at' => $row['angelegt'] ?? null,

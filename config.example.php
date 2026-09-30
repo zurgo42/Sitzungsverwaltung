@@ -122,6 +122,21 @@ define('SMTP_AUTH', false);        // true wenn SMTP-Authentifizierung erforderl
 define('SMTP_USER', '');           // SMTP-Benutzername
 define('SMTP_PASS', '');           // SMTP-Passwort
 
+// ============= LDAP-MITGLIEDERDATENBANK (optional) =============
+// Wird im berechtigte_editor.php genutzt, um Vorname/Name/E-Mail per MNr
+// aus dem LDAP-Verzeichnis vorzubefüllen.
+// Verbindungslogik entspricht ldapsuche_neu() im VTool.
+define('LDAP_ENABLED',      false);
+define('LDAP_HOST',         'localhost');
+define('LDAP_PORT',         389);
+define('LDAP_BASE_DN',      'cn=aktive,ou=applications,dc=mensa,dc=de');
+define('LDAP_BIND_DN',      'cn=aktive,ou=applications,dc=mensa,dc=de'); // Benutzername (Bind-DN)
+define('LDAP_BIND_PW',      '');                                            // Passwort eintragen
+define('LDAP_MNR_ATTR',     'uid');             // Attribut, das die MNr enthält
+define('LDAP_VORNAME_ATTR', 'givenname');       // lowercase – so liefert ldap_get_entries()
+define('LDAP_NAME_ATTR',    'sn');
+define('LDAP_EMAIL_ATTR',   'mail');
+
 // ============= QUEUE-EINSTELLUNGEN (nur für MAIL_BACKEND='queue') =============
 // Mails werden in mail_queue Tabelle gespeichert und via Cronjob versendet
 // Cronjob Setup: */5 * * * * /usr/bin/php /pfad/zu/process_mail_queue.php >> /var/log/mail_queue.log 2>&1

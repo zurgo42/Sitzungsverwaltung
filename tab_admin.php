@@ -45,10 +45,13 @@ require_once 'module_notifications.php';
 }
 
 .admin-section-content {
-    max-height: 2000px;
+    max-height: 9999px;
     overflow: hidden;
-    transition: max-height 0.3s ease-out;
+    transition: max-height 0.4s ease-out;
     font-size: 13px;
+}
+.admin-section-content.expanded {
+    overflow: visible;
 }
 
 .admin-section-content.collapsed {
@@ -116,7 +119,17 @@ require_once 'module_notifications.php';
 function toggleSection(header) {
     header.classList.toggle('collapsed');
     const content = header.nextElementSibling;
+    const isCollapsing = !content.classList.contains('collapsed');
+    if (isCollapsing) {
+        content.classList.remove('expanded');
+    }
     content.classList.toggle('collapsed');
+    if (!isCollapsing) {
+        content.addEventListener('transitionend', function handler() {
+            content.classList.add('expanded');
+            content.removeEventListener('transitionend', handler);
+        });
+    }
 }
 
 // Initialize: Start with all sections collapsed

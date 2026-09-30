@@ -476,7 +476,7 @@ render_user_notifications($pdo, $current_user['member_id']);
                style="padding: 8px 16px; font-size: 13px; text-decoration: none; display: inline-block; flex: 1; min-width: 120px; text-align: center;">
                 ✏️ Bearbeiten
             </a>
-            <?php elseif ($prefix_a !== 'A' && $ist_admin): ?>
+            <?php elseif ($prefix_a !== 'A' && $prefix_a !== 'B' && $ist_admin): ?>
             <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($a['antrnr']) ?>"
                class="btn btn-primary"
                style="padding: 8px 16px; font-size: 13px; text-decoration: none; display: inline-block; flex: 1; min-width: 120px; text-align: center;">

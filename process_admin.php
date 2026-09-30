@@ -1925,6 +1925,32 @@ if (isset($_POST['send_test_mail_form'])) {
 // BENACHRICHTIGUNGS-KONFIGURATION SPEICHERN
 // ============================================
 
+// ============================================================
+// Dokumenten-Tab-Konfiguration speichern
+// POST-Parameter: save_documents_config, documents_mode, documents_external_url
+// ============================================================
+if (isset($_POST['save_documents_config'])) {
+    $mode = in_array($_POST['documents_mode'] ?? '', ['internal', 'external', 'include'])
+        ? $_POST['documents_mode']
+        : 'internal';
+    $url  = trim($_POST['documents_external_url'] ?? '');
+    $path = trim($_POST['documents_include_path'] ?? '');
+
+    try {
+        $upsert = $pdo->prepare("
+            INSERT INTO svconfig (config_key, config_value, config_type, description, category)
+            VALUES (?, ?, 'text', ?, 'system')
+            ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)
+        ");
+        $upsert->execute(['documents_mode',         $mode, 'Dokumenten-Tab-Modus (internal/external/include)']);
+        $upsert->execute(['documents_external_url', $url,  'Externe URL für den Dokumenten-Tab']);
+        $upsert->execute(['documents_include_path', $path, 'Pfad zum einzubindenden PHP-Skript für Dokumenten-Tab']);
+        $success_message = "Dokumenten-Tab-Konfiguration gespeichert.";
+    } catch (PDOException $e) {
+        $error_message = "Fehler beim Speichern: " . $e->getMessage();
+    }
+}
+
 if (isset($_POST['save_notifications'])) {
     $configs = $_POST['config'] ?? [];
 
@@ -1940,12 +1966,19 @@ if (isset($_POST['save_notifications'])) {
                 $old_value = $stmt->fetchColumn();
 
                 if ($old_value !== $value) {
-                    $update_stmt = $pdo->prepare("
-                        UPDATE svconfig
-                        SET config_value = ?, updated_by = ?, updated_at = NOW()
-                        WHERE config_key = ?
-                    ");
-                    $update_stmt->execute([$value, $current_user['member_id'], $key]);
+                    if ($old_value === false) {
+                        // Zeile existiert noch nicht → anlegen
+                        $pdo->prepare("
+                            INSERT INTO svconfig (config_key, config_value, config_type, description, category, updated_by)
+                            VALUES (?, ?, 'text', ?, 'system', ?)
+                        ")->execute([$key, $value, $key, $current_user['member_id']]);
+                    } else {
+                        $pdo->prepare("
+                            UPDATE svconfig
+                            SET config_value = ?, updated_by = ?, updated_at = NOW()
+                            WHERE config_key = ?
+                        ")->execute([$value, $current_user['member_id'], $key]);
+                    }
                     $updated_count++;
                 }
             }
