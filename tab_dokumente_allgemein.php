@@ -113,9 +113,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dok_action'])) {
                 $filename = basename($_FILES['datei']['name']);
                 $target   = $upload_dir . $filename;
                 if (file_exists($target)) {
-                    $flash_err = "Datei „{$filename}" existiert bereits im Upload-Verzeichnis.";
+                    $flash_err = "Datei \"{$filename}\" existiert bereits im Upload-Verzeichnis.";
                 } elseif (!is_dir($upload_dir)) {
-                    $flash_err = "Upload-Verzeichnis „{$upload_dir}" nicht gefunden.";
+                    $flash_err = "Upload-Verzeichnis \"{$upload_dir}\" nicht gefunden.";
                 } elseif (move_uploaded_file($_FILES['datei']['tmp_name'], $target)) {
                     $size = filesize($target) ?: 0;
                     $stmt = $pdo->prepare("INSERT INTO dokumente
@@ -135,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dok_action'])) {
                         (int)($_POST['k1']          ?? 0),
                         trim($_POST['adminbem']     ?? ''),
                     ]);
-                    $flash_ok = "Datei „{$filename}" hochgeladen.";
+                    $flash_ok = "Datei \"{$filename}\" hochgeladen.";
                 } else {
                     $flash_err = 'Hochladen fehlgeschlagen (Serverrechte prüfen).';
                 }
