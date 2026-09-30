@@ -1140,6 +1140,55 @@ body.dark-mode .init-danger-list {
         </div>
     </div>
 
+    <!-- DOKUMENTEN-TAB-KONFIGURATION -->
+    <div class="admin-section">
+        <h3 class="admin-section-header init-section-header" onclick="toggleSection(this)">
+            📁 Dokumenten-Tab
+        </h3>
+        <div class="admin-section-content collapsed">
+            <?php
+            $dm_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'documents_mode' LIMIT 1");
+            $dm_current = $dm_stmt ? ($dm_stmt->fetchColumn() ?: 'internal') : 'internal';
+            $du_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'documents_external_url' LIMIT 1");
+            $du_current = $du_stmt ? ($du_stmt->fetchColumn() ?: '') : '';
+            ?>
+            <p style="color:#555;font-size:13px;margin-bottom:18px;">
+                Der Dokumenten-Tab kann entweder die interne Dateiverwaltung zeigen oder als direkter Link
+                auf eine externe Dokumentensammlung (z.&thinsp;B. Nextcloud, SharePoint, …) dienen.
+            </p>
+            <form method="POST" action="?tab=admin_init">
+                <input type="hidden" name="save_documents_config" value="1">
+
+                <div style="display:flex;flex-direction:column;gap:14px;max-width:600px;">
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                        <input type="radio" name="documents_mode" value="internal"
+                               <?= $dm_current !== 'external' ? 'checked' : '' ?>>
+                        <span><strong>Interne Verwaltung</strong> – normaler Dokumenten-Tab (erfordert <code>ENABLE_DOCUMENTS_TAB = true</code> in config.php)</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                        <input type="radio" name="documents_mode" value="external"
+                               <?= $dm_current === 'external' ? 'checked' : '' ?>>
+                        <span><strong>Externer Link</strong> – Tab öffnet direkt die unten eingetragene URL in einem neuen Fenster</span>
+                    </label>
+
+                    <div style="margin-top:6px;">
+                        <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px;">
+                            Externe URL (nur relevant wenn „Externer Link" gewählt):
+                        </label>
+                        <input type="url" name="documents_external_url"
+                               value="<?= htmlspecialchars($du_current) ?>"
+                               placeholder="https://cloud.example.com/Dokumente"
+                               style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:4px;font-size:13px;">
+                    </div>
+                </div>
+
+                <div style="margin-top:20px;">
+                    <button type="submit" class="btn-primary">Einstellung speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- PLATZHALTER FÜR WEITERE BEREICHE -->
     <!-- Hier werden später weitere Konfigurationsbereiche hinzugefügt:
          - Workflow-Status (A, B, VS, X, Z) - NICHT konfigurierbar

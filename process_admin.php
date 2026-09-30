@@ -1925,6 +1925,30 @@ if (isset($_POST['send_test_mail_form'])) {
 // BENACHRICHTIGUNGS-KONFIGURATION SPEICHERN
 // ============================================
 
+// ============================================================
+// Dokumenten-Tab-Konfiguration speichern
+// POST-Parameter: save_documents_config, documents_mode, documents_external_url
+// ============================================================
+if (isset($_POST['save_documents_config'])) {
+    $mode = in_array($_POST['documents_mode'] ?? '', ['internal', 'external'])
+        ? $_POST['documents_mode']
+        : 'internal';
+    $url = trim($_POST['documents_external_url'] ?? '');
+
+    try {
+        $upsert = $pdo->prepare("
+            INSERT INTO svconfig (config_key, config_value, config_type, description, category)
+            VALUES (?, ?, 'text', ?, 'system')
+            ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)
+        ");
+        $upsert->execute(['documents_mode', $mode, 'Dokumenten-Tab-Modus (internal/external)']);
+        $upsert->execute(['documents_external_url', $url, 'Externe URL für den Dokumenten-Tab']);
+        $success_message = "Dokumenten-Tab-Konfiguration gespeichert.";
+    } catch (PDOException $e) {
+        $error_message = "Fehler beim Speichern: " . $e->getMessage();
+    }
+}
+
 if (isset($_POST['save_notifications'])) {
     $configs = $_POST['config'] ?? [];
 

@@ -836,8 +836,18 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
 
         <!-- 2. ZEILE -->
 
-        <!-- Dokumente-Tab (optional, siehe config.php) -->
-        <?php if (defined('ENABLE_DOCUMENTS_TAB') && ENABLE_DOCUMENTS_TAB): ?>
+        <!-- Dokumente-Tab (optional, siehe config.php / Admin-Steuerung) -->
+        <?php
+        $docs_mode_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'documents_mode' LIMIT 1");
+        $docs_mode = $docs_mode_stmt ? ($docs_mode_stmt->fetchColumn() ?: 'internal') : 'internal';
+        $docs_ext_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'documents_external_url' LIMIT 1");
+        $docs_ext_url = $docs_ext_stmt ? ($docs_ext_stmt->fetchColumn() ?: '') : '';
+        if ($docs_mode === 'external' && $docs_ext_url !== ''):
+        ?>
+        <a href="<?php echo htmlspecialchars($docs_ext_url); ?>" target="_blank" rel="noopener">
+            📁 Dokumente ↗
+        </a>
+        <?php elseif ($docs_mode !== 'external' && defined('ENABLE_DOCUMENTS_TAB') && ENABLE_DOCUMENTS_TAB): ?>
         <a href="?tab=documents" class="<?php echo $active_tab === 'documents' ? 'active' : ''; ?>">
             📁 Dokumente
         </a>
@@ -974,8 +984,12 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                 break;
 
             case 'documents':
-                // Dokumentenverwaltung anzeigen
-                include 'tab_documents.php';
+                if (isset($docs_mode) && $docs_mode === 'external') {
+                    // Externer Link – kein interner Tab-Inhalt
+                    echo '<p style="padding:2em;color:#666;">Dokumente werden extern verwaltet.</p>';
+                } else {
+                    include 'tab_documents.php';
+                }
                 break;
 
             case 'vertretung':
