@@ -580,7 +580,7 @@ function dok_href(array $doc): string {
             <?php if ($doc['beschreibung']): ?>
             <details>
                 <summary class="dok-desc" style="cursor:pointer;"><?= htmlspecialchars(mb_strimwidth($doc['beschreibung'], 0, 100, '…')) ?></summary>
-                <p style="font-size:12px;color:#444;margin:4px 0;"><?= nl2br(htmlspecialchars($doc['beschreibung'])) ?></p>
+                <p style="font-size:12px;margin:4px 0;"><?= nl2br(htmlspecialchars($doc['beschreibung'])) ?></p>
                 <?php if ($doc['stichworte']): ?>
                     <small style="color:#999;">🏷 <?= htmlspecialchars($doc['stichworte']) ?></small>
                 <?php endif; ?>
