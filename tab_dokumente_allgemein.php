@@ -38,11 +38,14 @@ if (!$table_ok) {
     return;
 }
 
-// ── Upload-Verzeichnis aus svconfig ──────────────────────────────────────────
+// ── Upload-Verzeichnis (Server-Pfad) und Basis-URL aus svconfig ──────────────
 $updir_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'dokumente_upload_dir' LIMIT 1");
 $upload_dir = $updir_stmt ? ($updir_stmt->fetchColumn() ?: '../docs/') : '../docs/';
-// Trailing-Slash sicherstellen
 if (substr($upload_dir, -1) !== '/') $upload_dir .= '/';
+
+$baseurl_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'dokumente_base_url' LIMIT 1");
+$dok_base_url = $baseurl_stmt ? ($baseurl_stmt->fetchColumn() ?: '') : '';
+if ($dok_base_url !== '' && substr($dok_base_url, -1) !== '/') $dok_base_url .= '/';
 
 // ── POST-Verarbeitung ─────────────────────────────────────────────────────────
 $flash_ok  = '';
@@ -303,8 +306,12 @@ function dok_is_link(array $doc): bool {
     return $doc['verz'] === '' && strpos($doc['name'], '://') !== false;
 }
 function dok_href(array $doc): string {
+    global $dok_base_url;
     if (dok_is_link($doc)) return htmlspecialchars($doc['name']);
     if ($doc['kurzurl'])   return htmlspecialchars($doc['kurzurl']);
+    // Basis-URL konfiguriert → immer verwenden
+    if ($dok_base_url !== '') return htmlspecialchars($dok_base_url . basename($doc['name']));
+    // Fallback: Pfad aus verz+name (funktioniert nur wenn verz eine gültige URL ist)
     return htmlspecialchars($doc['verz'] . $doc['name']);
 }
 
@@ -769,15 +776,23 @@ function dok_href(array $doc): string {
     ⚙️ Upload-Verzeichnis konfigurieren
 </button>
 <div class="accordion-content" style="padding:14px;background:#f5f5f5;border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:18px;">
-    <form method="POST" action="?tab=admin_init" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+    <form method="POST" action="?tab=admin_init" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:780px;">
         <input type="hidden" name="save_notifications" value="1">
         <div>
-            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px;">Upload-Verzeichnis (Server-Pfad)</label>
+            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px;">Server-Pfad (Upload-Verzeichnis)</label>
             <input type="text" name="config[dokumente_upload_dir]" value="<?= htmlspecialchars($upload_dir) ?>"
-                   placeholder="../docs/" style="width:320px;padding:7px;border:1px solid #ccc;border-radius:4px;font-family:monospace;">
+                   placeholder="../docs/" style="width:100%;padding:7px;border:1px solid #ccc;border-radius:4px;font-family:monospace;box-sizing:border-box;">
+            <small style="color:#888;">Wo Dateien gespeichert werden (relativer oder absoluter Serverpfad).<br>Beispiel: <code>../docs/</code></small>
         </div>
-        <button type="submit" class="btn-primary">Speichern</button>
-        <small style="color:#888;align-self:center;">Relativer oder absoluter Pfad; wird serverseitig beschrieben.</small>
+        <div>
+            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px;">Basis-URL (Browser-Zugriff)</label>
+            <input type="text" name="config[dokumente_base_url]" value="<?= htmlspecialchars($dok_base_url) ?>"
+                   placeholder="https://aktive.mensa.de/docs/" style="width:100%;padding:7px;border:1px solid #ccc;border-radius:4px;font-family:monospace;box-sizing:border-box;">
+            <small style="color:#888;">URL, unter der die Dateien im Browser erreichbar sind.<br>Beispiel: <code>https://aktive.mensa.de/docs/</code></small>
+        </div>
+        <div style="grid-column:span 2;">
+            <button type="submit" class="btn-primary">Speichern</button>
+        </div>
     </form>
 </div>
 <?php endif; ?>
