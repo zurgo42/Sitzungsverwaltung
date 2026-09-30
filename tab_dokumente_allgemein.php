@@ -361,6 +361,24 @@ function dok_href(array $doc): string {
 .sammler-table th { background:#667eea; color:#fff; padding:8px 10px; text-align:left; }
 .flash-ok  { background:#e8f5e9; border-left:4px solid #4caf50; padding:10px 14px; border-radius:4px; margin-bottom:14px; color:#2e7d32; }
 .flash-err { background:#fce4ec; border-left:4px solid #f44336; padding:10px 14px; border-radius:4px; margin-bottom:14px; color:#c62828; }
+/* Explizites Dark-Mode-Fix für Konfigurationsbereich */
+html.dark-mode .dok-config-box,
+body.dark-mode .dok-config-box {
+    background: var(--bg-secondary, #2d2d2d) !important;
+    color: var(--text-primary, #e0e0e0) !important;
+    border-color: var(--border-color, #444) !important;
+}
+html.dark-mode .dok-config-box label,
+body.dark-mode .dok-config-box label,
+html.dark-mode .dok-config-box small,
+body.dark-mode .dok-config-box small {
+    color: var(--text-secondary, #ccc) !important;
+}
+html.dark-mode .dok-config-box code,
+body.dark-mode .dok-config-box code {
+    background: #1a1a1a !important;
+    color: #aaddff !important;
+}
 @media(max-width:640px) {
     .dok-table,.dok-table tbody,.dok-table tr,.dok-table td { display:block; }
     .dok-table th { display:none; }
@@ -581,10 +599,9 @@ function dok_href(array $doc): string {
             <details>
                 <summary class="dok-desc" style="cursor:pointer;"><?= htmlspecialchars(mb_strimwidth($doc['beschreibung'], 0, 100, '…')) ?></summary>
                 <p style="font-size:12px;margin:4px 0;"><?= nl2br(htmlspecialchars($doc['beschreibung'])) ?></p>
-                <?php if ($doc['stichworte']): ?>
-                    <small style="color:#999;">🏷 <?= htmlspecialchars($doc['stichworte']) ?></small>
-                <?php endif; ?>
-                <?php if (!$is_link):
+                <?php if (!$is_link && !in_array(strtolower(dok_ext($doc['name'])), ['pdf'])):
+                    // Kein Embed für Nicht-PDF-Dateien
+                elseif (!$is_link):
                     $preview_src = $dok_base_url !== ''
                         ? $dok_base_url . basename($doc['name'])
                         : $doc['verz'] . $doc['name'];
@@ -779,7 +796,7 @@ function dok_href(array $doc): string {
 <button class="accordion-button" onclick="toggleAccordion(this)" style="margin-top:8px;background:#555;">
     ⚙️ Verzeichnis &amp; URL konfigurieren
 </button>
-<div class="accordion-content" style="padding:14px;border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:18px;color:inherit;">
+<div class="accordion-content dok-config-box" style="padding:14px;border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:18px;">
     <form method="POST" action="?tab=admin_init" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:780px;">
         <input type="hidden" name="save_notifications" value="1">
         <div>
