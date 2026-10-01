@@ -83,6 +83,27 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $antraege = $stmt->fetchAll();
 
+// KurzN-Lookup für VName-IDs in B-Anträgen (wer hat noch nicht abgestimmt?)
+$voter_kurzn = [];
+$voter_ids = [];
+foreach ($antraege as $a) {
+    if (substr($a['antrnr'], 0, 1) !== 'B') continue;
+    for ($i = 1; $i <= 6; $i++) {
+        $vid = (int)($a["VName$i"] ?? 0);
+        if ($vid > 0 && (int)($a["Votum$i"] ?? 0) === 0) {
+            $voter_ids[$vid] = true;
+        }
+    }
+}
+if ($voter_ids) {
+    $placeholders = implode(',', array_fill(0, count($voter_ids), '?'));
+    $vq = $pdo->prepare("SELECT ID, KurzN FROM berechtigte WHERE ID IN ($placeholders)");
+    $vq->execute(array_keys($voter_ids));
+    foreach ($vq->fetchAll() as $row) {
+        $voter_kurzn[(int)$row['ID']] = $row['KurzN'];
+    }
+}
+
 // Liste der Antragsteller für Filter
 $antragsteller_stmt = $pdo->query("SELECT DISTINCT a.antrst, b.Vorname, b.Name, b.KurzN
                                    FROM " . TABLE_ANTRAEGE . " a
@@ -436,8 +457,21 @@ render_user_notifications($pdo, $current_user['member_id']);
             if (preg_match('/^B(\d{6})/', $a['antrnr'], $matches)) {
                 $datum_str = $matches[1];
                 $datum = '20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2);
+                // Wer hat noch nicht abgestimmt?
+                $noch_offen = [];
+                for ($i = 1; $i <= 6; $i++) {
+                    $vid = (int)($a["VName$i"] ?? 0);
+                    if ($vid > 0 && (int)($a["Votum$i"] ?? 0) === 0) {
+                        $noch_offen[] = htmlspecialchars($voter_kurzn[$vid] ?? ('ID'.$vid));
+                    }
+                }
                 echo '<div style="background: rgba(250, 170, 0, 0.2); padding: 6px 10px; border-radius: 4px; margin-bottom: 10px; font-size: 12px; color: #000; font-weight: 600;">';
                 echo '🗳️ In Abstimmung seit ' . date('d.m.Y', strtotime($datum));
+                if ($noch_offen) {
+                    echo ' &nbsp;·&nbsp; <span style="font-weight:400;">noch offen: ' . implode(', ', $noch_offen) . '</span>';
+                } else {
+                    echo ' &nbsp;·&nbsp; <span style="font-weight:400;color:#2e7d32;">alle abgestimmt</span>';
+                }
                 echo '</div>';
             }
         } elseif ($prefix_a === 'V') {
