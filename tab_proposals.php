@@ -394,10 +394,10 @@ foreach (['V', 'R', 'B'] as $typ) {
 ?>
 
 <!-- Kompakte Übersichtsliste als Akkordion -->
-<details open style="margin-bottom:14px;">
+<details style="margin-bottom:14px;">
 <summary style="cursor:pointer;padding:7px 12px;background:var(--bg-secondary,#f5f5f5);border:1px solid var(--border-color,#ddd);border-radius:6px;font-size:13px;font-weight:600;list-style:none;display:flex;align-items:center;gap:6px;user-select:none;">
     <span style="font-size:11px;color:#888;">▾</span>
-    <?= count($antraege) ?> Antrag<?= count($antraege) !== 1 ? 'anträge' : '' ?> gefunden
+    <?= count($antraege) ?> <?= count($antraege) !== 1 ? 'Anträge' : 'Antrag' ?> gefunden
 </summary>
 <div style="border:1px solid var(--border-color,#ddd);border-top:none;border-radius:0 0 6px 6px;overflow-x:auto;">
 <?php if (empty($antraege)): ?>
@@ -416,6 +416,7 @@ foreach (['V', 'R', 'B'] as $typ) {
 <tbody>
 <?php foreach ($antraege as $a):
     $pfx = substr($a['antrnr'], 0, 1);
+    $is_b = ($pfx === 'B');
     $datum_disp = $a['lzugriff'] ? date('d.m.y', strtotime($a['lzugriff'])) : '–';
     $bart_label = $bart_bezeichnungen[$a['bart']] ?? ($a['bart'] ?: '');
     if ($pfx === 'A' && $user_aktiv > 10) {
@@ -426,13 +427,17 @@ foreach (['V', 'R', 'B'] as $typ) {
     $hinweis = [];
     if ($a['int_ext'] === 'i') $hinweis[] = '🔒 intern';
     elseif ($a['int_ext'] === 'n') $hinweis[] = '👥 n. öffentl.';
+    $row_bg = $is_b ? 'background:rgba(250,170,0,0.12);' : '';
 ?>
-<tr style="border-bottom:1px solid var(--border-color,#eee);">
+<tr style="border-bottom:1px solid var(--border-color,#eee);<?= $row_bg ?>">
     <td style="padding:4px 8px;white-space:nowrap;color:var(--text-secondary,#666);"><?= $datum_disp ?></td>
     <td style="padding:4px 8px;white-space:nowrap;">
         <a href="<?= $link ?>" style="font-weight:700;text-decoration:none;color:var(--link-color,#1565c0);"><?= htmlspecialchars($a['antrnr']) ?></a>
         <?php if ($bart_label): ?>
             <span style="font-size:10px;color:#888;margin-left:3px;"><?= htmlspecialchars($bart_label) ?></span>
+        <?php endif; ?>
+        <?php if ($is_b): ?>
+            <span style="font-size:10px;font-weight:600;color:#b45000;margin-left:4px;">🗳️ Abstimmung</span>
         <?php endif; ?>
     </td>
     <td style="padding:4px 8px;white-space:nowrap;"><?= htmlspecialchars(trim(($a['Vorname'] ?? '') . ' ' . ($a['Name'] ?? ''))) ?></td>
