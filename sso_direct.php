@@ -30,6 +30,22 @@ if (isset($_GET['meeting_id']) && is_numeric($_GET['meeting_id'])) {
     $_GET['tab'] = 'agenda';  // Zur Agenda-Ansicht wechseln
 }
 
+// vtool-Kompatibilität: URL-Format "sso_direct.php?index.php?tab=X" normalisieren
+// vtool baut manchmal sso_direct.php?index.php?tab=X statt sso_direct.php?index.php&tab=X
+// PHP parst dann "index.php?tab=X" als einzelnen Key – wir extrahieren die Params manuell.
+foreach (array_keys($_GET) as $raw_key) {
+    $q = strpos($raw_key, '?');
+    if ($q !== false) {
+        parse_str(substr($raw_key, $q + 1), $extra_params);
+        foreach ($extra_params as $k => $v) {
+            if (!isset($_GET[$k])) {
+                $_GET[$k] = $v;
+            }
+        }
+        unset($_GET[$raw_key]);
+    }
+}
+
 // Das war's! index.php übernimmt jetzt:
 // 1. Laden aller Configs (config.php, config_adapter.php, etc.)
 // 2. Initialisierung des globalen Members-Arrays
