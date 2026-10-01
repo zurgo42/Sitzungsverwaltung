@@ -437,7 +437,7 @@ foreach (['V', 'R', 'B'] as $typ) {
             <span style="font-size:10px;color:#888;margin-left:3px;"><?= htmlspecialchars($bart_label) ?></span>
         <?php endif; ?>
         <?php if ($is_b): ?>
-            <span style="font-size:10px;font-weight:600;color:#b45000;margin-left:4px;">🗳️ Abstimmung</span>
+            <span style="margin-left:4px;" title="Zur Abstimmung">🗳️</span>
         <?php endif; ?>
     </td>
     <td style="padding:4px 8px;white-space:nowrap;"><?= htmlspecialchars(trim(($a['Vorname'] ?? '') . ' ' . ($a['Name'] ?? ''))) ?></td>
