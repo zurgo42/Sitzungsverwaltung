@@ -384,27 +384,72 @@ render_user_notifications($pdo, $current_user['member_id']);
     </div>
 </form>
 
-<div class="proposals-count">
-    <?= count($antraege) ?> Anträge gefunden
+<?php
+// Typ-Bezeichnungen aus Config (einmalig – wird auch in den Karten genutzt)
+$bart_config = $GLOBALS['bart_config'] ?? lade_antragstypen_config($pdo);
+$bart_bezeichnungen = [];
+foreach (['V', 'R', 'B'] as $typ) {
+    $bart_bezeichnungen[$typ] = get_typ_bezeichnung($typ, $bart_config);
+}
+?>
+
+<!-- Kompakte Übersichtsliste als Akkordion -->
+<details open style="margin-bottom:14px;">
+<summary style="cursor:pointer;padding:7px 12px;background:var(--bg-secondary,#f5f5f5);border:1px solid var(--border-color,#ddd);border-radius:6px;font-size:13px;font-weight:600;list-style:none;display:flex;align-items:center;gap:6px;user-select:none;">
+    <span style="font-size:11px;color:#888;">▾</span>
+    <?= count($antraege) ?> Antrag<?= count($antraege) !== 1 ? 'anträge' : '' ?> gefunden
+</summary>
+<div style="border:1px solid var(--border-color,#ddd);border-top:none;border-radius:0 0 6px 6px;overflow-x:auto;">
+<?php if (empty($antraege)): ?>
+    <p style="padding:12px 14px;margin:0;font-size:13px;color:#666;">Keine Anträge gefunden.</p>
+<?php else: ?>
+<table style="width:100%;border-collapse:collapse;font-size:12px;">
+<thead>
+<tr style="background:var(--bg-secondary,#f0f0f0);text-align:left;">
+    <th style="padding:5px 8px;white-space:nowrap;border-bottom:1px solid var(--border-color,#ddd);">Datum</th>
+    <th style="padding:5px 8px;white-space:nowrap;border-bottom:1px solid var(--border-color,#ddd);">Antragsnummer</th>
+    <th style="padding:5px 8px;white-space:nowrap;border-bottom:1px solid var(--border-color,#ddd);">von</th>
+    <th style="padding:5px 8px;border-bottom:1px solid var(--border-color,#ddd);">Antragstitel</th>
+    <th style="padding:5px 8px;white-space:nowrap;border-bottom:1px solid var(--border-color,#ddd);">Hinweis</th>
+</tr>
+</thead>
+<tbody>
+<?php foreach ($antraege as $a):
+    $pfx = substr($a['antrnr'], 0, 1);
+    $datum_disp = $a['lzugriff'] ? date('d.m.y', strtotime($a['lzugriff'])) : '–';
+    $bart_label = $bart_bezeichnungen[$a['bart']] ?? ($a['bart'] ?: '');
+    if ($pfx === 'A' && $user_aktiv > 10) {
+        $link = 'antrag_bearbeiten.php?antrnr=' . urlencode($a['antrnr']);
+    } else {
+        $link = 'antrag_ansehen.php?antrnr=' . urlencode($a['antrnr']);
+    }
+    $hinweis = [];
+    if ($a['int_ext'] === 'i') $hinweis[] = '🔒 intern';
+    elseif ($a['int_ext'] === 'n') $hinweis[] = '👥 n. öffentl.';
+?>
+<tr style="border-bottom:1px solid var(--border-color,#eee);">
+    <td style="padding:4px 8px;white-space:nowrap;color:var(--text-secondary,#666);"><?= $datum_disp ?></td>
+    <td style="padding:4px 8px;white-space:nowrap;">
+        <a href="<?= $link ?>" style="font-weight:700;text-decoration:none;color:var(--link-color,#1565c0);"><?= htmlspecialchars($a['antrnr']) ?></a>
+        <?php if ($bart_label): ?>
+            <span style="font-size:10px;color:#888;margin-left:3px;"><?= htmlspecialchars($bart_label) ?></span>
+        <?php endif; ?>
+    </td>
+    <td style="padding:4px 8px;white-space:nowrap;"><?= htmlspecialchars(trim(($a['Vorname'] ?? '') . ' ' . ($a['Name'] ?? ''))) ?></td>
+    <td style="padding:4px 8px;"><?= htmlspecialchars($a['titel'] ?? '') ?></td>
+    <td style="padding:4px 8px;font-size:11px;color:#c00;"><?= implode(' ', $hinweis) ?></td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+<?php endif; ?>
 </div>
+</details>
 
 <?php if (empty($antraege)): ?>
-    <div class="proposals-table-container">
-        <div class="proposals-empty-state">
-            Keine Anträge gefunden.
-        </div>
-    </div>
 <?php else: ?>
     <!-- Card-Layout (responsive, funktioniert auf Desktop und Mobile) -->
-    <?php
-    // Typ-Bezeichnungen aus Config
-    $bart_config = $GLOBALS['bart_config'] ?? lade_antragstypen_config($pdo);
-    $bart_bezeichnungen = [];
-    foreach (['V', 'R', 'B'] as $typ) {
-        $bart_bezeichnungen[$typ] = get_typ_bezeichnung($typ, $bart_config);
-    }
-
-    foreach ($antraege as $a):
+    <?php foreach ($antraege as $a):
         $prefix_a = substr($a['antrnr'], 0, 1);
         $is_deleted = ($prefix_a === 'X' || $prefix_a === 'Z');
         $in_abstimmung = ($prefix_a === 'B');
