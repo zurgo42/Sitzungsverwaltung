@@ -1546,5 +1546,72 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleFinalizeButton();
 });
 </script>
+
+<script>
+// ── Autosave: Formulardaten lokal sichern (schützt vor Session-Timeout) ───────
+(function() {
+    const ANTRNR   = <?= json_encode($antrnr) ?>;
+    const KEY      = 'antrag_draft_' + ANTRNR;
+    const FIELDS   = ['titel','beschluss','begr','fintext','pers','sach','verant','thread'];
+    const INTERVAL = 30000; // 30 Sekunden
+
+    function getValues() {
+        const d = { _ts: Date.now() };
+        FIELDS.forEach(id => { const el = document.getElementById(id); if (el) d[id] = el.value; });
+        return d;
+    }
+
+    function hasContent(d) {
+        return FIELDS.some(id => (d[id] || '').trim().length > 0);
+    }
+
+    // Beim Speichern den Draft löschen
+    document.querySelectorAll('button[name="action"][value="save"], button[name="action"][value="finalize"]')
+        .forEach(btn => btn.addEventListener('click', () => {
+            try { localStorage.removeItem(KEY); } catch(e) {}
+        }));
+
+    // Autosave alle 30 s
+    let indicator = null;
+    function showIndicator(text, color) {
+        if (!indicator) {
+            indicator = document.createElement('span');
+            indicator.style.cssText = 'position:fixed;bottom:14px;right:16px;font-size:11px;padding:3px 8px;border-radius:4px;z-index:9999;opacity:0;transition:opacity .4s;';
+            document.body.appendChild(indicator);
+        }
+        indicator.textContent = text;
+        indicator.style.background = color;
+        indicator.style.color = '#fff';
+        indicator.style.opacity = '1';
+        setTimeout(() => { indicator.style.opacity = '0'; }, 2500);
+    }
+
+    setInterval(() => {
+        const d = getValues();
+        if (!hasContent(d)) return;
+        try { localStorage.setItem(KEY, JSON.stringify(d)); showIndicator('Entwurf gesichert', '#555'); } catch(e) {}
+    }, INTERVAL);
+
+    // Draft-Wiederherstellung nach Reload
+    document.addEventListener('DOMContentLoaded', () => {
+        let draft = null;
+        try { const raw = localStorage.getItem(KEY); if (raw) draft = JSON.parse(raw); } catch(e) {}
+        if (!draft || !hasContent(draft)) return;
+
+        // Prüfen ob Felder noch leer sind (Server hat keinen Inhalt)
+        const currentEmpty = FIELDS.every(id => { const el = document.getElementById(id); return !el || el.value.trim() === ''; });
+        const age = Math.round((Date.now() - (draft._ts || 0)) / 60000);
+        if (age > 120) { try { localStorage.removeItem(KEY); } catch(e) {} return; } // älter als 2h: verwerfen
+
+        const msg = 'Es gibt einen lokal gesicherten Entwurf von vor ' + (age < 2 ? 'wenigen Augenblicken' : age + ' Minuten') + '.\nSoll er wiederhergestellt werden?';
+        if (confirm(msg)) {
+            FIELDS.forEach(id => { const el = document.getElementById(id); if (el && draft[id] !== undefined) el.value = draft[id]; });
+            showIndicator('Entwurf wiederhergestellt', '#2e7d32');
+        } else {
+            try { localStorage.removeItem(KEY); } catch(e) {}
+        }
+    });
+})();
+</script>
 </body>
 </html>
