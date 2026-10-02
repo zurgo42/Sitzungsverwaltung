@@ -1563,20 +1563,32 @@ document.addEventListener('DOMContentLoaded', function() {
 (function() {
     const ANTRNR   = <?= json_encode($antrnr) ?>;
     const KEY      = 'antrag_draft_' + ANTRNR;
-    const FIELDS   = ['titel','beschluss','begr','fintext','pers','sach','verant','thread'];
     const INTERVAL = 30000; // 30 Sekunden
 
+    // Hauptformular (das mit action=save) dynamisch ermitteln
+    function getSaveForm() {
+        return document.querySelector('form input[name="action"][value="save"]')?.closest('form') || null;
+    }
+
+    // Alle speicherbaren Felder des Formulars auslesen (input/textarea/select, nicht file/hidden/button)
     function getValues() {
+        const form = getSaveForm();
         const d = { _ts: Date.now() };
-        FIELDS.forEach(id => { const el = document.getElementById(id); if (el) d[id] = el.value; });
+        if (!form) return d;
+        form.querySelectorAll('input, textarea, select').forEach(el => {
+            if (!el.name || el.type === 'file' || el.type === 'hidden' || el.type === 'submit' || el.type === 'button') return;
+            if (el.type === 'checkbox' || el.type === 'radio') return; // Checkboxen separat behandeln wenn nötig
+            d[el.name] = el.value;
+        });
         return d;
     }
 
     function hasContent(d) {
-        return FIELDS.some(id => (d[id] || '').trim().length > 0);
+        const textFields = ['titel', 'beschluss', 'begr', 'verant', 'fintext', 'pers', 'sach', 'verein'];
+        return textFields.some(k => (d[k] || '').trim().length > 0);
     }
 
-    // Beim Speichern den Draft löschen
+    // Beim Speichern / Finalisieren den Draft löschen
     document.querySelectorAll('button[name="action"][value="save"], button[name="action"][value="finalize"]')
         .forEach(btn => btn.addEventListener('click', () => {
             try { localStorage.removeItem(KEY); } catch(e) {}
@@ -1587,7 +1599,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function showIndicator(text, color) {
         if (!indicator) {
             indicator = document.createElement('span');
-            indicator.style.cssText = 'position:fixed;bottom:14px;right:16px;font-size:11px;padding:3px 8px;border-radius:4px;z-index:9999;opacity:0;transition:opacity .4s;';
+            indicator.style.cssText = 'position:fixed;bottom:14px;right:16px;font-size:11px;padding:3px 8px;border-radius:4px;z-index:9999;opacity:0;transition:opacity .4s;pointer-events:none;';
             document.body.appendChild(indicator);
         }
         indicator.textContent = text;
@@ -1609,14 +1621,19 @@ document.addEventListener('DOMContentLoaded', function() {
         try { const raw = localStorage.getItem(KEY); if (raw) draft = JSON.parse(raw); } catch(e) {}
         if (!draft || !hasContent(draft)) return;
 
-        // Prüfen ob Felder noch leer sind (Server hat keinen Inhalt)
-        const currentEmpty = FIELDS.every(id => { const el = document.getElementById(id); return !el || el.value.trim() === ''; });
         const age = Math.round((Date.now() - (draft._ts || 0)) / 60000);
         if (age > 120) { try { localStorage.removeItem(KEY); } catch(e) {} return; } // älter als 2h: verwerfen
 
         const msg = 'Es gibt einen lokal gesicherten Entwurf von vor ' + (age < 2 ? 'wenigen Augenblicken' : age + ' Minuten') + '.\nSoll er wiederhergestellt werden?';
         if (confirm(msg)) {
-            FIELDS.forEach(id => { const el = document.getElementById(id); if (el && draft[id] !== undefined) el.value = draft[id]; });
+            const form = getSaveForm();
+            if (form) {
+                form.querySelectorAll('input, textarea, select').forEach(el => {
+                    if (!el.name || el.type === 'file' || el.type === 'hidden' || el.type === 'submit' || el.type === 'button') return;
+                    if (el.type === 'checkbox' || el.type === 'radio') return;
+                    if (draft[el.name] !== undefined) el.value = draft[el.name];
+                });
+            }
             showIndicator('Entwurf wiederhergestellt', '#2e7d32');
         } else {
             try { localStorage.removeItem(KEY); } catch(e) {}
