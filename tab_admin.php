@@ -190,6 +190,32 @@ document.addEventListener('DOMContentLoaded', function() {
     </a>
 </div>
 
+<!-- Schnellnavigation -->
+<div style="margin-bottom:18px;padding:10px 14px;background:var(--bg-secondary,#f5f5f5);border:1px solid var(--border-color,#ddd);border-radius:6px;font-size:12px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;">
+    <strong style="font-size:11px;color:#888;white-space:nowrap;">Springe zu:</strong>
+    <a href="#admin-meetings"     onclick="openSection('admin-meetings')"     style="text-decoration:none;color:var(--link-color,#1565c0);">📅 Meetings</a>
+    <a href="#admin-todos"        onclick="openSection('admin-todos')"        style="text-decoration:none;color:var(--link-color,#1565c0);">✅ ToDos</a>
+    <a href="#admin-members"      onclick="openSection('admin-members')"      style="text-decoration:none;color:var(--link-color,#1565c0);">👥 Mitglieder</a>
+    <a href="#admin-polls"        onclick="openSection('admin-polls')"        style="text-decoration:none;color:var(--link-color,#1565c0);">📊 Umfragen</a>
+    <a href="#admin-absences"     onclick="openSection('admin-absences')"     style="text-decoration:none;color:var(--link-color,#1565c0);">🏖️ Abwesenheiten</a>
+    <a href="#admin-texts"        onclick="openSection('admin-texts')"        style="text-decoration:none;color:var(--link-color,#1565c0);">📝 Texte</a>
+    <a href="#admin-log"          onclick="openSection('admin-log')"          style="text-decoration:none;color:var(--link-color,#1565c0);">📋 Admin-Protokoll</a>
+    <a href="#antrags-protokoll"  onclick="openSection('antrags-protokoll')"  style="text-decoration:none;color:var(--link-color,#1565c0);">📜 Antrags-Protokoll</a>
+    <a href="#external-access-log" onclick="openSection('external-access-log')" style="text-decoration:none;color:var(--link-color,#1565c0);">🔐 Zugriffs-Logs</a>
+    <a href="#admin-database"     onclick="openSection('admin-database')"     style="text-decoration:none;color:var(--link-color,#1565c0);">🗄️ Datenbank</a>
+</div>
+<script>
+function openSection(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const header = el.querySelector('.admin-section-header');
+    const content = el.querySelector('.admin-section-content');
+    if (header && content && content.classList.contains('collapsed')) {
+        toggleSection(header);
+    }
+}
+</script>
+
 <!-- Meeting-Verwaltung -->
 <div id="admin-meetings" class="admin-section">
     <h3 class="admin-section-header" onclick="toggleSection(this)">📅 Meeting-Verwaltung</h3>
