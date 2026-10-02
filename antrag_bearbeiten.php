@@ -232,6 +232,15 @@ $message = null;
 
 // POST-Verarbeitung
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Stille Falle: PHP verwirft $_POST komplett wenn post_max_size überschritten wurde.
+    // Erkennbar daran, dass der Content-Type multipart ist aber $_POST leer ist.
+    if (empty($_POST) && !empty($_SERVER['CONTENT_TYPE']) && str_contains($_SERVER['CONTENT_TYPE'], 'multipart')) {
+        $post_max = ini_get('post_max_size');
+        $error = "Die Formulardaten konnten nicht übermittelt werden (Datei oder Text zu groß). "
+               . "PHP-Limit: post_max_size = {$post_max}. "
+               . "Bitte Anhang weglassen oder Text kürzen und erneut speichern.";
+    } else {
+
     $action = $_POST['action'] ?? '';
 
     try {
@@ -313,6 +322,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
         $error = $e->getMessage();
     }
+
+    } // end else (POST nicht verworfen)
 }
 
 // Speichern-Funktion
