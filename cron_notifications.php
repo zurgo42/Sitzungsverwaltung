@@ -165,7 +165,21 @@ if ($expired > 0) {
     $log("{$expired} abgelaufene Meeting-Benachrichtigung(en) auf gelesen gesetzt");
 }
 
-// --- 5. E-Mail-Benachrichtigungen (Sofort + Digest) ---
+// --- 5. Leere Antrags-Stubs bereinigen ---
+if (defined('TABLE_ANTRAEGE')) {
+    $deleted_stubs = @$pdo->exec("
+        DELETE FROM " . TABLE_ANTRAEGE . "
+        WHERE antrnr LIKE 'A%'
+          AND (titel IS NULL OR titel = '')
+          AND (beschluss IS NULL OR beschluss = '')
+          AND lzugriff < DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+    ");
+    if ($deleted_stubs > 0) {
+        $log("{$deleted_stubs} leere Antrags-Stub(s) gelöscht");
+    }
+}
+
+// --- 6. E-Mail-Benachrichtigungen (Sofort + Digest) ---
 if (function_exists('nm_process_immediate')) {
     nm_process_immediate($pdo);
 

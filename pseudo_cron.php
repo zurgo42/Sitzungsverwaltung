@@ -266,6 +266,23 @@ if ($should_run) {
             @file_put_contents(__DIR__ . '/pseudo_cron.log', $log_msg, FILE_APPEND);
         }
 
+        // ---- Leere Antrags-Stubs bereinigen ----
+        // A-Anträge ohne Titel und Beschluss, die älter als 30 Minuten sind:
+        // entstehen wenn der User den Typ wählt aber dann zurücknavigiert.
+        if (defined('TABLE_ANTRAEGE')) {
+            $deleted_stubs = @$pdo->exec("
+                DELETE FROM " . TABLE_ANTRAEGE . "
+                WHERE antrnr LIKE 'A%'
+                  AND (titel IS NULL OR titel = '')
+                  AND (beschluss IS NULL OR beschluss = '')
+                  AND lzugriff < DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+            ");
+            if ($deleted_stubs > 0) {
+                $log_msg = "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron: {$deleted_stubs} leere Antrags-Stub(s) gelöscht\n";
+                @file_put_contents(__DIR__ . '/pseudo_cron.log', $log_msg, FILE_APPEND);
+            }
+        }
+
         // ---- E-Mail-Benachrichtigungen verarbeiten ----
         try {
         if (!function_exists('nm_process_immediate')) {
