@@ -1335,6 +1335,92 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
     </div> <!-- End admin-section-content -->
 </div>
 
+<!-- Antrags-Protokoll -->
+<div id="antrags-protokoll" class="admin-section">
+    <h3 class="admin-section-header" onclick="toggleSection(this)">📜 Antrags-Protokoll</h3>
+    <div class="admin-section-content">
+    <?php
+    // Filter-Parameter
+    $prot_filter_was  = $_GET['prot_was']  ?? '';
+    $prot_filter_mnr  = $_GET['prot_mnr']  ?? '';
+    $prot_filter_days = max(1, min(90, (int)($_GET['prot_days'] ?? 7)));
+
+    $prot_sql    = "SELECT MNr, KurzN, zeit, was, string FROM protokoll WHERE zeit >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+    $prot_params = [$prot_filter_days];
+    if ($prot_filter_was) {
+        $prot_sql .= " AND was = ?";
+        $prot_params[] = $prot_filter_was;
+    }
+    if ($prot_filter_mnr) {
+        $prot_sql .= " AND MNr = ?";
+        $prot_params[] = $prot_filter_mnr;
+    }
+    $prot_sql .= " ORDER BY zeit DESC LIMIT 200";
+
+    $prot_rows = [];
+    try {
+        $ps = $pdo->prepare($prot_sql);
+        $ps->execute($prot_params);
+        $prot_rows = $ps->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {}
+
+    // Verfügbare Aktionstypen für Filter
+    $prot_types = [];
+    try {
+        $pt = $pdo->query("SELECT DISTINCT was FROM protokoll ORDER BY was");
+        $prot_types = $pt ? $pt->fetchAll(PDO::FETCH_COLUMN) : [];
+    } catch (Exception $e) {}
+    ?>
+    <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end;">
+        <input type="hidden" name="tab" value="admin">
+        <label style="font-size:12px;display:flex;flex-direction:column;gap:3px;">
+            Zeitraum
+            <select name="prot_days" style="font-size:12px;padding:4px 6px;">
+                <?php foreach ([1,3,7,14,30,90] as $d): ?>
+                    <option value="<?= $d ?>" <?= $prot_filter_days == $d ? 'selected' : '' ?>><?= $d ?> Tage</option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label style="font-size:12px;display:flex;flex-direction:column;gap:3px;">
+            Aktion
+            <select name="prot_was" style="font-size:12px;padding:4px 6px;">
+                <option value="">– alle –</option>
+                <?php foreach ($prot_types as $t): ?>
+                    <option value="<?= htmlspecialchars($t) ?>" <?= $prot_filter_was === $t ? 'selected' : '' ?>><?= htmlspecialchars($t) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label style="font-size:12px;display:flex;flex-direction:column;gap:3px;">
+            Mitgliedsnr.
+            <input type="text" name="prot_mnr" value="<?= htmlspecialchars($prot_filter_mnr) ?>" placeholder="z.B. 04921177" style="font-size:12px;padding:4px 6px;width:120px;">
+        </label>
+        <button type="submit" style="padding:5px 14px;font-size:12px;">Filtern</button>
+    </form>
+
+    <?php if (empty($prot_rows)): ?>
+        <div class="info-box">Keine Einträge im gewählten Zeitraum.</div>
+    <?php else: ?>
+        <p style="font-size:12px;color:#888;margin:0 0 6px;"><?= count($prot_rows) ?> Einträge (max. 200)</p>
+        <table class="admin-table" style="font-size:12px;">
+            <thead><tr>
+                <th>Zeit</th><th>MNr</th><th>Name</th><th>Aktion</th><th>Details</th>
+            </tr></thead>
+            <tbody>
+            <?php foreach ($prot_rows as $pr): ?>
+                <tr>
+                    <td style="white-space:nowrap;"><?= htmlspecialchars($pr['zeit']) ?></td>
+                    <td style="white-space:nowrap;"><?= htmlspecialchars($pr['MNr']) ?></td>
+                    <td style="white-space:nowrap;"><?= htmlspecialchars($pr['KurzN']) ?></td>
+                    <td><strong><?= htmlspecialchars($pr['was']) ?></strong></td>
+                    <td><?= htmlspecialchars($pr['string']) ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+    </div>
+</div>
+
 <!-- Externe Zugriffs-Logs -->
 <div id="external-access-log" class="admin-section">
     <h3 class="admin-section-header" onclick="toggleSection(this)">🔐 Externe Zugriffs-Logs (Terminumfragen & Meinungsbilder)</h3>
