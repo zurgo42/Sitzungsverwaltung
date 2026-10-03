@@ -1390,6 +1390,25 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
         $prot_rows = $ps->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {}
 
+    // Namen für Einträge mit KurzN='NN' aus berechtigte nachschlagen
+    $nn_mnrs = [];
+    foreach ($prot_rows as $r) {
+        if (($r['KurzN'] === 'NN' || $r['KurzN'] === '') && $r['MNr'] !== '') {
+            $nn_mnrs[$r['MNr']] = true;
+        }
+    }
+    $resolved_names = [];
+    if ($nn_mnrs) {
+        $ph = implode(',', array_fill(0, count($nn_mnrs), '?'));
+        try {
+            $nq = $pdo->prepare("SELECT MNr, CONCAT(LEFT(Vorname,1),'. ',Name) AS KurzN FROM berechtigte WHERE MNr IN ($ph)");
+            $nq->execute(array_keys($nn_mnrs));
+            foreach ($nq->fetchAll(PDO::FETCH_ASSOC) as $nr) {
+                $resolved_names[$nr['MNr']] = $nr['KurzN'];
+            }
+        } catch (Exception $e) {}
+    }
+
     // Verfügbare Aktionstypen für Filter
     $prot_types = [];
     try {
@@ -1432,11 +1451,15 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
                 <th>Zeit</th><th>MNr</th><th>Name</th><th>Aktion</th><th>Details</th>
             </tr></thead>
             <tbody>
-            <?php foreach ($prot_rows as $pr): ?>
+            <?php foreach ($prot_rows as $pr):
+                $disp_name = ($pr['KurzN'] === 'NN' || $pr['KurzN'] === '')
+                    ? ($resolved_names[$pr['MNr']] ?? $pr['KurzN'])
+                    : $pr['KurzN'];
+            ?>
                 <tr>
                     <td style="white-space:nowrap;"><?= htmlspecialchars($pr['zeit']) ?></td>
                     <td style="white-space:nowrap;"><?= htmlspecialchars($pr['MNr']) ?></td>
-                    <td style="white-space:nowrap;"><?= htmlspecialchars($pr['KurzN']) ?></td>
+                    <td style="white-space:nowrap;"><?= htmlspecialchars($disp_name) ?></td>
                     <td><strong><?= htmlspecialchars($pr['was']) ?></strong></td>
                     <td><?= htmlspecialchars($pr['string']) ?></td>
                 </tr>
