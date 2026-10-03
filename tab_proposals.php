@@ -11,7 +11,13 @@ $user_berecht = $user_berecht_stmt->fetch();
 $user_aktiv = $user_berecht['aktiv'] ?? 0;
 
 // Berechtigungen prüfen
-$kann_intern_sehen = ($user_aktiv > 17 || $user_berecht['Funktion'] === 'VA' || ($current_user['is_admin'] ?? 0) == 1);
+$kann_intern_sehen = (
+    ($current_user['is_admin'] ?? 0) == 1 ||
+    ($current_user['is_confidential'] ?? 0) == 1 ||
+    in_array($current_user['role'] ?? '', ['vorstand', 'gf']) ||
+    $user_aktiv > 17 ||
+    ($user_berecht['Funktion'] ?? '') === 'VA'
+);
 $ist_admin = ($user_aktiv >= 19 || ($current_user['is_admin'] ?? 0) == 1);
 
 // POST-Verarbeitung für permanentes Löschen
@@ -66,6 +72,11 @@ if ($filter_status !== 'all') {
 if ($filter_bart !== 'all') {
     $sql .= " AND a.bart = ?";
     $params[] = $filter_bart;
+}
+
+// Interne Anträge nur für Berechtigte
+if (!$kann_intern_sehen) {
+    $sql .= " AND (a.int_ext IS NULL OR a.int_ext != 'i')";
 }
 
 // Suchfilter
