@@ -223,11 +223,17 @@ if (isset($_POST['add_agenda_item'])) {
             // TOP-Nummer automatisch vergeben
             $top_number = get_next_top_number($pdo, $current_meeting_id, $is_confidential);
 
+            // Antragsteller: Admins können beliebiges Mitglied setzen
+            $referent_member_id = null;
+            if ($current_user['is_admin'] == 1 && !empty($_POST['referent_member_id'])) {
+                $referent_member_id = intval($_POST['referent_member_id']);
+            }
+
             // TOP in Datenbank einfügen
             $stmt = $pdo->prepare("
                 INSERT INTO svagenda_items
-                (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id, referent_member_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $current_meeting_id,
@@ -240,7 +246,8 @@ if (isset($_POST['add_agenda_item'])) {
                 $priority,
                 $duration,
                 $is_confidential,
-                $current_user['member_id']
+                $current_user['member_id'],
+                $referent_member_id
             ]);
 
             $new_item_id = $pdo->lastInsertId();
@@ -377,7 +384,7 @@ if (isset($_POST['edit_agenda_item']) && !isset($_POST['delete_agenda_item'])) {
         try {
             // Prüfen ob User der Ersteller ist (inkl. alte Werte für Diff)
             $stmt = $pdo->prepare("
-                SELECT ai.created_by_member_id, ai.meeting_id, m.status, ai.category as old_category,
+                SELECT ai.created_by_member_id, ai.referent_member_id, ai.meeting_id, m.status, ai.category as old_category,
                        ai.title as old_title, ai.description as old_description, ai.proposal_text as old_proposal_text
                 FROM svagenda_items ai
                 JOIN svmeetings m ON ai.meeting_id = m.meeting_id
@@ -390,17 +397,24 @@ if (isset($_POST['edit_agenda_item']) && !isset($_POST['delete_agenda_item'])) {
                       ", status=" . ($item['status'] ?? 'NULL') .
                       ", old_category=" . ($item['old_category'] ?? 'NULL'));
 
-            // Nur editierbar wenn Ersteller UND Meeting in Vorbereitung
+            // Editierbar für Ersteller oder Admins (in Vorbereitung)
             if ($item &&
-                $item['created_by_member_id'] == $current_user['member_id'] &&
+                ($item['created_by_member_id'] == $current_user['member_id'] || $current_user['is_admin'] == 1) &&
                 $item['status'] === 'preparation') {
+
+                // Antragsteller: Admin kann ändern, sonst bestehenden Wert behalten
+                if ($current_user['is_admin'] == 1 && array_key_exists('referent_member_id', $_POST)) {
+                    $referent_member_id = !empty($_POST['referent_member_id']) ? intval($_POST['referent_member_id']) : null;
+                } else {
+                    $referent_member_id = $item['referent_member_id'] ?? null;
+                }
 
                 $stmt = $pdo->prepare("
                     UPDATE svagenda_items
-                    SET title = ?, description = ?, category = ?, proposal_text = ?
+                    SET title = ?, description = ?, category = ?, proposal_text = ?, referent_member_id = ?
                     WHERE item_id = ?
                 ");
-                $stmt->execute([$title, $description, $category, $proposal_text, $item_id]);
+                $stmt->execute([$title, $description, $category, $proposal_text, $referent_member_id, $item_id]);
 
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
                 $diff_parts = [];
@@ -1928,10 +1942,16 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
             $top_number = get_next_top_number($pdo, $current_meeting_id, $is_confidential);
             error_log("Assigned TOP number: $top_number");
 
+            // Antragsteller: Admins können beliebiges Mitglied setzen
+            $referent_member_id = null;
+            if ($current_user['is_admin'] == 1 && !empty($_POST['referent_member_id'])) {
+                $referent_member_id = intval($_POST['referent_member_id']);
+            }
+
             $stmt = $pdo->prepare("
                 INSERT INTO svagenda_items
-                (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (meeting_id, top_number, title, description, category, proposal_text, antrnr, priority, estimated_duration, is_confidential, created_by_member_id, referent_member_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $current_meeting_id,
@@ -1944,7 +1964,8 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
                 $priority,
                 $duration,
                 $is_confidential,
-                $current_user['member_id']
+                $current_user['member_id'],
+                $referent_member_id
             ]);
 
             $new_item_id = $pdo->lastInsertId();

@@ -654,6 +654,33 @@ if ($can_move_tops) {
                 </label>
             </div>
 
+            <?php if ($is_admin): ?>
+            <div class="form-group top-form-group">
+                <label style="font-weight: 600;">👤 Antragsteller:</label>
+                <select name="referent_member_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">— kein Antragsteller (nur Ersteller wird angezeigt) —</option>
+                    <?php
+                    // Eingeladene Mitglieder für Dropdown laden
+                    $ref_ids_stmt = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
+                    $ref_ids_stmt->execute([$current_meeting_id]);
+                    $ref_participant_ids = $ref_ids_stmt->fetchAll(PDO::FETCH_COLUMN);
+                    $ref_members = [];
+                    foreach ($ref_participant_ids as $rpid) {
+                        $rm = get_member_by_id($pdo, $rpid);
+                        if ($rm) $ref_members[] = $rm;
+                    }
+                    usort($ref_members, fn($a, $b) => strcasecmp($a['last_name'], $b['last_name']));
+                    foreach ($ref_members as $rm):
+                        $sel = ($rm['member_id'] == $current_user['member_id']) ? 'selected' : '';
+                    ?>
+                        <option value="<?= (int)$rm['member_id'] ?>" <?= $sel ?>>
+                            <?= htmlspecialchars($rm['first_name'] . ' ' . $rm['last_name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <?php endif; ?>
+
             <!-- DEBUG MARKER: Vor Submit Button -->
             <?php error_log("DEBUG: Rendering submit button"); ?>
 
@@ -746,7 +773,7 @@ foreach ($agenda_items as $item):
     unset($comment);
     
     // Prüfen ob User der Ersteller ist
-    $is_creator = ($item['created_by_member_id'] == $current_user['member_id']);
+    $is_creator = ($item['created_by_member_id'] == $current_user['member_id'] || $is_admin);
     ?>
     
     <div id="top-<?php echo $item['item_id']; ?>" style="margin: 20px 0; padding: 15px; border: 2px solid #2c5aa0; border-radius: 8px; background: white;">
@@ -762,7 +789,9 @@ foreach ($agenda_items as $item):
                 </h3>
                 <div style="color: #666; font-size: 0.9em;">
                     <?php echo $category_display; ?>
-                    <?php if ($item['creator_first'] && $item['creator_last']): ?>
+                    <?php if (!empty($item['referent_first']) || !empty($item['referent_last'])): ?>
+                        | Antragsteller: <?php echo htmlspecialchars(trim($item['referent_first'] . ' ' . $item['referent_last'])); ?>
+                    <?php elseif ($item['creator_first'] && $item['creator_last']): ?>
                         | Erstellt von: <?php echo htmlspecialchars($item['creator_first'] . ' ' . $item['creator_last']); ?>
                     <?php endif; ?>
                 </div>
@@ -887,7 +916,34 @@ foreach ($agenda_items as $item):
                     🔒 <strong>Vertraulich</strong> - Dieser Status kann nach Erstellung nicht mehr geändert werden
                 </div>
                 <?php endif; ?>
-                
+
+                <?php if ($is_admin): ?>
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">👤 Antragsteller:</label>
+                    <select name="referent_member_id" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="">— kein Antragsteller —</option>
+                        <?php
+                        $ref_ids_stmt2 = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
+                        $ref_ids_stmt2->execute([$current_meeting_id]);
+                        $ref_ids2 = $ref_ids_stmt2->fetchAll(PDO::FETCH_COLUMN);
+                        $ref_members2 = [];
+                        foreach ($ref_ids2 as $rpid2) {
+                            $rm2 = get_member_by_id($pdo, $rpid2);
+                            if ($rm2) $ref_members2[] = $rm2;
+                        }
+                        usort($ref_members2, fn($a, $b) => strcasecmp($a['last_name'], $b['last_name']));
+                        $cur_referent = $item['referent_member_id'] ?? null;
+                        foreach ($ref_members2 as $rm2):
+                            $sel2 = ($rm2['member_id'] == $cur_referent) ? 'selected' : '';
+                        ?>
+                            <option value="<?= (int)$rm2['member_id'] ?>" <?= $sel2 ?>>
+                                <?= htmlspecialchars($rm2['first_name'] . ' ' . $rm2['last_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
+
                 <div style="display: flex; gap: 10px;">
                     <button type="submit" style="background: #4CAF50; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">
                         💾 Speichern

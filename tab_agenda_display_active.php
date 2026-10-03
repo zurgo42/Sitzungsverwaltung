@@ -604,6 +604,32 @@ render_simple_agenda_overview($agenda_items, $current_user, $current_meeting_id,
             </label>
         </div>
 
+        <?php if ($current_user['is_admin'] == 1): ?>
+        <div class="form-group top-form-group">
+            <label style="font-weight: 600;">👤 Antragsteller:</label>
+            <select name="referent_member_id" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">— kein Antragsteller (nur Ersteller wird angezeigt) —</option>
+                <?php
+                $ref_act_stmt = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
+                $ref_act_stmt->execute([$current_meeting_id]);
+                $ref_act_ids = $ref_act_stmt->fetchAll(PDO::FETCH_COLUMN);
+                $ref_act_members = [];
+                foreach ($ref_act_ids as $rpid) {
+                    $rm = get_member_by_id($pdo, $rpid);
+                    if ($rm) $ref_act_members[] = $rm;
+                }
+                usort($ref_act_members, fn($a, $b) => strcasecmp($a['last_name'], $b['last_name']));
+                foreach ($ref_act_members as $rm):
+                    $sel = ($rm['member_id'] == $current_user['member_id']) ? 'selected' : '';
+                ?>
+                    <option value="<?= (int)$rm['member_id'] ?>" <?= $sel ?>>
+                        <?= htmlspecialchars($rm['first_name'] . ' ' . $rm['last_name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php endif; ?>
+
         <div class="form-group top-form-group">
             <button type="submit" class="top-submit-button">
                 ✅ TOP hinzufügen
@@ -809,7 +835,11 @@ foreach ($agenda_items as $item):
         <!-- Meta-Info (nicht bei TOP 999) -->
         <?php if ($item['top_number'] != 999): ?>
             <div style="font-size: 12px; color: #999; margin: 8px 0;">
-                Eingetragen von: <?php echo htmlspecialchars($item['creator_first'] . ' ' . $item['creator_last']); ?> |
+                <?php if (!empty($item['referent_first']) || !empty($item['referent_last'])): ?>
+                    Antragsteller: <?php echo htmlspecialchars(trim($item['referent_first'] . ' ' . $item['referent_last'])); ?> |
+                <?php else: ?>
+                    Eingetragen von: <?php echo htmlspecialchars($item['creator_first'] . ' ' . $item['creator_last']); ?> |
+                <?php endif; ?>
 
                 <!-- Priorität (editierbar für Sekretär bei aktivem TOP) -->
                 <?php if ($is_active && $is_secretary): ?>

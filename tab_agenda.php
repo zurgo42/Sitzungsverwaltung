@@ -54,7 +54,17 @@ $stmt = $pdo->prepare("
 $stmt->execute([$current_meeting_id]);
 $agenda_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Creator-Namen über Adapter holen
+// Auto-Migration: referent_member_id Spalte zu svagenda_items hinzufügen
+try {
+    $col_chk = @$pdo->query("SHOW COLUMNS FROM svagenda_items LIKE 'referent_member_id'");
+    if ($col_chk && $col_chk->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE svagenda_items ADD COLUMN referent_member_id INT NULL AFTER created_by_member_id");
+    }
+} catch (Exception $e) {
+    error_log("Migration referent_member_id: " . $e->getMessage());
+}
+
+// Creator- und Referent-Namen über Adapter holen
 foreach ($agenda_items as &$item) {
     if ($item['created_by_member_id']) {
         $creator = get_member_by_id($pdo, $item['created_by_member_id']);
@@ -65,6 +75,14 @@ foreach ($agenda_items as &$item) {
         $item['creator_first'] = null;
         $item['creator_last'] = null;
         $item['creator_member_id'] = null;
+    }
+    if (!empty($item['referent_member_id'])) {
+        $referent = get_member_by_id($pdo, (int)$item['referent_member_id']);
+        $item['referent_first'] = $referent['first_name'] ?? null;
+        $item['referent_last'] = $referent['last_name'] ?? null;
+    } else {
+        $item['referent_first'] = null;
+        $item['referent_last'] = null;
     }
 }
 unset($item);
