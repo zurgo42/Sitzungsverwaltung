@@ -40,6 +40,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'change_status') {
     }
 
     try {
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Status', substr($todo['title'] ?? '', 0, 60) . ' → ' . $new_status);
+
         if ($new_status === 'done') {
             $stmt = $pdo->prepare("UPDATE svtodos SET status = ?, completed_at = NOW() WHERE todo_id = ?");
         } else {
@@ -50,9 +53,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'change_status') {
         // Logging
         $logstmt = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'status-change', ?, ?)");
         $logstmt->execute([$todo_id, $currentMemberID, $todo['status'], $new_status]);
-
-        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Status', substr($todo['title'] ?? '', 0, 60) . ' → ' . $new_status);
 
         $_SESSION['success'] = 'Status geändert';
         header('Location: index.php?tab=todos');
@@ -92,15 +92,15 @@ if (isset($_POST['action']) && $_POST['action'] === 'retract') {
     }
 
     try {
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Zurueckziehen', substr($todo['title'] ?? '', 0, 80));
+
         // Logging (vor dem Löschen!)
         $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'aufgabe-zurueckziehen', ?, NULL)");
         $log->execute([$todo_id, $currentMemberID, $todo['status']]);
 
         $delete = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
         $delete->execute([$todo_id]);
-
-        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Zurueckziehen', substr($todo['title'] ?? '', 0, 80));
 
         $_SESSION['success'] = 'ToDo zurückgezogen';
         header('Location: index.php?tab=todos');
@@ -149,6 +149,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
     }
 
     try {
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Erstellen', substr($title ?? '', 0, 80));
+
         $stmt = $pdo->prepare("
             INSERT INTO svtodos (
                 title, description, assigned_to_member_id, created_by_member_id,
@@ -170,9 +173,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_todo') {
         // Logging
         $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'todo-erstellt', NULL, ?)");
         $log->execute([$todo_id, $currentMemberID, $title]);
-
-        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TODO-Erstellen', substr($title ?? '', 0, 80));
 
         // E-Mail-Benachrichtigung: ToDo zugewiesen (nur wenn Empfänger ≠ Ersteller)
         if ($assigned_to !== $currentMemberID) {

@@ -16,13 +16,13 @@ if (isset($_POST['add_protocol'])) {
             $meeting_id = $item_data['meeting_id'] ?? 0;
             $old_notes = (string)($item_data['protocol_notes'] ?? '');
 
-            $stmt = $pdo->prepare("UPDATE svagenda_items SET protocol_notes = ? WHERE item_id = ?");
-            $stmt->execute([$notes, $item_id]);
-
             [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
             $prot_diff = protokoll_feld_diff('Protokoll', $old_notes, $notes) ?? '(unverändert)';
             protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Protokoll-Speichern',
                 'Sitzung ' . $meeting_id . ' – ' . ($item_data['title'] ?? '') . ': ' . $prot_diff);
+
+            $stmt = $pdo->prepare("UPDATE svagenda_items SET protocol_notes = ? WHERE item_id = ?");
+            $stmt->execute([$notes, $item_id]);
 
             header("Location: ?tab=agenda&meeting_id=$meeting_id");
             exit;

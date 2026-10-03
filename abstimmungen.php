@@ -296,12 +296,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_remarks'])) {
 
             if ($vname == $user['member_id']) {
                 // Nur Bemerkungen speichern (Votum bleibt unverändert)
-                $update_sql = "UPDATE " . TABLE_ANTRAEGE . " SET
-                    VBegr$abstimmend = ?,
-                    VProt$abstimmend = ?
-                    WHERE antrnr = ?";
-
-                $pdo->prepare($update_sql)->execute([$vbegr, $vprot, $antrnr]);
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
                 $diff_parts = [];
                 $part = protokoll_feld_diff('VBegr', (string)($check_row['old_vbegr'] ?? ''), $vbegr);
@@ -310,6 +304,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_remarks'])) {
                 if ($part !== null) $diff_parts[] = $part;
                 protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Votum-Bemerkungen',
                     $antrnr . ': ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)'));
+
+                $update_sql = "UPDATE " . TABLE_ANTRAEGE . " SET
+                    VBegr$abstimmend = ?,
+                    VProt$abstimmend = ?
+                    WHERE antrnr = ?";
+
+                $pdo->prepare($update_sql)->execute([$vbegr, $vprot, $antrnr]);
 
                 // Für AJAX-Anfragen JSON zurückgeben
                 if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
@@ -347,6 +348,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['votum_action'])) {
 
             if ($vname == $user['member_id']) {
                 // Votum speichern
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
+                $votum_labels = [1 => 'Ja', 2 => 'Nein', 3 => 'Enthaltung', 4 => 'Befangen', 5 => 'Bedenkzeit'];
+                $old_votum_str = $votum_labels[(int)($check_row['old_votum'] ?? 0)] ?? ('Votum-' . ($check_row['old_votum'] ?? '0'));
+                $new_votum_str = $votum_labels[(int)$votum] ?? ('Votum-' . $votum);
+                $diff_parts = [];
+                if ((string)($check_row['old_votum'] ?? '') !== (string)$votum) {
+                    $diff_parts[] = "Votum='" . $old_votum_str . "'→'" . $new_votum_str . "'";
+                }
+                $part = protokoll_feld_diff('VBegr', (string)($check_row['old_vbegr'] ?? ''), $vbegr);
+                if ($part !== null) $diff_parts[] = $part;
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Votum-Speichern',
+                    $antrnr . ': ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)'));
+
                 $update_sql = "UPDATE " . TABLE_ANTRAEGE . " SET
                     Votum$abstimmend = ?,
                     VDat$abstimmend = DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i'),
@@ -365,18 +379,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['votum_action'])) {
                 $params[] = $antrnr;
 
                 $pdo->prepare($update_sql)->execute($params);
-                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
-                $votum_labels = [1 => 'Ja', 2 => 'Nein', 3 => 'Enthaltung', 4 => 'Befangen', 5 => 'Bedenkzeit'];
-                $old_votum_str = $votum_labels[(int)($check_row['old_votum'] ?? 0)] ?? ('Votum-' . ($check_row['old_votum'] ?? '0'));
-                $new_votum_str = $votum_labels[(int)$votum] ?? ('Votum-' . $votum);
-                $diff_parts = [];
-                if ((string)($check_row['old_votum'] ?? '') !== (string)$votum) {
-                    $diff_parts[] = "Votum='" . $old_votum_str . "'→'" . $new_votum_str . "'";
-                }
-                $part = protokoll_feld_diff('VBegr', (string)($check_row['old_vbegr'] ?? ''), $vbegr);
-                if ($part !== null) $diff_parts[] = $part;
-                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Votum-Speichern',
-                    $antrnr . ': ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)'));
 
                 // Abstimmung auswerten
                 auswerten_abstimmung($pdo, $antrnr);
@@ -407,9 +409,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_hinweis'])) {
         $user_kurzn = substr($user['first_name'] ?? '', 0, 1) . '. ' . ($user['last_name'] ?? '');
         $hinweis .= date('d.m.Y H:i') . ' (' . $user_kurzn . '): ' . $neuer_hinweis;
 
-        $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET hinweis = ? WHERE antrnr = ?")->execute([$hinweis, $antrnr]);
         [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
         protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Abstimmung-Hinweis', $antrnr);
+        $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET hinweis = ? WHERE antrnr = ?")->execute([$hinweis, $antrnr]);
 
         if (function_exists('nm_event_antrag_hinweis')) {
             nm_event_antrag_hinweis($pdo, $antrnr, $antrag['titel'] ?? '', $neuer_hinweis, ($antrag['int_ext'] ?? 'e') === 'i');
@@ -432,9 +434,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zurueckziehen'])) {
         if ($antrag_data && $antrag_data['antrst'] == $user['member_id']) {
             // Z-Präfix für zurückgezogen
             $neue_nr = 'Z' . substr($antrnr, 1);
-            $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr]);
             [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
             protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Zurueckziehen', $antrnr . ' ' . substr($antrag_data['titel'] ?? '', 0, 60));
+            $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET antrnr = ? WHERE antrnr = ?")->execute([$neue_nr, $antrnr]);
 
             // Neue Antragsnummer für Kopie generieren (A-Präfix, aktuelles Datum)
             $date_part = date('ymd');
@@ -498,8 +500,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['zurueckziehen'])) {
             if (TABLE_ANTRAEGE_HAS_ABSTIMMREGEL) {
                 $copy_params[] = $antrag_data['abstimmregel'] ?? null;
             }
-            $copy_stmt->execute($copy_params);
             protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Kopie-Neu', $copy_antrnr . ' (Kopie von ' . $antrnr . ')');
+            $copy_stmt->execute($copy_params);
 
             header("Location: abstimmungen.php?msg=withdrawn");
             exit;

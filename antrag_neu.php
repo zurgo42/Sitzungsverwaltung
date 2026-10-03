@@ -123,6 +123,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Neue Antragsnummer generieren
         $neue_antrnr = generiereAntragsnummer($pdo);
 
+        // Protokollierung vor dem INSERT
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Neu', $neue_antrnr . ' (' . $selected_bart . ')');
+
         // Neuen Antrag in Datenbank erstellen (Minimalversion im Status A = Editing)
         $stmt = $pdo->prepare("
             INSERT INTO " . TABLE_ANTRAEGE . " (
@@ -141,10 +145,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $current_user_id,
             $selected_bart
         ]);
-
-        // Protokollierung
-        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Neu', $neue_antrnr . ' (' . $selected_bart . ')');
 
         // E-Mail-Benachrichtigung: Neuer Antrag
         if (!function_exists('nm_event_antrag_neu') && file_exists(__DIR__ . '/notification_mailer.php')) {
