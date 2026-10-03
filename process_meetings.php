@@ -264,6 +264,9 @@ if (isset($_POST['create_meeting'])) {
         $visibility_type = 'invited_only';
     }
 
+    [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+    protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Erstellen', $meeting_name);
+
     try {
         $pdo->beginTransaction();
 
@@ -300,9 +303,6 @@ if (isset($_POST['create_meeting'])) {
         add_participants($pdo, $meeting_id, $participant_ids);
         
         $pdo->commit();
-
-        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Erstellen', $meeting_name);
 
         header("Location: index.php?tab=meetings&success=created&meeting_id=$meeting_id");
         exit;
@@ -419,6 +419,26 @@ if (isset($_POST['edit_meeting'])) {
                  "visibility_type='$visibility_type' " .
                  "WHERE meeting_id=$meeting_id";
 
+    [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+    $diff_parts = [];
+    foreach ([
+        'Sitzungsname'      => [(string)($meeting['meeting_name'] ?? ''),           $meeting_name],
+        'Datum'             => [(string)($meeting['meeting_date'] ?? ''),            $meeting_date],
+        'Ende'              => [(string)($meeting['expected_end_date'] ?? ''),       $expected_end_date ?? ''],
+        'Antragsschluss'    => [(string)($meeting['submission_deadline'] ?? ''),     $submission_deadline ?? ''],
+        'Ort'               => [(string)($meeting['location'] ?? ''),                $location],
+        'Video-Link'        => [(string)($meeting['video_link'] ?? ''),              $video_link],
+        'Sichtbarkeit'      => [(string)($meeting['visibility_type'] ?? ''),         $visibility_type],
+        'Beschluesse'       => [(string)($meeting['allow_decisions'] ?? 0),          (string)$allow_decisions],
+        'Erinnerungsmail'   => [(string)($meeting['send_agenda_reminder'] ?? 0),     (string)$send_agenda_reminder],
+        'Erinnerung-Emails' => [(string)($meeting['agenda_reminder_emails'] ?? ''),  $agenda_reminder_emails],
+    ] as $feld => [$alt, $neu]) {
+        $part = protokoll_feld_diff($feld, $alt, $neu);
+        if ($part !== null) $diff_parts[] = $part;
+    }
+    protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Bearbeiten',
+        $meeting_name . ' (ID:' . $meeting_id . '): ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)'));
+
     try {
         $pdo->beginTransaction();
 
@@ -463,26 +483,6 @@ if (isset($_POST['edit_meeting'])) {
 
 
         $pdo->commit();
-
-        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        $diff_parts = [];
-        foreach ([
-            'Sitzungsname'      => [(string)($meeting['meeting_name'] ?? ''),           $meeting_name],
-            'Datum'             => [(string)($meeting['meeting_date'] ?? ''),            $meeting_date],
-            'Ende'              => [(string)($meeting['expected_end_date'] ?? ''),       $expected_end_date ?? ''],
-            'Antragsschluss'    => [(string)($meeting['submission_deadline'] ?? ''),     $submission_deadline ?? ''],
-            'Ort'               => [(string)($meeting['location'] ?? ''),                $location],
-            'Video-Link'        => [(string)($meeting['video_link'] ?? ''),              $video_link],
-            'Sichtbarkeit'      => [(string)($meeting['visibility_type'] ?? ''),         $visibility_type],
-            'Beschluesse'       => [(string)($meeting['allow_decisions'] ?? 0),          (string)$allow_decisions],
-            'Erinnerungsmail'   => [(string)($meeting['send_agenda_reminder'] ?? 0),     (string)$send_agenda_reminder],
-            'Erinnerung-Emails' => [(string)($meeting['agenda_reminder_emails'] ?? ''),  $agenda_reminder_emails],
-        ] as $feld => [$alt, $neu]) {
-            $part = protokoll_feld_diff($feld, $alt, $neu);
-            if ($part !== null) $diff_parts[] = $part;
-        }
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Bearbeiten',
-            $meeting_name . ' (ID:' . $meeting_id . '): ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)'));
 
         header("Location: index.php?tab=meetings&success=updated&meeting_id=$meeting_id");
         exit;
@@ -536,6 +536,9 @@ if (isset($_POST['delete_meeting'])) {
         exit;
     }
 
+    [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+    protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Loeschen', ($meeting['meeting_name'] ?? '') . ' (ID:' . $meeting_id . ')');
+
     try {
         $pdo->beginTransaction();
 
@@ -572,9 +575,6 @@ if (isset($_POST['delete_meeting'])) {
         $stmt->execute([$meeting_id]);
         
         $pdo->commit();
-
-        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Loeschen', ($meeting['meeting_name'] ?? '') . ' (ID:' . $meeting_id . ')');
 
         header("Location: index.php?tab=meetings&success=deleted");
         exit;
@@ -632,6 +632,9 @@ if (isset($_POST['start_meeting'])) {
         exit;
     }
 
+    [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+    protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Starten', ($meeting['meeting_name'] ?? '') . ' (ID:' . $meeting_id . ')');
+
     try {
         $pdo->beginTransaction();
 
@@ -678,9 +681,6 @@ if (isset($_POST['start_meeting'])) {
         $stmt->execute([$protocol_text, $meeting_id]);
         
         $pdo->commit();
-
-        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Starten', ($meeting['meeting_name'] ?? '') . ' (ID:' . $meeting_id . ')');
 
         // Zur Tagesordnung weiterleiten
         header("Location: index.php?tab=agenda&meeting_id=$meeting_id");
@@ -797,6 +797,9 @@ if (isset($_POST['duplicate_meeting'])) {
 
         $new_meeting_id = $pdo->lastInsertId();
 
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Duplizieren', 'ID:' . $new_meeting_id . ' von ' . $original_meeting_id);
+
         // Teilnehmer kopieren
         $stmt_participants = $pdo->prepare("
             SELECT member_id
@@ -812,9 +815,6 @@ if (isset($_POST['duplicate_meeting'])) {
         create_default_tops($pdo, $new_meeting_id, $current_user['member_id']);
 
         $pdo->commit();
-
-        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzung-Duplizieren', 'ID:' . $new_meeting_id . ' von ' . $original_meeting_id);
 
         header("Location: index.php?tab=meetings&success=duplicated&meeting_id=$new_meeting_id");
         exit;

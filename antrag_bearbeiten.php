@@ -247,8 +247,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($action) {
             case 'save':
                 $prot_diff = speichereAntrag($pdo, $antrnr, $_POST, $antrag, $user);
-                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
-                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Speichern', $prot_diff);
 
                 // E-Mail-Benachrichtigung: Antrag geändert
                 if (!function_exists('nm_event_antrag_geaendert') && file_exists(__DIR__ . '/notification_mailer.php')) {
@@ -275,27 +273,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'finalize':
+                $neue_nr = (substr($antrnr, 0, 1) === 'A') ? 'B' . substr($antrnr, 1) : $antrnr;
+                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
+                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Finalisieren', $antrnr . ' → ' . $neue_nr);
                 finalisiereAntrag($pdo, $antrnr, $_POST, $antrag, $user);
                 $saved = true;
                 $message = "Antrag wurde verbindlich eingestellt.";
                 // Redirect to updated antrnr
-                $neue_nr = $_POST['neue_antrnr'] ?? $antrnr;
-                [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
-                protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Finalisieren', $antrnr . ' → ' . $neue_nr);
+                $neue_nr = $_POST['neue_antrnr'] ?? $neue_nr;
                 header("Location: antrag_bearbeiten.php?antrnr=" . urlencode($neue_nr) . "&msg=finalized");
                 exit;
 
             case 'delete':
-                verwerfenAntrag($pdo, $antrnr, $antrag, $user);
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
                 protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Verwerfen', $antrnr . ' ' . substr($antrag['titel'] ?? '', 0, 60));
+                verwerfenAntrag($pdo, $antrnr, $antrag, $user);
                 header('Location: index.php?tab=proposals&msg=withdrawn');
                 exit;
 
             case 'verkuerzung':
-                wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user);
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
                 protokoll($pdo, $_prot_mnr, $_prot_kurz, 'WZV-Zustimmung', $antrnr . ' ' . substr($antrag['titel'] ?? '', 0, 60));
+                wartezeitVerkuerzung($pdo, $antrnr, $antrag, $user);
                 $saved = true;
                 $message = "Wartezeitverkürzung gespeichert.";
                 break;
@@ -306,9 +305,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $hinweis_wz = $antrag['hinweis'] ?? '';
                     if ($hinweis_wz) $hinweis_wz .= "\n---\n";
                     $hinweis_wz .= date('d.m.Y H:i') . ' (' . $user_kurzn . '): Wartezeitverkürzung beantragt.';
-                    $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET hinweis = ? WHERE antrnr = ?")->execute([$hinweis_wz, $antrnr]);
                     [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
                     protokoll($pdo, $_prot_mnr, $_prot_kurz, 'WZV-beantragt', $antrnr . ' ' . substr($antrag['titel'] ?? '', 0, 60));
+                    $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET hinweis = ? WHERE antrnr = ?")->execute([$hinweis_wz, $antrnr]);
                     $saved = true;
                     $message = "Wartezeitverkürzung beantragt. Zwei Vorstandsmitglieder müssen nun zustimmen.";
                 }
@@ -469,7 +468,6 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         $params[] = $abstimmregel;
     }
     $params[] = $antrnr;
-    $update->execute($params);
 
     // Diff für Protokollierung: nur geänderte Felder, vorher→nachher
     $diff_felder = [
@@ -519,7 +517,14 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         }
     }
 
-    return $antrnr . ': ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)');
+    $prot_str = $antrnr . ': ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)');
+
+    [$_prot_mnr, $_prot_kurz] = get_protokoll_user($user);
+    protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Antrag-Speichern', $prot_str);
+
+    $update->execute($params);
+
+    return $prot_str;
 }
 
 // Finalisieren-Funktion
