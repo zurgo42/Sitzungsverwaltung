@@ -202,6 +202,19 @@ if ($antragsteller) {
 $prefix = substr($antrnr, 0, 1);
 $ist_admin = ($user_aktiv >= 19 || ($user['is_admin'] ?? 0) == 1);
 
+// Intern-Check: interne Anträge nur für Berechtigte
+$kann_intern_sehen = (
+    ($user['is_admin'] ?? 0) == 1 ||
+    ($user['is_confidential'] ?? 0) == 1 ||
+    in_array($user['role'] ?? '', ['vorstand', 'gf']) ||
+    $user_aktiv > 17 ||
+    ($user['funktion'] ?? '') === 'VA'
+);
+if (($antrag['int_ext'] ?? '') === 'i' && !$kann_intern_sehen) {
+    die("⚠️ Keine Berechtigung. Dieser Antrag ist intern.<br><br>" .
+        "<a href='index.php?tab=proposals'>← Zurück zur Liste</a>");
+}
+
 if ($prefix === 'B') {
     // B-Anträge (in Abstimmung): nur Admins dürfen noch Texte bearbeiten
     $darf_bearbeiten = $ist_admin;
