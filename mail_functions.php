@@ -954,7 +954,7 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
 
     // Einleitungstext: individuell oder automatisch generiert
     $now_time = date('H:i');
-    $default_intro = "Morgen um {$meeting_time_fmt} ist {$meeting_name}. Die Tagesordnung ist - Stand heute {$now_time}:";
+    $default_intro = "Morgen um {$meeting_time_fmt} Uhr ist {$meeting_name}. Die Tagesordnung ist - Stand heute {$now_time} Uhr:";
     $intro_raw = !empty($meeting['agenda_reminder_intro']) ? trim($meeting['agenda_reminder_intro']) : $default_intro;
 
     // Mail-Inhalt aufbauen
