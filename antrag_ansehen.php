@@ -64,7 +64,13 @@ if ($antragsteller) {
 }
 
 // Berechtigungen
-$kann_intern_sehen = ($user['aktiv'] > 17 || ($user['funktion'] ?? '') === 'VA' || $user['is_admin'] == 1);
+$kann_intern_sehen = (
+    ($user['is_admin'] ?? 0) == 1 ||
+    ($user['is_confidential'] ?? 0) == 1 ||
+    in_array($user['role'] ?? '', ['vorstand', 'gf']) ||
+    ($user['aktiv'] ?? 0) > 17 ||
+    ($user['funktion'] ?? '') === 'VA'
+);
 if ($antrag['int_ext'] === 'i' && !$kann_intern_sehen) {
     die("Keine Berechtigung.");
 }
