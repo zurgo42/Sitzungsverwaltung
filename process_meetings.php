@@ -247,6 +247,7 @@ if (isset($_POST['create_meeting'])) {
     $allow_decisions = isset($_POST['allow_decisions']) ? 1 : 0;
     $send_agenda_reminder = isset($_POST['send_agenda_reminder']) ? 1 : 0;
     $agenda_reminder_emails = trim($_POST['agenda_reminder_emails'] ?? '');
+    $agenda_reminder_intro = trim($_POST['agenda_reminder_intro'] ?? '');
 
     // Validierung
     if (empty($meeting_name) || empty($meeting_date)) {
@@ -275,8 +276,8 @@ if (isset($_POST['create_meeting'])) {
             INSERT INTO svmeetings
             (meeting_name, meeting_date, expected_end_date, submission_deadline, location, video_link,
              chairman_member_id, secretary_member_id, invited_by_member_id, visibility_type, allow_decisions,
-             send_agenda_reminder, agenda_reminder_emails, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
+             send_agenda_reminder, agenda_reminder_emails, agenda_reminder_intro, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'preparation', NOW())
         ");
         $stmt->execute([
             $meeting_name,
@@ -292,6 +293,7 @@ if (isset($_POST['create_meeting'])) {
             $allow_decisions,
             $send_agenda_reminder,
             $agenda_reminder_emails ?: null,
+            $agenda_reminder_intro ?: null,
         ]);
         
         $meeting_id = $pdo->lastInsertId();
@@ -377,6 +379,7 @@ if (isset($_POST['edit_meeting'])) {
     $allow_decisions = isset($_POST['allow_decisions']) ? 1 : 0;
     $send_agenda_reminder = isset($_POST['send_agenda_reminder']) ? 1 : 0;
     $agenda_reminder_emails = trim($_POST['agenda_reminder_emails'] ?? '');
+    $agenda_reminder_intro = trim($_POST['agenda_reminder_intro'] ?? '');
 
     // Datetime-Format konvertieren: 2026-05-01T17:00 -> 2026-05-01 17:00:00
     if (!empty($meeting_date)) {
@@ -432,6 +435,7 @@ if (isset($_POST['edit_meeting'])) {
         'Beschluesse'       => [(string)($meeting['allow_decisions'] ?? 0),          (string)$allow_decisions],
         'Erinnerungsmail'   => [(string)($meeting['send_agenda_reminder'] ?? 0),     (string)$send_agenda_reminder],
         'Erinnerung-Emails' => [(string)($meeting['agenda_reminder_emails'] ?? ''),  $agenda_reminder_emails],
+        'Erinnerung-Intro'  => [(string)($meeting['agenda_reminder_intro'] ?? ''),   $agenda_reminder_intro],
     ] as $feld => [$alt, $neu]) {
         $part = protokoll_feld_diff($feld, $alt, $neu);
         if ($part !== null) $diff_parts[] = $part;
@@ -448,7 +452,7 @@ if (isset($_POST['edit_meeting'])) {
             SET meeting_name = ?, meeting_date = ?, expected_end_date = ?, submission_deadline = ?,
                 location = ?, video_link = ?, chairman_member_id = ?, secretary_member_id = ?,
                 visibility_type = ?, allow_decisions = ?,
-                send_agenda_reminder = ?, agenda_reminder_emails = ?,
+                send_agenda_reminder = ?, agenda_reminder_emails = ?, agenda_reminder_intro = ?,
                 agenda_reminder_sent = 0
             WHERE meeting_id = ?
         ");
@@ -465,6 +469,7 @@ if (isset($_POST['edit_meeting'])) {
             $allow_decisions,
             $send_agenda_reminder,
             $agenda_reminder_emails ?: null,
+            $agenda_reminder_intro ?: null,
             $meeting_id
         ]);
 

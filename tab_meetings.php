@@ -218,9 +218,21 @@ require_once 'module_notifications.php';
                 </small>
             </div>
 
+            <div class="form-group" id="create_reminder_intro_group">
+                <label>Einleitungstext der Erinnerungsmail:</label>
+                <textarea name="agenda_reminder_intro" rows="3"
+                          placeholder="Leer = automatisch: &quot;Morgen um HH:MM ist [Sitzungsname]. Die Tagesordnung ist - Stand heute HH:MM:&quot;"
+                          style="width: 100%; font-size: 14px; padding: 6px 8px; resize: vertical;"></textarea>
+                <small style="display: block; margin-top: 5px; color: #666;">
+                    Erscheint vor der Themenliste. Leer lassen für den automatisch generierten Standardtext.
+                </small>
+            </div>
+
             <script>
             document.getElementById('create_send_reminder').addEventListener('change', function() {
-                document.getElementById('create_reminder_emails_group').style.display = this.checked ? '' : 'none';
+                var show = this.checked ? '' : 'none';
+                document.getElementById('create_reminder_emails_group').style.display = show;
+                document.getElementById('create_reminder_intro_group').style.display = show;
             });
             </script>
 
@@ -511,7 +523,7 @@ require_once 'module_notifications.php';
                                        <?php echo ($m['send_agenda_reminder'] ?? 1) ? 'checked' : ''; ?>
                                        style="width: auto;"
                                        id="edit_send_reminder_<?php echo $m['meeting_id']; ?>"
-                                       onchange="document.getElementById('edit_reminder_emails_<?php echo $m['meeting_id']; ?>').style.display=this.checked?'':'none'">
+                                       onchange="var s=this.checked?'':'none'; document.getElementById('edit_reminder_emails_<?php echo $m['meeting_id']; ?>').style.display=s; document.getElementById('edit_reminder_intro_<?php echo $m['meeting_id']; ?>').style.display=s;">
                                 <span>Nach Ablauf der Antragsschlussfrist Erinnerungsmail versenden</span>
                             </label>
                             <small style="display: block; margin-top: 5px; color: #666;">
@@ -531,6 +543,22 @@ require_once 'module_notifications.php';
                                    placeholder="mail@beispiel.de, mail2@beispiel.de">
                             <small style="display: block; margin-top: 5px; color: #666;">
                                 Kommagetrennte Mailadressen. Sitzungs-Teilnehmer werden immer benachrichtigt. Leer = nur Teilnehmer.
+                            </small>
+                        </div>
+
+                        <div class="form-group" id="edit_reminder_intro_<?php echo $m['meeting_id']; ?>"
+                             <?php echo ($m['send_agenda_reminder'] ?? 1) ? '' : 'style="display:none"'; ?>>
+                            <label>Einleitungstext der Erinnerungsmail:</label>
+                            <?php
+                                $meeting_time_default = date('H:i', strtotime($m['meeting_date']));
+                                $meeting_name_esc = htmlspecialchars($m['meeting_name'] ?: 'Sitzung');
+                                $auto_placeholder = "Leer = automatisch: &quot;Morgen um {$meeting_time_default} ist {$meeting_name_esc}. Die Tagesordnung ist - Stand heute HH:MM:&quot;";
+                            ?>
+                            <textarea name="agenda_reminder_intro" rows="3"
+                                      placeholder="<?php echo $auto_placeholder; ?>"
+                                      style="width: 100%; font-size: 14px; padding: 6px 8px; resize: vertical;"><?php echo htmlspecialchars($m['agenda_reminder_intro'] ?? ''); ?></textarea>
+                            <small style="display: block; margin-top: 5px; color: #666;">
+                                Erscheint vor der Themenliste. Leer lassen für den automatisch generierten Standardtext.
                             </small>
                         </div>
 

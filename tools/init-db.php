@@ -83,6 +83,7 @@ try {
         send_agenda_reminder TINYINT(1) DEFAULT 1 COMMENT 'Erinnerungsmail nach Antragsschluss versenden',
         agenda_reminder_emails TEXT DEFAULT NULL COMMENT 'Kommagetrennte Empfänger-Mailadressen (leer = nur Teilnehmer)',
         agenda_reminder_sent TINYINT(1) DEFAULT 0 COMMENT '1 = Erinnerungsmail wurde bereits versendet',
+        agenda_reminder_intro TEXT DEFAULT NULL COMMENT 'Individueller Einleitungstext der Erinnerungsmail (leer = automatisch)',
         protokoll TEXT DEFAULT NULL,
         prot_intern TEXT DEFAULT NULL,
         protocol_intern TEXT NOT NULL DEFAULT '',
@@ -1215,6 +1216,14 @@ try {
         $pdo->exec("ALTER TABLE svmeetings ADD COLUMN send_agenda_reminder TINYINT(1) DEFAULT 1 COMMENT 'Erinnerungsmail nach Antragsschluss versenden' AFTER allow_decisions");
         $pdo->exec("ALTER TABLE svmeetings ADD COLUMN agenda_reminder_emails TEXT DEFAULT NULL COMMENT 'Kommagetrennte Empfänger-Mailadressen' AFTER send_agenda_reminder");
         $pdo->exec("ALTER TABLE svmeetings ADD COLUMN agenda_reminder_sent TINYINT(1) DEFAULT 0 COMMENT '1 = Erinnerungsmail wurde bereits versendet' AFTER agenda_reminder_emails");
+        echo ".";
+    }
+
+    // Migration: agenda_reminder_intro zu svmeetings hinzufügen
+    $stmt = $pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'agenda_reminder_intro'");
+    if (!$stmt->fetch()) {
+        echo "<p>Füge agenda_reminder_intro-Spalte zu svmeetings hinzu...</p>";
+        $pdo->exec("ALTER TABLE svmeetings ADD COLUMN agenda_reminder_intro TEXT DEFAULT NULL COMMENT 'Individueller Einleitungstext der Erinnerungsmail (leer = automatisch)' AFTER agenda_reminder_sent");
         echo ".";
     }
 

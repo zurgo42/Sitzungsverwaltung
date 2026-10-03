@@ -952,10 +952,13 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
     $location_text = !empty($meeting['location']) ? ' (Ort: ' . $meeting['location'] . ')' : '';
     $location_html = !empty($meeting['location']) ? ' (Ort: ' . htmlspecialchars($meeting['location']) . ')' : '';
 
-    // Mail-Inhalt aufbauen (keine Anrede — automatisch erzeugte Information)
-    $text  = "In der Sitzung \"{$meeting_name}\" am {$meeting_date_fmt} um {$meeting_time_fmt} Uhr{$location_text} ";
-    $text .= "stehen folgende Themen an.\n";
-    $text .= "Bitte ggf. kurzfristig kommentieren, wenn es hierzu Hinweise gibt:\n\n";
+    // Einleitungstext: individuell oder automatisch generiert
+    $now_time = date('H:i');
+    $default_intro = "Morgen um {$meeting_time_fmt} ist {$meeting_name}. Die Tagesordnung ist - Stand heute {$now_time}:";
+    $intro_raw = !empty($meeting['agenda_reminder_intro']) ? trim($meeting['agenda_reminder_intro']) : $default_intro;
+
+    // Mail-Inhalt aufbauen
+    $text  = $intro_raw . "\n\n";
     foreach ($tops as $top) {
         $top_url = $meeting_link . '#top-' . $top['item_id'];
         $text .= "• " . $top['title'] . "\n  " . $top_url . "\n\n";
@@ -965,10 +968,7 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
     }
     $text .= "Zur Sitzung: " . $meeting_link . "\n";
 
-    $html  = '<p>In der Sitzung <strong>' . htmlspecialchars($meeting_name) . '</strong>';
-    $html .= ' am <strong>' . $meeting_date_fmt . ' um ' . $meeting_time_fmt . ' Uhr</strong>' . $location_html;
-    $html .= ' stehen folgende Themen an.<br>';
-    $html .= 'Bitte ggf. kurzfristig kommentieren, wenn es hierzu Hinweise gibt:</p>';
+    $html  = '<p>' . nl2br(htmlspecialchars($intro_raw)) . '</p>';
     $html .= '<ol style="line-height:1.8;">';
     foreach ($tops as $top) {
         $top_url = $meeting_link . '#top-' . $top['item_id'];
