@@ -157,6 +157,34 @@ if (isset($_POST['edit_meeting'])) {
             if (!$old_meeting) {
                 $error_message = "Meeting nicht gefunden.";
             } else {
+                // Neue Daten für Log
+                $new_meeting = [
+                    'meeting_name' => $meeting_name,
+                    'meeting_date' => $meeting_date,
+                    'expected_end_date' => $expected_end_date,
+                    'submission_deadline' => $submission_deadline,
+                    'location' => $location,
+                    'video_link' => $video_link,
+                    'status' => $status,
+                    'visibility_type' => $visibility_type,
+                    'invited_by_member_id' => $invited_by_member_id,
+                    'chairman_member_id' => $chairman_id,
+                    'secretary_member_id' => $secretary_id,
+                    'participant_count' => count($participant_ids)
+                ];
+
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'meeting_edit',
+                    "Meeting bearbeitet: " . $meeting_name,
+                    'meeting',
+                    $meeting_id,
+                    $old_meeting,
+                    $new_meeting
+                );
+
                 // Meeting aktualisieren
                 $stmt = $pdo->prepare("
                     UPDATE svmeetings
@@ -203,35 +231,7 @@ if (isset($_POST['edit_meeting'])) {
                         $stmt->execute([$meeting_id, intval($member_id)]);
                     }
                 }
-                
-                // Neue Daten für Log
-                $new_meeting = [
-                    'meeting_name' => $meeting_name,
-                    'meeting_date' => $meeting_date,
-                    'expected_end_date' => $expected_end_date,
-                    'submission_deadline' => $submission_deadline,
-                    'location' => $location,
-                    'video_link' => $video_link,
-                    'status' => $status,
-                    'visibility_type' => $visibility_type,
-                    'invited_by_member_id' => $invited_by_member_id,
-                    'chairman_member_id' => $chairman_id,
-                    'secretary_member_id' => $secretary_id,
-                    'participant_count' => count($participant_ids)
-                ];
-                
-                // Admin-Log
-                log_admin_action(
-                    $pdo,
-                    $current_user['member_id'],
-                    'meeting_edit',
-                    "Meeting bearbeitet: " . $meeting_name,
-                    'meeting',
-                    $meeting_id,
-                    $old_meeting,
-                    $new_meeting
-                );
-                
+
                 $success_message = "✅ Meeting erfolgreich aktualisiert!";
             }
         } catch (PDOException $e) {
@@ -277,15 +277,6 @@ if (isset($_POST['admin_end_meeting'])) {
             if (!$old_meeting) {
                 $error_message = "Meeting nicht gefunden.";
             } else {
-                // Meeting beenden
-                $stmt = $pdo->prepare("
-                    UPDATE svmeetings
-                    SET status = 'ended',
-                        end_time = ?
-                    WHERE meeting_id = ?
-                ");
-                $stmt->execute([$end_time, $meeting_id]);
-
                 // Admin-Log
                 log_admin_action(
                     $pdo,
@@ -303,6 +294,15 @@ if (isset($_POST['admin_end_meeting'])) {
                         'end_time' => $end_time
                     ]
                 );
+
+                // Meeting beenden
+                $stmt = $pdo->prepare("
+                    UPDATE svmeetings
+                    SET status = 'ended',
+                        end_time = ?
+                    WHERE meeting_id = ?
+                ");
+                $stmt->execute([$end_time, $meeting_id]);
 
                 $success_message = "✅ Sitzung wurde erfolgreich beendet.";
             }
@@ -332,23 +332,34 @@ if (isset($_POST['delete_meeting'])) {
         $error_message = "Ungültige Meeting-ID.";
     } else {
         try {
-            $pdo->beginTransaction();
-            
             // Alte Daten für Log abrufen
             $stmt = $pdo->prepare("SELECT * FROM svmeetings WHERE meeting_id = ?");
             $stmt->execute([$meeting_id]);
             $old_meeting = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if (!$old_meeting) {
                 $error_message = "Meeting nicht gefunden.";
-                $pdo->rollBack();
             } else {
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'meeting_delete',
+                    "Meeting gelöscht: " . ($old_meeting['meeting_name'] ?? 'Unbenannt'),
+                    'meeting',
+                    $meeting_id,
+                    $old_meeting,
+                    null
+                );
+
+                $pdo->beginTransaction();
+
                 // Reihenfolge wichtig wegen Foreign Keys!
-                
+
                 // 1. ToDos löschen
                 $stmt = $pdo->prepare("DELETE FROM svtodos WHERE meeting_id = ?");
                 $stmt->execute([$meeting_id]);
-                
+
                 // 2. Kommentare löschen (über Agenda Items)
                 $stmt = $pdo->prepare("
                     DELETE FROM svagenda_comments
@@ -366,27 +377,15 @@ if (isset($_POST['delete_meeting'])) {
                 // 3. Agenda Items löschen
                 $stmt = $pdo->prepare("DELETE FROM svagenda_items WHERE meeting_id = ?");
                 $stmt->execute([$meeting_id]);
-                
+
                 // 4. Teilnehmer löschen
                 $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
                 $stmt->execute([$meeting_id]);
-                
+
                 // 5. Meeting löschen
                 $stmt = $pdo->prepare("DELETE FROM svmeetings WHERE meeting_id = ?");
                 $stmt->execute([$meeting_id]);
-                
-                // Admin-Log
-                log_admin_action(
-                    $pdo,
-                    $current_user['member_id'],
-                    'meeting_delete',
-                    "Meeting gelöscht: " . ($old_meeting['meeting_name'] ?? 'Unbenannt'),
-                    'meeting',
-                    $meeting_id,
-                    $old_meeting,
-                    null
-                );
-                
+
                 $pdo->commit();
                 $success_message = "✅ Meeting erfolgreich gelöscht!";
             }
@@ -456,8 +455,6 @@ if (isset($_POST['add_member'])) {
             if ($funktion !== '') {
                 $data['funktion'] = $funktion;
             }
-            $new_member_id = create_member($pdo, $data);
-
             // Admin-Log
             log_admin_action(
                 $pdo,
@@ -465,7 +462,7 @@ if (isset($_POST['add_member'])) {
                 'member_create',
                 "Mitglied erstellt: $first_name $last_name ($email)",
                 'member',
-                $new_member_id,
+                null,
                 null,
                 [
                     'first_name' => $first_name,
@@ -478,6 +475,8 @@ if (isset($_POST['add_member'])) {
                     'is_confidential' => $is_confidential
                 ]
             );
+
+            $new_member_id = create_member($pdo, $data);
             
             $success_message = "✅ Mitglied erfolgreich hinzugefügt!";
         } catch (PDOException $e) {
@@ -540,18 +539,8 @@ if (isset($_POST['edit_member'])) {
                     'is_admin' => $is_admin,
                     'is_confidential' => $is_confidential
                 ];
-                update_member($pdo, $member_id, $update_data);
-                
-                // Passwort ändern falls angegeben
-                $password_changed = false;
-                if (!empty($_POST['password'])) {
-                    $password_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
-                    $stmt = $pdo->prepare("UPDATE svmembers SET password_hash = ? WHERE member_id = ?");
-                    $stmt->execute([$password_hash, $member_id]);
-                    $password_changed = true;
-                }
-                
                 // Neue Daten für Log
+                $password_changed = !empty($_POST['password']);
                 $new_member = [
                     'first_name' => $first_name,
                     'last_name' => $last_name,
@@ -563,7 +552,7 @@ if (isset($_POST['edit_member'])) {
                     'is_confidential' => $is_confidential,
                     'password_changed' => $password_changed
                 ];
-                
+
                 // Admin-Log
                 log_admin_action(
                     $pdo,
@@ -575,6 +564,15 @@ if (isset($_POST['edit_member'])) {
                     $old_member,
                     $new_member
                 );
+
+                update_member($pdo, $member_id, $update_data);
+
+                // Passwort ändern falls angegeben
+                if ($password_changed) {
+                    $password_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
+                    $stmt = $pdo->prepare("UPDATE svmembers SET password_hash = ? WHERE member_id = ?");
+                    $stmt->execute([$password_hash, $member_id]);
+                }
                 
                 $success_message = "✅ Mitglied erfolgreich aktualisiert!";
             }
@@ -612,9 +610,6 @@ if (isset($_POST['delete_member'])) {
             if (!$old_member) {
                 $error_message = "Mitglied nicht gefunden.";
             } else {
-                // Mitglied löschen (über Wrapper-Funktion)
-                delete_member($pdo, $member_id);
-                
                 // Admin-Log
                 log_admin_action(
                     $pdo,
@@ -626,6 +621,9 @@ if (isset($_POST['delete_member'])) {
                     $old_member,
                     null
                 );
+
+                // Mitglied löschen (über Wrapper-Funktion)
+                delete_member($pdo, $member_id);
                 
                 $success_message = "✅ Mitglied erfolgreich gelöscht!";
             }
@@ -665,14 +663,6 @@ if (isset($_POST['add_ressort'])) {
             if ($check_stmt->fetch()) {
                 $error_message = "Ein Ressort mit diesem Namen existiert bereits.";
             } else {
-                // Ressort hinzufügen
-                $stmt = $pdo->prepare("
-                    INSERT INTO svressorts (Ressort, Reihenfolge, aktiv, created_at)
-                    VALUES (?, ?, ?, NOW())
-                ");
-                $stmt->execute([$ressort_name, $reihenfolge, $aktiv]);
-                $new_id = $pdo->lastInsertId();
-
                 // Admin-Log
                 log_admin_action(
                     $pdo,
@@ -680,10 +670,18 @@ if (isset($_POST['add_ressort'])) {
                     'ressort_add',
                     "Ressort hinzugefügt: " . $ressort_name,
                     'ressort',
-                    $new_id,
+                    0,
                     null,
                     ['Ressort' => $ressort_name, 'Reihenfolge' => $reihenfolge, 'aktiv' => $aktiv]
                 );
+
+                // Ressort hinzufügen
+                $stmt = $pdo->prepare("
+                    INSERT INTO svressorts (Ressort, Reihenfolge, aktiv, created_at)
+                    VALUES (?, ?, ?, NOW())
+                ");
+                $stmt->execute([$ressort_name, $reihenfolge, $aktiv]);
+                $new_id = $pdo->lastInsertId();
 
                 header('Location: ?tab=admin&msg=ressort_added');
                 exit;
@@ -732,14 +730,6 @@ if (isset($_POST['edit_ressort'])) {
                 if ($check_stmt->fetch()) {
                     $error_message = "Ein anderes Ressort mit diesem Namen existiert bereits.";
                 } else {
-                    // Ressort aktualisieren
-                    $stmt = $pdo->prepare("
-                        UPDATE svressorts
-                        SET Ressort = ?, Reihenfolge = ?, aktiv = ?, updated_at = NOW()
-                        WHERE ID = ?
-                    ");
-                    $stmt->execute([$ressort_name, $reihenfolge, $aktiv, $ressort_id]);
-
                     // Admin-Log
                     log_admin_action(
                         $pdo,
@@ -751,6 +741,14 @@ if (isset($_POST['edit_ressort'])) {
                         ['Ressort' => $old_ressort['Ressort'], 'Reihenfolge' => $old_ressort['Reihenfolge'], 'aktiv' => $old_ressort['aktiv'] ?? 1],
                         ['Ressort' => $ressort_name, 'Reihenfolge' => $reihenfolge, 'aktiv' => $aktiv]
                     );
+
+                    // Ressort aktualisieren
+                    $stmt = $pdo->prepare("
+                        UPDATE svressorts
+                        SET Ressort = ?, Reihenfolge = ?, aktiv = ?, updated_at = NOW()
+                        WHERE ID = ?
+                    ");
+                    $stmt->execute([$ressort_name, $reihenfolge, $aktiv, $ressort_id]);
 
                     header('Location: ?tab=admin&msg=ressort_updated');
                     exit;
@@ -799,10 +797,6 @@ if (isset($_POST['delete_ressort'])) {
                 if ($usage_count > 0) {
                     $error_message = "Ressort wird noch in {$usage_count} Antrag/Anträgen verwendet und kann nicht gelöscht werden. Bitte setze es stattdessen auf 'Inaktiv'.";
                 } else {
-                    // Ressort löschen
-                    $stmt = $pdo->prepare("DELETE FROM svressorts WHERE ID = ?");
-                    $stmt->execute([$ressort_id]);
-
                     // Admin-Log
                     log_admin_action(
                         $pdo,
@@ -814,6 +808,10 @@ if (isset($_POST['delete_ressort'])) {
                         ['Ressort' => $old_ressort['Ressort'], 'Reihenfolge' => $old_ressort['Reihenfolge']],
                         null
                     );
+
+                    // Ressort löschen
+                    $stmt = $pdo->prepare("DELETE FROM svressorts WHERE ID = ?");
+                    $stmt->execute([$ressort_id]);
 
                     header('Location: ?tab=admin&msg=ressort_deleted');
                     exit;
@@ -1307,14 +1305,6 @@ if (isset($_POST['close_todo'])) {
             if (!$old_todo) {
                 $error_message = "ToDo nicht gefunden.";
             } else {
-                // ToDo schließen
-                $stmt = $pdo->prepare("
-                    UPDATE svtodos 
-                    SET status = 'done', completed_at = NOW() 
-                    WHERE todo_id = ?
-                ");
-                $stmt->execute([$todo_id]);
-                
                 // Admin-Log
                 log_admin_action(
                     $pdo,
@@ -1326,6 +1316,14 @@ if (isset($_POST['close_todo'])) {
                     ['status' => 'open'],
                     ['status' => 'done']
                 );
+
+                // ToDo schließen
+                $stmt = $pdo->prepare("
+                    UPDATE svtodos
+                    SET status = 'done', completed_at = NOW()
+                    WHERE todo_id = ?
+                ");
+                $stmt->execute([$todo_id]);
                 
                 $success_message = "✅ ToDo erfolgreich geschlossen!";
             }
@@ -1374,23 +1372,6 @@ if (isset($_POST['edit_todo'])) {
             if (!$old_todo) {
                 $error_message = "ToDo nicht gefunden.";
             } else {
-                // ToDo aktualisieren
-                $stmt = $pdo->prepare("
-                    UPDATE svtodos
-                    SET title = ?, description = ?, assigned_to_member_id = ?,
-                        status = ?, entry_date = ?, due_date = ?
-                    WHERE todo_id = ?
-                ");
-                $stmt->execute([
-                    $title,
-                    $description,
-                    $assigned_to_member_id,
-                    $status,
-                    $entry_date ?: null,
-                    $due_date ?: null,
-                    $todo_id
-                ]);
-
                 // Admin-Log
                 log_admin_action(
                     $pdo,
@@ -1409,6 +1390,23 @@ if (isset($_POST['edit_todo'])) {
                         'due_date' => $due_date
                     ]
                 );
+
+                // ToDo aktualisieren
+                $stmt = $pdo->prepare("
+                    UPDATE svtodos
+                    SET title = ?, description = ?, assigned_to_member_id = ?,
+                        status = ?, entry_date = ?, due_date = ?
+                    WHERE todo_id = ?
+                ");
+                $stmt->execute([
+                    $title,
+                    $description,
+                    $assigned_to_member_id,
+                    $status,
+                    $entry_date ?: null,
+                    $due_date ?: null,
+                    $todo_id
+                ]);
 
                 $success_message = "✅ ToDo erfolgreich aktualisiert!";
             }
@@ -1445,10 +1443,6 @@ if (isset($_POST['delete_todo'])) {
             if (!$old_todo) {
                 $error_message = "ToDo nicht gefunden.";
             } else {
-                // ToDo löschen
-                $stmt = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
-                $stmt->execute([$todo_id]);
-
                 // Admin-Log
                 log_admin_action(
                     $pdo,
@@ -1460,6 +1454,10 @@ if (isset($_POST['delete_todo'])) {
                     $old_todo,
                     null
                 );
+
+                // ToDo löschen
+                $stmt = $pdo->prepare("DELETE FROM svtodos WHERE todo_id = ?");
+                $stmt->execute([$todo_id]);
 
                 $success_message = "✅ ToDo erfolgreich gelöscht!";
             }
@@ -1509,10 +1507,6 @@ if (isset($_POST['delete_collab_text'])) {
             }
 
             if ($text_info) {
-                // Text löschen (CASCADE löscht alle zugehörigen Daten)
-                $stmt = $pdo->prepare("DELETE FROM svcollab_texts WHERE text_id = ?");
-                $stmt->execute([$text_id]);
-
                 // Admin-Aktion protokollieren
                 log_admin_action(
                     $pdo,
@@ -1524,6 +1518,10 @@ if (isset($_POST['delete_collab_text'])) {
                     $text_info,
                     null
                 );
+
+                // Text löschen (CASCADE löscht alle zugehörigen Daten)
+                $stmt = $pdo->prepare("DELETE FROM svcollab_texts WHERE text_id = ?");
+                $stmt->execute([$text_id]);
 
                 $success_message = "✅ Text \"{$text_info['title']}\" erfolgreich gelöscht!";
             } else {
@@ -1565,6 +1563,10 @@ if (isset($_POST['admin_create_todo'])) {
 
         if (!isset($error_message)) {
             try {
+                // Logging
+                $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'admin-todo-erstellt', NULL, ?)");
+                $log->execute([0, $current_user['member_id'], $title]);
+
                 $stmt = $pdo->prepare("
                     INSERT INTO svtodos (
                         title, description, assigned_to_member_id, created_by_member_id,
@@ -1581,10 +1583,6 @@ if (isset($_POST['admin_create_todo'])) {
                 ]);
 
                 $todo_id = $pdo->lastInsertId();
-
-                // Logging
-                $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'admin-todo-erstellt', NULL, ?)");
-                $log->execute([$todo_id, $current_user['member_id'], $title]);
 
                 $success_message = '✅ ToDo erfolgreich erstellt.';
             } catch (PDOException $e) {
@@ -1632,6 +1630,12 @@ if (isset($_POST['admin_edit_todo'])) {
                 if (!$old_todo) {
                     $error_message = "ToDo nicht gefunden.";
                 } else {
+                    $params = [$title, $description, $assigned_to, $status, $due_date, $is_private, $todo_id];
+
+                    // Logging
+                    $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'admin-todo-bearbeitet', ?, ?)");
+                    $log->execute([$todo_id, $current_user['member_id'], json_encode($old_todo), json_encode($params)]);
+
                     // Update mit completed_at
                     if ($status === 'done' && $old_todo['status'] !== 'done') {
                         $stmt = $pdo->prepare("
@@ -1656,12 +1660,7 @@ if (isset($_POST['admin_edit_todo'])) {
                         ");
                     }
 
-                    $params = [$title, $description, $assigned_to, $status, $due_date, $is_private, $todo_id];
                     $stmt->execute($params);
-
-                    // Logging
-                    $log = $pdo->prepare("INSERT INTO svtodo_log (todo_id, changed_by, change_type, old_value, new_value) VALUES (?, ?, 'admin-todo-bearbeitet', ?, ?)");
-                    $log->execute([$todo_id, $current_user['member_id'], json_encode($old_todo), json_encode($params)]);
 
                     $success_message = '✅ ToDo erfolgreich aktualisiert.';
                 }
@@ -1727,8 +1726,6 @@ if (isset($_POST['admin_delete_poll'])) {
         $error_message = "Ungültige Umfrage-ID.";
     } else {
         try {
-            $pdo->beginTransaction();
-
             // Umfrage-Daten für Log abrufen
             $stmt = $pdo->prepare("SELECT * FROM svpolls WHERE poll_id = ?");
             $stmt->execute([$poll_id]);
@@ -1737,6 +1734,20 @@ if (isset($_POST['admin_delete_poll'])) {
             if (!$poll) {
                 $error_message = "Terminabfrage nicht gefunden.";
             } else {
+                // Admin-Log
+                log_admin_action(
+                    $pdo,
+                    $current_user['member_id'],
+                    'poll_delete',
+                    "Terminabfrage gelöscht: {$poll['title']}",
+                    'poll',
+                    $poll_id,
+                    $poll,
+                    null
+                );
+
+                $pdo->beginTransaction();
+
                 // 1. Antworten löschen
                 $stmt = $pdo->prepare("DELETE FROM svpoll_responses WHERE poll_id = ?");
                 $stmt->execute([$poll_id]);
@@ -1754,18 +1765,6 @@ if (isset($_POST['admin_delete_poll'])) {
                 $stmt->execute([$poll_id]);
 
                 $pdo->commit();
-
-                // Admin-Log
-                log_admin_action(
-                    $pdo,
-                    $current_user['member_id'],
-                    'poll_delete',
-                    "Terminabfrage gelöscht: {$poll['title']}",
-                    'poll',
-                    $poll_id,
-                    $poll,
-                    null
-                );
 
                 header('Location: ?tab=admin&msg=poll_deleted');
                 exit;
