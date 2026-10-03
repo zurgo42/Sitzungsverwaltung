@@ -947,14 +947,21 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
     $meeting_name     = $meeting['meeting_name'] ?: 'Sitzung';
     $meeting_link     = $meeting_base . '/index.php?tab=agenda&meeting_id=' . $meeting_id;
 
-    $subject = "Tagesordnung: {$meeting_name} am {$meeting_date_fmt} um {$meeting_time_fmt} Uhr";
+    $now_time = date('H:i');
+    $tpl_placeholders = ['{meeting_name}', '{meeting_date}', '{meeting_time}', '{now_time}'];
+    $tpl_values       = [$meeting_name,    $meeting_date_fmt, $meeting_time_fmt, $now_time];
+
+    $subject_tpl = defined('AGENDA_REMINDER_SUBJECT') ? AGENDA_REMINDER_SUBJECT
+                 : 'Tagesordnung: {meeting_name} am {meeting_date} um {meeting_time} Uhr';
+    $subject = str_replace($tpl_placeholders, $tpl_values, $subject_tpl);
 
     $location_text = !empty($meeting['location']) ? ' (Ort: ' . $meeting['location'] . ')' : '';
     $location_html = !empty($meeting['location']) ? ' (Ort: ' . htmlspecialchars($meeting['location']) . ')' : '';
 
-    // Einleitungstext: individuell oder automatisch generiert
-    $now_time = date('H:i');
-    $default_intro = "Morgen um {$meeting_time_fmt} Uhr ist {$meeting_name}. Die Tagesordnung ist - Stand heute {$now_time} Uhr:";
+    // Einleitungstext: per Sitzung individuell, sonst aus Config, sonst eingebauter Fallback
+    $default_intro_tpl = defined('AGENDA_REMINDER_INTRO') ? AGENDA_REMINDER_INTRO
+                       : 'Morgen um {meeting_time} Uhr ist {meeting_name}. Die Tagesordnung ist - Stand heute {now_time} Uhr:';
+    $default_intro = str_replace($tpl_placeholders, $tpl_values, $default_intro_tpl);
     $intro_raw = !empty($meeting['agenda_reminder_intro']) ? trim($meeting['agenda_reminder_intro']) : $default_intro;
 
     // Mail-Inhalt aufbauen

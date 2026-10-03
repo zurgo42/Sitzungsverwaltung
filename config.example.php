@@ -102,6 +102,14 @@ define('DEFAULT_VIDEO_LINK', 'https://meet.zurgo.de/');
 // Zeitspanne in Stunden, wie lange nach Sitzungsende Änderungswünsche möglich sind
 define('PROTOCOL_FEEDBACK_HOURS', 48); // 48 Stunden = 2 Tage
 
+// ============= AGENDA-ERINNERUNGSMAIL =============
+// Betreff der automatischen Tagesordnungsmail nach Antragsschluss
+// Platzhalter: {meeting_name}, {meeting_date}, {meeting_time}
+define('AGENDA_REMINDER_SUBJECT', 'Tagesordnung Jour Fixe Vorstand');
+// Einleitungstext vor der Themenliste (überschreibbar pro Sitzung im Bearbeiten-Dialog)
+// Platzhalter: {meeting_name}, {meeting_date}, {meeting_time}, {now_time}
+define('AGENDA_REMINDER_INTRO', 'Morgen um {meeting_time} Uhr ist {meeting_name}. Die Tagesordnung ist - Stand heute {now_time} Uhr:');
+
 // ============= E-MAIL-EINSTELLUNGEN (optional) =============
 define('MAIL_ENABLED', false);  // E-Mail-Versand aktivieren/deaktivieren
 define('MAIL_FROM', 'meetings@example.com');

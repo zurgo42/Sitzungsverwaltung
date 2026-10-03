@@ -101,6 +101,21 @@ define('MEMBER_MGMT_URL', 'https://example.org/admin/members');
 
 Wird die Konstante nicht gesetzt, wird `berechtigte_editor.php` als Fallback verwendet.
 
+#### AGENDA_REMINDER_SUBJECT / AGENDA_REMINDER_INTRO
+
+Betreff und Einleitungstext der automatischen Tagesordnungsmail nach Antragsschluss.
+
+```php
+// Betreff (Platzhalter: {meeting_name}, {meeting_date}, {meeting_time})
+define('AGENDA_REMINDER_SUBJECT', 'Tagesordnung Jour Fixe Vorstand');
+
+// Einleitungstext (zusätzlich: {now_time} = Versandzeit)
+define('AGENDA_REMINDER_INTRO', 'Morgen um {meeting_time} Uhr ist {meeting_name}. Die Tagesordnung ist - Stand heute {now_time} Uhr:');
+```
+
+Der Einleitungstext kann außerdem pro Sitzung im Bearbeiten-Dialog überschrieben werden.
+Wird eine Konstante nicht gesetzt, greift der eingebaute Fallback.
+
 ## Backup-Strategie
 
 **Vor jedem größeren Update:**
