@@ -121,6 +121,12 @@ if (isset($_POST['add_agenda_item'])) {
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
 
     if ($current_meeting_id && $title) {
+        // Protokoll VOR der Transaktion schreiben – bleibt erhalten, auch wenn die DB-Operation später fehlschlägt
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        $_prot_str = 'Sitzung ' . $current_meeting_id . ': ' . substr($title, 0, 80)
+            . ($description ? ' | ' . substr($description, 0, 120) : '');
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Neu', $_prot_str);
+
         try {
             // Transaktion starten für atomare Operation
             $pdo->beginTransaction();
@@ -263,13 +269,6 @@ if (isset($_POST['add_agenda_item'])) {
             // Transaktion abschließen
             $pdo->commit();
 
-            // Durchschnittswerte berechnen (NACH commit, nicht in Transaktion)
-            // Nicht nötig beim Erstellen, da nur ein Kommentar existiert und Werte schon korrekt sind
-            // recalculate_item_metrics($pdo, $new_item_id);
-
-            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Neu', 'Sitzung ' . $current_meeting_id . ': ' . substr($title, 0, 80));
-
             // E-Mail-Benachrichtigung: Neuer TOP
             if (!function_exists('nm_event_top_neu') && file_exists(__DIR__ . '/notification_mailer.php')) {
                 require_once __DIR__ . '/notification_mailer.php';
@@ -409,13 +408,7 @@ if (isset($_POST['edit_agenda_item']) && !isset($_POST['delete_agenda_item'])) {
                     $referent_member_id = $item['referent_member_id'] ?? null;
                 }
 
-                $stmt = $pdo->prepare("
-                    UPDATE svagenda_items
-                    SET title = ?, description = ?, category = ?, proposal_text = ?, referent_member_id = ?
-                    WHERE item_id = ?
-                ");
-                $stmt->execute([$title, $description, $category, $proposal_text, $referent_member_id, $item_id]);
-
+                // Diff berechnen und Protokoll VOR dem UPDATE schreiben
                 [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
                 $diff_parts = [];
                 foreach ([
@@ -429,6 +422,13 @@ if (isset($_POST['edit_agenda_item']) && !isset($_POST['delete_agenda_item'])) {
                 }
                 protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Bearbeiten',
                     'Sitzung ' . $current_meeting_id . '/' . $item_id . ': ' . ($diff_parts ? implode('; ', $diff_parts) : '(unverändert)'));
+
+                $stmt = $pdo->prepare("
+                    UPDATE svagenda_items
+                    SET title = ?, description = ?, category = ?, proposal_text = ?, referent_member_id = ?
+                    WHERE item_id = ?
+                ");
+                $stmt->execute([$title, $description, $category, $proposal_text, $referent_member_id, $item_id]);
 
                 error_log("EDIT TOP Success: Updated category from {$item['old_category']} to $category");
 
@@ -1838,6 +1838,12 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
 
     if ($title) {
+        // Protokoll VOR der Transaktion schreiben – bleibt erhalten, auch wenn die DB-Operation später fehlschlägt
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        $_prot_str_act = 'Sitzung ' . $current_meeting_id . ': ' . substr($title, 0, 80)
+            . ($description ? ' | ' . substr($description, 0, 120) : '');
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Neu-Aktiv', $_prot_str_act);
+
         try {
             // Transaktion starten für atomare Operation
             $pdo->beginTransaction();
@@ -1974,9 +1980,6 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
             // Transaktion abschließen
             $pdo->commit();
             error_log("TOP successfully added and committed");
-
-            [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-            protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Neu-Aktiv', $title);
 
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$new_item_id");
             exit;
