@@ -78,9 +78,28 @@ nano config_adapter.php  # Login-Modus, Member-Source konfigurieren
 ### config_adapter.php
 - Login-Modus (REQUIRE_LOGIN)
 - Mitglieder-Datenquelle (MEMBER_SOURCE: 'members' oder 'berechtigte')
+- Link zur externen Mitgliederverwaltung (MEMBER_MGMT_URL, nur bei MEMBER_SOURCE='berechtigte')
 - SSO-Konfiguration (SSO_SOURCE)
 - Test-Mitgliedsnummer (nur für Entwicklung)
 - Display-Modi (Standard, SSO-Direkt, Minimal)
+
+#### MEMBER_MGMT_URL
+Wenn `MEMBER_SOURCE='berechtigte'` gesetzt ist, ersetzt der Admin-Bereich die
+eingebaute Mitgliederverwaltung durch einen Link zur externen Verwaltungsseite.
+Die URL wird über diese Konstante konfiguriert:
+
+```php
+// Standard: berechtigte_editor.php im selben Verzeichnis
+define('MEMBER_MGMT_URL', 'berechtigte_editor.php');
+
+// Beispiel: Editor liegt eine Ebene höher
+define('MEMBER_MGMT_URL', '../vtool/berechtigte_editor.php');
+
+// Beispiel: absolute URL
+define('MEMBER_MGMT_URL', 'https://example.org/admin/members');
+```
+
+Wird die Konstante nicht gesetzt, wird `berechtigte_editor.php` als Fallback verwendet.
 
 ## Backup-Strategie
 
@@ -148,6 +167,10 @@ define('REQUIRE_LOGIN', true);
 
 define('REQUIRE_LOGIN', false);  // SSO-Modus
 define('MEMBER_SOURCE', 'berechtigte');
+
+// URL zur externen Mitgliederverwaltung (im Admin-Bereich verlinkt)
+// ANPASSEN falls der Editor woanders liegt:
+define('MEMBER_MGMT_URL', 'berechtigte_editor.php');
 ```
 
 ### Produktivserver (ohne VTool):

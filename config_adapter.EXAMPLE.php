@@ -45,6 +45,11 @@ require_once __DIR__ . '/config.php';
 // die berechtigte-Tabelle statt svmembers!
 define('MEMBER_SOURCE', 'berechtigte');
 
+// URL zur externen Mitgliederverwaltung (wird im Admin-Bereich verlinkt)
+// ANPASSEN: z.B. '../vtool/berechtigte_editor.php' oder absolute URL
+// Standard: 'berechtigte_editor.php' (im selben Verzeichnis)
+define('MEMBER_MGMT_URL', 'berechtigte_editor.php');
+
 // Member-Funktionen laden (nutzt jetzt automatisch BerechtigteAdapter!)
 require_once __DIR__ . '/member_functions.php';
 
