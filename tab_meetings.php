@@ -300,7 +300,7 @@ require_once 'module_notifications.php';
     <?php foreach ($all_meetings as $m):
         $status_class = 'meeting-card status-' . $m['status'];
         $is_creator = ($m['invited_by_member_id'] == $current_user['member_id']);
-        $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
+        $is_admin = in_array($current_user['role'], ['assistenz', 'gf']) || ($current_user['is_admin'] ?? 0) == 1;
         $can_edit = ($is_creator || $is_admin) && $m['status'] === 'preparation';
 
         // Rote Umrandung für ausstehende Aufgaben
