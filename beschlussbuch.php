@@ -94,7 +94,13 @@ function display_with_links($text, $search = null) {
 }
 
 // Berechtigungen
-$kann_intern_sehen = ($user['aktiv'] > 17 || $user['Funktion'] === 'VA' || ($user['is_admin'] ?? 0) == 1);
+$kann_intern_sehen = (
+    ($user['is_admin'] ?? 0) == 1 ||
+    ($user['is_confidential'] ?? 0) == 1 ||
+    in_array($user['role'] ?? '', ['vorstand', 'gf']) ||
+    ($user['aktiv'] ?? 0) > 17 ||
+    ($user['funktion'] ?? $user['Funktion'] ?? '') === 'VA'
+);
 $kann_duplizieren = ($user['aktiv'] >= 9);
 
 // Filter - POST statt GET für Kompatibilität mit altem System
