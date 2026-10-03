@@ -195,7 +195,11 @@ document.addEventListener('DOMContentLoaded', function() {
     <strong style="font-size:11px;color:#888;white-space:nowrap;">Springe zu:</strong>
     <a href="#admin-meetings"     onclick="openSection('admin-meetings')"     style="text-decoration:none;color:var(--link-color,#1565c0);">📅 Meetings</a>
     <a href="#admin-todos"        onclick="openSection('admin-todos')"        style="text-decoration:none;color:var(--link-color,#1565c0);">✅ ToDos</a>
+    <?php if (defined('MEMBER_SOURCE') && MEMBER_SOURCE === 'berechtigte'): ?>
+    <a href="berechtigte_editor.php" style="text-decoration:none;color:var(--link-color,#1565c0);">👥 Mitglieder (extern)</a>
+    <?php else: ?>
     <a href="#admin-members"      onclick="openSection('admin-members')"      style="text-decoration:none;color:var(--link-color,#1565c0);">👥 Mitglieder</a>
+    <?php endif; ?>
     <a href="#admin-polls"        onclick="openSection('admin-polls')"        style="text-decoration:none;color:var(--link-color,#1565c0);">📊 Umfragen</a>
     <a href="#admin-absences"     onclick="openSection('admin-absences')"     style="text-decoration:none;color:var(--link-color,#1565c0);">🏖️ Abwesenheiten</a>
     <a href="#admin-texts"        onclick="openSection('admin-texts')"        style="text-decoration:none;color:var(--link-color,#1565c0);">📝 Texte</a>
@@ -633,6 +637,14 @@ function openSection(id) {
 
     <div class="admin-section-content">
 
+    <?php if (defined('MEMBER_SOURCE') && MEMBER_SOURCE === 'berechtigte'): ?>
+        <div style="padding: 15px; background: var(--info-bg, #e3f2fd); border-left: 4px solid var(--info, #1565c0); border-radius: 4px; margin-bottom: 15px;">
+            <strong>ℹ️ Externe Mitgliederverwaltung aktiv</strong><br>
+            Die Mitglieder werden über eine externe Tabelle verwaltet.
+            Bitte nutze dafür den <a href="berechtigte_editor.php" style="font-weight: 600;">Berechtigten-Editor →</a>
+        </div>
+    <?php else: ?>
+
     <button onclick="showAddMemberForm()" class="btn-primary">+ Neues Mitglied</button>
     
     <!-- Add Member Form -->
@@ -862,6 +874,7 @@ function openSection(id) {
             </form>
         </div>
     </div>
+    <?php endif; // MEMBER_SOURCE check ?>
     </div> <!-- End admin-section-content -->
 </div>
 
