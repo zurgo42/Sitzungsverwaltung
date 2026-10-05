@@ -25,6 +25,7 @@ foreach ($all_absences as &$abs) {
     $abs['is_current'] = (strtotime('today') >= strtotime($abs['start_date']) &&
                           strtotime('today') <= strtotime($abs['end_date'])) ? 1 : 0;
 }
+unset($abs); // Referenz aufheben, sonst überschreibt die nächste foreach das letzte Element
 
 // Nach Startdatum sortieren
 usort($all_absences, function($a, $b) {
