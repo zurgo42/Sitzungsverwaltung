@@ -63,9 +63,9 @@ function is_authorized_for_meeting($meeting, $current_user, $allowed_statuses = 
         return false;
     }
 
-    // Berechtigung: Ersteller ODER Assistenz/GF
+    // Berechtigung: Ersteller ODER Assistenz/GF ODER is_admin-Flag
     $is_creator = ($meeting['invited_by_member_id'] == $current_user['member_id']);
-    $is_admin = in_array($current_user['role'], ['assistenz', 'gf']);
+    $is_admin = in_array($current_user['role'], ['assistenz', 'gf']) || ($current_user['is_admin'] ?? 0) == 1;
 
     // Status muss erlaubt sein
     $status_ok = in_array($meeting['status'], $allowed_statuses);
@@ -830,6 +830,48 @@ if (isset($_POST['duplicate_meeting'])) {
         header("Location: index.php?tab=meetings&error=duplicate_failed&meeting_id=$original_meeting_id");
         exit;
     }
+}
+
+// ============================================
+// ERINNERUNGSMAIL MANUELL SENDEN
+// ============================================
+
+if (isset($_POST['action']) && $_POST['action'] === 'send_agenda_reminder') {
+    $meeting_id = intval($_POST['meeting_id'] ?? 0);
+    if (!$meeting_id) {
+        header("Location: index.php?tab=meetings&error=missing_data");
+        exit;
+    }
+
+    $stmt = $pdo->prepare("SELECT * FROM svmeetings WHERE meeting_id = ?");
+    $stmt->execute([$meeting_id]);
+    $meeting = $stmt->fetch();
+    if (!$meeting) {
+        header("Location: index.php?tab=meetings&error=not_found");
+        exit;
+    }
+
+    $is_creator = ($meeting['invited_by_member_id'] == $current_user['member_id']);
+    $is_admin   = in_array($current_user['role'], ['assistenz', 'gf']) || ($current_user['is_admin'] ?? 0) == 1;
+    if (!$is_creator && !$is_admin) {
+        header("Location: index.php?tab=meetings&error=permission_denied");
+        exit;
+    }
+
+    // Vor dem Senden: sent-Flag zurücksetzen damit die Funktion nicht abbricht
+    $pdo->prepare("UPDATE svmeetings SET agenda_reminder_sent = 0 WHERE meeting_id = ?")->execute([$meeting_id]);
+
+    require_once __DIR__ . '/mail_functions.php';
+    $scheme   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $base_url = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? '') . (defined('STANDALONE_PATH') ? STANDALONE_PATH : '');
+    $sent = send_agenda_reminder_mail($pdo, $meeting_id, $base_url);
+
+    [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+    protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Agenda-Erinnerung-Manuell',
+        $meeting['meeting_name'] . ' (ID:' . $meeting_id . ') → ' . $sent . ' Mail(s)');
+
+    header("Location: index.php?tab=meetings&success=agenda_reminder_sent&sent=" . $sent);
+    exit;
 }
 
 // ============================================
