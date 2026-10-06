@@ -618,13 +618,8 @@ if ($can_move_tops) {
                 <label style="font-weight: 600;">📄 Antragstext:</label>
                 <textarea name="proposal_text" rows="4" style="width: 100%; padding: 8px; border: 1px solid #4caf50; border-radius: 4px;"></textarea>
             </div>
-            <?php
-            // DEBUG
-            error_log("DEBUG: Simple proposal field (allow_decisions=0) rendered successfully");
-            ?>
             <?php endif; ?>
-            <!-- DEBUG MARKER: Nach proposal form -->
-            <div style="display:none;">DEBUG: After proposal form, before priority</div>
+
 
             <?php
             // Priorität/Dauer nur für Führungsteam
@@ -682,17 +677,11 @@ if ($can_move_tops) {
             </div>
             <?php endif; ?>
 
-            <!-- DEBUG MARKER: Vor Submit Button -->
-            <?php error_log("DEBUG: Rendering submit button"); ?>
-
             <div class="form-group top-form-group">
                 <button type="submit" class="top-submit-button">
                     ✅ TOP hinzufügen
                 </button>
             </div>
-
-            <!-- DEBUG MARKER: Nach Submit Button -->
-            <?php error_log("DEBUG: Submit button rendered"); ?>
         </form>
     </div>
 </details>
