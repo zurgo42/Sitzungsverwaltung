@@ -381,6 +381,8 @@ if (isset($_POST['edit_meeting'])) {
     $agenda_reminder_emails = trim($_POST['agenda_reminder_emails'] ?? '');
     $agenda_reminder_intro = trim($_POST['agenda_reminder_intro'] ?? '');
 
+    error_log("edit_meeting POST: send_reminder=$send_agenda_reminder | emails='" . ($_POST['agenda_reminder_emails'] ?? 'MISSING') . "' | intro='" . substr($_POST['agenda_reminder_intro'] ?? 'MISSING', 0, 80) . "'");
+
     // Datetime-Format konvertieren: 2026-05-01T17:00 -> 2026-05-01 17:00:00
     if (!empty($meeting_date)) {
         $meeting_date = str_replace('T', ' ', $meeting_date) . ':00';
