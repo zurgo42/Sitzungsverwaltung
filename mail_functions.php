@@ -123,8 +123,11 @@ function send_via_mail($to, $subject, $message_text, $message_html, $from_email,
 
     $body .= "--$boundary--";
 
+    $header_string = implode("\n", $headers);
+    error_log("mail() debug – To: $to | Subject-encoded: $subject_encoded | Headers: " . str_replace("\n", " | ", $header_string));
+
     if (function_exists('error_clear_last')) error_clear_last();
-    $result = mail($to, $subject_encoded, $body, implode("\n", $headers));
+    $result = mail($to, $subject_encoded, $body, $header_string);
 
     if (!$result) {
         $last_error = error_get_last();
@@ -1041,6 +1044,8 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
     // Als gesendet markieren
     $pdo->prepare("UPDATE svmeetings SET agenda_reminder_sent = 1 WHERE meeting_id = ?")->execute([$meeting_id]);
 
+    // -1 = Empfänger vorhanden aber alle Versendungen fehlgeschlagen (mail-Fehler)
+    if ($sent === 0 && $failed > 0) return -1;
     return $sent;
 }
 ?>

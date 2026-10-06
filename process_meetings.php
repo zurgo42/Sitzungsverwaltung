@@ -874,6 +874,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'send_agenda_reminder') {
 
     if ($sent > 0) {
         header("Location: index.php?tab=meetings&success=agenda_reminder_sent&sent=" . $sent);
+    } elseif ($sent === -1) {
+        header("Location: index.php?tab=meetings&error=agenda_reminder_mail_failed&meeting_id=" . $meeting_id);
     } else {
         header("Location: index.php?tab=meetings&error=agenda_reminder_no_recipients&meeting_id=" . $meeting_id);
     }

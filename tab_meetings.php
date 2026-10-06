@@ -102,6 +102,10 @@ require_once 'module_notifications.php';
                 echo '⚠️ Keine Erinnerungsmail versendet: Keine Empfänger gefunden.'
                    . ' Bitte Teilnehmer zur Sitzung hinzufügen oder zusätzliche Empfänger-Adressen eintragen.';
                 break;
+            case 'agenda_reminder_mail_failed':
+                echo '❌ Erinnerungsmail konnte nicht gesendet werden: Der Mail-Server hat die Zustellung abgelehnt.'
+                   . ' Bitte im Apache Error-Log nach "mail() debug" suchen und den Server-Administrator kontaktieren.';
+                break;
             default: echo '❌ Ein Fehler ist aufgetreten.';
         }
         ?>
