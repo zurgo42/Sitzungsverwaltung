@@ -936,17 +936,25 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
     $stmt->execute([$meeting_id]);
     $participant_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
+    error_log("send_agenda_reminder_mail: Meeting $meeting_id – " . count($participant_ids) . " Teilnehmer-IDs: " . implode(',', $participant_ids));
+
     // Teilnehmer: [email => first_name] für personalisierte Anrede
     $member_recipients = [];
     foreach ($participant_ids as $mid) {
         $member = get_member_by_id($pdo, $mid);
-        if ($member && !empty($member['email'])) {
-            $email = trim($member['email']);
-            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $member_recipients[$email] = $member['first_name'] ?? '';
-            } else {
-                error_log("send_agenda_reminder_mail: Meeting $meeting_id – ungültige E-Mail für member_id=$mid: '{$member['email']}'");
-            }
+        if (!$member) {
+            error_log("send_agenda_reminder_mail: Meeting $meeting_id – member_id=$mid: get_member_by_id() gab null zurück");
+            continue;
+        }
+        if (empty($member['email'])) {
+            error_log("send_agenda_reminder_mail: Meeting $meeting_id – member_id=$mid: kein email-Feld (vorhandene Keys: " . implode(',', array_keys($member)) . ")");
+            continue;
+        }
+        $email = trim($member['email']);
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $member_recipients[$email] = $member['first_name'] ?? '';
+        } else {
+            error_log("send_agenda_reminder_mail: Meeting $meeting_id – member_id=$mid: ungültige E-Mail '$email'");
         }
     }
 
