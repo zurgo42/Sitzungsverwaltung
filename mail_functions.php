@@ -86,16 +86,23 @@ endif; // function_exists('multipartmail')
  * @return bool true bei Erfolg
  */
 function send_via_mail($to, $subject, $message_text, $message_html, $from_email, $from_name) {
+    // E-Mail-Adresse säubern
+    $to = trim($to);
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        error_log("Mail-Versand (mail) abgebrochen: ungültige Adresse '$to' – $subject");
+        return false;
+    }
+
     // Boundary für Multipart
     $boundary = md5(uniqid(time()));
 
-    // Betreff MIME-encoden (für Umlaute)
-    $subject_encoded = mb_encode_mimeheader($subject, 'UTF-8');
+    // Betreff MIME-encoden (für Umlaute); Zeilenumbrüche aus MIME-Folding entfernen
+    $subject_encoded = str_replace(["\r\n", "\r", "\n"], ' ', mb_encode_mimeheader($subject, 'UTF-8'));
 
-    // From-Name MIME-encoden (für Umlaute im Namen)
-    $from_name_encoded = mb_encode_mimeheader($from_name, 'UTF-8');
+    // From-Name MIME-encoden; Zeilenumbrüche aus MIME-Folding entfernen
+    $from_name_encoded = str_replace(["\r\n", "\r", "\n"], ' ', mb_encode_mimeheader($from_name, 'UTF-8'));
 
-    // Headers
+    // Headers (Separator \n – Linux-MTAs bevorzugen LF-only in additional_headers)
     $headers = [];
     $headers[] = "From: $from_name_encoded <$from_email>";
     $headers[] = "Reply-To: $from_email";
@@ -116,11 +123,13 @@ function send_via_mail($to, $subject, $message_text, $message_html, $from_email,
 
     $body .= "--$boundary--";
 
-    // E-Mail senden (mit encodiertem Subject)
-    $result = mail($to, $subject_encoded, $body, implode("\r\n", $headers));
+    // -f setzt den Envelope-Sender (Pflicht bei manchen MTAs / für DKIM/SPF)
+    $result = mail($to, $subject_encoded, $body, implode("\n", $headers), '-f' . $from_email);
 
     if (!$result) {
-        error_log("Mail-Versand (mail) fehlgeschlagen: An $to - $subject");
+        $last_error = error_get_last();
+        $err_info = $last_error ? $last_error['message'] : 'kein PHP-Fehler';
+        error_log("Mail-Versand (mail) fehlgeschlagen: An $to – Betreff: $subject – PHP-Fehler: $err_info");
     }
 
     return $result;
@@ -932,7 +941,12 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
     foreach ($participant_ids as $mid) {
         $member = get_member_by_id($pdo, $mid);
         if ($member && !empty($member['email'])) {
-            $member_recipients[$member['email']] = $member['first_name'] ?? '';
+            $email = trim($member['email']);
+            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $member_recipients[$email] = $member['first_name'] ?? '';
+            } else {
+                error_log("send_agenda_reminder_mail: Meeting $meeting_id – ungültige E-Mail für member_id=$mid: '{$member['email']}'");
+            }
         }
     }
 
