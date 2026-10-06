@@ -123,8 +123,8 @@ function send_via_mail($to, $subject, $message_text, $message_html, $from_email,
 
     $body .= "--$boundary--";
 
-    // -f setzt den Envelope-Sender (Pflicht bei manchen MTAs / für DKIM/SPF)
-    $result = mail($to, $subject_encoded, $body, implode("\n", $headers), '-f' . $from_email);
+    if (function_exists('error_clear_last')) error_clear_last();
+    $result = mail($to, $subject_encoded, $body, implode("\n", $headers));
 
     if (!$result) {
         $last_error = error_get_last();
