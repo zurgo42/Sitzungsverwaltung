@@ -99,8 +99,9 @@ function send_via_mail($to, $subject, $message_text, $message_html, $from_email,
     // Betreff MIME-encoden (für Umlaute); Zeilenumbrüche aus MIME-Folding entfernen
     $subject_encoded = str_replace(["\r\n", "\r", "\n"], ' ', mb_encode_mimeheader($subject, 'UTF-8'));
 
-    // From-Name MIME-encoden; Zeilenumbrüche aus MIME-Folding entfernen
-    $from_name_encoded = str_replace(["\r\n", "\r", "\n"], ' ', mb_encode_mimeheader($from_name, 'UTF-8'));
+    // From-Name immer als Base64-MIME kodieren – verhindert, dass Sonderzeichen
+    // (insb. Doppelpunkt) vom MTA als RFC-2822-Gruppenadress-Syntax fehlgedeutet werden
+    $from_name_encoded = '=?UTF-8?B?' . base64_encode($from_name) . '?=';
 
     // Headers (Separator \n – Linux-MTAs bevorzugen LF-only in additional_headers)
     $headers = [];

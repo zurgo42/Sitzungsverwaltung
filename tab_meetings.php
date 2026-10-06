@@ -564,7 +564,8 @@ require_once 'module_notifications.php';
                             <?php
                                 $meeting_time_default = date('H:i', strtotime($m['meeting_date']));
                                 $meeting_name_esc = htmlspecialchars($m['meeting_name'] ?: 'Sitzung');
-                                $auto_placeholder = "Leer = automatisch: &quot;Morgen um {$meeting_time_default} Uhr ist {$meeting_name_esc}. Die Tagesordnung ist - Stand heute HH:MM Uhr:&quot;";
+                                $now_hhmm = date('H:i');
+                                $auto_placeholder = "Leer = automatisch: &quot;Morgen um {$meeting_time_default} Uhr ist {$meeting_name_esc}. Die Tagesordnung ist - Stand heute {$now_hhmm} Uhr:&quot;";
                             ?>
                             <textarea name="agenda_reminder_intro" rows="3"
                                       placeholder="<?php echo $auto_placeholder; ?>"
