@@ -933,7 +933,7 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
         error_log("send_agenda_reminder_mail: Meeting $meeting_id – keine öffentlichen TOPs gefunden, kein Versand");
         return 0;
     }
-    error_log("send_agenda_reminder_mail: Meeting $meeting_id – " . count($tops) . " öffentliche TOPs gefunden");
+    error_log("send_agenda_reminder_mail: Meeting $meeting_id – " . count($tops) . " öffentliche TOPs; intro-DB: '" . ($meeting['agenda_reminder_intro'] ?? 'NULL') . "'");
 
     // Sitzungs-Teilnehmer mit Mitglieds-Daten laden (für personalisierte Anrede)
     $stmt = $pdo->prepare("SELECT mp.member_id FROM svmeeting_participants mp WHERE mp.meeting_id = ?");
