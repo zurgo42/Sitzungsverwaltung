@@ -872,7 +872,11 @@ if (isset($_POST['action']) && $_POST['action'] === 'send_agenda_reminder') {
     protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Agenda-Erinnerung-Manuell',
         $meeting['meeting_name'] . ' (ID:' . $meeting_id . ') → ' . $sent . ' Mail(s)');
 
-    header("Location: index.php?tab=meetings&success=agenda_reminder_sent&sent=" . $sent);
+    if ($sent > 0) {
+        header("Location: index.php?tab=meetings&success=agenda_reminder_sent&sent=" . $sent);
+    } else {
+        header("Location: index.php?tab=meetings&error=agenda_reminder_no_recipients&meeting_id=" . $meeting_id);
+    }
     exit;
 }
 

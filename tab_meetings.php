@@ -76,6 +76,10 @@ require_once 'module_notifications.php';
             case 'deleted': echo '✅ Sitzung erfolgreich gelöscht!'; break;
             case 'updated': echo '✅ Sitzung erfolgreich aktualisiert!'; break;
             case 'duplicated': echo '✅ Sitzung erfolgreich dupliziert! Termin wurde 7 Tage später gesetzt.'; break;
+            case 'agenda_reminder_sent':
+                $n = (int)($_GET['sent'] ?? 0);
+                echo '✅ Erinnerungsmail versendet – ' . $n . ' Empfänger.';
+                break;
             default: echo '✅ Aktion erfolgreich durchgeführt!';
         }
         ?>
@@ -94,6 +98,10 @@ require_once 'module_notifications.php';
             case 'duplicate_failed': echo '❌ Fehler beim Duplizieren der Sitzung.'; break;
             case 'missing_data': echo '❌ Pflichtfelder fehlen.'; break;
             case 'invalid_id': echo '❌ Ungültige Sitzungs-ID.'; break;
+            case 'agenda_reminder_no_recipients':
+                echo '⚠️ Keine Erinnerungsmail versendet: Keine Empfänger gefunden.'
+                   . ' Bitte Teilnehmer zur Sitzung hinzufügen oder zusätzliche Empfänger-Adressen eintragen.';
+                break;
             default: echo '❌ Ein Fehler ist aufgetreten.';
         }
         ?>
