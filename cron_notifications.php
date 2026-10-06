@@ -140,14 +140,14 @@ if ($col_check && $col_check->fetch() && function_exists('send_agenda_reminder_m
         $bu_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'base_url' LIMIT 1");
         $base_url = $bu_stmt ? (string)($bu_stmt->fetchColumn() ?: '') : '';
 
-        $reminded = 0;
-        foreach ($remind_stmt->fetchAll(PDO::FETCH_COLUMN) as $mid) {
+        $meetings_found = $remind_stmt->fetchAll(PDO::FETCH_COLUMN);
+        $log("Agenda-Erinnerung: " . count($meetings_found) . " Sitzung(en) zur Verarbeitung gefunden");
+        $mails_sent = 0;
+        foreach ($meetings_found as $mid) {
             $sent = send_agenda_reminder_mail($pdo, (int)$mid, $base_url);
-            if ($sent >= 0) $reminded++;
+            $mails_sent += $sent;
         }
-        if ($reminded > 0) {
-            $log("{$reminded} Agenda-Erinnerungsmail(s) versendet");
-        }
+        $log("Agenda-Erinnerung: $mails_sent Mail(s) tatsächlich versendet");
     }
 }
 

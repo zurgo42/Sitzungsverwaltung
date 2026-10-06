@@ -880,7 +880,16 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
     $stmt->execute([$meeting_id]);
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$meeting || !$meeting['send_agenda_reminder'] || $meeting['agenda_reminder_sent']) {
+    if (!$meeting) {
+        error_log("send_agenda_reminder_mail: Meeting $meeting_id nicht gefunden");
+        return 0;
+    }
+    if (!$meeting['send_agenda_reminder']) {
+        error_log("send_agenda_reminder_mail: Meeting $meeting_id hat send_agenda_reminder=0");
+        return 0;
+    }
+    if ($meeting['agenda_reminder_sent']) {
+        error_log("send_agenda_reminder_mail: Meeting $meeting_id wurde bereits versendet (agenda_reminder_sent=1)");
         return 0;
     }
 
@@ -908,8 +917,10 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
     $has_confidential = (int)$stmt_conf->fetchColumn() > 0;
 
     if (empty($tops)) {
+        error_log("send_agenda_reminder_mail: Meeting $meeting_id – keine öffentlichen TOPs gefunden, kein Versand");
         return 0;
     }
+    error_log("send_agenda_reminder_mail: Meeting $meeting_id – " . count($tops) . " öffentliche TOPs gefunden");
 
     // Sitzungs-Teilnehmer mit Mitglieds-Daten laden (für personalisierte Anrede)
     $stmt = $pdo->prepare("SELECT mp.member_id FROM svmeeting_participants mp WHERE mp.meeting_id = ?");
@@ -937,9 +948,11 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
     }
 
     if (empty($member_recipients) && empty($extra_recipients)) {
+        error_log("send_agenda_reminder_mail: Meeting $meeting_id – keine Empfänger gefunden (Teilnehmer: " . count($participant_ids) . " IDs, davon " . count($member_recipients) . " mit E-Mail), kein Versand");
         $pdo->prepare("UPDATE svmeetings SET agenda_reminder_sent = 1 WHERE meeting_id = ?")->execute([$meeting_id]);
         return 0;
     }
+    error_log("send_agenda_reminder_mail: Meeting $meeting_id – " . count($member_recipients) . " Teilnehmer-Empfänger + " . count($extra_recipients) . " zusätzliche Adressen");
 
     // Gemeinsame Inhaltsbausteine
     $meeting_date_fmt = date('d.m.Y', strtotime($meeting['meeting_date']));
@@ -990,12 +1003,18 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
 
     // Mails versenden (alle Empfänger erhalten denselben Inhalt)
     $sent = 0;
+    $failed = 0;
     $all_recipients = array_merge(array_keys($member_recipients), $extra_recipients);
     foreach ($all_recipients as $email) {
         if (multipartmail($email, $subject, $text, $html)) {
             $sent++;
+        } else {
+            $failed++;
+            error_log("send_agenda_reminder_mail: Meeting $meeting_id – Versand an $email FEHLGESCHLAGEN");
         }
     }
+
+    error_log("send_agenda_reminder_mail: Meeting $meeting_id – $sent versendet, $failed fehlgeschlagen");
 
     // Als gesendet markieren
     $pdo->prepare("UPDATE svmeetings SET agenda_reminder_sent = 1 WHERE meeting_id = ?")->execute([$meeting_id]);
