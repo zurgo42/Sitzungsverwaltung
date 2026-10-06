@@ -480,11 +480,13 @@ if (isset($_POST['edit_meeting'])) {
         $verify_stmt->execute([$meeting_id]);
         $saved_data = $verify_stmt->fetch(PDO::FETCH_ASSOC);
 
-        // 2. Teilnehmer neu setzen
-        $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
-        $stmt->execute([$meeting_id]);
-
-        add_participants($pdo, $meeting_id, $participant_ids);
+        // 2. Teilnehmer neu setzen – nur wenn das Teilnehmer-Formularfeld übermittelt wurde
+        // (verhindert versehentliches Löschen bei Submits ohne Participant-Sektion)
+        if (isset($_POST['participants_submitted'])) {
+            $stmt = $pdo->prepare("DELETE FROM svmeeting_participants WHERE meeting_id = ?");
+            $stmt->execute([$meeting_id]);
+            add_participants($pdo, $meeting_id, $participant_ids);
+        }
 
 
         $pdo->commit();

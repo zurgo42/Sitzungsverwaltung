@@ -584,6 +584,7 @@ require_once 'module_notifications.php';
                                 <button type="button" onclick="toggleLeadershipRolesEdit(<?php echo $m['meeting_id']; ?>)" class="btn-secondary" style="padding: 5px 10px; margin-right: 5px;">👔 Führungsrollen</button>
                                 <button type="button" onclick="toggleTopManagementEdit(<?php echo $m['meeting_id']; ?>)" class="btn-secondary" style="padding: 5px 10px;">⭐ Vorstand+GF+Ass</button>
                             </div>
+                            <input type="hidden" name="participants_submitted" value="1">
                             <div class="participants-selector">
                                 <?php
                                 $stmt_current_participants = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
