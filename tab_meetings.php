@@ -541,20 +541,6 @@ require_once 'module_notifications.php';
                                     Wenn Sie die Sitzung ändern, wird sie erneut versendet.
                                 <?php endif; ?>
                             </small>
-                            <?php
-                            $deadline_passed = !empty($m['submission_deadline']) &&
-                                              strtotime($m['submission_deadline']) <= time();
-                            ?>
-                            <?php if ($deadline_passed): ?>
-                                <form method="post" action="process_meetings.php" style="margin-top: 8px; display: inline;"
-                                      onsubmit="return confirm('Erinnerungsmail jetzt senden?')">
-                                    <input type="hidden" name="action" value="send_agenda_reminder">
-                                    <input type="hidden" name="meeting_id" value="<?php echo $m['meeting_id']; ?>">
-                                    <button type="submit" class="btn-secondary" style="font-size: 12px; padding: 4px 10px;">
-                                        📧 Jetzt senden<?php echo !empty($m['agenda_reminder_sent']) ? ' (erneut)' : ''; ?>
-                                    </button>
-                                </form>
-                            <?php endif; ?>
                         </div>
 
                         <div class="form-group" id="edit_reminder_emails_<?php echo $m['meeting_id']; ?>"
@@ -630,6 +616,16 @@ require_once 'module_notifications.php';
                         <button type="submit">Änderungen speichern</button>
                         <button type="button" onclick="toggleEditMeeting(<?php echo $m['meeting_id']; ?>)" class="btn-secondary" style="margin-left: 10px;">Abbrechen</button>
                     </form>
+                    <?php if (!empty($m['send_agenda_reminder']) && !empty($m['submission_deadline']) && strtotime($m['submission_deadline']) <= time()): ?>
+                    <form method="post" action="process_meetings.php" style="margin-top: 10px;"
+                          onsubmit="return confirm('Erinnerungsmail jetzt senden?')">
+                        <input type="hidden" name="action" value="send_agenda_reminder">
+                        <input type="hidden" name="meeting_id" value="<?php echo $m['meeting_id']; ?>">
+                        <button type="submit" class="btn-secondary" style="font-size: 13px; padding: 5px 12px;">
+                            📧 Erinnerungsmail jetzt senden<?php echo !empty($m['agenda_reminder_sent']) ? ' (erneut)' : ''; ?>
+                        </button>
+                    </form>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
             
