@@ -208,7 +208,32 @@ if ($poll_id_param > 0) {
         // Aktuellen Teilnehmer ermitteln (Member oder Extern)
         $participant = get_current_participant($current_user, $pdo, 'termine', $poll_id_param);
 
-        // Wenn niemand identifiziert: Registrierungsformular anzeigen
+        // Wenn niemand identifiziert: erst via POST-Token versuchen wiederherzustellen
+        // (Mobile-Browser können Sessions verlieren wenn die App in den Hintergrund geht)
+        if ($participant['type'] === 'none'
+            && $_SERVER['REQUEST_METHOD'] === 'POST'
+            && !empty($_POST['ext_session_token'])) {
+
+            $restored = get_external_participant_by_token($pdo, $_POST['ext_session_token']);
+            if ($restored
+                && $restored['poll_type'] === 'termine'
+                && $restored['poll_id'] == $poll_id_param) {
+
+                set_external_participant_session(
+                    $restored['session_token'],
+                    'termine',
+                    $poll_id_param,
+                    $restored['external_id']
+                );
+                $participant = [
+                    'type' => 'external',
+                    'id'   => $restored['external_id'],
+                    'data' => $restored
+                ];
+            }
+        }
+
+        // Wenn immer noch niemand identifiziert: Registrierungsformular anzeigen
         if ($participant['type'] === 'none') {
             // Registrierungsformular einbinden
             $poll_type = 'termine';
@@ -998,6 +1023,12 @@ if ($view === 'dashboard') {
             echo '<form method="POST">';
             echo '<input type="hidden" name="terminplanung_action" value="submit_vote">';
             echo '<input type="hidden" name="poll_id" value="' . $poll_id . '">';
+            // Session-Token als Fallback für Mobile-Browser mit Session-Loss
+            if (isset($current_participant_type) && $current_participant_type === 'external'
+                && !empty($current_participant_data['session_token'])) {
+                echo '<input type="hidden" name="ext_session_token" value="'
+                    . htmlspecialchars($current_participant_data['session_token']) . '">';
+            }
 
             echo '<table class="vote-matrix">';
             echo '<thead><tr>';

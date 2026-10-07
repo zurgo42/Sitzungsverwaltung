@@ -92,6 +92,26 @@ function create_external_participant($pdo, $poll_type, $poll_id, $first_name, $l
     $stmt->execute([$poll_type, $poll_id, $email]);
     $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    // Fallback: gleicher Name für diese Umfrage (verhindert Doppeleinträge bei unterschiedlichen Mails)
+    if (!$existing) {
+        $stmt = $pdo->prepare("
+            SELECT external_id, session_token
+            FROM svexternal_participants
+            WHERE poll_type = ? AND poll_id = ? AND first_name = ? AND last_name = ?
+        ");
+        $stmt->execute([$poll_type, $poll_id, $first_name, $last_name]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($existing) {
+            // E-Mail aktualisieren falls abweichend
+            $stmt = $pdo->prepare("
+                UPDATE svexternal_participants
+                SET email = ?, last_activity = NOW(), mnr = ?
+                WHERE external_id = ?
+            ");
+            $stmt->execute([$email, $mnr, $existing['external_id']]);
+        }
+    }
+
     if ($existing) {
         // Teilnehmer existiert bereits - last_activity aktualisieren
         $stmt = $pdo->prepare("
