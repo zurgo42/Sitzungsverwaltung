@@ -1523,9 +1523,9 @@ if (isset($_POST['save_protocol'])) {
                 }
             }
             
-            header("Location: ?tab=agenda&meeting_id=$current_meeting_id#top-$item_id");
+            header("Location: ?tab=agenda&meeting_id=$current_meeting_id#prot-$item_id");
             exit;
-            
+
         } catch (PDOException $e) {
             error_log("Fehler beim Speichern des Protokolls: " . $e->getMessage());
             $error = "Fehler beim Speichern des Protokolls";

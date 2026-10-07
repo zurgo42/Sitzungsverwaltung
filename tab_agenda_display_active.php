@@ -1178,7 +1178,7 @@ foreach ($agenda_items as $item):
         <?php if ($item['top_number'] != 999): ?>
             <?php if ($is_secretary): ?>
                 <!-- PROTOKOLL-FORMULAR (nur für Sekretär) -->
-                <div style="margin-top: 15px; padding: 12px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 6px;">
+                <div id="prot-<?php echo $item['item_id']; ?>" style="margin-top: 15px; padding: 12px; background: #f0f7ff; border: 2px solid #2196f3; border-radius: 6px;">
                     <h4 style="color: #1976d2; margin-bottom: 10px;">📝 Protokoll</h4>
 
                     <form method="POST" action="?tab=agenda&meeting_id=<?php echo $current_meeting_id; ?>">
