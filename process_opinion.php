@@ -170,6 +170,15 @@ try {
             // Enddatum berechnen
             $ends_at = date('Y-m-d H:i:s', strtotime("+{$duration_days} days"));
 
+            // Im MTool-Modus: Ersteller = der MTool-User, nicht der eingeloggte Admin
+            $creator_member_id = $current_user['member_id'];
+            if (!empty($_POST['mtool_mnr'])) {
+                $mtool_member = get_member_by_membership_number($pdo, trim($_POST['mtool_mnr']));
+                if ($mtool_member) {
+                    $creator_member_id = $mtool_member['member_id'];
+                }
+            }
+
             // Umfrage erstellen
             $stmt = $pdo->prepare("
                 INSERT INTO svopinion_polls
@@ -179,7 +188,7 @@ try {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), ?)
             ");
             $stmt->execute([
-                $title, $current_user['member_id'], $target_type, $list_id,
+                $title, $creator_member_id, $target_type, $list_id,
                 $template_id, $allow_multiple, $is_anonymous, $duration_days,
                 $show_intermediate_after_days, $delete_after_days, $ends_at
             ]);
