@@ -103,8 +103,11 @@ if ($should_run) {
         $grenz_yymmdd = date('ymd', strtotime("-{$abstimmung_dauer} days"));
 
         // Alle B-Anträge suchen, deren Abstimmungsfrist abgelaufen ist.
-        // Neue Anträge: b_date (Finalisierungsdatum) verwenden.
-        // Alte Anträge ohne b_date: Datum aus antrnr als Fallback.
+        // Nur Anträge mit gesetztem b_date auswerten – b_date enthält das tatsächliche
+        // Datum der Einstellung zur Abstimmung (A→B). Das Datum aus der antrnr-Nummer
+        // ist das Erstelldatum des A-Antrags und darf NICHT als Fallback verwendet
+        // werden, weil zwischen Erstellung und Abstimmungsstart beliebig viel Zeit
+        // vergehen kann.
         if (defined('TABLE_ANTRAEGE')) {
             $b_stmt = @$pdo->query("
                 SELECT antrnr,
@@ -113,11 +116,8 @@ if ($should_run) {
                 FROM " . TABLE_ANTRAEGE . "
                 WHERE antrnr LIKE 'B%'
                   AND LENGTH(antrnr) >= 8
-                  AND (
-                    (b_date IS NOT NULL AND b_date <= '" . $grenz_date . "')
-                    OR
-                    (b_date IS NULL AND SUBSTR(antrnr, 2, 6) <= '" . $grenz_yymmdd . "')
-                  )
+                  AND b_date IS NOT NULL
+                  AND b_date <= '" . $grenz_date . "'
             ");
 
             if ($b_stmt) {

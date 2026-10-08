@@ -92,11 +92,8 @@ if (defined('TABLE_ANTRAEGE') && function_exists('auswerten_abstimmung')) {
         FROM " . TABLE_ANTRAEGE . "
         WHERE antrnr LIKE 'B%'
           AND LENGTH(antrnr) >= 8
-          AND (
-            (b_date IS NOT NULL AND b_date <= '" . $grenz_date . "')
-            OR
-            (b_date IS NULL AND SUBSTR(antrnr, 2, 6) <= '" . $grenz_yymmdd . "')
-          )
+          AND b_date IS NOT NULL
+          AND b_date <= '" . $grenz_date . "'
     ");
 
     if ($b_stmt) {
