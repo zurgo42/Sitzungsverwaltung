@@ -1801,6 +1801,180 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
     </div>
 </div>
 
+<!-- Audit-Log -->
+<div id="admin-auditlog" class="admin-section">
+    <h3 class="admin-section-header collapsed" onclick="toggleSection(this)">📋 Datenbank-Protokoll (Audit-Log)</h3>
+    <div class="admin-section-content collapsed">
+<?php
+$audit_table_exists = false;
+$audit_check = @$pdo->query("SHOW TABLES LIKE 'svaudit_log'");
+if ($audit_check && $audit_check->rowCount() > 0) {
+    $audit_table_exists = true;
+}
+
+if (!$audit_table_exists): ?>
+        <div style="padding:15px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;color:#856404;">
+            Die Tabelle <code>svaudit_log</code> existiert noch nicht.
+            Bitte <a href="?tab=admin_init">Datenbankinitialisierung</a> ausführen.
+        </div>
+<?php else:
+    // Filter aus GET
+    $af_member   = isset($_GET['af_member'])  ? intval($_GET['af_member'])         : 0;
+    $af_table    = isset($_GET['af_table'])   ? trim($_GET['af_table'])              : '';
+    $af_action   = isset($_GET['af_action'])  ? strtoupper(trim($_GET['af_action'])) : '';
+    $af_date_from= isset($_GET['af_from'])    ? trim($_GET['af_from'])               : '';
+    $af_date_to  = isset($_GET['af_to'])      ? trim($_GET['af_to'])                 : '';
+    $af_limit    = in_array((int)($_GET['af_limit'] ?? 200), [50,100,200,500]) ? (int)$_GET['af_limit'] : 200;
+
+    // Distinct Tabellennamen für Filterdropdown
+    $distinct_tables = $pdo->query("SELECT DISTINCT table_name FROM svaudit_log WHERE table_name IS NOT NULL ORDER BY table_name")->fetchAll(PDO::FETCH_COLUMN);
+
+    // Mitglieder für Filterdropdown
+    $all_members_for_filter = get_all_members($pdo);
+
+    // Abfrage aufbauen
+    $where  = ['1=1'];
+    $params = [];
+    if ($af_member === -1)    { $where[] = 'a.member_id IS NULL'; }
+    elseif ($af_member > 0)  { $where[] = 'a.member_id = ?'; $params[] = $af_member; }
+    if ($af_table)     { $where[] = 'a.table_name = ?';       $params[] = $af_table; }
+    if ($af_action)    { $where[] = 'a.action = ?';           $params[] = $af_action; }
+    if ($af_date_from) { $where[] = 'a.logged_at >= ?';       $params[] = $af_date_from . ' 00:00:00'; }
+    if ($af_date_to)   { $where[] = 'a.logged_at <= ?';       $params[] = $af_date_to   . ' 23:59:59'; }
+
+    $params[] = $af_limit;
+    $sql = "SELECT a.* FROM svaudit_log a WHERE " . implode(' AND ', $where) . " ORDER BY a.logged_at DESC LIMIT ?";
+    $audit_stmt = $pdo->prepare($sql);
+    $audit_stmt->execute($params);
+    $audit_rows = $audit_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Mitglied-ID → Name Lookup
+    $member_names = [];
+    foreach ($all_members_for_filter as $m) {
+        $member_names[$m['member_id']] = trim(($m['first_name'] ?? '') . ' ' . ($m['last_name'] ?? ''));
+    }
+
+    $total_count_stmt = $pdo->query("SELECT COUNT(*) FROM svaudit_log");
+    $total_count = $total_count_stmt ? (int)$total_count_stmt->fetchColumn() : 0;
+?>
+        <p style="color:#555;margin:0 0 12px 0;">Gesamt: <strong><?php echo number_format($total_count, 0, ',', '.'); ?></strong> Einträge</p>
+
+        <!-- Filterzeile -->
+        <form method="GET" action="" style="background:#f5f5f5;padding:12px;border-radius:6px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+            <input type="hidden" name="tab" value="admin">
+            <input type="hidden" name="section" value="auditlog">
+            <div>
+                <label style="font-size:12px;display:block;margin-bottom:3px;">Mitglied</label>
+                <select name="af_member" style="padding:5px;font-size:13px;">
+                    <option value="0">Alle</option>
+                    <?php foreach ($all_members_for_filter as $m): ?>
+                        <option value="<?php echo $m['member_id']; ?>" <?php echo $af_member == $m['member_id'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars(trim($m['first_name'] . ' ' . $m['last_name'])); ?>
+                        </option>
+                    <?php endforeach; ?>
+                    <option value="-1" <?php echo $af_member === -1 ? 'selected' : ''; ?>>— Cron / extern —</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:12px;display:block;margin-bottom:3px;">Tabelle</label>
+                <select name="af_table" style="padding:5px;font-size:13px;">
+                    <option value="">Alle</option>
+                    <?php foreach ($distinct_tables as $t): ?>
+                        <option value="<?php echo htmlspecialchars($t); ?>" <?php echo $af_table === $t ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($t); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:12px;display:block;margin-bottom:3px;">Aktion</label>
+                <select name="af_action" style="padding:5px;font-size:13px;">
+                    <option value="">Alle</option>
+                    <?php foreach (['INSERT','UPDATE','DELETE','REPLACE'] as $v): ?>
+                        <option value="<?php echo $v; ?>" <?php echo $af_action === $v ? 'selected' : ''; ?>><?php echo $v; ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:12px;display:block;margin-bottom:3px;">Von</label>
+                <input type="date" name="af_from" value="<?php echo htmlspecialchars($af_date_from); ?>" style="padding:5px;font-size:13px;">
+            </div>
+            <div>
+                <label style="font-size:12px;display:block;margin-bottom:3px;">Bis</label>
+                <input type="date" name="af_to" value="<?php echo htmlspecialchars($af_date_to); ?>" style="padding:5px;font-size:13px;">
+            </div>
+            <div>
+                <label style="font-size:12px;display:block;margin-bottom:3px;">Zeilen</label>
+                <select name="af_limit" style="padding:5px;font-size:13px;">
+                    <?php foreach ([50,100,200,500] as $l): ?>
+                        <option value="<?php echo $l; ?>" <?php echo $af_limit === $l ? 'selected' : ''; ?>><?php echo $l; ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
+                <button type="submit" style="padding:6px 16px;background:#2196F3;color:white;border:none;border-radius:4px;cursor:pointer;font-size:13px;">Filtern</button>
+                <a href="?tab=admin#admin-auditlog" style="margin-left:6px;font-size:13px;color:#666;">Zurücksetzen</a>
+            </div>
+        </form>
+
+        <?php if (empty($audit_rows)): ?>
+            <p style="color:#999;">Keine Einträge gefunden.</p>
+        <?php else: ?>
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+                <tr style="background:#eee;text-align:left;">
+                    <th style="padding:7px 10px;white-space:nowrap;">Zeitpunkt</th>
+                    <th style="padding:7px 10px;">Mitglied</th>
+                    <th style="padding:7px 10px;">Aktion</th>
+                    <th style="padding:7px 10px;">Tabelle</th>
+                    <th style="padding:7px 10px;text-align:center;">Zeilen</th>
+                    <th style="padding:7px 10px;">Skript</th>
+                    <th style="padding:7px 10px;">IP</th>
+                    <th style="padding:7px 10px;">SQL</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($audit_rows as $row):
+                $action_color = match($row['action']) {
+                    'DELETE'  => '#dc3545',
+                    'INSERT'  => '#28a745',
+                    'UPDATE'  => '#fd7e14',
+                    'REPLACE' => '#6f42c1',
+                    default   => '#555',
+                };
+                $member_label = $row['member_id']
+                    ? (isset($member_names[$row['member_id']]) ? htmlspecialchars($member_names[$row['member_id']]) : 'ID ' . $row['member_id'])
+                    : '<span style="color:#999;">—</span>';
+                $script_short = $row['script'] ? basename($row['script']) : '—';
+            ?>
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:5px 10px;white-space:nowrap;font-family:monospace;font-size:12px;"><?php echo htmlspecialchars(substr($row['logged_at'], 0, 19)); ?></td>
+                    <td style="padding:5px 10px;"><?php echo $member_label; ?></td>
+                    <td style="padding:5px 10px;font-weight:bold;color:<?php echo $action_color; ?>;"><?php echo htmlspecialchars($row['action']); ?></td>
+                    <td style="padding:5px 10px;font-family:monospace;"><?php echo htmlspecialchars($row['table_name'] ?? '—'); ?></td>
+                    <td style="padding:5px 10px;text-align:center;"><?php echo (int)$row['affected_rows']; ?></td>
+                    <td style="padding:5px 10px;font-size:12px;color:#555;" title="<?php echo htmlspecialchars($row['script'] ?? ''); ?>"><?php echo htmlspecialchars($script_short); ?></td>
+                    <td style="padding:5px 10px;font-family:monospace;font-size:12px;"><?php echo htmlspecialchars($row['ip_address'] ?? '—'); ?></td>
+                    <td style="padding:5px 10px;">
+                        <?php if ($row['query']): ?>
+                            <span style="font-family:monospace;font-size:11px;color:#555;cursor:pointer;"
+                                  onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.style.display='none';"
+                                  title="Klicken zum Anzeigen">▶ anzeigen</span>
+                            <pre style="display:none;margin:4px 0 0;padding:6px;background:#f8f8f8;border:1px solid #ddd;border-radius:4px;font-size:11px;white-space:pre-wrap;word-break:break-all;max-width:400px;"><?php echo htmlspecialchars($row['query']); ?></pre>
+                        <?php else: ?>—<?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
+        <p style="font-size:12px;color:#999;margin-top:8px;">Zeigt die letzten <?php echo count($audit_rows); ?> Einträge (neueste zuerst).</p>
+        <?php endif; ?>
+<?php endif; ?>
+    </div>
+</div>
+
 <!-- Edit ToDo Modal -->
 <div id="edit-todo-modal" class="modal">
     <div class="modal-content">
