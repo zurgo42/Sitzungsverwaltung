@@ -1094,7 +1094,7 @@ try {
         action        VARCHAR(10)      NOT NULL COMMENT 'INSERT | UPDATE | DELETE | REPLACE',
         table_name    VARCHAR(100)     NULL     COMMENT 'Betroffene Tabelle',
         affected_rows SMALLINT UNSIGNED NOT NULL DEFAULT 0,
-        query         TEXT             NULL     COMMENT 'SQL-Abfrage (max. 1000 Zeichen)',
+        query         TEXT             NULL     COMMENT 'SQL-Abfrage mit interpolierten Parameterwerten (max. 2000 Zeichen)',
         INDEX idx_logged_at  (logged_at),
         INDEX idx_member_id  (member_id),
         INDEX idx_table_name (table_name)
