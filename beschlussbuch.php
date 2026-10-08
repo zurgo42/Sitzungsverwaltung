@@ -10,13 +10,14 @@ session_start();
 require_once 'config.php';
 require_once 'config_adapter.php';
 require_once 'member_functions.php';
+require_once __DIR__ . '/audit_pdo.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php');
     exit;
 }
 
-$pdo = new PDO(
+$pdo = new AuditPDO(
     "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
     DB_USER,
     DB_PASS,

@@ -14,13 +14,14 @@ require_once 'member_functions.php';
 require_once 'voting_helper.php';
 require_once 'protokoll_helper.php';
 require_once 'notification_mailer.php';
+require_once __DIR__ . '/audit_pdo.php';
 
 if (!isset($_SESSION['member_id'])) {
     header('Location: login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
     exit;
 }
 
-$pdo = new PDO(
+$pdo = new AuditPDO(
     "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
     DB_USER,
     DB_PASS,

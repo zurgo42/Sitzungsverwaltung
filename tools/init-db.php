@@ -1085,6 +1085,22 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     COMMENT='Pro-User-Ausblendung von Meinungsbildern in der Listenansicht'";
 
+    $tables[] = "CREATE TABLE IF NOT EXISTS svaudit_log (
+        log_id        BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        logged_at     DATETIME(3)      NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+        member_id     INT              NULL     COMMENT 'Eingeloggtes Mitglied (NULL = Cron/extern)',
+        ip_address    VARCHAR(45)      NULL,
+        script        VARCHAR(200)     NULL     COMMENT 'Aufrufendes PHP-Skript',
+        action        VARCHAR(10)      NOT NULL COMMENT 'INSERT | UPDATE | DELETE | REPLACE',
+        table_name    VARCHAR(100)     NULL     COMMENT 'Betroffene Tabelle',
+        affected_rows SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+        query         TEXT             NULL     COMMENT 'SQL-Abfrage (max. 1000 Zeichen)',
+        INDEX idx_logged_at  (logged_at),
+        INDEX idx_member_id  (member_id),
+        INDEX idx_table_name (table_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='Generelles Audit-Log aller DB-Schreibzugriffe'";
+
     // Tabellen erstellen
     echo "<p>Erstelle " . count($tables) . " Tabellen...</p>";
     foreach ($tables as $sql) {

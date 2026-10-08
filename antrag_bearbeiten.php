@@ -9,6 +9,7 @@ session_start();
 require_once 'config.php';
 require_once 'config_adapter.php';
 require_once 'member_functions.php';
+require_once __DIR__ . '/audit_pdo.php';
 require_once 'antragstypen_helper.php';
 require_once 'voting_helper.php';
 require_once 'protokoll_helper.php';
@@ -18,7 +19,7 @@ if (!isset($_SESSION['member_id'])) {
     exit;
 }
 
-$pdo = new PDO(
+$pdo = new AuditPDO(
     "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
     DB_USER,
     DB_PASS,

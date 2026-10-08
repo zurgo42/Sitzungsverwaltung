@@ -7,15 +7,17 @@
 require_once("config.php");
 require_once("config_adapter.php");   // Konfiguration für Mitgliederquelle
 require_once("member_functions.php"); // Prozedurale Wrapper-Funktionen
+require_once(__DIR__ . "/audit_pdo.php");
 try {
-    $pdo = new PDO(
+    $pdo = new AuditPDO(
         "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
         DB_USER,
-        DB_PASS
+        DB_PASS,
+        [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]
     );
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-
 } catch (PDOException $e) {
     if (DEBUG_MODE) {
         die("Datenbankverbindung fehlgeschlagen: " . $e->getMessage());
