@@ -1348,6 +1348,34 @@ try {
         echo ".";
     }
 
+    // Migration: b_date für Alteinträge befüllen (B-Anträge ohne b_date)
+    // Bestes verfügbares Datum: MIN(VDat1..VDat6) = früheste abgegebene Stimme.
+    // Das Abstimmungsdatum liegt kurz nach der tatsächlichen Einstellung zur
+    // Abstimmung und ist deutlich zuverlässiger als das Erstelldatum aus antrnr.
+    // Anträge ohne jede Stimme und ohne b_date können nicht automatisch befüllt
+    // werden – die bleiben NULL und werden vom Cron nicht angefasst.
+    $backfill_stmt = $pdo->query("
+        SELECT COUNT(*) FROM " . TABLE_ANTRAEGE . "
+        WHERE antrnr LIKE 'B%' AND b_date IS NULL
+          AND COALESCE(VDat1, VDat2, VDat3, VDat4, VDat5, VDat6) IS NOT NULL
+    ");
+    $backfill_count = $backfill_stmt ? (int)$backfill_stmt->fetchColumn() : 0;
+    if ($backfill_count > 0) {
+        echo "<p>Befülle b_date für {$backfill_count} B-Antrag/Anträge ohne b_date aus frühestem Votum-Datum...</p>";
+        $pdo->exec("
+            UPDATE " . TABLE_ANTRAEGE . "
+            SET b_date = (
+                SELECT MIN(d) FROM (
+                    SELECT VDat1 AS d UNION ALL SELECT VDat2 UNION ALL SELECT VDat3
+                    UNION ALL SELECT VDat4 UNION ALL SELECT VDat5 UNION ALL SELECT VDat6
+                ) AS vdaten WHERE d IS NOT NULL
+            )
+            WHERE antrnr LIKE 'B%' AND b_date IS NULL
+              AND COALESCE(VDat1, VDat2, VDat3, VDat4, VDat5, VDat6) IS NOT NULL
+        ");
+        echo " Erledigt.";
+    }
+
     // Migration: Foreign Key auf svmembers aus feedback-Tabelle entfernen
     // (Im Adapter-Modus kommen IDs aus berechtigte, nicht aus svmembers)
     $fk_check = $pdo->query("
