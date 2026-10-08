@@ -1824,7 +1824,8 @@ if (!$audit_table_exists): ?>
     $af_action   = isset($_GET['af_action'])  ? strtoupper(trim($_GET['af_action'])) : '';
     $af_date_from= isset($_GET['af_from'])    ? trim($_GET['af_from'])               : '';
     $af_date_to  = isset($_GET['af_to'])      ? trim($_GET['af_to'])                 : '';
-    $af_limit    = in_array((int)($_GET['af_limit'] ?? 200), [50,100,200,500]) ? (int)$_GET['af_limit'] : 200;
+    $af_limit_raw = isset($_GET['af_limit']) ? (int)$_GET['af_limit'] : 200;
+    $af_limit     = in_array($af_limit_raw, [50, 100, 200, 500], true) ? $af_limit_raw : 200;
 
     // Distinct Tabellennamen für Filterdropdown
     $distinct_tables = $pdo->query("SELECT DISTINCT table_name FROM svaudit_log WHERE table_name IS NOT NULL ORDER BY table_name")->fetchAll(PDO::FETCH_COLUMN);
@@ -1835,15 +1836,16 @@ if (!$audit_table_exists): ?>
     // Abfrage aufbauen
     $where  = ['1=1'];
     $params = [];
-    if ($af_member === -1)    { $where[] = 'a.member_id IS NULL'; }
+    if ($af_member === -1)   { $where[] = 'a.member_id IS NULL'; }
     elseif ($af_member > 0)  { $where[] = 'a.member_id = ?'; $params[] = $af_member; }
     if ($af_table)     { $where[] = 'a.table_name = ?';       $params[] = $af_table; }
     if ($af_action)    { $where[] = 'a.action = ?';           $params[] = $af_action; }
     if ($af_date_from) { $where[] = 'a.logged_at >= ?';       $params[] = $af_date_from . ' 00:00:00'; }
     if ($af_date_to)   { $where[] = 'a.logged_at <= ?';       $params[] = $af_date_to   . ' 23:59:59'; }
 
-    $params[] = $af_limit;
-    $sql = "SELECT a.* FROM svaudit_log a WHERE " . implode(' AND ', $where) . " ORDER BY a.logged_at DESC LIMIT ?";
+    // LIMIT direkt einbetten – MariaDB akzeptiert keinen gebundenen Parameter in LIMIT
+    $sql = "SELECT a.* FROM svaudit_log a WHERE " . implode(' AND ', $where)
+         . " ORDER BY a.logged_at DESC LIMIT " . $af_limit;
     $audit_stmt = $pdo->prepare($sql);
     $audit_stmt->execute($params);
     $audit_rows = $audit_stmt->fetchAll(PDO::FETCH_ASSOC);
