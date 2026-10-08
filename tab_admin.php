@@ -1923,17 +1923,27 @@ if (!$audit_table_exists): ?>
             <p style="color:#999;">Keine Einträge gefunden.</p>
         <?php else: ?>
         <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;">
+            <colgroup>
+                <col style="width:145px;"><!-- Zeitpunkt -->
+                <col style="width:130px;"><!-- Mitglied -->
+                <col style="width:70px;"> <!-- Aktion -->
+                <col style="width:160px;"><!-- Tabelle -->
+                <col style="width:50px;"> <!-- Zeilen -->
+                <col style="width:100px;"><!-- Skript -->
+                <col style="width:80px;"> <!-- IP -->
+                <col style="width:50px;"> <!-- SQL -->
+            </colgroup>
             <thead>
                 <tr style="background:#eee;text-align:left;">
-                    <th style="padding:7px 10px;white-space:nowrap;">Zeitpunkt</th>
-                    <th style="padding:7px 10px;">Mitglied</th>
-                    <th style="padding:7px 10px;">Aktion</th>
-                    <th style="padding:7px 10px;">Tabelle</th>
-                    <th style="padding:7px 10px;text-align:center;">Zeilen</th>
-                    <th style="padding:7px 10px;">Skript</th>
-                    <th style="padding:7px 10px;">IP</th>
-                    <th style="padding:7px 10px;">SQL</th>
+                    <th style="padding:7px 8px;white-space:nowrap;">Zeitpunkt</th>
+                    <th style="padding:7px 8px;">Mitglied</th>
+                    <th style="padding:7px 8px;">Aktion</th>
+                    <th style="padding:7px 8px;">Tabelle</th>
+                    <th style="padding:7px 8px;text-align:center;">↕</th>
+                    <th style="padding:7px 8px;">Skript</th>
+                    <th style="padding:7px 8px;">IP</th>
+                    <th style="padding:7px 8px;text-align:center;">SQL</th>
                 </tr>
             </thead>
             <tbody>
@@ -1947,23 +1957,23 @@ if (!$audit_table_exists): ?>
                 };
                 $member_label = $row['member_id']
                     ? (isset($member_names[$row['member_id']]) ? htmlspecialchars($member_names[$row['member_id']]) : 'ID ' . $row['member_id'])
-                    : '<span style="color:#999;">—</span>';
+                    : '<span style="color:#aaa;">—</span>';
                 $script_short = $row['script'] ? basename($row['script']) : '—';
+                $td = 'style="padding:5px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"';
             ?>
                 <tr style="border-bottom:1px solid #eee;">
-                    <td style="padding:5px 10px;white-space:nowrap;font-family:monospace;font-size:12px;"><?php echo htmlspecialchars(substr($row['logged_at'], 0, 19)); ?></td>
-                    <td style="padding:5px 10px;"><?php echo $member_label; ?></td>
-                    <td style="padding:5px 10px;font-weight:bold;color:<?php echo $action_color; ?>;"><?php echo htmlspecialchars($row['action']); ?></td>
-                    <td style="padding:5px 10px;font-family:monospace;"><?php echo htmlspecialchars($row['table_name'] ?? '—'); ?></td>
-                    <td style="padding:5px 10px;text-align:center;"><?php echo (int)$row['affected_rows']; ?></td>
-                    <td style="padding:5px 10px;font-size:12px;color:#555;" title="<?php echo htmlspecialchars($row['script'] ?? ''); ?>"><?php echo htmlspecialchars($script_short); ?></td>
-                    <td style="padding:5px 10px;font-family:monospace;font-size:12px;"><?php echo htmlspecialchars($row['ip_address'] ?? '—'); ?></td>
-                    <td style="padding:5px 10px;">
+                    <td <?php echo $td; ?> style="padding:5px 8px;font-family:monospace;font-size:12px;white-space:nowrap;"><?php echo htmlspecialchars(substr($row['logged_at'], 0, 19)); ?></td>
+                    <td <?php echo $td; ?>><?php echo $member_label; ?></td>
+                    <td style="padding:5px 8px;font-weight:bold;color:<?php echo $action_color; ?>;white-space:nowrap;"><?php echo htmlspecialchars($row['action']); ?></td>
+                    <td <?php echo $td; ?> style="padding:5px 8px;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?php echo htmlspecialchars($row['table_name'] ?? ''); ?>"><?php echo htmlspecialchars($row['table_name'] ?? '—'); ?></td>
+                    <td style="padding:5px 8px;text-align:center;"><?php echo (int)$row['affected_rows']; ?></td>
+                    <td <?php echo $td; ?> style="padding:5px 8px;font-size:12px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?php echo htmlspecialchars($row['script'] ?? ''); ?>"><?php echo htmlspecialchars($script_short); ?></td>
+                    <td <?php echo $td; ?> style="padding:5px 8px;font-family:monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?php echo htmlspecialchars($row['ip_address'] ?? ''); ?>"><?php echo htmlspecialchars($row['ip_address'] ?? '—'); ?></td>
+                    <td style="padding:5px 8px;text-align:center;">
                         <?php if ($row['query']): ?>
-                            <span style="font-family:monospace;font-size:11px;color:#555;cursor:pointer;"
-                                  onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.style.display='none';"
-                                  title="Klicken zum Anzeigen">▶ anzeigen</span>
-                            <pre style="display:none;margin:4px 0 0;padding:6px;background:#f8f8f8;border:1px solid #ddd;border-radius:4px;font-size:11px;white-space:pre-wrap;word-break:break-all;max-width:400px;"><?php echo htmlspecialchars($row['query']); ?></pre>
+                            <button onclick="showAuditSQL(<?php echo $row['log_id']; ?>, this)"
+                                    data-sql="<?php echo htmlspecialchars($row['query'], ENT_QUOTES); ?>"
+                                    style="padding:2px 7px;font-size:11px;background:#f0f0f0;border:1px solid #ccc;border-radius:3px;cursor:pointer;">SQL</button>
                         <?php else: ?>—<?php endif; ?>
                     </td>
                 </tr>
@@ -1971,7 +1981,29 @@ if (!$audit_table_exists): ?>
             </tbody>
         </table>
         </div>
-        <p style="font-size:12px;color:#999;margin-top:8px;">Zeigt die letzten <?php echo count($audit_rows); ?> Einträge (neueste zuerst).</p>
+        <p style="font-size:12px;color:#999;margin-top:8px;">Zeigt <?php echo count($audit_rows); ?> Einträge (neueste zuerst).</p>
+
+        <!-- SQL-Popup -->
+        <div id="audit-sql-overlay" onclick="closeAuditSQL()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9998;"></div>
+        <div id="audit-sql-popup" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.3);width:min(700px,90vw);max-height:80vh;overflow:auto;padding:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <strong style="font-size:14px;">SQL-Abfrage</strong>
+                <button onclick="closeAuditSQL()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#666;line-height:1;">×</button>
+            </div>
+            <pre id="audit-sql-content" style="margin:0;padding:12px;background:#f8f8f8;border:1px solid #ddd;border-radius:4px;font-size:12px;white-space:pre-wrap;word-break:break-all;"></pre>
+        </div>
+        <script>
+        function showAuditSQL(id, btn) {
+            document.getElementById('audit-sql-content').textContent = btn.dataset.sql;
+            document.getElementById('audit-sql-overlay').style.display = 'block';
+            document.getElementById('audit-sql-popup').style.display  = 'block';
+        }
+        function closeAuditSQL() {
+            document.getElementById('audit-sql-overlay').style.display = 'none';
+            document.getElementById('audit-sql-popup').style.display   = 'none';
+        }
+        document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAuditSQL(); });
+        </script>
         <?php endif; ?>
 <?php endif; ?>
     </div>
