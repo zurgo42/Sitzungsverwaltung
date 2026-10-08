@@ -107,6 +107,8 @@ function render_user_notifications($pdo, $member_id, $options = []) {
     }
 
     // 4. OFFENE MEINUNGSUMFRAGEN PRÜFEN
+    // Nur Polls zählen, die der User auch in der Liste sieht (gleiche Sichtbarkeitslogik
+    // wie get_all_opinion_polls): Ersteller, public/authenticated oder explizit eingeladen.
     $stmt_opinions = $pdo->prepare("
         SELECT COUNT(DISTINCT o.poll_id) as count
         FROM svopinion_polls o
@@ -114,8 +116,16 @@ function render_user_notifications($pdo, $member_id, $options = []) {
         WHERE o.status = 'active'
         AND o.ends_at >= NOW()
         AND opr.response_id IS NULL
+        AND (
+            o.creator_member_id = ?
+            OR o.target_type IN ('public', 'authenticated')
+            OR EXISTS (
+                SELECT 1 FROM svopinion_poll_participants opp
+                WHERE opp.poll_id = o.poll_id AND opp.member_id = ?
+            )
+        )
     ");
-    $stmt_opinions->execute([$member_id]);
+    $stmt_opinions->execute([$member_id, $member_id, $member_id]);
     $open_opinions = $stmt_opinions->fetch()['count'];
 
     if ($open_opinions > 0) {
