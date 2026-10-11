@@ -137,6 +137,14 @@ $to_ts   = $from_ts + (90 * 86400);
 $from_dt = date('Y-m-d H:i:s', $from_ts);
 $to_dt   = date('Y-m-d H:i:s', $to_ts);
 
+// Tabelle svevents prüfen – ggf. noch nicht migriert
+$svevents_exists = (bool)$pdo->query("SHOW TABLES LIKE 'svevents'")->fetchColumn();
+if (!$svevents_exists) {
+    echo '<div style="background:#fff3cd;border:1px solid #ffc107;border-left:4px solid #ffc107;padding:14px 18px;border-radius:6px;margin-bottom:16px;">'
+       . '⚠️ Die Tabelle <code>svevents</code> fehlt noch. Bitte führe <a href="tools/init-db.php">tools/init-db.php</a> aus, um sie anzulegen.</div>';
+    return;
+}
+
 // Eigene und für den User sichtbare Ereignisse aus svevents laden
 // (Sichtbarkeitsfilter wird weiter unten per PHP angewendet,
 //  da target_type='list' einen DB-Lookup erfordert)

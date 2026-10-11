@@ -4,8 +4,9 @@
  * Verarbeitet POST-Requests: create_event, update_event, delete_event
  */
 
-// Session starten (falls noch nicht gestartet)
+// Session konfigurieren und starten (session_config.php MUSS vor session_start() geladen werden)
 if (session_status() === PHP_SESSION_NONE) {
+    require_once __DIR__ . '/session_config.php';
     session_start();
 }
 
@@ -37,6 +38,13 @@ $is_admin    = is_admin_user($current_user);
 $member_id   = (int)$current_user['member_id'];
 $member_role = strtolower($current_user['role'] ?? '');
 $action      = $_POST['action'] ?? '';
+
+// Tabellen-Existenz prüfen
+if (!$pdo->query("SHOW TABLES LIKE 'svevents'")->fetchColumn()) {
+    $_SESSION['error'] = 'Tabelle svevents fehlt – bitte tools/init-db.php ausführen.';
+    header('Location: index.php?tab=kalender');
+    exit;
+}
 
 // ============================================================
 // HILFSFUNKTION: Teilnehmer neu setzen
