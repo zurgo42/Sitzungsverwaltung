@@ -367,12 +367,82 @@ function render_user_notifications($pdo, $member_id, $options = []) {
         }
     }
 
+    // 1b. VTOOL FREIGABEN (nur wenn freigabe-Tabelle existiert)
+    try {
+        $tbl_check = $pdo->query("SHOW TABLES LIKE 'freigabe'")->fetchColumn();
+        if ($tbl_check !== false) {
+            $stmt_fg = $pdo->prepare("
+                SELECT COUNT(*) FROM freigabe
+                WHERE (f1 = ? AND (vf1 IS NULL OR vf1 NOT IN ('F','X','N')))
+                   OR (f2 = ? AND (vf2 IS NULL OR vf2 NOT IN ('F','X','N')))
+                   OR (f3 = ? AND (vf3 IS NULL OR vf3 NOT IN ('F','X','N')))
+                   OR (f4 = ? AND (vf4 IS NULL OR vf4 NOT IN ('F','X','N')))
+                   OR (f5 = ? AND (vf5 IS NULL OR vf5 NOT IN ('F','X','N')))
+                   OR (f6 = ? AND (vf6 IS NULL OR vf6 NOT IN ('F','X','N')))
+            ");
+            $stmt_fg->execute([$member_id, $member_id, $member_id, $member_id, $member_id, $member_id]);
+            $open_freigaben = (int)$stmt_fg->fetchColumn();
+
+            if ($open_freigaben > 0) {
+                // Freigaben-URL aus svconfig holen (Tabelle ggf. nicht vorhanden)
+                $fg_url = '#';
+                try {
+                    $stmt_url = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = 'vtool_freigabe_url' LIMIT 1");
+                    $stmt_url->execute();
+                    $cfg_url = $stmt_url->fetchColumn();
+                    if ($cfg_url) $fg_url = $cfg_url;
+                } catch (\Throwable $e) { /* svconfig nicht vorhanden */ }
+
+                $notifications[] = [
+                    'type'      => 'freigaben',
+                    'icon'      => '💰',
+                    'text'      => 'Du hast <strong>' . $open_freigaben . '</strong> offene Zahlungsfreigabe' . ($open_freigaben > 1 ? 'n' : '') . ' im VTool',
+                    'link'      => $fg_url,
+                    'link_text' => '→ Freigaben',
+                    'button'    => true,
+                    'insert_after' => 'proposals_voting',
+                ];
+            }
+        }
+    } catch (\Throwable $e) { /* Tabelle nicht vorhanden oder Fehler – still ignorieren */ }
+
+    // Freigaben-Notification nach proposals_voting einsortieren
+    $notifications_sorted = [];
+    foreach ($notifications as $n) {
+        $notifications_sorted[] = $n;
+        if ($n['type'] === 'proposals_voting') {
+            // Freigaben sofort danach einsetzen (falls vorhanden)
+            foreach ($notifications as $fg) {
+                if ($fg['type'] === 'freigaben') {
+                    $notifications_sorted[] = $fg;
+                }
+            }
+        }
+    }
+    // Nur dann neusortierten Array verwenden wenn Freigaben enthalten waren
+    if (array_search('freigaben', array_column($notifications, 'type')) !== false) {
+        // Doppelung entfernen: freigaben darf nur einmal vorkommen
+        $seen_types = [];
+        $notifications_dedup = [];
+        foreach ($notifications_sorted as $n) {
+            if ($n['type'] === 'freigaben' && in_array('freigaben', $seen_types)) continue;
+            $notifications_dedup[] = $n;
+            $seen_types[] = $n['type'];
+        }
+        $notifications = $notifications_dedup;
+    }
+
     // AUSGABE
     if (empty($notifications)) {
         return; // Keine Meldungen
     }
 
+    $first_name = htmlspecialchars($member['first_name'] ?? '');
+
     echo '<div style="background: #f9f9f9; padding: 10px 15px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #ffc107; border-left: 4px solid #ffc107;">';
+    if ($first_name !== '') {
+        echo '<div style="font-weight: 700; color: #333; margin-bottom: 8px; font-size: 15px;">Hallo ' . $first_name . '!</div>';
+    }
 
     foreach ($notifications as $notif) {
         echo '<div style="margin-bottom: ' . (end($notifications) === $notif ? '0' : '10px') . ';">';
