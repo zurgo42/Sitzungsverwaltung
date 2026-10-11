@@ -384,14 +384,7 @@ function render_user_notifications($pdo, $member_id, $options = []) {
             $open_freigaben = (int)$stmt_fg->fetchColumn();
 
             if ($open_freigaben > 0) {
-                // Freigaben-URL aus svconfig holen (Tabelle ggf. nicht vorhanden)
-                $fg_url = '#';
-                try {
-                    $stmt_url = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = 'vtool_freigabe_url' LIMIT 1");
-                    $stmt_url->execute();
-                    $cfg_url = $stmt_url->fetchColumn();
-                    if ($cfg_url) $fg_url = $cfg_url;
-                } catch (\Throwable $e) { /* svconfig nicht vorhanden */ }
+                $fg_url = 'https://aktive.mensa.de/vorstand/vtool.php?steuer=9';
 
                 $notifications[] = [
                     'type'      => 'freigaben',
