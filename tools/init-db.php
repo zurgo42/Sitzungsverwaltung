@@ -1101,6 +1101,46 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     COMMENT='Generelles Audit-Log aller DB-Schreibzugriffe'";
 
+    // =========================================================
+    // KALENDER-TABELLEN
+    // =========================================================
+
+    // Kalender-Ereignisse
+    $tables[] = "CREATE TABLE IF NOT EXISTS svevents (
+        event_id        BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        title           VARCHAR(200) NOT NULL,
+        description     TEXT NULL,
+        location        VARCHAR(200) NULL,
+        start_datetime  DATETIME NOT NULL,
+        end_datetime    DATETIME NULL,
+        all_day         TINYINT(1) DEFAULT 0,
+        event_type      ENUM('sitzung','treffen','abwesenheit','frist','sonstiges') DEFAULT 'sonstiges',
+        recurrence      ENUM('none','weekly','biweekly','monthly','yearly') DEFAULT 'none',
+        recurrence_end_date DATE NULL,
+        target_type     ENUM('all','roles','list') DEFAULT 'all',
+        target_roles    VARCHAR(200) NULL COMMENT 'Komma-getrennte Rollen, z.B. vorstand,gf',
+        created_by_member_id INT NOT NULL,
+        meeting_id      INT NULL COMMENT 'Verknüpfung zu svmeetings',
+        status          ENUM('active','cancelled','deleted') DEFAULT 'active',
+        created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at      DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_start (start_datetime),
+        INDEX idx_type (event_type),
+        INDEX idx_status (status),
+        INDEX idx_created_by (created_by_member_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='Kalender-Ereignisse für alle Rollen'";
+
+    // Kalender-Ereignis-Teilnehmer (für target_type=list)
+    $tables[] = "CREATE TABLE IF NOT EXISTS svevents_participants (
+        event_id  INT NOT NULL,
+        member_id INT NOT NULL,
+        PRIMARY KEY (event_id, member_id),
+        INDEX idx_event (event_id),
+        INDEX idx_member (member_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    COMMENT='Teilnehmer-Liste für Kalender-Ereignisse mit target_type=list'";
+
     // Tabellen erstellen
     echo "<p>Erstelle " . count($tables) . " Tabellen...</p>";
     foreach ($tables as $sql) {

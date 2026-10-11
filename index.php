@@ -834,6 +834,11 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             📊 Meinungsbild
         </a>
 
+        <!-- Kalender-Tab (immer sichtbar) -->
+        <a href="?tab=kalender" class="<?php echo $active_tab === 'kalender' ? 'active' : ''; ?>">
+            📅 Kalender
+        </a>
+
         <!-- 2. ZEILE -->
 
         <!-- Dokumente-Tab (optional, siehe config.php / Admin-Steuerung) -->
@@ -967,6 +972,11 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             case 'opinion':
                 // Meinungsbild-Tool anzeigen
                 include 'tab_opinion.php';
+                break;
+
+            case 'kalender':
+                // Kalender anzeigen
+                include 'tab_kalender.php';
                 break;
 
             case 'proposals':
