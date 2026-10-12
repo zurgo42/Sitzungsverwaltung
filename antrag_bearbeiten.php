@@ -266,9 +266,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!function_exists('nm_event_antrag_geaendert') && file_exists(__DIR__ . '/notification_mailer.php')) {
                     require_once __DIR__ . '/notification_mailer.php';
                 }
-                if (function_exists('nm_event_antrag_geaendert')) {
-                    $notif_titel = trim($_POST['titel'] ?? ($antrag['titel'] ?? ''));
-                    $notif_intern = (($_POST['int_ext'] ?? $antrag['int_ext'] ?? 'e') === 'i');
+                $notif_titel = trim($_POST['titel'] ?? ($antrag['titel'] ?? ''));
+                $notif_intern = (($_POST['int_ext'] ?? $antrag['int_ext'] ?? 'e') === 'i');
+                $war_leer = (trim($antrag['titel'] ?? '') === '');
+                if ($war_leer && $notif_titel !== '' && function_exists('nm_event_antrag_neu')) {
+                    // Erstes Speichern mit Titel: "Neuer Antrag" statt "Antrag geändert"
+                    $bart_label = get_typ_bezeichnung($antrag['bart'] ?? '', $bart_config) ?: ($antrag['bart'] ?? '');
+                    nm_event_antrag_neu($pdo, $antrnr, $notif_titel, $bart_label, $notif_intern);
+                } elseif (!$war_leer && function_exists('nm_event_antrag_geaendert')) {
                     nm_event_antrag_geaendert($pdo, $antrnr, $notif_titel, $prot_diff, $notif_intern);
                 }
 

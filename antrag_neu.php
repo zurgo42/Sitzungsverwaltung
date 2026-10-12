@@ -146,14 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $selected_bart
         ]);
 
-        // E-Mail-Benachrichtigung: Neuer Antrag
-        if (!function_exists('nm_event_antrag_neu') && file_exists(__DIR__ . '/notification_mailer.php')) {
-            require_once __DIR__ . '/notification_mailer.php';
-        }
-        if (function_exists('nm_event_antrag_neu')) {
-            $bart_label = isset($aktive_typen[$selected_bart]['name']) ? $aktive_typen[$selected_bart]['name'] : $selected_bart;
-            nm_event_antrag_neu($pdo, $neue_antrnr, '', $bart_label);
-        }
+        // Mail 'Neuer Antrag' folgt erst beim ersten Speichern mit Titel (antrag_bearbeiten.php)
 
         // Zur Bearbeitung weiterleiten
         header('Location: antrag_bearbeiten.php?antrnr=' . urlencode($neue_antrnr) . '&created=1');
