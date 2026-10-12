@@ -201,6 +201,7 @@ if ($action === 'create_event') {
         $new_event_id = (int)$pdo->lastInsertId();
 
         if ($data['target_type'] === 'list') {
+            $data['participant_ids'][] = $member_id;
             setEventParticipants($pdo, $new_event_id, $data['participant_ids']);
         }
 
@@ -289,6 +290,7 @@ if ($action === 'update_event') {
 
         // Teilnehmer immer neu setzen (auch wenn target_type != list, dann werden alle gelöscht)
         if ($data['target_type'] === 'list') {
+            $data['participant_ids'][] = (int)$event['created_by_member_id'];
             setEventParticipants($pdo, $event_id, $data['participant_ids']);
         } else {
             $pdo->prepare("DELETE FROM svevents_participants WHERE event_id = ?")->execute([$event_id]);

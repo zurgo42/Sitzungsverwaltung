@@ -21,6 +21,10 @@
  */
 function isEventVisibleTo(array $event, int $member_id, string $member_role, $pdo): bool
 {
+    if ((int)($event['created_by_member_id'] ?? 0) === $member_id) {
+        return true;
+    }
+
     switch ($event['target_type']) {
         case 'all':
             return true;
@@ -492,11 +496,10 @@ $can_create = ($member_role !== 'mitglied');
                 <select name="participant_ids[]" id="form-participants" multiple
                         style="width:100%;min-height:120px;border:1px solid #ccc;border-radius:4px;padding:4px;">
                     <?php foreach ($all_members as $m): ?>
-                        <?php if ((int)$m['member_id'] !== $member_id): ?>
-                            <option value="<?php echo (int)$m['member_id']; ?>">
-                                <?php echo htmlspecialchars($m['last_name'] . ', ' . $m['first_name']); ?>
-                            </option>
-                        <?php endif; ?>
+                        <option value="<?php echo (int)$m['member_id']; ?>">
+                            <?php echo htmlspecialchars($m['last_name'] . ', ' . $m['first_name']); ?>
+                            <?php echo (int)$m['member_id'] === $member_id ? ' (ich)' : ''; ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
                 <small style="color:#666;display:block;margin-top:4px;">
