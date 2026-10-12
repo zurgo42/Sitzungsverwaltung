@@ -546,6 +546,7 @@ if ($flash) {
 <div class="page-header">
     <h1>👥 Berechtigte verwalten</h1>
     <span class="hint"><?= count($list) ?> Einträge</span>
+    <a href="index.php?tab=admin" class="back-link">← Zurück zur Sitzungsverwaltung</a>
 </div>
 
 <div class="card">
