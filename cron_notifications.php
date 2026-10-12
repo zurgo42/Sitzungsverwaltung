@@ -119,6 +119,15 @@ if (defined('TABLE_ANTRAEGE') && function_exists('auswerten_abstimmung')) {
     }
 }
 
+// --- 2b. Abstimmungs-Erinnerung (ca. 24 h vor Fristablauf, nicht abschaltbar) ---
+if (file_exists(__DIR__ . '/voting_reminder.php')) {
+    require_once __DIR__ . '/voting_reminder.php';
+    $vr_sent = send_voting_deadline_reminders($pdo);
+    if ($vr_sent > 0) {
+        $log("{$vr_sent} Abstimmungs-Erinnerung(en) versendet");
+    }
+}
+
 // --- 3. Agenda-Erinnerungsmail ---
 $col_check = @$pdo->query("SHOW COLUMNS FROM svmeetings LIKE 'send_agenda_reminder'");
 if ($col_check && $col_check->fetch() && function_exists('send_agenda_reminder_mail')) {

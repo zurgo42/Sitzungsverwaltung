@@ -157,6 +157,15 @@ if ($should_run) {
             }
         }
 
+        // ---- Abstimmungs-Erinnerung (ca. 24 h vor Fristablauf, nicht abschaltbar) ----
+        if (file_exists(__DIR__ . '/voting_reminder.php')) {
+            require_once __DIR__ . '/voting_reminder.php';
+            $vr_sent = send_voting_deadline_reminders($pdo);
+            if ($vr_sent > 0) {
+                @file_put_contents(__DIR__ . '/pseudo_cron.log', "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron: {$vr_sent} Abstimmungs-Erinnerung(en) versendet\n", FILE_APPEND);
+            }
+        }
+
         // ---- Agenda-Erinnerungsmail-Check ----
         // Sitzungen finden, bei denen der Antragsschluss abgelaufen ist,
         // Erinnerungsmail aktiviert und noch nicht versendet wurde

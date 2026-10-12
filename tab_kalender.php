@@ -211,6 +211,34 @@ while ($row = $stmt_meetings->fetch()) {
     ];
 }
 
+// Offene Abstimmungen, bei denen die Stimme des Users noch fehlt, als Frist eintragen
+if (file_exists(__DIR__ . '/voting_reminder.php')) {
+    require_once __DIR__ . '/voting_reminder.php';
+    foreach (get_open_votings($pdo, $member_id) as $v) {
+        $dl = strtotime($v['deadline']) - 86400; // letzter Abstimmungstag
+        if ($dl < $from_ts || $dl > $to_ts) continue;
+        $meetings_as_events[] = [
+            'event_id'            => 'vote_' . $v['antrnr'],
+            'title'               => 'Abstimmungsfrist: ' . $v['antrnr'] . ' ' . mb_substr($v['titel'], 0, 80),
+            'description'         => null,
+            'location'            => null,
+            'start_datetime'      => date('Y-m-d 00:00:00', $dl),
+            'end_datetime'        => null,
+            'all_day'             => 1,
+            'event_type'          => 'frist',
+            'recurrence'          => 'none',
+            'recurrence_end_date' => null,
+            'target_type'         => 'all',
+            'target_roles'        => null,
+            'created_by_member_id'=> 0,
+            'meeting_id'          => null,
+            'status'              => 'active',
+            '_from_meetings'      => true,
+            '_link'               => 'abstimmungen.php?antrnr=' . urlencode($v['antrnr']),
+        ];
+    }
+}
+
 // Alle Ereignisse zusammenführen und nochmals sortieren
 $all_events = array_merge($expanded_events, $meetings_as_events);
 usort($all_events, function ($a, $b) {
@@ -319,6 +347,9 @@ $can_create = ($member_role !== 'mitglied');
                         <strong style="font-size:1rem;color:#222;">
                             <?php echo htmlspecialchars($ev['title']); ?>
                         </strong>
+                        <?php if (!empty($ev['_link'])): ?>
+                            <a href="<?php echo htmlspecialchars($ev['_link']); ?>" style="font-size:0.85rem;">→ Abstimmen</a>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Zeit & Ort -->
