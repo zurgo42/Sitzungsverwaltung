@@ -166,6 +166,12 @@ $raw_events = $stmt->fetchAll();
 $visible_events = [];
 foreach ($raw_events as $ev) {
     if (isEventVisibleTo($ev, $member_id, $member_role, $pdo)) {
+        $ev['participant_ids'] = [];
+        if ($ev['target_type'] === 'list') {
+            $stmt_pids = $pdo->prepare("SELECT member_id FROM svevents_participants WHERE event_id = ?");
+            $stmt_pids->execute([(int)$ev['event_id']]);
+            $ev['participant_ids'] = array_map('intval', $stmt_pids->fetchAll(PDO::FETCH_COLUMN));
+        }
         $visible_events[] = $ev;
     }
 }
@@ -493,18 +499,20 @@ $can_create = ($member_role !== 'mitglied');
             <!-- Mitglieder-Auswahl -->
             <div id="form-list-wrapper" style="display:none;margin-bottom:14px;padding:12px;background:#f5f5f5;border-radius:6px;">
                 <label style="display:block;font-weight:600;margin-bottom:8px;">Mitglieder auswählen:</label>
-                <select name="participant_ids[]" id="form-participants" multiple
-                        style="width:100%;min-height:120px;border:1px solid #ccc;border-radius:4px;padding:4px;">
+                <div style="margin-bottom:8px;">
+                    <button type="button" class="btn-secondary" style="padding:3px 10px;font-size:0.8rem;cursor:pointer;" onclick="toggleAllParticipants(true)">Alle</button>
+                    <button type="button" class="btn-secondary" style="padding:3px 10px;font-size:0.8rem;cursor:pointer;" onclick="toggleAllParticipants(false)">Keine</button>
+                </div>
+                <div style="max-height:220px;overflow-y:auto;background:#fff;border:1px solid #ccc;border-radius:4px;padding:6px 10px;">
                     <?php foreach ($all_members as $m): ?>
-                        <option value="<?php echo (int)$m['member_id']; ?>">
+                        <label style="display:flex;align-items:center;gap:8px;padding:2px 0;cursor:pointer;">
+                            <input type="checkbox" name="participant_ids[]" class="form-participant-cb"
+                                   value="<?php echo (int)$m['member_id']; ?>">
                             <?php echo htmlspecialchars($m['last_name'] . ', ' . $m['first_name']); ?>
                             <?php echo (int)$m['member_id'] === $member_id ? ' (ich)' : ''; ?>
-                        </option>
+                        </label>
                     <?php endforeach; ?>
-                </select>
-                <small style="color:#666;display:block;margin-top:4px;">
-                    Mehrfachauswahl: Strg+Klick (Windows) oder Cmd+Klick (Mac)
-                </small>
+                </div>
             </div>
 
             <!-- Aktions-Buttons -->
@@ -603,8 +611,16 @@ function openEditModal(event) {
     <?php endif; ?>
     document.getElementById('form-list-wrapper').style.display =
         (targetType === 'list') ? '' : 'none';
+    var selPids = (event.participant_ids || []).map(Number);
+    document.querySelectorAll('.form-participant-cb').forEach(function(cb){
+        cb.checked = selPids.includes(parseInt(cb.value, 10));
+    });
 
     document.getElementById('kalender-modal-overlay').style.display = 'block';
+}
+
+function toggleAllParticipants(state) {
+    document.querySelectorAll('.form-participant-cb').forEach(function(cb){ cb.checked = state; });
 }
 
 function closeKalenderModal() {
