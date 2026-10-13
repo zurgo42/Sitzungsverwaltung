@@ -516,8 +516,6 @@ foreach (['V', 'R', 'B'] as $typ) {
         <?php
         if ($prefix_a === 'B') {
             if (preg_match('/^B(\d{6})/', $a['antrnr'], $matches)) {
-                $datum_str = $matches[1];
-                $datum = '20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2);
                 // Wer hat noch nicht abgestimmt?
                 $noch_offen = [];
                 for ($i = 1; $i <= 6; $i++) {
@@ -527,7 +525,7 @@ foreach (['V', 'R', 'B'] as $typ) {
                     }
                 }
                 echo '<div style="background: rgba(250, 170, 0, 0.2); padding: 6px 10px; border-radius: 4px; margin-bottom: 10px; font-size: 12px; color: #000; font-weight: 600;">';
-                echo '🗳️ In Abstimmung seit ' . date('d.m.Y', strtotime($datum));
+                echo '🗳️ In Abstimmung' . (!empty($a['b_date']) ? ' seit ' . date('d.m.Y', strtotime($a['b_date'])) : '');
                 if ($noch_offen) {
                     echo ' &nbsp;·&nbsp; <span style="font-weight:400;">noch offen: ' . implode(', ', $noch_offen) . '</span>';
                 } else {
