@@ -243,10 +243,22 @@ function nm_event_antrag_geaendert($pdo, $antrnr, $titel, $diff_string, $is_conf
     // Nicht senden wenn nichts geändert wurde
     if (substr($diff_string, -strlen('(unverändert)')) === '(unverändert)') return;
     $url = nm_deep_url($pdo, 'antrag_bearbeiten.php?antrnr=' . urlencode($antrnr));
-    nm_notify_all($pdo, 'antrag_geaendert', function($m) use ($antrnr, $titel, $diff_string, $url, $pdo, $is_confidential) {
+    // Abstimmberechtigte eines Antrags in Abstimmung direkt zur Abstimmungsseite führen
+    $voter_ids = [];
+    if (substr($antrnr, 0, 1) === 'B' && defined('TABLE_ANTRAEGE')) {
+        $vs = $pdo->prepare("SELECT VName1, VName2, VName3, VName4, VName5, VName6 FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
+        $vs->execute([$antrnr]);
+        $vrow = $vs->fetch(PDO::FETCH_ASSOC) ?: [];
+        $voter_ids = array_map('intval', array_filter($vrow));
+    }
+    $vote_url = nm_deep_url($pdo, 'abstimmungen.php?antrnr=' . urlencode($antrnr));
+    nm_notify_all($pdo, 'antrag_geaendert', function($m) use ($antrnr, $titel, $diff_string, $url, $vote_url, $voter_ids, $pdo, $is_confidential) {
         if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
+        $is_voter = in_array((int)$m['member_id'], $voter_ids, true);
+        $link = $is_voter ? $vote_url : $url;
+        $btn  = $is_voter ? 'Ansehen und abstimmen' : 'Antrag ansehen';
         $subj = 'Antrag geändert: ' . $titel;
-        $txt  = "Antrag {$antrnr} wurde geändert:\n\nTitel: {$titel}\n\nÄnderungen:\n{$diff_string}\n\nLink: {$url}";
+        $txt  = "Antrag {$antrnr} wurde geändert:\n\nTitel: {$titel}\n\nÄnderungen:\n{$diff_string}\n\nLink: {$link}";
         $html = nm_html_wrap($pdo,
             '<h2 style="margin:0 0 16px;color:#1a1a1a;font-size:18px;">Antrag geändert</h2>'
             . '<table style="border-collapse:collapse;margin-bottom:14px;">'
@@ -256,7 +268,7 @@ function nm_event_antrag_geaendert($pdo, $antrnr, $titel, $diff_string, $is_conf
             . '<pre style="margin:0;padding:12px;background:#f4f6f8;border-radius:4px;font-size:12px;'
             . 'white-space:pre-wrap;word-break:break-word;color:#333;">'
             . htmlspecialchars($diff_string) . '</pre>'
-            . nm_btn($url, 'Antrag ansehen'));
+            . nm_btn($link, $btn));
         return [$subj, $txt, $html];
     });
 }
