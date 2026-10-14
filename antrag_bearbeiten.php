@@ -671,7 +671,10 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         require_once __DIR__ . '/notification_mailer.php';
     }
     if (function_exists('nm_event_antrag_abstimmung')) {
-        nm_event_antrag_abstimmung($pdo, $antrnr, $neue_nr, $antrag['titel'] ?? '', '', ($antrag['int_ext'] ?? 'e') === 'i');
+        // Letzter Abstimmungstag = heute (b_date) + Abstimmungsdauer - 1 (Auswertung um 0 Uhr danach)
+        require_once __DIR__ . '/voting_reminder.php';
+        $letzter_tag = date('Y-m-d', strtotime('+' . (voting_duration_days($pdo) - 1) . ' days'));
+        nm_event_antrag_abstimmung($pdo, $antrnr, $neue_nr, $antrag['titel'] ?? '', $letzter_tag, ($antrag['int_ext'] ?? 'e') === 'i');
     }
 }
 
