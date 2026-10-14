@@ -558,11 +558,27 @@ foreach (['V', 'R', 'B'] as $typ) {
 
         <!-- Aktionen -->
         <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <?php
+            $darf_abstimmen = false;
+            if ($prefix_a === 'B') {
+                for ($vi = 1; $vi <= 6; $vi++) {
+                    if ((int)($a["VName$vi"] ?? 0) === (int)$current_user['member_id']) { $darf_abstimmen = true; break; }
+                }
+            }
+            ?>
+            <?php if ($darf_abstimmen): ?>
+            <a href="abstimmungen.php?antrnr=<?= urlencode($a['antrnr']) ?>"
+               class="btn btn-secondary"
+               style="padding: 8px 16px; font-size: 13px; text-decoration: none; display: inline-block; flex: 1; min-width: 120px; text-align: center;">
+                👁️ Ansehen und Abstimmen
+            </a>
+            <?php else: ?>
             <a href="antrag_ansehen.php?antrnr=<?= urlencode($a['antrnr']) ?>"
                class="btn btn-secondary"
                style="padding: 8px 16px; font-size: 13px; text-decoration: none; display: inline-block; flex: 1; min-width: 120px; text-align: center;">
                 👁️ Ansehen
             </a>
+            <?php endif; ?>
             <?php if ($prefix_a === 'A' && $user_aktiv > 10): ?>
             <a href="antrag_bearbeiten.php?antrnr=<?= urlencode($a['antrnr']) ?>"
                class="btn btn-primary"
