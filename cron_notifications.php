@@ -93,7 +93,7 @@ if (defined('TABLE_ANTRAEGE') && function_exists('auswerten_abstimmung')) {
         WHERE antrnr LIKE 'B%'
           AND LENGTH(antrnr) >= 8
           AND b_date IS NOT NULL
-          AND b_date <= '" . $grenz_date . "'
+          AND b_date < '" . $grenz_date . "' /* volle Abstimmungsdauer: Auswertung erst am Tag nach dem letzten Abstimmungstag */
     ");
 
     if ($b_stmt) {

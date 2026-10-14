@@ -7,7 +7,7 @@
  *   die noch nicht abgestimmt haben (einmal pro Antrag und Mitglied). Nicht abschaltbar.
  *
  * Die Frist entspricht der Auswertung in pseudo_cron.php / cron_notifications.php:
- * ausgewertet wird, sobald b_date + Abstimmungsdauer erreicht ist (00:00 Uhr dieses Tages).
+ * letzter Abstimmungstag ist b_date + Abstimmungsdauer; ausgewertet wird um 0 Uhr danach.
  */
 
 function voting_duration_days($pdo) {
@@ -31,13 +31,13 @@ function get_open_votings($pdo, $member_id = null) {
         SELECT antrnr, titel, b_date $cols
         FROM " . TABLE_ANTRAEGE . "
         WHERE antrnr LIKE 'B%' AND LENGTH(antrnr) >= 8 AND b_date IS NOT NULL
-          AND b_date > DATE_SUB(CURDATE(), INTERVAL " . (int)$dauer . " DAY)
+          AND b_date >= DATE_SUB(CURDATE(), INTERVAL " . (int)$dauer . " DAY)
     ");
     if (!$stmt) return [];
 
     $result = [];
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $deadline = date('Y-m-d 00:00:00', strtotime($row['b_date'] . " +{$dauer} days"));
+        $deadline = date('Y-m-d 00:00:00', strtotime($row['b_date'] . ' +' . ($dauer + 1) . ' days'));
         $missing = [];
         for ($i = 1; $i <= 6; $i++) {
             $vid = (int)($row["VName$i"] ?? 0);
