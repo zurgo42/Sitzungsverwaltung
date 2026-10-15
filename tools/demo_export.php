@@ -10,9 +10,16 @@
  * 2. Füge Kommentare, TODOs, Protokolle etc. hinzu
  * 3. Rufe dieses Skript im Browser auf
  * 4. Die Datei demo_data.json wird im tools/-Verzeichnis erstellt
+ *
+ * Ohne Live-Datenbank: tools/demo_build.php erzeugt dieselbe JSON-Struktur aus erfundenen Daten.
+ *
+ * DATENSCHUTZ: Tabellen mit Mailadressen, IPs, Tokens, Push-Endpunkten oder Logs (DEMO_EXCLUDED_TABLES in
+ * demo_common.php) werden nie exportiert; Token-Spalten werden ersetzt. Enthält der Export trotzdem
+ * Mailadressen außerhalb von example.com/.org/.net (z. B. echte svmembers), wird gewarnt.
  */
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/demo_common.php';
 
 // Sicherstellen, dass wir mit der members-Tabelle arbeiten
 define('FORCE_MEMBER_SOURCE', 'members');
@@ -195,8 +202,9 @@ if (!$password_correct) {
             <li>svopinion_polls (Meinungsbilder)</li>
             <li>svdocuments (Dokumente)</li>
             <li>svevents / svevents_participants (Kalender)</li>
-            <li>Anträge (TABLE_ANTRAEGE inkl. b_date), Beschlüsse, Ressorts</li>
-            <li>Ausgenommen: svaudit_log, svvote_reminders</li>
+            <li>Anträge (TABLE_ANTRAEGE inkl. b_date), Beschlüsse, Ressorts, svconfig (alle Admin-Einstellungen), Feedback</li>
+            <li><strong>Datenschutz – nie exportiert:</strong> <?php echo htmlspecialchars(implode(', ', array_merge(array_keys(DEMO_EXCLUDED_TABLES), array_keys(DEMO_BUILDER_ONLY_TABLES)))); ?>;
+                die Tabelle <?php echo DEMO_DERIVED_TABLE; ?> wird beim Import aus svmembers abgeleitet</li>
             <li>...und alle weiteren sv*-Tabellen</li>
         </ul>
     </div>
@@ -225,9 +233,18 @@ if (!$password_correct) {
             }
         }
 
-        // Laufzeit-/Protokolldaten gehören nicht in den Demo-Stand:
-        // Audit-Log wird beim Reset geleert, Abstimmungs-Erinnerungen müssen neu testbar sein
-        $tables_to_export = array_values(array_diff($tables_to_export, ['svaudit_log', 'svvote_reminders']));
+        // Feedback-Einträge gehören zum Demo-Stand (Tabelle ohne sv-Prefix)
+        $fb = $pdo->query("SHOW TABLES LIKE 'feedback'")->fetchColumn();
+        if ($fb && !in_array('feedback', $tables_to_export, true)) {
+            $tables_to_export[] = 'feedback';
+        }
+
+        // Datenschutz: Log-, Queue-, Token- und Adress-Tabellen nie exportieren (eine gemeinsame Liste für
+        // Export, Import und Analyse: DEMO_EXCLUDED_TABLES / DEMO_BUILDER_ONLY_TABLES in demo_common.php)
+        $skipped_tables = array_values(array_filter($tables_to_export, function ($t) {
+            return array_key_exists($t, DEMO_EXCLUDED_TABLES) || array_key_exists($t, DEMO_BUILDER_ONLY_TABLES) || $t === DEMO_DERIVED_TABLE;
+        }));
+        $tables_to_export = array_values(array_diff($tables_to_export, $skipped_tables));
 
         if (empty($tables_to_export)) {
             throw new Exception('Keine Tabellen mit "sv"-Prefix gefunden. Bitte prüfe die Datenbank.');
@@ -236,11 +253,31 @@ if (!$password_correct) {
         $total_records = 0;
 
         foreach ($tables_to_export as $table) {
-            $stmt = $pdo->query("SELECT * FROM $table");
+            $stmt = $pdo->query("SELECT * FROM `$table`");
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as $i => $row) {
+                // Token-/Adress-Spalten bereinigen (DEMO_SCRUB_COLUMNS)
+                $rows[$i] = demo_scrub_row($table, $row, $i);
+            }
+            if ($table === 'svconfig') {
+                // Laufzeit-Schlüssel nicht exportieren; Bezugstag für die dynamischen Demo-Datumsangaben setzen
+                $rows = array_values(array_filter($rows, function ($r) {
+                    return !in_array($r['config_key'], DEMO_RUNTIME_CONFIG_KEYS, true) && $r['config_key'] !== DEMO_ANCHOR_KEY;
+                }));
+                $rows[] = [
+                    'config_key' => DEMO_ANCHOR_KEY, 'config_value' => date('Y-m-d'), 'config_type' => 'text',
+                    'description' => 'Bezugstag der relativen Demo-Datumsangaben (wird von update_demo_dates.php täglich fortgeschrieben)',
+                    'category' => 'system', 'updated_by' => null,
+                ];
+            }
             $export_data['tables'][$table] = $rows;
             $total_records += count($rows);
         }
+        $export_data['export_version'] = '1.1';
+        $export_data['anchor_date'] = date('Y-m-d');
+
+        // Datenschutz-Prüfung: Mailadressen außerhalb von example.*
+        $foreign_mails = demo_find_foreign_emails($export_data['tables']);
 
         // JSON-Datei erstellen
         $json = json_encode($export_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
@@ -268,11 +305,27 @@ if (!$password_correct) {
             echo '</div>';
         }
 
+        if ($foreign_mails) {
+            echo '<div class="error">';
+            echo '<h3>⚠️ Datenschutz-Warnung: echte Mailadressen im Export</h3>';
+            echo '<p>Die JSON enthält <strong>' . count($foreign_mails) . (count($foreign_mails) >= 200 ? '+' : '') . '</strong> Mailadresse(n) außerhalb von example.com/.org/.net. '
+               . 'Diese Datei darf nicht auf einem öffentlichen Demo-Server eingesetzt werden, solange sie nicht durch Fake-Daten ersetzt wurde '
+               . '(Alternative: <code>php tools/demo_build.php</code> erzeugt einen vollständigen Demo-Stand aus erfundenen Daten).</p><ul>';
+            foreach (array_slice($foreign_mails, 0, 8) as $f) {
+                echo '<li><code>' . htmlspecialchars($f['table'] . '.' . $f['column'] . ' (Zeile ' . $f['row'] . ')') . '</code>: '
+                   . htmlspecialchars(preg_replace('/^[^@]{0,2}[^@]*@/', '***@', $f['value'])) . '</li>';
+            }
+            echo '</ul></div>';
+        }
+
         echo '<div class="success">';
         echo '<h3>✅ Export erfolgreich!</h3>';
         echo '<p>Datei erstellt: <code>' . $filename . '</code></p>';
         echo '<p>Dateigröße: ' . number_format(filesize($filename) / 1024, 2) . ' KB</p>';
         echo '<p>Gesamt-Datensätze: ' . $total_records . '</p>';
+        if ($skipped_tables) {
+            echo '<p>Aus Datenschutzgründen <strong>nicht exportiert</strong>: <code>' . htmlspecialchars(implode(', ', $skipped_tables)) . '</code></p>';
+        }
         echo '</div>';
 
         // Statistik anzeigen

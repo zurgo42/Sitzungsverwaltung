@@ -68,8 +68,12 @@ Alle produktiven PHP-Skripte liegen im Root. Wartungs-, Diagnose- und Migrations
 │
 ├── tools/                      # Wartungs-, Diagnose- & Migrations-Skripte
 │   ├── init-db.php             # Datenbank-Initialisierung (einmalig)
+│   ├── demo_build.php          # Demo-Daten aus erfundenen Daten erzeugen (CLI + Browser)
+│   ├── demo_common.php         # Gemeinsame Demo-Definitionen (Datenschutz-Ausschlüsse, Rollen-Mapping)
 │   ├── demo_export.php         # Demo-Daten exportieren
 │   ├── demo_import.php         # Demo-Daten importieren
+│   ├── demo_analyze.php        # Demo-JSON analysieren (Feature-Matrix, Datenschutz)
+│   ├── update_demo_dates.php   # Tägliche Datumsfortschreibung im Demo-Modus
 │   ├── fix_missing_beschluesse.php
 │   ├── diagnose_antraege.php
 │   ├── check_documents.php
@@ -406,12 +410,25 @@ END
 Relevante Migrationen (werden automatisch ausgeführt):
 - `b_date DATE NULL` in `antraege`-Tabelle (Finalisierungsdatum A→B)
 
-#### tools/demo_export.php
-**Zweck:** Demo-Daten exportieren
+#### tools/demo_build.php
+**Zweck:** Vollständigen Demo-Stand aus frei erfundenen Daten erzeugen (ersetzt den alten `demo.php`-Generator; `demo.php` ruft den Builder auf)
 **Funktionen:**
-- Exportiert alle Tabellen in JSON-Format
+- Schreibt `tools/demo_data.json` im Format von `demo_export.php` (deterministisch: gleicher Anker = gleiche Datei)
+- Mitglieder aller Rollen (Passwort `test123`, nur `@example.com`), Sitzungen in allen Status, TOPs, Protokolle, ToDos,
+  Abwesenheiten, Terminumfragen, Meinungsbilder, Dokumente, Texte, Anträge in allen Phasen, Kalender, Benachrichtigungen,
+  alle Admin-Einstellungen (`svconfig`, Ressorts)
+- Rollen-Mapping `svmembers` ↔ `berechtigte` siehe Kopfkommentar und `docs/PERMISSIONS.md`
+
+**Verwendung:** `php tools/demo_build.php [--anchor=YYYY-MM-DD] [--out=Pfad]` oder im Browser (System-Admin-Passwort), danach `demo_import.php`
+
+#### tools/demo_export.php
+**Zweck:** Demo-Daten aus einer vorhandenen Datenbank exportieren
+**Funktionen:**
+- Exportiert alle sv*-Tabellen (inkl. `svconfig`, Anträge, Ressorts, Feedback) in JSON-Format
 - Erstellt `tools/demo_data.json`
-- Umfasst: members, meetings, agenda_items, todos, polls, opinion_polls, etc.
+- **Datenschutz:** exportiert nie `svmail_queue`, `svmail_notifications`, `svpush_subscriptions`, `svexternal_access_log`, `svaudit_log`,
+  `svadmin_log`, `svdocument_downloads`, `svvote_reminders`, `svcollab_text_locks`, `protokoll`, `svexternal_participants`, `berechtigte`
+  (Liste: `DEMO_EXCLUDED_TABLES` in `tools/demo_common.php`); warnt bei Mailadressen außerhalb von example.com/.org/.net
 
 **Verwendung:** Zum Erstellen eines Demo-Snapshots
 
@@ -419,8 +436,18 @@ Relevante Migrationen (werden automatisch ausgeführt):
 **Zweck:** Demo-Daten importieren
 **Funktionen:**
 - **LÖSCHT ALLE DATEN** (members, meetings, todos, polls, opinion_polls, etc.)
-- Importiert demo_data.json
+- Importiert demo_data.json (unbekannte Spalten werden verworfen, Tabellennamen laut `TABLE_*` in der config)
+- Leert zusätzlich alle Datenschutz-Tabellen (Queue, Logs, Push-Abos, `svvote_reminders` ...), importiert sie nie
+- Leitet die Tabelle `berechtigte` aus `svmembers` ab (nur Standalone; bei `MEMBER_SOURCE = 'berechtigte'` bleibt sie unverändert)
 - Setzt Datenbank auf Demo-Stand zurück
+
+#### tools/demo_analyze.php
+**Zweck:** Demo-JSON prüfen (Feature-Matrix, Datenschutz, Erinnerungs-Antrag, Rollen-Zuordnung); CLI: `php tools/demo_analyze.php [Datei]`
+
+#### tools/update_demo_dates.php
+**Zweck:** Hält Demo-Daten aktuell (bei jedem Seitenaufruf im Demo-Modus, Tageswerk einmal pro Tag über `svconfig.demo_anchor_date`)
+- Verschiebt alle relativen Daten (Sitzungen, ToDos, Abwesenheiten, Benachrichtigungen ...) um die vergangenen Tage
+- Hält den Erinnerungs-Antrag `DEMO_REMINDER_ANTRNR` (`b_date` = heute − Abstimmungsdauer, offene Stimmen, `svvote_reminders` leer) aktuell
 
 **Verwendung:** Nur für Demo-Umgebungen oder zum Zurücksetzen
 **Warnung:** Löscht auch den Default-Admin!

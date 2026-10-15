@@ -357,7 +357,7 @@ $my_absences = get_absences_with_names($pdo, "a.member_id = ?", [$current_user['
                 <label style="display: block; margin-bottom: 5px; font-weight: 600;">Vertretung:</label>
                 <select name="substitute_member_id" id="edit_substitute" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                     <option value="">– Keine Vertretung –</option>
-                    <?php foreach ($available_members as $mem): ?>
+                    <?php foreach ($all_members as $mem): ?>
                         <option value="<?php echo $mem['member_id']; ?>">
                             <?php echo htmlspecialchars($mem['first_name'] . ' ' . $mem['last_name']); ?>
                         </option>

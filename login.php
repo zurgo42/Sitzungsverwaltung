@@ -313,11 +313,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h3>🔐 Demo-Benutzer (Testsystem)</h3>
                 <p>Dies ist ein Testsystem. Verwende eine dieser Demo-Identitäten:</p>
                 <div class="demo-users">
-                    <div class="demo-user"><strong>Vorstand:</strong> <code>max@example.com</code> / <code>test123</code></div>
+                    <div class="demo-user"><strong>Vorstand:</strong> <code>max@example.com</code> / <code>test123</code> (Admin)</div>
                     <div class="demo-user"><strong>Vorstand:</strong> <code>erika@example.com</code> / <code>test123</code></div>
+                    <div class="demo-user"><strong>Vorstand:</strong> <code>lukas@example.com</code> / <code>test123</code></div>
+                    <div class="demo-user"><strong>GF:</strong> <code>julia@example.com</code> / <code>test123</code> (Admin)</div>
+                    <div class="demo-user"><strong>Assistenz:</strong> <code>thomas@example.com</code> / <code>test123</code> (Admin)</div>
                     <div class="demo-user"><strong>Führung:</strong> <code>hans@example.com</code> / <code>test123</code></div>
-                    <div class="demo-user"><strong>GF:</strong> <code>julia@example.com</code> / <code>test123</code></div>
-                    <div class="demo-user"><strong>Assistenz:</strong> <code>thomas@example.com</code> / <code>test123</code></div>
+                    <div class="demo-user"><strong>Mitglied:</strong> <code>karl@example.com</code> / <code>test123</code></div>
+                    <div class="demo-user"><small>Alle Demo-Benutzer (max, erika, lukas, julia, thomas, sabine, hans, anna, petra, karl, mia) haben das Passwort <code>test123</code>.</small></div>
                 </div>
             </div>
         </div>

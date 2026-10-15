@@ -13,6 +13,7 @@
  */
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/demo_common.php';
 
 // Sicherstellen, dass wir mit der members-Tabelle arbeiten
 define('FORCE_MEMBER_SOURCE', 'members');
@@ -243,7 +244,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 <p style="color: #dc3545; font-weight: bold;">⚠️ DEMO_MODE_ENABLED ist auf false! Setze es auf true in config.php</p>
             <?php endif; ?>
             <?php if (!file_exists($demo_file)): ?>
-                <p style="color: #dc3545; font-weight: bold;">⚠️ demo_data.json nicht gefunden! Erstelle sie zuerst mit demo_export.php auf dem Quellserver</p>
+                <p style="color: #dc3545; font-weight: bold;">⚠️ demo_data.json nicht gefunden! Erstelle sie zuerst mit demo_build.php (erfundene Daten) oder demo_export.php (Export einer Datenbank)</p>
             <?php endif; ?>
         </div>
         <p><strong>Was wird gelöscht:</strong></p>
@@ -259,9 +260,11 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             <li>svpolls (Alle Terminabstimmungen & Antworten)</li>
             <li>svopinion_polls (Alle Meinungsbilder & Antworten)</li>
             <li>svdocuments (Alle Dokumente & Download-Historie)</li>
-            <li>svevents (Kalender), svaudit_log (Audit-Log), svvote_reminders (Abstimmungs-Erinnerungen)</li>
-            <li>Anträge/Beschlüsse/Ressorts laut config (TABLE_ANTRAEGE usw.) und das Aktions-Protokoll</li>
-            <li>...und alle weiteren sv*-Tabellen</li>
+            <li>svevents (Kalender), svnotifications, svcollab_texts, svconfig (Admin-Einstellungen), svressorts</li>
+            <li>Anträge/Beschlüsse/Ressorts laut config (TABLE_ANTRAEGE usw.), Feedback und das Aktions-Protokoll</li>
+            <li><strong>Datenschutz:</strong> svmail_queue, svmail_notifications, svpush_subscriptions, svexternal_access_log, svaudit_log, svadmin_log,
+                svdocument_downloads, svvote_reminders, svcollab_text_locks und protokoll werden geleert und <em>nie</em> importiert</li>
+            <li>...und alle weiteren sv*-Tabellen; die Tabelle berechtigte wird (nur Standalone) aus svmembers neu abgeleitet</li>
         </ul>
         <p><strong>Was wird importiert:</strong></p>
         <ul>
@@ -271,7 +274,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             <li>Demo-TODOs mit Historie</li>
             <li>Demo-Terminabstimmungen mit Antworten</li>
             <li>Demo-Meinungsbilder mit Antworten</li>
-            <li>Demo-Dokumente mit Download-Statistiken</li>
+            <li>Demo-Dokumente (nur Metadaten), Kalender, Anträge in allen Phasen, Admin-Einstellungen (svconfig, Ressorts)</li>
         </ul>
     </div>
 
@@ -280,8 +283,8 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
         echo '<div class="error">';
         echo '<h3>❌ Demo-Datei nicht gefunden</h3>';
         echo '<p>Die Datei <code>' . htmlspecialchars($demo_file) . '</code> existiert nicht.</p>';
-        echo '<p>Bitte erstelle zuerst Demo-Daten mit <code>demo_export.php</code>.</p>';
-        echo '<a href="demo_export.php" class="btn">➡️ Zum Export-Tool</a>';
+        echo '<p>Bitte erstelle zuerst Demo-Daten mit <code>demo_build.php</code> (erfundene Daten, <code>php tools/demo_build.php</code>) oder <code>demo_export.php</code>.</p>';
+        echo '<a href="demo_build.php" class="btn">➡️ Zum Demo-Builder</a> <a href="demo_export.php" class="btn">➡️ Zum Export-Tool</a>';
         echo '</div>';
         exit;
     }
@@ -309,269 +312,180 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
         echo '</div>';
     } else {
         // Import durchführen
+        $import_stats = [];
+        $import_errors = [];
+        $import_notes = [];
         try {
-            $pdo->beginTransaction();
-
-            // 1. Alle Daten löschen
             echo '<div class="card">';
             echo '<h2>🗑️ Lösche bestehende Daten...</h2>';
 
-            // Alle Tabellen mit "sv"-Prefix automatisch finden
-            $stmt = $pdo->query("SHOW TABLES LIKE 'sv%'");
-            $tables_to_clear = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-            // Tabellen ohne "sv"-Prefix (z.B. antraege, VTool-Variante) ebenfalls zurücksetzen,
-            // sonst bleiben alte Anträge stehen bzw. werden beim Import doppelt eingefügt.
-            // Zusätzlich das Aktions-Protokoll ("protokoll").
-            $extra_tables = ['protokoll'];
-            foreach (['TABLE_ANTRAEGE', 'TABLE_BESCHLUESSE', 'TABLE_MVBESCHLUESSE', 'TABLE_RESSORTS'] as $const) {
-                if (defined($const)) {
-                    $extra_tables[] = constant($const);
-                }
+            // 0. JSON laden und prüfen
+            $json = file_get_contents($demo_file);
+            $demo_data = json_decode($json, true);
+            if (!is_array($demo_data) || !isset($demo_data['tables']) || !is_array($demo_data['tables'])) {
+                throw new Exception('Fehler beim Parsen der JSON-Datei');
             }
-            // Nicht-sv-Tabellen nur leeren, wenn die JSON sie auch enthält (alte Exporte ohne
-            // diese Tabellen würden sonst z.B. die Ressortliste leeren).
-            $pre_json = json_decode((string)file_get_contents($demo_file), true);
-            foreach ($extra_tables as $extra) {
-                if ($extra !== 'protokoll' && !isset($pre_json['tables'][$extra])) {
-                    continue;
-                }
-                if (preg_match('/^[A-Za-z0-9_]+$/', $extra) && !in_array($extra, $tables_to_clear, true)) {
-                    $q = $pdo->quote($extra);
-                    if ($pdo->query("SHOW TABLES LIKE $q")->fetchColumn()) {
-                        $tables_to_clear[] = $extra;
-                    }
-                }
+            $json_tables = $demo_data['tables'];
+
+            // Datenschutz: ausgeschlossene Tabellen werden nie importiert; Fremd-Mailadressen nur melden
+            $ignored_in_json = array_values(array_filter(array_keys($json_tables), 'demo_is_excluded'));
+            if ($ignored_in_json) {
+                echo '<p style="color:#856404;">⚠️ Folgende Tabellen stehen in der JSON, werden aber aus Datenschutzgründen ignoriert: <code>'
+                    . htmlspecialchars(implode(', ', $ignored_in_json)) . '</code></p>';
+            }
+            $foreign_mails = demo_find_foreign_emails($json_tables, 5);
+            if ($foreign_mails) {
+                echo '<p style="color:#dc3545;">⚠️ Die JSON enthält Mailadressen außerhalb von example.com/.org/.net (z. B. <code>'
+                    . htmlspecialchars($foreign_mails[0]['value']) . '</code> in ' . htmlspecialchars($foreign_mails[0]['table'])
+                    . '). Für eine öffentliche Demo bitte durch Fake-Daten ersetzen (tools/demo_build.php).</p>';
             }
 
-            // Tabellen, die nie aus der JSON importiert werden (auch nicht aus alten Exporten):
-            // Audit-Log und Abstimmungs-Erinnerungen werden nur geleert (svvote_reminders
-            // wird lazy angelegt und existiert evtl. noch nicht -> dann nichts zu tun).
-            $never_import = ['svaudit_log', 'svvote_reminders'];
+            // 1. Tabellen bestimmen
+            $existing = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
+            $existing_lc = array_map('strtolower', $existing);
+            $table_exists = function ($t) use ($existing_lc) { return in_array(strtolower($t), $existing_lc, true); };
 
-            // Foreign Key Checks temporär deaktivieren für einfacheres Löschen
+            // Alle sv*-Tabellen (auch die ausgeschlossenen Log-/Queue-Tabellen: sie werden geleert, nie importiert)
+            $tables_to_clear = array_values(array_filter($existing, function ($t) {
+                return strncasecmp($t, 'sv', 2) === 0;
+            }));
+
+            // Anträge/Beschlüsse/Ressorts können laut config.php anders heißen (z. B. antraege, VTool-Variante).
+            // Sie werden nur geleert, wenn die JSON sie enthält (alte Exporte würden sonst z. B. die Ressortliste leeren).
+            $name_map = [];
+            foreach (demo_table_constants() as $logical => $const) {
+                $real = demo_real_table($logical);
+                $name_map[$logical] = $real;
+                if ($real !== $logical && (isset($json_tables[$logical]) || isset($json_tables[$real])) && $table_exists($real)) {
+                    $tables_to_clear[] = $real;
+                }
+            }
+            // Aktions-Protokoll, Feedback und alle ausgeschlossenen Tabellen (Datenschutz) leeren
+            foreach (array_merge(['protokoll', 'feedback'], array_keys(DEMO_EXCLUDED_TABLES)) as $extra) {
+                if ($table_exists($extra) && !in_array($extra, $tables_to_clear, true)) $tables_to_clear[] = $extra;
+            }
+            $tables_to_clear = array_values(array_unique($tables_to_clear));
+
+            // Mitgliederquelle: berechtigte nur im Standalone-Betrieb ableiten/leeren (in der VTool-Variante echte Daten!)
+            $derive_berechtigte = !demo_member_source_is_berechtigte();
+            if (!$derive_berechtigte) {
+                $import_notes[] = 'MEMBER_SOURCE = berechtigte: Die Tabelle berechtigte bleibt unverändert (echte VTool-Daten).';
+            }
+
             $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
 
             foreach ($tables_to_clear as $table) {
-                $stmt = $pdo->prepare("DELETE FROM $table");
+                if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) continue;
+                $stmt = $pdo->prepare("DELETE FROM `$table`");
                 $stmt->execute();
                 $deleted = $stmt->rowCount();
-                echo '<p>✓ ' . $table . ': ' . $deleted . ' Datensätze gelöscht</p>';
+                $suffix = array_key_exists($table, DEMO_EXCLUDED_TABLES) ? ' <small>(Datenschutz: wird nie importiert)</small>' : '';
+                echo "<p>✓ $table: $deleted Datensätze gelöscht$suffix</p>";
+            }
+            if ($derive_berechtigte && $table_exists(DEMO_DERIVED_TABLE)) {
+                $n = $pdo->exec("DELETE FROM " . DEMO_DERIVED_TABLE);
+                echo "<p>✓ " . DEMO_DERIVED_TABLE . ": $n Datensätze gelöscht <small>(wird aus svmembers neu abgeleitet)</small></p>";
             }
 
-            // Auto-Increment zurücksetzen
+            // Auto-Increment zurücksetzen (DDL: vor der Transaktion)
             foreach ($tables_to_clear as $table) {
-                $pdo->exec("ALTER TABLE $table AUTO_INCREMENT = 1");
+                if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) continue;
+                try { $pdo->exec("ALTER TABLE `$table` AUTO_INCREMENT = 1"); } catch (PDOException $e) { /* z. B. View */ }
             }
-
-            // Foreign Key Checks bleiben während des Imports deaktiviert!
-            // (werden am Ende wieder aktiviert)
-
             echo '</div>';
-
-            // 2. Demo-Daten laden
-            $json = file_get_contents($demo_file);
-            $demo_data = json_decode($json, true);
-
-            if (!$demo_data) {
-                throw new Exception('Fehler beim Parsen der JSON-Datei');
-            }
 
             echo '<div class="card">';
             echo '<h2>📥 Importiere Demo-Daten...</h2>';
-            echo '<p><strong>Export-Datum:</strong> ' . $demo_data['export_date'] . '</p>';
-            echo '<p><strong>Version:</strong> ' . $demo_data['export_version'] . '</p>';
+            $pdo->beginTransaction();
 
-            // Warnung bei zu wenig Daten
-            $has_meetings = isset($demo_data['tables']['svmeetings']) && count($demo_data['tables']['svmeetings']) > 0;
-            $has_agenda = isset($demo_data['tables']['svagenda_items']) && count($demo_data['tables']['svagenda_items']) > 0;
+            // Spalteninfo der Zieltabellen (Schema-Abweichungen werden toleriert: unbekannte Spalten werden verworfen)
+            $col_info = [];
+            $get_cols = function ($table) use ($pdo, &$col_info) {
+                if (!isset($col_info[$table])) {
+                    $col_info[$table] = [];
+                    foreach ($pdo->query("SHOW COLUMNS FROM `$table`")->fetchAll(PDO::FETCH_ASSOC) as $c) {
+                        $col_info[$table][$c['Field']] = [
+                            'required' => ($c['Null'] === 'NO' && $c['Default'] === null && stripos($c['Extra'], 'auto_increment') === false
+                                           && stripos($c['Extra'], 'generated') === false),
+                        ];
+                    }
+                }
+                return $col_info[$table];
+            };
+            $stmt_cache = [];
 
-            if (!$has_meetings || !$has_agenda) {
-                echo '<div class="warning" style="margin-top: 15px;">';
-                echo '<h4>⚠️ WARNUNG: JSON-Datei enthält kaum Daten!</h4>';
-                echo '<ul>';
-                if (!$has_meetings) {
-                    echo '<li>❌ Keine Meetings in der JSON-Datei (svmeetings ist leer)</li>';
+            // Reihenfolge: definierte Reihenfolge (Eltern vor Kindern), dann übrige Tabellen der JSON
+            $queue = [];
+            foreach (demo_table_order() as $logical) {
+                if (isset($name_map[$logical]) && isset($json_tables[$name_map[$logical]]) && !isset($json_tables[$logical])) {
+                    $queue[$logical] = $name_map[$logical];   // JSON enthält bereits den konfigurierten Namen
+                } elseif (isset($json_tables[$logical])) {
+                    $queue[$logical] = $logical;
                 }
-                if (!$has_agenda) {
-                    echo '<li>❌ Keine Tagesordnungspunkte in der JSON-Datei (svagenda_items ist leer)</li>';
-                }
-                echo '</ul>';
-                echo '<p><strong>Mögliche Ursache:</strong> Die demo_data.json wurde von einem Server exportiert, der selbst keine Daten hatte!</p>';
-                echo '<p><strong>Lösung:</strong> Exportiere die Daten vom RICHTIGEN Quellserver (der mit den tatsächlichen Meeting-Daten).</p>';
-                echo '</div>';
+            }
+            foreach ($json_tables as $key => $rows) {
+                if (!in_array($key, $queue, true) && !isset($queue[$key])) $queue[$key] = $key;
             }
 
-            // Hinweis auf Schema-Probleme
-            echo '<div class="info" style="margin-top: 15px;">';
-            echo '<h4>💡 Häufiges Problem: Unterschiedliche Datenbank-Schemas</h4>';
-            echo '<p>Wenn beim Import Fehler wie "Unknown column" oder "Column not found" auftreten, haben Quell- und Zieldatenbank unterschiedliche Schemas.</p>';
-            echo '<p><strong>Lösung:</strong> <a href="migrate_schema.php" style="color: #0c5460; font-weight: bold;">🔧 Schema-Migration ausführen</a> (Fügt fehlende Spalten hinzu)</p>';
-            echo '</div>';
+            foreach ($queue as $logical => $json_key) {
+                if (demo_is_excluded($logical) || demo_is_excluded($json_key)) continue;   // Datenschutz
+                $rows = $json_tables[$json_key] ?? null;
+                if (empty($rows) || !is_array($rows)) continue;
 
-            echo '</div>';
-
-            // 3. Daten einfügen
-            $import_stats = [];
-            $import_errors = [];
-
-            // Definierte Import-Reihenfolge nach Foreign Key Hierarchie
-            // Parent-Tabellen müssen vor Child-Tabellen importiert werden
-            $table_order = [
-                // Level 1: Keine Abhängigkeiten
-                'svmembers',
-                'svopinion_answer_templates',
-                'svconfig',  // System-Konfiguration (2026-05-20)
-                'svressorts',  // Ressorts für Anträge (2026-05-20)
-
-                // Level 2: Abhängig von Level 1
-                'svmeetings',
-                defined('TABLE_ANTRAEGE') ? TABLE_ANTRAEGE : 'svantraege',  // Anträge (inkl. b_date) – Name laut config
-                'svbeschluesse',
-                'svmvbeschluesse',
-                'svevents',  // Kalender-Ereignisse
-                'svevents_participants',  // Teilnehmerliste für Kalender (target_type=list)
-                'svabsences',
-                'svadmin_log',
-                'svpolls',
-                'svopinion_polls',
-                'svdocuments',
-                'svprotocols',  // Keine FK-Abhängigkeit mehr (meeting_id ist optional)
-                'svnotifications',  // Benachrichtigungs-Center (2026-04-27)
-                'svpush_subscriptions',  // Browser-Push-Abos (2026-04-27)
-                'svcollab_texts',  // Kollaborative Texte (2026-05-21)
-
-                // Level 3: Abhängig von Level 2
-                'svmeeting_participants',
-                'svagenda_items',
-                'svtodos',
-                'svpoll_dates',
-                'svpoll_participants',
-                'svopinion_poll_options',
-                'svopinion_poll_participants',
-                'svopinion_responses',
-                'svdocument_downloads',
-                'svmail_queue',
-                'svexternal_participants',  // Externe Teilnehmer für Umfragen (2025-12-18)
-                'svcollab_text_paragraphs',  // Absätze für kollaborative Texte (2026-05-21)
-                'svcollab_text_participants',  // Teilnehmer an kollaborativen Texten (2026-05-21)
-                'svcollab_text_versions',  // Versionen für kollaborative Texte (2026-05-21)
-
-                // Level 4: Abhängig von Level 3
-                'svagenda_comments',
-                'svagenda_live_comments',  // Live-Kommentare während Sitzung
-                'svagenda_post_comments',  // Nachträgliche Anmerkungen in ended-Phase
-                'svagenda_attachments',  // Dateianhänge an TOPs (2026-04-27)
-                'svagenda_personal_notes',  // Persönliche Notizen zu TOPs (2026-05-21)
-                'svprotocol_change_requests',
-                'svtodo_log',
-                'svpoll_responses',
-                'svopinion_response_options',
-                'svexternal_access_log',  // Log für externe Zugriffe (2026-05-03)
-                'svcollab_text_locks',  // Paragraph-Locks für kollaborative Texte (2026-05-21)
-            ];
-
-            // Importiere Tabellen in der definierten Reihenfolge
-            foreach ($table_order as $table) {
-                // Überspringe Tabellen, die nicht in der JSON-Datei sind
-                if (in_array($table, $never_import, true) || !isset($demo_data['tables'][$table])) {
+                $target = $name_map[$logical] ?? $logical;
+                if (!preg_match('/^[A-Za-z0-9_]+$/', $target) || !$table_exists($target)) {
+                    $import_notes[] = "Tabelle '$target' existiert nicht in der Datenbank – " . count($rows) . ' Zeilen übersprungen (init-db.php bzw. Migration ausführen).';
                     continue;
                 }
-
-                $rows = $demo_data['tables'][$table];
-                if (empty($rows)) {
-                    echo "<p style='color: orange;'>⚠ Tabelle '$table': keine Daten zum Importieren</p>";
-                    continue;
-                }
-
-                $count = 0;
-                $error_count = 0;
-                $first_error = null;
+                $cols_meta = $get_cols($target);
+                $count = 0; $error_count = 0; $skipped = 0; $first_error = null; $dropped = [];
 
                 foreach ($rows as $row_index => $row) {
-                    try {
-                        $columns = array_keys($row);
-                        $placeholders = array_fill(0, count($columns), '?');
+                    if (!is_array($row)) continue;
+                    if ($logical === 'svconfig' && in_array($row['config_key'] ?? '', DEMO_RUNTIME_CONFIG_KEYS, true)) continue;
 
-                        $sql = "INSERT INTO $table (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
-                        $stmt = $pdo->prepare($sql);
-                        $stmt->execute(array_values($row));
+                    $clean = [];
+                    foreach ($row as $col => $val) {
+                        if (isset($cols_meta[$col])) $clean[$col] = $val; else $dropped[$col] = true;
+                    }
+                    if (!$clean) continue;
+                    // Pflichtspalte ohne Wert (z. B. NOT NULL durch fehlende Migration) -> Zeile überspringen
+                    $missing = false;
+                    foreach ($clean as $col => $val) {
+                        if ($val === null && $cols_meta[$col]['required']) { $missing = true; break; }
+                    }
+                    if ($missing) { $skipped++; continue; }
+
+                    try {
+                        $columns = array_keys($clean);
+                        $key = $target . '|' . implode(',', $columns);
+                        if (!isset($stmt_cache[$key])) {
+                            $stmt_cache[$key] = $pdo->prepare("INSERT INTO `$target` (`" . implode('`, `', $columns) . "`) VALUES ("
+                                . implode(', ', array_fill(0, count($columns), '?')) . ")");
+                        }
+                        $stmt_cache[$key]->execute(array_values($clean));
                         $count++;
                     } catch (PDOException $e) {
                         $error_count++;
-                        $error_msg = "Tabelle '$table', Zeile $row_index: " . $e->getMessage();
-                        $import_errors[] = $error_msg;
-
-                        // Ersten Fehler für Schnellübersicht merken
-                        if ($first_error === null) {
-                            $first_error = $e->getMessage();
-                        }
+                        $import_errors[] = "Tabelle '$target', Zeile $row_index: " . $e->getMessage();
+                        if ($first_error === null) $first_error = $e->getMessage();
                     }
                 }
 
-                $import_stats[$table] = $count;
-
-                // Detaillierte Ausgabe
-                if ($count > 0 && $error_count === 0) {
-                    echo "<p style='color: green;'>✓ $table: <strong>$count</strong> Datensätze erfolgreich importiert</p>";
-                } elseif ($count > 0 && $error_count > 0) {
-                    echo "<p style='color: orange;'>⚠ $table: <strong>$count</strong> importiert, <strong style='color:red;'>$error_count Fehler</strong> - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...</p>";
-                } else {
-                    echo "<p style='color: red;'>✗ $table: <strong>0</strong> Datensätze importiert";
-                    if ($error_count > 0) {
-                        echo " (<strong>$error_count Fehler</strong>) - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...";
-                    }
-                    echo "</p>";
+                $import_stats[$target] = $count;
+                if ($dropped) {
+                    $import_notes[] = "Tabelle '$target': Spalten nicht im Schema, verworfen: " . implode(', ', array_keys($dropped)) . ' (ggf. Migration aus tools/*.sql ausführen)';
                 }
-            }
-
-            // Importiere übrige Tabellen, die nicht in der definierten Reihenfolge sind
-            // (Fallback für neue Tabellen)
-            foreach ($demo_data['tables'] as $table => $rows) {
-                // Überspringe Tabellen, die bereits importiert wurden
-                if (in_array($table, $table_order) || in_array($table, $never_import, true)) {
-                    continue;
+                if ($skipped) {
+                    $import_notes[] = "Tabelle '$target': $skipped Zeilen übersprungen (Pflichtspalte leer, Schema ohne passende Migration).";
                 }
-
-                if (empty($rows)) {
-                    echo "<p style='color: orange;'>⚠ Tabelle '$table' (nicht in Reihenfolge): keine Daten zum Importieren</p>";
-                    continue;
-                }
-
-                echo "<p style='color: blue;'>ℹ️ Tabelle '$table' (nicht in definierter Reihenfolge) wird importiert...</p>";
-
-                $count = 0;
-                $error_count = 0;
-                $first_error = null;
-
-                foreach ($rows as $row_index => $row) {
-                    try {
-                        $columns = array_keys($row);
-                        $placeholders = array_fill(0, count($columns), '?');
-
-                        $sql = "INSERT INTO $table (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
-                        $stmt = $pdo->prepare($sql);
-                        $stmt->execute(array_values($row));
-                        $count++;
-                    } catch (PDOException $e) {
-                        $error_count++;
-                        $error_msg = "Tabelle '$table', Zeile $row_index: " . $e->getMessage();
-                        $import_errors[] = $error_msg;
-
-                        if ($first_error === null) {
-                            $first_error = $e->getMessage();
-                        }
-                    }
-                }
-
-                $import_stats[$table] = $count;
 
                 if ($count > 0 && $error_count === 0) {
-                    echo "<p style='color: green;'>✓ $table: <strong>$count</strong> Datensätze erfolgreich importiert</p>";
+                    echo "<p style='color: green;'>✓ $target: <strong>$count</strong> Datensätze erfolgreich importiert</p>";
                 } elseif ($count > 0 && $error_count > 0) {
-                    echo "<p style='color: orange;'>⚠ $table: <strong>$count</strong> importiert, <strong style='color:red;'>$error_count Fehler</strong> - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...</p>";
+                    echo "<p style='color: orange;'>⚠ $target: <strong>$count</strong> importiert, <strong style='color:red;'>$error_count Fehler</strong> - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...</p>";
                 } else {
-                    echo "<p style='color: red;'>✗ $table: <strong>0</strong> Datensätze importiert";
+                    echo "<p style='color: red;'>✗ $target: <strong>0</strong> Datensätze importiert";
                     if ($error_count > 0) {
                         echo " (<strong>$error_count Fehler</strong>) - Erster Fehler: " . htmlspecialchars(substr($first_error, 0, 100)) . "...";
                     }
@@ -590,6 +504,37 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 echo '<div class="error"><p>❌ Fehler beim Commit: ' . htmlspecialchars($e->getMessage()) . '</p></div>';
             }
 
+            // berechtigte aus svmembers ableiten (Anträge, Terminplanung und Meinungsbild lesen diese Tabelle direkt)
+            if ($derive_berechtigte) {
+                try {
+                    $pdo->exec(demo_berechtigte_create_sql());
+                    $members = $pdo->query("SELECT * FROM svmembers ORDER BY member_id")->fetchAll(PDO::FETCH_ASSOC);
+                    $ins = null; $n = 0;
+                    foreach (demo_derive_berechtigte($members) as $b) {
+                        if (!$ins) {
+                            $ins = $pdo->prepare("INSERT INTO berechtigte (`" . implode('`, `', array_keys($b)) . "`) VALUES (" . implode(', ', array_fill(0, count($b), '?')) . ")");
+                        }
+                        $ins->execute(array_values($b));
+                        $n++;
+                    }
+                    $import_stats[DEMO_DERIVED_TABLE . ' (abgeleitet)'] = $n;
+                    echo "<p style='color: green;'>✓ " . DEMO_DERIVED_TABLE . ": <strong>$n</strong> Zeilen aus svmembers abgeleitet</p>";
+                } catch (PDOException $e) {
+                    $import_notes[] = 'berechtigte konnte nicht abgeleitet werden: ' . $e->getMessage();
+                }
+            }
+
+            // Foreign Key Checks wieder aktivieren (am Ende des Imports)
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+
+            // Zeitabhängige Demo-Daten sofort auf heute ausrichten (wie bei jedem Seitenaufruf)
+            require_once __DIR__ . '/update_demo_dates.php';
+            if (function_exists('update_demo_meeting_dates')) {
+                update_demo_meeting_dates($pdo);
+                echo '<p style="color: green;">✓ Datumsangaben auf heute ausgerichtet</p>';
+            }
+            echo '</div>';
+
             // Fehler anzeigen (falls vorhanden)
             if (!empty($import_errors)) {
                 echo '<div class="error">';
@@ -600,11 +545,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 $errors_by_table = [];
                 foreach ($import_errors as $error) {
                     if (preg_match('/Tabelle \'([^\']+)\'/', $error, $matches)) {
-                        $table_name = $matches[1];
-                        if (!isset($errors_by_table[$table_name])) {
-                            $errors_by_table[$table_name] = [];
-                        }
-                        $errors_by_table[$table_name][] = $error;
+                        $errors_by_table[$matches[1]][] = $error;
                     } else {
                         $errors_by_table['Andere'][] = $error;
                     }
@@ -615,8 +556,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                     echo '<summary style="cursor: pointer; font-weight: bold; color: #dc3545;">📋 ' . htmlspecialchars($table) . ' (' . count($errors) . ' Fehler)</summary>';
                     echo '<ul style="margin-top: 10px;">';
                     // Zeige maximal erste 10 Fehler pro Tabelle
-                    $shown_errors = array_slice($errors, 0, 10);
-                    foreach ($shown_errors as $error) {
+                    foreach (array_slice($errors, 0, 10) as $error) {
                         echo '<li style="font-size: 12px; font-family: monospace;">' . htmlspecialchars($error) . '</li>';
                     }
                     if (count($errors) > 10) {
@@ -628,8 +568,14 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 echo '</div>';
             }
 
+            if (!empty($import_notes)) {
+                echo '<div class="warning"><h3>ℹ️ Hinweise</h3><ul>';
+                foreach ($import_notes as $note) echo '<li>' . htmlspecialchars($note) . '</li>';
+                echo '</ul></div>';
+            }
+
             echo '<div class="success">';
-            echo '<h3>✅ Import erfolgreich abgeschlossen!</h3>';
+            echo '<h3>✅ Import abgeschlossen!</h3>';
             echo '<table>';
             echo '<tr><th>Tabelle</th><th>Importierte Datensätze</th></tr>';
             foreach ($import_stats as $table => $count) {
@@ -643,16 +589,13 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
 
             echo '<div class="info">';
             echo '<h3>🎉 Fertig!</h3>';
-            echo '<p>Die Datenbank wurde erfolgreich auf den Demo-Stand zurückgesetzt.</p>';
+            echo '<p>Die Datenbank wurde auf den Demo-Stand zurückgesetzt. Alle Demo-Benutzer haben das Passwort <code>' . htmlspecialchars(DEMO_PASSWORD) . '</code> (Anmeldung per Klick auf der Demo-Startseite).</p>';
             echo '<p><a href="../index.php" class="btn">➡️ Zur Anwendung</a></p>';
             echo '</div>';
 
-            // Foreign Key Checks wieder aktivieren (am Ende des Imports)
-            $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
-
         } catch (Exception $e) {
             // Im Fehlerfall auch Foreign Keys wieder aktivieren
-            $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+            try { $pdo->exec("SET FOREIGN_KEY_CHECKS = 1"); } catch (Exception $e2) { /* ignorieren */ }
 
             // Nur rollBack wenn Transaktion noch aktiv
             if ($pdo->inTransaction()) {

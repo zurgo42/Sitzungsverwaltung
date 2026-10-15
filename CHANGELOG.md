@@ -8,6 +8,18 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### Demo-Daten-Generator, Datenschutz und tägliche Datumsfortschreibung (2026-10-16)
+
+- `tools/demo_build.php`: Neuer deterministischer Generator (CLI und Browser), der `tools/demo_data.json` aus frei erfundenen Daten erzeugt – Mitglieder aller Rollen (Passwort `test123`, nur `@example.com`), Sitzungen in allen Status, TOPs, Protokolle, ToDos, Abwesenheiten mit Vertretung, Terminumfragen, Meinungsbilder, Dokumente, Texte, Anträge in allen Phasen (A/B/VS/X/Z), Kalender, Benachrichtigungen und alle Admin-Einstellungen (`svconfig`, Ressorts); `demo.php` ruft den Builder auf (ersetzt den alten Mini-Generator)
+- `tools/demo_common.php`: Gemeinsame Liste (`DEMO_EXCLUDED_TABLES`) der Tabellen, die nie exportiert/importiert und beim Import geleert werden: `svmail_queue`, `svmail_notifications`, `svpush_subscriptions`, `svexternal_access_log`, `svaudit_log`, `svadmin_log`, `svdocument_downloads`, `svvote_reminders`, `svcollab_text_locks`, `protokoll`
+- `tools/demo_export.php`: nutzt die gemeinsame Ausschlussliste, bereinigt Token-Spalten, exportiert `feedback`, schreibt `demo_anchor_date` und warnt bei Mailadressen außerhalb von example.com/.org/.net
+- `tools/demo_import.php`: ignoriert Datenschutz-Tabellen, verwirft unbekannte Spalten (Schema-Abweichungen), bildet `TABLE_*` ab und leitet `berechtigte` aus `svmembers` ab (nur Standalone), damit Anträge, Terminplanung und Meinungsbild im Demo funktionieren
+- `tools/demo_analyze.php`: Feature-Matrix, Datenschutz-Prüfung, Erinnerungs-Antrag und Rollen-Zuordnung (auch per CLI: `php tools/demo_analyze.php`)
+- `tools/update_demo_dates.php`: Tagesaktualisierung über `svconfig.demo_anchor_date` (einmal pro Tag, atomar) – verschiebt Sitzungen, ToDos (Fälligkeit), Abwesenheiten, Benachrichtigungen u. a. relativ zu heute; der Erinnerungs-Antrag `B26010101` steht immer auf `b_date = heute − Abstimmungsdauer` (24h-Erinnerung, mindestens eine Stimme fehlt, `svvote_reminders` wird geleert), alle anderen B-Anträge behalten jüngere `b_date`-Werte
+- Rollen-Mapping `svmembers` ↔ `berechtigte` (aktiv/Funktion) in `docs/PERMISSIONS.md` dokumentiert
+- `index.php`: Datumsaktualisierung im Demo-Modus läuft jetzt vor dem Pseudo-Cron; `welcome.php`/`login.php`: Demo-Benutzerliste und Login-Hinweis an den neuen Demo-Stand angepasst
+- `tab_vertretung.php`: Undefinierte Variable `$available_members` im Bearbeiten-Dialog korrigiert (PHP-Warnung)
+
 #### Generelles Audit-Log aller DB-Schreibzugriffe (2026-10-15)
 
 - `audit_pdo.php`: `AuditPDO` (erweitert `PDO`) und `AuditStatement` (über `PDO::ATTR_STATEMENT_CLASS`) protokollieren transparent jedes `INSERT`, `UPDATE`, `DELETE` und `REPLACE` (auch direkte `exec()`-Aufrufe) in der Tabelle `svaudit_log`

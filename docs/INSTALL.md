@@ -153,16 +153,21 @@ chmod 700 sessions/
 
 Für Testzwecke oder zum Kennenlernen der Anwendung gibt es drei Möglichkeiten:
 
-#### Option A: Automatische Demo-Daten generieren
+#### Option A: Demo-Daten aus erfundenen Daten erzeugen (empfohlen)
 
-**Schnellste Methode - generiert vollständiges Demo-Szenario:**
+**Schnellste Methode - erzeugt ein vollständiges Demo-Szenario ohne Live-Datenbank:**
 
 1. Setzen Sie in `config.php`: `define('DEMO_MODE_ENABLED', true);`
-2. Öffnen Sie im Browser: `https://ihre-domain.de/sitzungsverwaltung/demo.php`
-3. Das Skript erstellt automatisch:
-   - 8 Test-Mitglieder (Passwort: demo123)
-   - 3 Meetings mit Tagesordnungspunkten
-   - TODOs, Terminabstimmungen, Meinungsbilder
+2. Erzeugen Sie `tools/demo_data.json`: per Kommandozeile `php tools/demo_build.php` oder im Browser
+   `https://ihre-domain.de/sitzungsverwaltung/demo.php` (System-Admin-Passwort)
+3. Spielen Sie die Datei mit `tools/demo_import.php` ein (löscht alle Daten!)
+4. Der Stand enthält:
+   - 12 Mitglieder aller Rollen (alle `@example.com`, Passwort für alle: `test123`)
+   - Sitzungen in allen Status mit TOPs, Kommentaren, Protokollen, ToDos, Abwesenheiten
+   - Terminumfragen, Meinungsbilder, Dokumente (nur Metadaten), Texte, Kalender, Benachrichtigungen
+   - Anträge in allen Phasen (A/B/VS/X/Z), Beschlussbuch, alle Admin-Einstellungen
+   - **keine** Mailadressen, IPs, Tokens, Push-Abos oder Logs echter Personen
+5. Prüfen Sie den Stand optional mit `php tools/demo_analyze.php`
 
 #### Option B: Eigene Demo-Daten erstellen und exportieren
 
@@ -171,7 +176,7 @@ Für Testzwecke oder zum Kennenlernen der Anwendung gibt es drei Möglichkeiten:
 1. Melden Sie sich mit dem Default-Admin an (admin@example.com / admin123)
 2. Erstellen Sie Test-Daten: Meetings, TODOs, Terminabstimmungen, Meinungsbilder
 3. Öffnen Sie im Browser: `https://ihre-domain.de/sitzungsverwaltung/tools/demo_export.php`
-4. Das Skript exportiert alle Daten in `tools/demo_data.json`
+4. Das Skript exportiert alle Daten in `tools/demo_data.json` (ohne Queue-, Log-, Token- und Push-Tabellen; warnt bei echten Mailadressen)
 5. **Wichtig:** Laden Sie die JSON-Datei herunter und bewahren Sie sie auf
 
 #### Option C: Demo-Daten importieren (aus vorhandenem Export)

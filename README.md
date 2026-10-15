@@ -356,8 +356,10 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 - Migration-Tools für Schema-Updates
 
 **Demo-Daten:**
-- Demo-Daten exportieren und importieren
-- Demo-Daten analysieren
+- Demo-Daten aus erfundenen Daten erzeugen (`tools/demo_build.php`, alle Funktionen, alle Rollen)
+- Demo-Daten exportieren und importieren (ohne Mailadressen, IPs, Tokens, Push-Abos und Logs)
+- Demo-Daten analysieren (Feature-Matrix, Datenschutz-Prüfung)
+- Tägliche Datumsfortschreibung im Demo-Modus (`tools/update_demo_dates.php`)
 - Tabellen-Migration durchführen
 
 ### 📱 Mobile-Optimierung

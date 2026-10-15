@@ -204,7 +204,7 @@ git pull
 ### Als Entwickler (nach neuem Feature):
 - [ ] Migration erstellen in `/migrations/`
 - [ ] Tabelle/Spalte auch in `init-db.php` hinzufügen
-- [ ] Tabelle in `tools/demo_import.php` → `$table_order` eintragen
+- [ ] Tabelle in `tools/demo_common.php` → `demo_table_order()` eintragen (Datenschutz: Tabellen mit Mailadressen/IPs/Tokens/Logs stattdessen in `DEMO_EXCLUDED_TABLES`) und im Generator `tools/demo_build.php` mit Beispieldaten füllen
 - [ ] Diese README-Datei aktualisieren
 - [ ] Migration auf Produktivserver testen
 

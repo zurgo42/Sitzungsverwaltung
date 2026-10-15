@@ -253,6 +253,30 @@ Beide Modi nutzen identische Werte und Logik. Der Adapter normalisiert automatis
 
 ---
 
+## Demo-Mitglieder: Rolle → aktiv / Funktion
+
+Der Demo-Generator `tools/demo_build.php` legt Mitglieder so an, dass die Standalone-Variante (`svmembers.role`) und die
+VTool-Variante (`berechtigte.aktiv` + `Funktion`, abgeleitet durch `BerechtigteAdapter::mapRole()`) dieselbe Rolle ergeben.
+Die Tabelle `berechtigte` wird beim Import (`tools/demo_import.php`) aus `svmembers` abgeleitet und nur im Standalone-Betrieb angelegt;
+`tab_proposals.php`, `abstimmungen.php`, Terminplanung und Meinungsbild lesen sie direkt.
+
+| `svmembers.role` | aktiv | Funktion | Admin | vertraulich | Beispiel (Demo) |
+|------------------|-------|----------|-------|-------------|-----------------|
+| vorstand         | 19    | FVo, FVv, Vo | nur Finanzvorstand | ja | Max Mustermann (FVo), Erika Musterfrau (FVv), Lukas Beispiel (Vo) |
+| gf               | 18    | GF       | ja    | ja          | Julia Sommer |
+| assistenz        | 17 / 11 | VA / SV | ja   | ja          | Thomas Winter (VA, 17), Sabine Herbst (SV, 11) |
+| fuehrungsteam    | 14-17 | RL       | nein  | nur Ressort Finanzen (17) | Hans Lehmann (17), Anna Frühling (15), Petra Nord (14) |
+| mitglied         | 0-10  | FP, AD, Vx | nur AD | nein      | Karl Prüfer (FP, 3), Mia Technik (AD, 10, technischer Admin), Rolf Ehemals (Vx, 0, inaktiv) |
+
+Hinweise:
+- Die Assistenz hat bewusst **aktiv 17 statt 18**: `mapRole()` ordnet aktiv = 18 immer der Rolle `gf` zu. Die Rechte der Vorstandsassistenz ergeben sich aus der Funktion VA.
+- Als Führungsteam ist nur die Funktion `RL` gewählt, weil `BerechtigteAdapter::shouldInclude()` PL/TM nur bei aktiv > 17 in Listen aufnimmt.
+- Admin- und Vertraulich-Flag entsprechen `berechtigte.sv_admin` / `sv_confidential` (Standalone: `is_admin` / `is_confidential`).
+- Abstimmungsberechtigte (`antrag_bearbeiten.php`): B = aktiv 19, V = die 6 höchsten mit aktiv ≥ 14, R = Antragsteller + FVo (bzw. FVv).
+- `tools/demo_analyze.php` prüft die Übereinstimmung automatisch.
+
+---
+
 ## Hinweise für Administratoren
 
 ### Beim Anlegen neuer Mitglieder

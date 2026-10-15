@@ -405,6 +405,16 @@ if (!$current_user) {
     exit;
 }
 
+// ============================================
+// DEMO-MODUS: DYNAMISCHE DATUMSANPASSUNG
+// (VOR dem Pseudo-Cron: der Erinnerungs-Antrag steht am Abstimmungs-Stichtag,
+// pseudo_cron.php würde ihn nach Mitternacht sonst vor der Tagesaktualisierung auswerten)
+// ============================================
+if (defined('DEMO_MODE_ENABLED') && DEMO_MODE_ENABLED) {
+    require_once 'tools/update_demo_dates.php';
+    update_demo_meeting_dates($pdo);
+}
+
 // Pseudo-Cron: Meeting-Erinnerungen im Hintergrund prüfen
 // Läuft max. 1x pro Minute bei Seitenaufrufen (nur für eingeloggte User)
 try {
@@ -431,14 +441,6 @@ if ($active_tab === 'proposals') {
     exit;
 }
 */
-
-// ============================================
-// DEMO-MODUS: DYNAMISCHE DATUMSANPASSUNG
-// ============================================
-if (defined('DEMO_MODE_ENABLED') && DEMO_MODE_ENABLED) {
-    require_once 'tools/update_demo_dates.php';
-    update_demo_meeting_dates($pdo);
-}
 
 // ============================================
 // PROCESS-DATEIEN EINBINDEN

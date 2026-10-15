@@ -43,7 +43,7 @@ try {
                 ELSE 5
             END,
             last_name
-        LIMIT 10
+        LIMIT 16
     ");
     $demo_members = $stmt->fetchAll();
 } catch (PDOException $e) {

@@ -208,3 +208,16 @@ Bei Problemen:
 
 **Stand**: 2025-12-23
 **Session**: claude/fix-sso-integration-01NbwbYdHVMH7hEM5HwQmFji
+
+## Demo-Werkzeuge
+
+| Datei | Zweck |
+|-------|-------|
+| `demo_build.php` | Erzeugt `demo_data.json` aus erfundenen Daten (alle Funktionen, alle Rollen). CLI: `php tools/demo_build.php [--anchor=YYYY-MM-DD]`; Browser: über `demo.php` bzw. direkt (System-Admin-Passwort) |
+| `demo_import.php` | Setzt die Datenbank auf den Demo-Stand zurück und importiert `demo_data.json` (nur mit `DEMO_MODE_ENABLED`) |
+| `demo_export.php` | Exportiert eine bestehende Datenbank nach `demo_data.json` (ohne Datenschutz-Tabellen, warnt bei echten Mailadressen) |
+| `demo_analyze.php` | Prüft `demo_data.json`: Feature-Matrix, Datenschutz, Erinnerungs-Antrag, Rollen-Zuordnung (CLI: `php tools/demo_analyze.php`) |
+| `demo_common.php` | Gemeinsame Definitionen: Liste der nie exportierten/importierten Tabellen (`DEMO_EXCLUDED_TABLES`), Rollen-Mapping, Erinnerungs-Antrag |
+| `update_demo_dates.php` | Fortschreibung der Demo-Datumsangaben (läuft bei Seitenaufrufen im Demo-Modus, Tageswerk 1x pro Tag) |
+
+Demo-Login: alle Benutzer `@example.com`, Passwort `test123` (siehe `welcome.php`).

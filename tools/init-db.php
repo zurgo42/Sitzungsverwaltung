@@ -4,7 +4,7 @@
  * Aktualisiert: 18.11.2025 - Vollständige DB-Struktur inkl. Terminplanung, Meinungsbild-Tool & Dokumentenverwaltung
  *
  * Dieses Skript erstellt die komplette Datenbankstruktur für die Sitzungsverwaltung.
- * Es enthält KEINE Demo-Daten - diese können separat über demo.php geladen werden.
+ * Es enthält KEINE Demo-Daten - diese können separat mit tools/demo_build.php (Generator) und tools/demo_import.php geladen werden.
  */
 
 require_once __DIR__ . '/../config.php';

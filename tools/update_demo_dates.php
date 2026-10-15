@@ -1,15 +1,27 @@
 <?php
 /**
- * update_demo_dates.php - Dynamische Datumsanpassung für Demo-Meetings
+ * update_demo_dates.php - Dynamische Datumsanpassung für Demo-Daten
  *
- * Wird automatisch aufgerufen, wenn DEMO_MODE_ENABLED aktiv ist.
- * Passt die Datumsangaben der Demo-Meetings an, damit sie immer aktuell sind.
+ * Wird automatisch bei jedem Seitenaufruf aufgerufen (index.php), wenn DEMO_MODE_ENABLED aktiv ist,
+ * und nach jedem Import (demo_import.php).
+ *
+ * Bei jedem Aufruf (billig): Vorbereitungs-Sitzungen 50/51/63/64/65 auf Stunden-/Tagesbasis.
+ * Einmal pro Tag (Marker svconfig.demo_anchor_date, atomar per UPDATE ... WHERE alter Wert):
+ *  - alle relativen Datumsangaben (Sitzungen, ToDos, Abwesenheiten, Benachrichtigungen, Kommentare ...)
+ *    werden um die vergangenen Tage verschoben (feste Abstände zum Anker bleiben erhalten)
+ *  - Anträge in Abstimmung: Erinnerungs-Antrag (DEMO_REMINDER_ANTRNR) steht immer auf
+ *    b_date = heute - Abstimmungsdauer (letzter Abstimmungstag = heute, 24h-Erinnerung greift),
+ *    seine offenen Stimmen (DEMO_REMINDER_OPEN_SLOTS) und die Versandmarker in svvote_reminders
+ *    werden zurückgesetzt; alle übrigen B-Anträge behalten jüngere b_date-Werte (nie automatisch ausgewertet)
+ *  - Kalender (svevents), Terminvorschläge offener Terminumfragen, Meinungsbilder bleiben aktuell
  */
 
 if (!defined('DEMO_MODE_ENABLED') || !DEMO_MODE_ENABLED) {
     // Nur im Demo-Modus ausführen
     return;
 }
+
+require_once __DIR__ . '/demo_common.php';
 
 // Timezone setzen (falls noch nicht gesetzt)
 if (!ini_get('date.timezone')) {
@@ -20,9 +32,10 @@ if (!ini_get('date.timezone')) {
  * Aktualisiert die Datumsangaben der Demo-Meetings
  *
  * @param PDO $pdo Datenbankverbindung
+ * @param bool $force_daily Tagesaktualisierung auch dann ausführen, wenn der Marker bereits "heute" ist (Tests)
  * @return bool Erfolg
  */
-function update_demo_meeting_dates($pdo) {
+function update_demo_meeting_dates($pdo, $force_daily = false) {
     try {
         $now = new DateTime();
 
@@ -146,8 +159,9 @@ function update_demo_meeting_dates($pdo) {
             $meeting65_deadline->format('Y-m-d H:i:s')
         ]);
 
-        // Weitere zeitabhängige Demo-Daten (Anträge in Abstimmung, Kalender, Umfragen)
-        update_demo_dynamic_dates($pdo);
+        // Weitere zeitabhängige Demo-Daten (ToDos, Abwesenheiten, Anträge in Abstimmung, Kalender, Umfragen):
+        // nur einmal pro Tag (bzw. nach einem Import mit älterem Anker)
+        demo_daily_refresh($pdo, $force_daily);
 
         return true;
     } catch (Exception $e) {
@@ -179,15 +193,154 @@ function demo_add_days($value, $days) {
     return date($fmt, strtotime(($days >= 0 ? '+' : '') . $days . ' days', $ts));
 }
 
+/** Tabelle über Konstante (Anträge/Beschlüsse), sonst Standalone-Name */
+function demo_antraege_table() {
+    return (defined('TABLE_ANTRAEGE') && preg_match('/^[A-Za-z0-9_]+$/', TABLE_ANTRAEGE)) ? TABLE_ANTRAEGE : 'svantraege';
+}
+
+/** Abstimmungsdauer in Tagen (svconfig.bart_B_abstimmung_tage, Standard 7) */
+function demo_voting_days($pdo) {
+    $dauer = 7;
+    $cfg = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'bart_B_abstimmung_tage' LIMIT 1");
+    if ($cfg) {
+        $dauer = (int)($cfg->fetchColumn() ?: 7);
+    }
+    return $dauer < 1 ? 7 : $dauer;
+}
+
+/**
+ * Tagesmarker svconfig.demo_anchor_date atomar auf heute setzen.
+ * Rückgabe: null = heute schon erledigt (oder nicht möglich), sonst der bisherige Anker
+ * ('' = Marker war nicht vorhanden, z. B. JSON-Export ohne Anker).
+ */
+function demo_claim_today($pdo, $force = false) {
+    $today = date('Y-m-d');
+    try {
+        $st = $pdo->prepare("SELECT config_value FROM svconfig WHERE config_key = ?");
+        $st->execute([DEMO_ANCHOR_KEY]);
+        $prev = $st->fetchColumn();
+        if ($prev === $today && !$force) return null;
+        if ($prev === false) {
+            $ins = $pdo->prepare("INSERT IGNORE INTO svconfig (config_key, config_value, config_type, description, category)
+                                  VALUES (?, ?, 'text', 'Bezugstag der relativen Demo-Datumsangaben (wird von update_demo_dates.php täglich fortgeschrieben)', 'system')");
+            $ins->execute([DEMO_ANCHOR_KEY, $today]);
+            return $ins->rowCount() === 1 ? '' : null;
+        }
+        if ($prev === $today) return $today;   // force
+        $upd = $pdo->prepare("UPDATE svconfig SET config_value = ? WHERE config_key = ? AND config_value = ?");
+        $upd->execute([$today, DEMO_ANCHOR_KEY, $prev]);
+        return $upd->rowCount() === 1 ? $prev : null;   // anderer Request war schneller
+    } catch (Exception $e) {
+        error_log("Demo date update (Marker) failed: " . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Verschiebt Datums-/Zeitspalten einer Tabelle um $delta Tage. Fehlende Tabellen/Spalten (ältere
+ * Installationen) werden spaltenweise übersprungen.
+ */
+function demo_shift_table($pdo, $table, array $cols, $delta, $where = '1=1') {
+    $sets = [];
+    foreach ($cols as $c) $sets[] = "`$c` = DATE_ADD(`$c`, INTERVAL " . (int)$delta . " DAY)";
+    try {
+        $pdo->exec("UPDATE `$table` SET " . implode(', ', $sets) . " WHERE $where");
+        return;
+    } catch (Exception $e) {
+        // Fallback: Spalte für Spalte
+    }
+    foreach ($cols as $c) {
+        try {
+            $pdo->exec("UPDATE `$table` SET `$c` = DATE_ADD(`$c`, INTERVAL " . (int)$delta . " DAY) WHERE $where");
+        } catch (Exception $e) {
+            // Spalte/Tabelle fehlt - ignorieren
+        }
+    }
+}
+
+/**
+ * Alle Demo-Daten mit festem Abstand zum Anker um $delta Tage verschieben: Sitzungen (außer den
+ * Vorbereitungs-Sitzungen mit Formel in update_demo_meeting_dates), ToDos, Abwesenheiten (inkl.
+ * zugehörigem Kalendereintrag), Benachrichtigungen, Kommentare, Protokolle usw.
+ */
+function demo_shift_timeline($pdo, $delta) {
+    if ($delta === 0) return;
+    $formel = '50, 51, 63, 64, 65';   // Sitzungen mit eigener Tages-/Stundenformel
+    demo_shift_table($pdo, 'svmeetings', ['meeting_date', 'expected_end_date', 'submission_deadline', 'started_at', 'ended_at', 'created_at'], $delta, "meeting_id NOT IN ($formel)");
+    demo_shift_table($pdo, 'svmeeting_participants', ['invited_at'], $delta);
+    demo_shift_table($pdo, 'svtodos', ['entry_date', 'due_date', 'completed_at', 'created_at'], $delta);
+    demo_shift_table($pdo, 'svtodo_log', ['change_time'], $delta);
+    demo_shift_table($pdo, 'svabsences', ['start_date', 'end_date', 'created_at'], $delta);
+    demo_shift_table($pdo, 'svevents', ['start_datetime', 'end_datetime', 'recurrence_end_date'], $delta, "event_type = 'abwesenheit' AND (recurrence IS NULL OR recurrence = 'none')");
+    demo_shift_table($pdo, 'svnotifications', ['created_at'], $delta);
+    demo_shift_table($pdo, 'svagenda_items', ['created_at'], $delta);
+    foreach (['svagenda_comments', 'svagenda_live_comments', 'svagenda_post_comments', 'svagenda_personal_notes', 'svprotocols', 'svprotocol_change_requests', 'svvotes', 'feedback'] as $t) {
+        demo_shift_table($pdo, $t, ['created_at'], $delta);
+    }
+    demo_shift_table($pdo, 'svagenda_attachments', ['uploaded_at'], $delta);
+    demo_shift_table($pdo, 'svvotings', ['created_at', 'closed_at'], $delta);
+    demo_shift_table($pdo, 'svpolls', ['created_at', 'finalized_at'], $delta);
+    demo_shift_table($pdo, 'svpoll_responses', ['created_at'], $delta);
+    demo_shift_table($pdo, 'svpoll_dates', ['suggested_date', 'suggested_end_date'], $delta,
+        "poll_id IN (SELECT poll_id FROM (SELECT poll_id FROM svpolls WHERE status <> 'open') x)");
+    demo_shift_table($pdo, 'svopinion_polls', ['created_at'], $delta);
+    demo_shift_table($pdo, 'svopinion_responses', ['responded_at', 'created_at'], $delta);
+    demo_shift_table($pdo, 'svdocuments', ['created_at', 'updated_at'], $delta);
+    demo_shift_table($pdo, 'svcollab_texts', ['created_at', 'finalized_at'], $delta);
+    demo_shift_table($pdo, 'svcollab_text_paragraphs', ['last_edited_at', 'created_at'], $delta);
+    demo_shift_table($pdo, 'svcollab_text_versions', ['created_at'], $delta);
+    demo_shift_table($pdo, 'svcollab_text_participants', ['last_seen', 'joined_at'], $delta);
+}
+
+/**
+ * Tagesaktualisierung: Marker setzen, relative Daten verschieben, dann Anträge/Kalender/Umfragen pflegen.
+ */
+function demo_daily_refresh($pdo, $force = false) {
+    $prev = demo_claim_today($pdo, $force);
+    if ($prev === null) return;   // heute schon erledigt
+    $today = date('Y-m-d');
+    if ($prev !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $prev)) {
+        $delta = (int)(new DateTime($prev))->diff(new DateTime($today))->format('%r%a');
+        try {
+            demo_shift_timeline($pdo, $delta);
+        } catch (Exception $e) {
+            error_log("Demo date update (Zeitleiste) failed: " . $e->getMessage());
+        }
+    }
+    update_demo_dynamic_dates($pdo);
+}
+
+/** Erinnerungs-Antrag nach versehentlicher Auswertung (VS-/X-Nummer) wieder als B-Antrag herstellen */
+function demo_restore_reminder_antrag($pdo, $antraege) {
+    $st = $pdo->prepare("SELECT 1 FROM `$antraege` WHERE antrnr = ?");
+    $st->execute([DEMO_REMINDER_ANTRNR]);
+    if ($st->fetchColumn()) return;
+    // angenommen: VS-Nummer mit warantrag; abgelehnt: X-Nummer
+    $st = $pdo->prepare("SELECT antrnr FROM `$antraege` WHERE warantrag = ? LIMIT 1");
+    $st->execute([DEMO_REMINDER_ANTRNR]);
+    $vs = $st->fetchColumn();
+    if ($vs) {
+        $pdo->prepare("UPDATE `$antraege` SET antrnr = ?, warantrag = NULL WHERE antrnr = ?")->execute([DEMO_REMINDER_ANTRNR, $vs]);
+        if (defined('TABLE_BESCHLUESSE') && preg_match('/^[A-Za-z0-9_]+$/', TABLE_BESCHLUESSE)) {
+            $pdo->prepare("DELETE FROM `" . TABLE_BESCHLUESSE . "` WHERE antrnr = ?")->execute([$vs]);
+        }
+        return;
+    }
+    $x = 'X' . substr(DEMO_REMINDER_ANTRNR, 1);
+    $pdo->prepare("UPDATE `$antraege` SET antrnr = ? WHERE antrnr = ?")->execute([DEMO_REMINDER_ANTRNR, $x]);
+}
+
 /**
  * Hält zeitabhängige Demo-Daten aktuell. Jeder Block ist unabhängig (fehlende Tabellen/Spalten
  * in älteren Installationen brechen die anderen Blöcke nicht ab).
  *
- * 1. Anträge in Abstimmung (B...): b_date wird so zurückgesetzt, dass die Abstimmung offen
- *    bleibt (sonst würde pseudo_cron.php sie automatisch auswerten, wenn
- *    b_date < heute - Abstimmungsdauer). VDat1-6 / VBedenk1-6 werden um denselben Betrag verschoben.
+ * 1. Anträge in Abstimmung (B...): Der Erinnerungs-Antrag DEMO_REMINDER_ANTRNR bekommt b_date =
+ *    heute - Dauer (letzter Abstimmungstag ist heute; ausgewertet wird erst morgen um 0 Uhr), seine
+ *    offenen Stimmen werden zurückgesetzt und svvote_reminders geleert. Alle anderen B-Anträge werden,
+ *    sobald b_date <= heute - (Dauer-1) wäre, auf ein jüngeres b_date (Alter 0 .. Dauer-2) zurückgesetzt
+ *    (sonst würde pseudo_cron.php sie auswerten). VDat1-6 / VBedenk1-6 werden um denselben Betrag verschoben.
  * 2. svevents: vergangene Ereignisse werden in 28-Tage-Schritten (Wochentag bleibt) in die Zukunft
- *    geschoben, bei Serien wird recurrence_end_date verlängert.
+ *    geschoben, bei Serien wird recurrence_end_date verlängert (Abwesenheits-Einträge wandern mit svabsences).
  * 3. svpoll_dates: Terminvorschläge offener Terminumfragen bleiben in der Zukunft.
  * 4. svopinion_polls: laufende Meinungsbilder laufen nicht ab / werden nicht gelöscht.
  */
@@ -196,14 +349,14 @@ function update_demo_dynamic_dates($pdo) {
 
     // ---- 1. Anträge in Abstimmung ----
     try {
-        $antraege = (defined('TABLE_ANTRAEGE') && preg_match('/^[A-Za-z0-9_]+$/', TABLE_ANTRAEGE)) ? TABLE_ANTRAEGE : 'svantraege';
+        $antraege = demo_antraege_table();
+        $dauer = demo_voting_days($pdo);
 
-        $dauer = 7;
-        $cfg = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'bart_B_abstimmung_tage' LIMIT 1");
-        if ($cfg) {
-            $dauer = (int)($cfg->fetchColumn() ?: 7);
+        try {
+            demo_restore_reminder_antrag($pdo, $antraege);
+        } catch (Exception $e) {
+            error_log("Demo date update (Erinnerungs-Antrag) failed: " . $e->getMessage());
         }
-        if ($dauer < 1) $dauer = 7;
 
         $cols = '';
         for ($i = 1; $i <= 6; $i++) {
@@ -216,38 +369,67 @@ function update_demo_dynamic_dates($pdo) {
             SELECT antrnr, b_date $cols
             FROM `$antraege`
             WHERE antrnr LIKE 'B%' AND LENGTH(antrnr) >= 8
-              AND b_date IS NOT NULL AND b_date <= ?
+              AND b_date IS NOT NULL AND (b_date <= ? OR antrnr = ?)
         ");
-        $stmt->execute([$grenz]);
+        $stmt->execute([$grenz, DEMO_REMINDER_ANTRNR]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($rows as $row) {
-            // Stabiler, je Antrag unterschiedlicher "Abstimmungsalter" in Tagen: 0 .. Dauer-2
-            $new_age = (int)(crc32($row['antrnr']) % max($dauer - 1, 1));
-            $new_b = date('Y-m-d', strtotime("-{$new_age} days"));
+            $reminder = ($row['antrnr'] === DEMO_REMINDER_ANTRNR);
+            if ($reminder) {
+                $new_b = date('Y-m-d', strtotime("-{$dauer} days"));   // letzter Abstimmungstag = heute
+            } else {
+                // Stabiles, je Antrag unterschiedliches "Abstimmungsalter" in Tagen: 0 .. Dauer-2
+                $new_age = (int)(crc32($row['antrnr']) % max($dauer - 1, 1));
+                $new_b = date('Y-m-d', strtotime("-{$new_age} days"));
+            }
             $delta = (int)(new DateTime($row['b_date']))->diff(new DateTime($new_b))->format('%r%a');
-            if ($delta <= 0) continue;
 
-            $set = ['b_date = ?'];
-            $params = [$new_b];
-            $now_ts = time();
-            for ($i = 1; $i <= 6; $i++) {
-                if (!empty($row["VDat$i"])) {
-                    $nv = demo_add_days($row["VDat$i"], $delta);
-                    if (strtotime($nv) > $now_ts) {
-                        $nv = date('Y-m-d H:i:s', $now_ts - 60);
-                        if (strlen($row["VDat$i"]) <= 16) $nv = substr($nv, 0, 16);
+            $set = [];
+            $params = [];
+            if ($delta !== 0 && ($reminder || $delta > 0)) {
+                $set[] = 'b_date = ?';
+                $params[] = $new_b;
+                $now_ts = time();
+                for ($i = 1; $i <= 6; $i++) {
+                    if (!empty($row["VDat$i"])) {
+                        $nv = demo_add_days($row["VDat$i"], $delta);
+                        if (strtotime($nv) > $now_ts) {
+                            $nv = date('Y-m-d H:i:s', $now_ts - 60);
+                            if (strlen($row["VDat$i"]) <= 16) $nv = substr($nv, 0, 16);
+                        }
+                        $set[] = "VDat$i = ?";
+                        $params[] = $nv;
                     }
-                    $set[] = "VDat$i = ?";
-                    $params[] = $nv;
-                }
-                if (!empty($row["VBedenk$i"])) {
-                    $set[] = "VBedenk$i = ?";
-                    $params[] = demo_add_days($row["VBedenk$i"], $delta);
+                    if (!empty($row["VBedenk$i"])) {
+                        $set[] = "VBedenk$i = ?";
+                        $params[] = demo_add_days($row["VBedenk$i"], $delta);
+                    }
                 }
             }
-            $params[] = $row['antrnr'];
-            $pdo->prepare("UPDATE `$antraege` SET " . implode(', ', $set) . " WHERE antrnr = ?")->execute($params);
+            if ($reminder) {
+                // Offene Stimmen zurücksetzen, damit immer mindestens eine Stimme fehlt
+                foreach (DEMO_REMINDER_OPEN_SLOTS as $slot) {
+                    $slot = (int)$slot;
+                    if ($slot < 1 || $slot > 6) continue;
+                    $set[] = "Votum$slot = '0'";
+                    $set[] = "VDat$slot = NULL";
+                    $set[] = "VBegr$slot = NULL";
+                    $set[] = "VProt$slot = NULL";
+                    $set[] = "VBedenk$slot = NULL";
+                }
+            }
+            if ($set) {
+                $params[] = $row['antrnr'];
+                $pdo->prepare("UPDATE `$antraege` SET " . implode(', ', $set) . " WHERE antrnr = ?")->execute($params);
+            }
+        }
+
+        // Erinnerungs-Versandmarker löschen, damit die 24h-Erinnerung täglich neu auslösbar ist
+        try {
+            $pdo->prepare("DELETE FROM svvote_reminders WHERE antrnr = ?")->execute([DEMO_REMINDER_ANTRNR]);
+        } catch (Exception $e) {
+            // Tabelle wird erst beim ersten Versand angelegt
         }
     } catch (Exception $e) {
         error_log("Demo date update (Abstimmungen) failed: " . $e->getMessage());
@@ -258,7 +440,7 @@ function update_demo_dynamic_dates($pdo) {
         $stmt = $pdo->prepare("
             SELECT event_id, start_datetime, end_datetime, recurrence, recurrence_end_date
             FROM svevents
-            WHERE status != 'deleted'
+            WHERE status != 'deleted' AND event_type != 'abwesenheit'
               AND ( ((recurrence IS NULL OR recurrence = 'none') AND DATE(start_datetime) < ?)
                  OR (recurrence IS NOT NULL AND recurrence != 'none'
                      AND recurrence_end_date IS NOT NULL AND recurrence_end_date < ?) )
@@ -351,7 +533,7 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'])) {
             [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
         );
 
-        if (update_demo_meeting_dates($pdo)) {
+        if (update_demo_meeting_dates($pdo, in_array('--force', $argv ?? [], true))) {
             echo "✅ Demo-Meeting-Datumsangaben erfolgreich aktualisiert!\n";
         } else {
             echo "❌ Fehler beim Aktualisieren der Demo-Datumsangaben.\n";
