@@ -34,17 +34,17 @@ if ($meeting_id > 0) {
         if (!empty($stichwort)) {
             echo '<p class="search-info">Suche nach: <span class="highlight">' . htmlspecialchars($stichwort) . '</span></p>';
             echo '<table width="100%" class="protocol-table">';
-            echo highlightWords(str_replace(array("&gt;","&lt;"),array(">","<"),$meeting['protokoll']), $stichwort);
+            echo highlightWords(str_replace(array("&gt;","&lt;"),array(">","<"),($meeting['protokoll'] ?? '')), $stichwort);
 			echo '</table>';
-			if ($confidential AND strlen($meeting['prot_intern'])>5) {
+			if ($confidential AND strlen((string)($meeting['prot_intern'] ?? ''))>5) {
 			echo '<br><br><h3 style="color:red">Interner Teil</h3><table width="100%" class="protocol-table">';
             echo highlightWords(str_replace(array("&gt;","&lt;"),array(">","<"),$meeting['prot_intern']), $stichwort);
             echo '</table>';}
         } else {
             echo '<table width="100%" class="protocol-table">';
-            echo str_replace(array("&gt;","&lt;"),array(">","<"),$meeting['protokoll']);
+            echo str_replace(array("&gt;","&lt;"),array(">","<"),($meeting['protokoll'] ?? ''));
             echo '</table>';
- 			if ($confidential AND strlen($meeting['prot_intern'])>5) {
+ 			if ($confidential AND strlen((string)($meeting['prot_intern'] ?? ''))>5) {
             echo '<br><br><h3 style="color:red">Interner Teil</h3><table width="100%" class="protocol-table">';
             echo str_replace(array("&gt;","&lt;"),array(">","<"),$meeting['prot_intern']);
             echo '</table>';
@@ -145,7 +145,7 @@ if ($meeting_id > 0) {
                 echo '</strong><br>';
                 
                 // Ersten Treffer als Vorschau zeigen
-                $preview = strip_tags($protocol['protokoll']);
+                $preview = strip_tags((string)($protocol['protokoll'] ?? ''));
                 $preview = html_entity_decode($preview);
                 
                 // Finde Position des ersten Treffers

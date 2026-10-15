@@ -1152,7 +1152,9 @@ function demo_build_main()
             echo '<div class="ok"><h3>✅ demo_data.json erzeugt</h3><p>' . number_format($res['bytes']) . ' Bytes, ' . $res['rows'] . ' Datensätze, Anker ' . htmlspecialchars($anchor) . '</p></div>';
             echo '<div class="card"><table><tr><th>Tabelle</th><th>Zeilen</th></tr>';
             foreach ($res['data']['tables'] as $t => $rows) echo '<tr><td>' . htmlspecialchars($t) . '</td><td>' . count($rows) . '</td></tr>';
-            echo '</table><p><a class="btn" href="demo_analyze.php">🔍 Analysieren</a> <a class="btn" style="background:#28a745" href="demo_import.php">📥 Importieren</a></p></div>';
+            // Aufruf über demo.php (Wurzel) oder tools/demo_build.php: Links entsprechend relativ setzen
+            $tools_url = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'demo_build.php') ? '' : 'tools/';
+            echo '</table><p><a class="btn" href="' . $tools_url . 'demo_analyze.php">🔍 Analysieren</a> <a class="btn" style="background:#28a745" href="' . $tools_url . 'demo_import.php">📥 Importieren</a></p></div>';
         } catch (Throwable $e) {
             echo '<div class="err"><h3>❌ Fehler</h3><p>' . htmlspecialchars($e->getMessage()) . '</p></div>';
         }
