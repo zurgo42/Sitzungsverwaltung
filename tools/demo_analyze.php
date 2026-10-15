@@ -221,6 +221,61 @@ $demo_file = __DIR__ . '/demo_data.json';
             echo '</div>';
         }
 
+        // Abdeckung der Funktionsbereiche (Soll-Inhalt einer vollständigen Demo)
+        $antraege_tbl = defined('TABLE_ANTRAEGE') ? TABLE_ANTRAEGE : 'svantraege';
+        $expected = [
+            'svmembers'              => 'Mitglieder',
+            'svconfig'               => 'Konfiguration (z.B. bart_B_abstimmung_tage, meeting_system_url)',
+            'svressorts'             => 'Ressorts',
+            $antraege_tbl            => 'Anträge in allen Phasen (A/B/V/R/X/Z; B-Anträge mit b_date)',
+            'svevents'               => 'Kalender-Ereignisse (inkl. wiederkehrend, Rollen, Teilnehmerliste)',
+            'svevents_participants'  => 'Kalender: Teilnehmerliste (target_type=list)',
+            'svmeetings'             => 'Sitzungen',
+            'svagenda_items'         => 'Tagesordnungspunkte',
+            'svprotocols'            => 'Protokolle',
+            'svtodos'                => 'ToDos',
+            'svabsences'             => 'Abwesenheiten',
+            'svpolls'                => 'Terminumfragen',
+            'svopinion_polls'        => 'Meinungsbilder',
+            'svdocuments'            => 'Dokumente',
+            'svnotifications'        => 'Benachrichtigungen',
+        ];
+        $not_expected = [
+            'svaudit_log'      => 'Audit-Log (soll beim Reset leer sein, nicht exportieren)',
+            'svvote_reminders' => 'Abstimmungs-Erinnerungen (muss beim Reset leer sein)',
+        ];
+        echo '<div class="card">';
+        echo '<h2>🧩 Abdeckung Demo-Inhalt</h2>';
+        echo '<table><tr><th>Tabelle</th><th>Bereich</th><th>Zeilen</th></tr>';
+        foreach ($expected as $tbl => $label) {
+            $cnt = isset($demo_data['tables'][$tbl]) && is_array($demo_data['tables'][$tbl]) ? count($demo_data['tables'][$tbl]) : null;
+            $cls = $cnt ? 'good' : 'highlight';
+            $txt = $cnt === null ? '❌ fehlt in JSON' : ($cnt === 0 ? '❌ leer' : '✅ ' . $cnt);
+            echo '<tr class="' . $cls . '"><td>' . htmlspecialchars($tbl) . '</td><td>' . htmlspecialchars($label) . '</td><td>' . $txt . '</td></tr>';
+        }
+        foreach ($not_expected as $tbl => $label) {
+            $cnt = isset($demo_data['tables'][$tbl]) && is_array($demo_data['tables'][$tbl]) ? count($demo_data['tables'][$tbl]) : 0;
+            if ($cnt > 0) {
+                echo '<tr class="highlight"><td>' . htmlspecialchars($tbl) . '</td><td>' . htmlspecialchars($label) . '</td><td>⚠️ ' . $cnt . ' Zeilen (werden beim Import ignoriert)</td></tr>';
+            }
+        }
+        echo '</table>';
+
+        // B-Anträge ohne b_date würden nie ausgewertet bzw. keine Frist anzeigen
+        if (!empty($demo_data['tables'][$antraege_tbl]) && is_array($demo_data['tables'][$antraege_tbl])) {
+            $b_ohne_datum = [];
+            foreach ($demo_data['tables'][$antraege_tbl] as $a) {
+                if (is_array($a) && isset($a['antrnr']) && strpos($a['antrnr'], 'B') === 0 && empty($a['b_date'])) {
+                    $b_ohne_datum[] = $a['antrnr'];
+                }
+            }
+            if (!empty($b_ohne_datum)) {
+                echo '<p style="color: #dc3545;">⚠️ B-Anträge ohne b_date (keine Frist, keine Erinnerung/Auswertung): '
+                    . htmlspecialchars(implode(', ', $b_ohne_datum)) . '</p>';
+            }
+        }
+        echo '</div>';
+
         // Zusammenfassung
         echo '<div class="info">';
         echo '<h3>📈 Zusammenfassung</h3>';

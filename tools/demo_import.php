@@ -259,6 +259,8 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             <li>svpolls (Alle Terminabstimmungen & Antworten)</li>
             <li>svopinion_polls (Alle Meinungsbilder & Antworten)</li>
             <li>svdocuments (Alle Dokumente & Download-Historie)</li>
+            <li>svevents (Kalender), svaudit_log (Audit-Log), svvote_reminders (Abstimmungs-Erinnerungen)</li>
+            <li>Anträge/Beschlüsse/Ressorts laut config (TABLE_ANTRAEGE usw.) und das Aktions-Protokoll</li>
             <li>...und alle weiteren sv*-Tabellen</li>
         </ul>
         <p><strong>Was wird importiert:</strong></p>
@@ -317,6 +319,35 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             // Alle Tabellen mit "sv"-Prefix automatisch finden
             $stmt = $pdo->query("SHOW TABLES LIKE 'sv%'");
             $tables_to_clear = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            // Tabellen ohne "sv"-Prefix (z.B. antraege, VTool-Variante) ebenfalls zurücksetzen,
+            // sonst bleiben alte Anträge stehen bzw. werden beim Import doppelt eingefügt.
+            // Zusätzlich das Aktions-Protokoll ("protokoll").
+            $extra_tables = ['protokoll'];
+            foreach (['TABLE_ANTRAEGE', 'TABLE_BESCHLUESSE', 'TABLE_MVBESCHLUESSE', 'TABLE_RESSORTS'] as $const) {
+                if (defined($const)) {
+                    $extra_tables[] = constant($const);
+                }
+            }
+            // Nicht-sv-Tabellen nur leeren, wenn die JSON sie auch enthält (alte Exporte ohne
+            // diese Tabellen würden sonst z.B. die Ressortliste leeren).
+            $pre_json = json_decode((string)file_get_contents($demo_file), true);
+            foreach ($extra_tables as $extra) {
+                if ($extra !== 'protokoll' && !isset($pre_json['tables'][$extra])) {
+                    continue;
+                }
+                if (preg_match('/^[A-Za-z0-9_]+$/', $extra) && !in_array($extra, $tables_to_clear, true)) {
+                    $q = $pdo->quote($extra);
+                    if ($pdo->query("SHOW TABLES LIKE $q")->fetchColumn()) {
+                        $tables_to_clear[] = $extra;
+                    }
+                }
+            }
+
+            // Tabellen, die nie aus der JSON importiert werden (auch nicht aus alten Exporten):
+            // Audit-Log und Abstimmungs-Erinnerungen werden nur geleert (svvote_reminders
+            // wird lazy angelegt und existiert evtl. noch nicht -> dann nichts zu tun).
+            $never_import = ['svaudit_log', 'svvote_reminders'];
 
             // Foreign Key Checks temporär deaktivieren für einfacheres Löschen
             $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
@@ -395,7 +426,11 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
 
                 // Level 2: Abhängig von Level 1
                 'svmeetings',
-                'antraege',  // Anträge/Beschlüsse (2026-05-20)
+                defined('TABLE_ANTRAEGE') ? TABLE_ANTRAEGE : 'svantraege',  // Anträge (inkl. b_date) – Name laut config
+                'svbeschluesse',
+                'svmvbeschluesse',
+                'svevents',  // Kalender-Ereignisse
+                'svevents_participants',  // Teilnehmerliste für Kalender (target_type=list)
                 'svabsences',
                 'svadmin_log',
                 'svpolls',
@@ -439,7 +474,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             // Importiere Tabellen in der definierten Reihenfolge
             foreach ($table_order as $table) {
                 // Überspringe Tabellen, die nicht in der JSON-Datei sind
-                if (!isset($demo_data['tables'][$table])) {
+                if (in_array($table, $never_import, true) || !isset($demo_data['tables'][$table])) {
                     continue;
                 }
 
@@ -494,7 +529,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             // (Fallback für neue Tabellen)
             foreach ($demo_data['tables'] as $table => $rows) {
                 // Überspringe Tabellen, die bereits importiert wurden
-                if (in_array($table, $table_order)) {
+                if (in_array($table, $table_order) || in_array($table, $never_import, true)) {
                     continue;
                 }
 

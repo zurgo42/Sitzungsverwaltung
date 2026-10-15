@@ -194,6 +194,9 @@ if (!$password_correct) {
             <li>svpolls (Terminabstimmungen)</li>
             <li>svopinion_polls (Meinungsbilder)</li>
             <li>svdocuments (Dokumente)</li>
+            <li>svevents / svevents_participants (Kalender)</li>
+            <li>Anträge (TABLE_ANTRAEGE inkl. b_date), Beschlüsse, Ressorts</li>
+            <li>Ausgenommen: svaudit_log, svvote_reminders</li>
             <li>...und alle weiteren sv*-Tabellen</li>
         </ul>
     </div>
@@ -210,6 +213,21 @@ if (!$password_correct) {
         // Alle Tabellen mit "sv"-Prefix automatisch finden
         $stmt = $pdo->query("SHOW TABLES LIKE 'sv%'");
         $tables_to_export = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        // Anträge/Beschlüsse/Ressorts: bei Tabellennamen ohne "sv"-Prefix (z.B. antraege,
+        // VTool-Variante) werden sie sonst nicht erfasst -> explizit ergänzen
+        foreach (['TABLE_ANTRAEGE', 'TABLE_BESCHLUESSE', 'TABLE_MVBESCHLUESSE', 'TABLE_RESSORTS'] as $const) {
+            if (defined($const) && preg_match('/^[A-Za-z0-9_]+$/', constant($const)) && !in_array(constant($const), $tables_to_export, true)) {
+                $q = $pdo->quote(constant($const));
+                if ($pdo->query("SHOW TABLES LIKE $q")->fetchColumn()) {
+                    $tables_to_export[] = constant($const);
+                }
+            }
+        }
+
+        // Laufzeit-/Protokolldaten gehören nicht in den Demo-Stand:
+        // Audit-Log wird beim Reset geleert, Abstimmungs-Erinnerungen müssen neu testbar sein
+        $tables_to_export = array_values(array_diff($tables_to_export, ['svaudit_log', 'svvote_reminders']));
 
         if (empty($tables_to_export)) {
             throw new Exception('Keine Tabellen mit "sv"-Prefix gefunden. Bitte prüfe die Datenbank.');

@@ -9,6 +9,7 @@
  * - TODOs
  * - Terminabstimmungen mit Antworten
  * - Meinungsbildern mit Antworten
+ * - Kalender-Ereignissen (svevents, inkl. Serie, Rollen- und Listen-Zielgruppe)
  */
 
 require_once 'config.php';
@@ -160,7 +161,7 @@ try {
             $top[2],
             $member_ids[0]
         ]);
-        echo "✓ TOP {$idx+1}: {$top[0]}<br>";
+        echo "✓ TOP " . ($idx + 1) . ": {$top[0]}<br>";
     }
 
     // =========================================================
@@ -289,6 +290,48 @@ try {
         }
 
         echo "✓ {$opinion['title']}<br>";
+    }
+
+    // =========================================================
+    // 7. KALENDER-EREIGNISSE
+    // =========================================================
+
+    echo "<h2>7. Erstelle Kalender-Ereignisse...</h2>";
+
+    $has_events = $pdo->query("SHOW TABLES LIKE 'svevents'")->fetchColumn();
+    if (!$has_events) {
+        echo "<p>⚠ Tabelle svevents nicht vorhanden – bitte tools/init-db.php ausführen.</p>";
+    } else {
+        // [Titel, Typ, Start, Ende, ganztägig, Wiederholung, Wiederholung bis, Zielgruppe, Rollen, Ort, Teilnehmer-Indizes]
+        $events_data = [
+            ['Vorstands-Jour-fixe', 'treffen', date('Y-m-d 09:00:00', strtotime('next monday')), date('Y-m-d 10:00:00', strtotime('next monday')),
+                0, 'weekly', date('Y-m-d', strtotime('+6 months')), 'roles', 'vorstand', 'Konferenzraum A', []],
+            ['Geschäftsstellen-Teamrunde', 'treffen', date('Y-m-d 14:00:00', strtotime('+3 days')), date('Y-m-d 15:00:00', strtotime('+3 days')),
+                0, 'none', null, 'list', null, 'Büro', [0, 2, 3]],
+            ['Einreichungsfrist Anträge', 'frist', date('Y-m-d 00:00:00', strtotime('+10 days')), null,
+                1, 'none', null, 'all', null, null, []],
+            ['Betriebsausflug', 'sonstiges', date('Y-m-d 10:00:00', strtotime('+21 days')), date('Y-m-d 17:00:00', strtotime('+21 days')),
+                0, 'none', null, 'all', null, 'Stadtpark', []],
+            ['Jahresplanung (monatlich)', 'sitzung', date('Y-m-d 17:00:00', strtotime('+14 days')), date('Y-m-d 18:30:00', strtotime('+14 days')),
+                0, 'monthly', date('Y-m-d', strtotime('+1 year')), 'all', null, 'Online', []],
+        ];
+
+        $stmt_ev = $pdo->prepare("
+            INSERT INTO svevents (title, description, location, start_datetime, end_datetime, all_day,
+                                  event_type, recurrence, recurrence_end_date, target_type, target_roles,
+                                  created_by_member_id, status)
+            VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+        ");
+        $stmt_evp = $pdo->prepare("INSERT IGNORE INTO svevents_participants (event_id, member_id) VALUES (?, ?)");
+
+        foreach ($events_data as $ev) {
+            $stmt_ev->execute([$ev[0], $ev[9], $ev[2], $ev[3], $ev[4], $ev[1], $ev[5], $ev[6], $ev[7], $ev[8], $member_ids[0]]);
+            $event_id = $pdo->lastInsertId();
+            foreach ($ev[10] as $idx) {
+                $stmt_evp->execute([$event_id, $member_ids[$idx]]);
+            }
+            echo "✓ {$ev[0]}<br>";
+        }
     }
 
     echo "<h2>✅ Demo-Daten erfolgreich erstellt!</h2>";

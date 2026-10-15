@@ -165,6 +165,7 @@ INSERT INTO svconfig (config_key, config_value, config_type, description, catego
 ('bart_B_wartezeit_aktiv', '1', 'boolean', 'Wartezeit für Typ B aktiv', 'antragstypen'),
 ('bart_B_wartezeit_tage', '14', 'number', 'Wartezeit für Typ B in Tagen', 'antragstypen'),
 ('bart_B_freigabe_vereinfacht', '0', 'boolean', 'Vereinfachte Freigabe für Typ B (meist nicht verwendet)', 'antragstypen'),
+('bart_B_abstimmung_tage', '7', 'number', 'Abstimmungsdauer für Typ B in Tagen (Fristablauf-Auswertung via Cron)', 'antragstypen'),
 
 -- GLOBALE EINSTELLUNGEN
 ('bart_show_betrag_in_liste', '1', 'boolean', 'Beträge in Antragsliste anzeigen', 'antragstypen'),
