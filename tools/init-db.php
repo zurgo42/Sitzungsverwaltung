@@ -1318,6 +1318,84 @@ try {
         }
     }
 
+    // Migration: Spalten, die der Code nutzt, die aber in älteren CREATE TABLE fehlten
+    // (entspricht tools/add_target_type_to_polls.sql, add_external_url_to_documents.sql u.a.)
+    $sv_col_exists = function (string $table, string $col) use ($pdo): bool {
+        $q = $pdo->prepare("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?");
+        $q->execute([$table, $col]);
+        return (int)$q->fetchColumn() > 0;
+    };
+    $sv_idx_exists = function (string $table, string $idx) use ($pdo): bool {
+        $q = $pdo->prepare("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?");
+        $q->execute([$table, $idx]);
+        return (int)$q->fetchColumn() > 0;
+    };
+    $sv_migrate = function (string $label, string $sql) use ($pdo) {
+        try {
+            $pdo->exec($sql);
+            echo "<p>Migration: {$label}</p>";
+        } catch (PDOException $e) {
+            echo "<p style='color: orange;'>⚠ Migration '{$label}' nicht möglich: " . htmlspecialchars($e->getMessage()) . "</p>";
+        }
+    };
+
+    // svpolls: target_type + access_token
+    if (!$sv_col_exists('svpolls', 'target_type')) {
+        $sv_migrate('svpolls.target_type', "ALTER TABLE svpolls ADD COLUMN target_type ENUM('individual','list') DEFAULT 'list' AFTER meeting_id");
+    }
+    if (!$sv_col_exists('svpolls', 'access_token')) {
+        $sv_migrate('svpolls.access_token', "ALTER TABLE svpolls ADD COLUMN access_token VARCHAR(64) DEFAULT NULL AFTER target_type");
+    }
+    if ($sv_col_exists('svpolls', 'access_token') && !$sv_idx_exists('svpolls', 'unique_access_token')) {
+        $sv_migrate('svpolls unique_access_token', "ALTER TABLE svpolls ADD UNIQUE KEY unique_access_token (access_token)");
+    }
+    if ($sv_col_exists('svpolls', 'target_type') && !$sv_idx_exists('svpolls', 'idx_target_type')) {
+        $sv_migrate('svpolls idx_target_type', "ALTER TABLE svpolls ADD INDEX idx_target_type (target_type)");
+    }
+    // Token-Trigger (Token für alle Zielgruppen-Typen); braucht TRIGGER-Recht, sonst Hinweis
+    if ($sv_col_exists('svpolls', 'access_token')) {
+        try {
+            $pdo->exec("DROP TRIGGER IF EXISTS set_poll_access_token");
+            $pdo->exec("CREATE TRIGGER set_poll_access_token BEFORE INSERT ON svpolls FOR EACH ROW
+                BEGIN
+                    IF NEW.access_token IS NULL THEN
+                        SET NEW.access_token = SHA2(CONCAT(UUID(), RAND()), 256);
+                    END IF;
+                END");
+            $pdo->exec("UPDATE svpolls SET access_token = SHA2(CONCAT(UUID(), RAND(), poll_id), 256) WHERE access_token IS NULL OR access_token = ''");
+        } catch (PDOException $e) {
+            echo "<p style='color: orange;'>⚠ Trigger set_poll_access_token nicht anlegbar (TRIGGER-Recht?): " . htmlspecialchars($e->getMessage()) . "</p>";
+        }
+    }
+
+    // svdocuments: externe Links
+    if (!$sv_col_exists('svdocuments', 'external_url')) {
+        $sv_migrate('svdocuments.external_url', "ALTER TABLE svdocuments ADD COLUMN external_url VARCHAR(1000) DEFAULT NULL COMMENT 'URL zu externer Datei (statt Upload)' AFTER filepath");
+        $sv_migrate('svdocuments Dateifelder NULL-fähig', "ALTER TABLE svdocuments MODIFY COLUMN filepath VARCHAR(500) NULL, MODIFY COLUMN filename VARCHAR(255) NULL, MODIFY COLUMN original_filename VARCHAR(255) NULL, MODIFY COLUMN filesize INT NULL");
+        $sv_migrate('svdocuments idx_external_url', "CREATE INDEX idx_external_url ON svdocuments(external_url(255))");
+    }
+
+    // svagenda_items: Referent
+    if (!$sv_col_exists('svagenda_items', 'referent_member_id')) {
+        $sv_migrate('svagenda_items.referent_member_id', "ALTER TABLE svagenda_items ADD COLUMN referent_member_id INT NULL DEFAULT NULL COMMENT 'Referent/in des TOPs (optional)'");
+    }
+
+    // Antworten externer Teilnehmer (member_id darf dann NULL sein)
+    $stmt = $pdo->query("SHOW TABLES LIKE 'svexternal_participants'");
+    if ($stmt->fetch()) {
+        foreach (['svpoll_responses', 'svopinion_responses'] as $resp_table) {
+            if (!$sv_col_exists($resp_table, 'external_participant_id')) {
+                $sv_migrate("{$resp_table}.external_participant_id", "ALTER TABLE {$resp_table} ADD COLUMN external_participant_id INT DEFAULT NULL COMMENT 'Externe Teilnehmer-ID' AFTER member_id");
+                $sv_migrate("{$resp_table} idx_external", "ALTER TABLE {$resp_table} ADD INDEX idx_external (external_participant_id)");
+            }
+            $nullable = $pdo->prepare("SELECT is_nullable FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = 'member_id'");
+            $nullable->execute([$resp_table]);
+            if ($nullable->fetchColumn() === 'NO') {
+                $sv_migrate("{$resp_table}.member_id NULL-fähig", "ALTER TABLE {$resp_table} MODIFY COLUMN member_id INT NULL DEFAULT NULL");
+            }
+        }
+    }
+
     // Migration: antrnr zu svagenda_items hinzufügen
     $stmt = $pdo->query("SHOW COLUMNS FROM svagenda_items LIKE 'antrnr'");
     if (!$stmt->fetch()) {
@@ -1478,9 +1556,8 @@ try {
         echo "<p style='color: orange;'>⚠ Meinungsbild-Templates existieren bereits - überspringe</p>";
     }
 
-    // System-Konfiguration einfügen (nur wenn leer)
-    $stmt = $pdo->query("SELECT COUNT(*) as count FROM svconfig");
-    if ($stmt->fetch()['count'] == 0) {
+    // System-Konfiguration einfügen (nur fehlende Schlüssel; vorhandene Werte bleiben unverändert)
+    {
         echo "<p>Füge System-Konfiguration ein...</p>";
 
         $config_entries = [
@@ -1571,19 +1648,27 @@ try {
             ['agenda_reminder_default_emails', '', 'text', 'Standard-Empfänger für Agenda-Erinnerungsmail (kommagetrennt, leer = nur Teilnehmer)', 'notifications'],
         ];
 
+        $cfg_exists = $pdo->prepare("SELECT COUNT(*) FROM svconfig WHERE config_key = ?");
         $stmt = $pdo->prepare("
             INSERT INTO svconfig (config_key, config_value, config_type, description, category)
             VALUES (?, ?, ?, ?, ?)
         ");
 
+        $cfg_added = 0;
         foreach ($config_entries as $entry) {
-            $stmt->execute($entry);
-            echo ".";
+            $cfg_exists->execute([$entry[0]]);
+            if ((int)$cfg_exists->fetchColumn() === 0) {
+                $stmt->execute($entry);
+                $cfg_added++;
+                echo ".";
+            }
         }
 
-        echo "<p style='color: green;'>✓ " . count($config_entries) . " Konfigurationseinträge eingefügt!</p>";
-    } else {
-        echo "<p style='color: orange;'>⚠ System-Konfiguration existiert bereits - überspringe</p>";
+        if ($cfg_added > 0) {
+            echo "<p style='color: green;'>✓ {$cfg_added} fehlende Konfigurationseinträge eingefügt!</p>";
+        } else {
+            echo "<p style='color: orange;'>⚠ System-Konfiguration vollständig - nichts zu ergänzen</p>";
+        }
     }
 
     // Demo-Ressorts einfügen (nur wenn leer)

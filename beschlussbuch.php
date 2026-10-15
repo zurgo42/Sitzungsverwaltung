@@ -105,7 +105,7 @@ $kann_intern_sehen = (
 $kann_duplizieren = ($user['aktiv'] >= 9);
 
 // Filter - POST statt GET für Kompatibilität mit altem System
-$filter_von = $_POST['von'] ?? ($_GET['von'] ?? date('Y-01-01'));
+$filter_von = $_POST['von'] ?? ($_GET['von'] ?? (date('Y') - 1) . '-01-01');
 $filter_bis = $_POST['bis'] ?? ($_GET['bis'] ?? date('Y-12-31'));
 $search = $_POST['stichwort'] ?? ($_GET['search'] ?? '');
 $sortierung = $_POST['sort'] ?? ($_GET['sort'] ?? 'desc'); // desc = neueste zuerst

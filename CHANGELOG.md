@@ -8,6 +8,12 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### Fix: init-db.php vollständig, Beschlussbuch zwei Jahre (2026-10-16)
+
+- `tools/init-db.php`: Fehlende Spalten werden nachgezogen (`svpolls.target_type/access_token` inkl. Token-Trigger, `svdocuments.external_url`, `svagenda_items.referent_member_id`, `external_participant_id` in `svpoll_responses`/`svopinion_responses` mit NULL-fähiger `member_id`). Idempotent.
+- `tools/init-db.php`: System-Konfiguration (Aktiv-Level, `bart_*`, Abstimmungsregeln u. a.) wird jetzt pro Schlüssel ergänzt statt nur bei leerer Tabelle; vorhandene Werte bleiben unverändert.
+- `beschlussbuch.php`: Standard-Zeitraum umfasst das Vorjahr und das laufende Jahr.
+
 #### Demo-Daten-Generator, Datenschutz und tägliche Datumsfortschreibung (2026-10-16)
 
 - `tools/demo_build.php`: Neuer deterministischer Generator (CLI und Browser), der `tools/demo_data.json` aus frei erfundenen Daten erzeugt – Mitglieder aller Rollen (Passwort `test123`, nur `@example.com`), Sitzungen in allen Status, TOPs, Protokolle, ToDos, Abwesenheiten mit Vertretung, Terminumfragen, Meinungsbilder, Dokumente, Texte, Anträge in allen Phasen (A/B/VS/X/Z), Kalender, Benachrichtigungen und alle Admin-Einstellungen (`svconfig`, Ressorts); `demo.php` ruft den Builder auf (ersetzt den alten Mini-Generator)
