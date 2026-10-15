@@ -1815,7 +1815,7 @@ if ($audit_check && $audit_check->rowCount() > 0) {
 if (!$audit_table_exists): ?>
         <div style="padding:15px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;color:#856404;">
             Die Tabelle <code>svaudit_log</code> existiert noch nicht.
-            Bitte <a href="?tab=admin_init">Datenbankinitialisierung</a> ausführen.
+            Bitte <a href="tools/migrate_neue_tabellen.php" target="_blank">tools/migrate_neue_tabellen.php</a> ausführen (legt nur die neuen Tabellen an).
         </div>
 <?php else:
     // Filter aus GET
@@ -1948,13 +1948,8 @@ if (!$audit_table_exists): ?>
             </thead>
             <tbody>
             <?php foreach ($audit_rows as $row):
-                $action_color = match($row['action']) {
-                    'DELETE'  => '#dc3545',
-                    'INSERT'  => '#28a745',
-                    'UPDATE'  => '#fd7e14',
-                    'REPLACE' => '#6f42c1',
-                    default   => '#555',
-                };
+                $action_colors = ['DELETE' => '#dc3545', 'INSERT' => '#28a745', 'UPDATE' => '#fd7e14', 'REPLACE' => '#6f42c1'];
+                $action_color = $action_colors[$row['action']] ?? '#555';
                 $member_label = $row['member_id']
                     ? (isset($member_names[$row['member_id']]) ? htmlspecialchars($member_names[$row['member_id']]) : 'ID ' . $row['member_id'])
                     : '<span style="color:#aaa;">—</span>';

@@ -145,7 +145,7 @@ $to_dt   = date('Y-m-d H:i:s', $to_ts);
 $svevents_exists = (bool)$pdo->query("SHOW TABLES LIKE 'svevents'")->fetchColumn();
 if (!$svevents_exists) {
     echo '<div style="background:#fff3cd;border:1px solid #ffc107;border-left:4px solid #ffc107;padding:14px 18px;border-radius:6px;margin-bottom:16px;">'
-       . '⚠️ Die Tabelle <code>svevents</code> fehlt noch. Bitte führe <a href="tools/init-db.php">tools/init-db.php</a> aus, um sie anzulegen.</div>';
+       . '⚠️ Die Tabelle <code>svevents</code> fehlt noch. Bitte führe <a href="tools/migrate_neue_tabellen.php">tools/migrate_neue_tabellen.php</a> aus, um sie anzulegen.</div>';
     return;
 }
 

@@ -87,16 +87,26 @@ function send_voting_deadline_reminders_unsafe($pdo) {
     }
     if (!function_exists('multipartmail') || !function_exists('get_member_by_id')) return 0;
 
-    $pdo->exec("CREATE TABLE IF NOT EXISTS svvote_reminders (
-        antrnr VARCHAR(50) NOT NULL,
-        member_id INT NOT NULL,
-        sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (antrnr, member_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Ohne aktiven Mailversand nichts markieren (sonst gingen die Erinnerungen später verloren)
+    if (!defined('MAIL_ENABLED') || !MAIL_ENABLED) return 0;
+
+    if ($pdo->query("SHOW TABLES LIKE 'svvote_reminders'")->fetchColumn() === false) {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS svvote_reminders (
+            antrnr VARCHAR(50) NOT NULL,
+            member_id INT NOT NULL,
+            sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (antrnr, member_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
 
     $cfg = $pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'meeting_system_url' LIMIT 1");
     $base = $cfg ? rtrim(trim((string)$cfg->fetchColumn()), '/') : '';
     if ($base === '' && defined('APP_URL')) $base = rtrim(APP_URL, '/');
+    // Ohne absolute Basis-URL keine Mail mit unbrauchbarem Link versenden
+    if (!preg_match('#^https?://#i', $base)) {
+        error_log('voting_reminder: svconfig.meeting_system_url nicht gesetzt - keine Erinnerungen versendet');
+        return 0;
+    }
 
     $now = time();
     $sent = 0;
@@ -139,10 +149,11 @@ function send_voting_deadline_reminders_unsafe($pdo) {
                 . '<strong>&bdquo;kein Votum&ldquo;</strong> eingetragen.</p>'
                 . '<p>Vielen Dank und viele Grüße<br>Dein Sitzungstool</p>';
 
+            // Marker bleibt auch bei Fehlschlag stehen: kein Dauer-Retry im Minutentakt
             if (multipartmail($email, $subject, $text, $html)) {
                 $sent++;
             } else {
-                $pdo->prepare("DELETE FROM svvote_reminders WHERE antrnr = ? AND member_id = ?")->execute([$v['antrnr'], $mid]);
+                error_log('voting_reminder: Versand fehlgeschlagen an Mitglied ' . $mid . ' (Antrag ' . $v['antrnr'] . ')');
             }
         }
     }

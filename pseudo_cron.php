@@ -93,6 +93,15 @@ if ($should_run) {
             @file_put_contents(__DIR__ . '/pseudo_cron.log', $log_msg, FILE_APPEND);
         }
 
+        // ---- Audit-Log: Einträge älter als 180 Tage entfernen (Datenschutz, begrenztes Wachstum) ----
+        try {
+            if ($pdo->query("SHOW TABLES LIKE 'svaudit_log'")->fetchColumn() !== false) {
+                $pdo->exec("DELETE FROM svaudit_log WHERE logged_at < DATE_SUB(NOW(), INTERVAL 180 DAY) LIMIT 500");
+            }
+        } catch (\Throwable $e) {
+            error_log('Audit-Log-Bereinigung: ' . $e->getMessage());
+        }
+
         // ---- Abstimmungsfrist-Check ----
         // Abstimmungsdauer aus svconfig lesen (Default: 7 Tage)
         $dauer_stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'bart_B_abstimmung_tage' LIMIT 1");

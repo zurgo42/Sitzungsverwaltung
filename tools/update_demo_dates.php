@@ -23,6 +23,11 @@ if (!defined('DEMO_MODE_ENABLED') || !DEMO_MODE_ENABLED) {
 
 require_once __DIR__ . '/demo_common.php';
 
+// Adapter-Betrieb (echte VTool-Daten in berechtigte/antraege): nie Daten verändern
+if (demo_member_source_is_berechtigte()) {
+    return;
+}
+
 // Timezone setzen (falls noch nicht gesetzt)
 if (!ini_get('date.timezone')) {
     date_default_timezone_set('Europe/Berlin');

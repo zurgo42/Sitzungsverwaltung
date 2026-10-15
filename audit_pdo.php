@@ -142,7 +142,7 @@ class AuditPDO extends PDO {
                 $verb,
                 $table,
                 $affected,
-                substr($display_q, 0, 2000),
+                mb_strcut($display_q, 0, 2000, 'UTF-8'),
             ]);
         } catch (\Throwable $e) {
             error_log('svaudit_log write failed: ' . $e->getMessage());

@@ -41,7 +41,7 @@ $action      = $_POST['action'] ?? '';
 
 // Tabellen-Existenz prüfen
 if (!$pdo->query("SHOW TABLES LIKE 'svevents'")->fetchColumn()) {
-    $_SESSION['error'] = 'Tabelle svevents fehlt – bitte tools/init-db.php ausführen.';
+    $_SESSION['error'] = 'Tabelle svevents fehlt – bitte tools/migrate_neue_tabellen.php ausführen.';
     header('Location: index.php?tab=kalender');
     exit;
 }

@@ -369,7 +369,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             // Mitgliederquelle: berechtigte nur im Standalone-Betrieb ableiten/leeren (in der VTool-Variante echte Daten!)
             $derive_berechtigte = !demo_member_source_is_berechtigte();
             if (!$derive_berechtigte) {
-                $import_notes[] = 'MEMBER_SOURCE = berechtigte: Die Tabelle berechtigte bleibt unverändert (echte VTool-Daten).';
+                die('<p style="color:red;font-weight:bold">Abbruch: MEMBER_SOURCE = berechtigte (Adapter-Version mit echten VTool-Daten). Der Demo-Import würde antraege/beschluesse/ressortliste leeren und ist hier gesperrt.</p>');
             }
 
             $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");

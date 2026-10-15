@@ -2,6 +2,16 @@
 
 Diese Anleitung beschreibt die Einrichtung der Sitzungsverwaltung auf einem Webserver.
 
+## Update einer laufenden Installation (z. B. Adapter-Version mit berechtigte/antraege)
+
+1. Backup von Datenbank und Dateien.
+2. In der produktiven `config.php` prüfen: `DEMO_MODE_ENABLED = false`, Mailversand konfiguriert (`MAIL_ENABLED`), `svconfig.meeting_system_url` gefüllt (absolute URL, wird für Links in Mails benötigt).
+3. `tools/migrate_neue_tabellen.php?dry=1` aufrufen (Trockenlauf), danach ohne `dry`. **Nicht** `tools/init-db.php` ausführen - es ist für Neuinstallationen gedacht.
+4. Dateien deployen. Der `AuditPDO`-Block in `config.php` ist optional (siehe `docs/audit-logging.md`).
+5. Smoke-Test: Tabs, Kalender, eine Abstimmung, Admin-Tab (Audit-Log), PHP-`error_log`.
+
+Hinweis: Die automatische Auswertung von Abstimmungen erfolgt jetzt erst am Tag nach dem letzten Abstimmungstag (volle Abstimmungsdauer); laufende Abstimmungen verlängern sich dadurch um einen Tag. Beim ersten Cron-Lauf gehen Erinnerungsmails für Anträge raus, deren letzter Abstimmungstag heute ist.
+
 ## Voraussetzungen
 
 ### Server-Anforderungen
