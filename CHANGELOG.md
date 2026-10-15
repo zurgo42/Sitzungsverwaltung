@@ -13,6 +13,7 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 - **Fix `audit_pdo.php`:** `lastInsertId()` lieferte nach jedem Schreibzugriff die ID des Audit-Eintrags statt des eigentlichen Datensatzes; die ID wird jetzt vor dem Log-Eintrag gesichert.
 - `audit_loader.php`: lädt das Audit-Logging nur ab PHP 8.0 und fällt sonst auf normales PDO zurück (`sv_new_pdo()`); fehlt `svaudit_log`, schaltet sich das Logging still ab.
 - `tools/migrate_neue_tabellen.php`: legt ausschließlich die neuen Tabellen an (`svaudit_log`, `svevents`, `svevents_participants`, `svvote_reminders`); `?dry=1` zeigt nur an. Für laufende Installationen statt `init-db.php`.
+- Audit-Log: auch `antrag_neu.php`, `ajax_feedback.php`, `mark_notification_read.php`, `mark_all_notifications_read.php` und `meine_benachrichtigungen.php` nutzen jetzt `sv_new_pdo()` (Anlegen von Anträgen, Feedback, Benachrichtigungs-Einstellungen werden protokolliert).
 - Audit-Log: Einträge älter als 180 Tage werden vom Pseudo-Cron gelöscht.
 - Abstimmungs-Erinnerung: kein Versand und keine Markierung bei `MAIL_ENABLED=false` oder ohne absolute `meeting_system_url`; fehlgeschlagene Mails werden nicht im Minutentakt wiederholt; Datenbankfehler führen nie zu Seitenfehlern.
 - Demo-Werkzeuge (`demo_import.php`, `update_demo_dates.php`) sind bei `MEMBER_SOURCE='berechtigte'` gesperrt und verändern nie echte Daten.

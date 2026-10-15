@@ -37,11 +37,12 @@ try {
 
     // Konfiguration laden (beinhaltet jetzt $pdo)
     require_once 'config.php';
+    require_once __DIR__ . '/audit_loader.php';
     require_once 'config_adapter.php';
     require_once 'member_functions.php';
 
     // PDO-Datenbankverbindung aufbauen
-    $pdo = new PDO(
+    $pdo = sv_new_pdo(
         "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
         DB_USER,
         DB_PASS,

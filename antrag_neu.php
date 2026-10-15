@@ -9,6 +9,7 @@
 require_once 'session_config.php';
 session_start();
 require_once 'config.php';
+require_once __DIR__ . '/audit_loader.php';
 require_once 'config_adapter.php';
 require_once 'member_functions.php';
 require_once 'antragstypen_helper.php';
@@ -23,7 +24,7 @@ if (!isset($_SESSION['member_id'])) {
 $current_user_id = $_SESSION['member_id'];
 
 // Datenbankverbindung
-$pdo = new PDO(
+$pdo = sv_new_pdo(
     "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
     DB_USER,
     DB_PASS,

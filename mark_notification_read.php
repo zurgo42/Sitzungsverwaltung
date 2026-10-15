@@ -2,12 +2,13 @@
 require_once 'session_config.php';
 session_start();
 require_once 'config.php';
+require_once __DIR__ . '/audit_loader.php';
 require_once 'notifications_functions.php';
 
 // PDO-Verbindung erstellen
 try {
     $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+    $pdo = sv_new_pdo($dsn, DB_USER, DB_PASS, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
