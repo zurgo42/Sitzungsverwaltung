@@ -248,6 +248,10 @@ if (isset($_GET['demo_email'])) {
                     <span class="text"><strong>Meinungsbild:</strong> Anonyme Umfragen zur Stimmungsabfrage, schnelles Feedback-Tool, Ergebnisauswertung in Echtzeit</span>
                 </div>
                 <div class="feature-item">
+                    <span class="icon">📅</span>
+                    <span class="text"><strong>Kalender:</strong> Termine der nächsten 90 Tage, Sitzungen automatisch eingebunden, wiederkehrende Termine, Abstimmungsfristen mit E-Mail-Erinnerung</span>
+                </div>
+                <div class="feature-item">
                     <span class="icon">📁</span>
                     <span class="text"><strong>Dokumente:</strong> Zentrale Dokumentenverwaltung, Kategorisierung, Freigabe-Verwaltung, Versionierung, Archiv-Funktion</span>
                 </div>

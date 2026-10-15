@@ -197,6 +197,10 @@ define('REQUIRE_LOGIN', true);
 define('MEMBER_SOURCE', 'members');
 ```
 
+## Neu in `config.example.php`: Audit-PDO
+
+Die Datenbankverbindung `$pdo` wird in `config.example.php` als `AuditPDO` (aus `audit_pdo.php`) aufgebaut, sofern die Datei vorhanden ist; sonst als normales `PDO`. Bestehende `config.php`-Dateien werden bei `git pull` nicht überschrieben und müssen manuell angepasst werden (Block "PDO-DATENBANKVERBINDUNG" aus `config.example.php` übernehmen), sonst werden keine Einträge in `svaudit_log` geschrieben. Die Tabelle `svaudit_log` legt `tools/init-db.php` an. Details: [audit-logging.md](audit-logging.md).
+
 ## svconfig-Schlüssel (Datenbank-Konfiguration)
 
 Neben `config.php` und `config_adapter.php` gibt es eine weitere Konfigurationsebene: die Tabelle `svconfig` in der Datenbank. Diese wird über den Admin-Bereich oder `init-db.php` befüllt und enthält laufzeitveränderliche Parameter.
@@ -209,6 +213,7 @@ Neben `config.php` und `config_adapter.php` gibt es eine weitere Konfigurationse
 | `terminplanung_standalone_url` | text | notifications | _(leer)_ | Öffentliche URL des Terminplanung-Standalone-Links (z.B. `https://example.com/termine.php`). Überschreibt den automatisch erzeugten Link. |
 | `protokoll_last_archive` | text | system | _(leer)_ | Letzter Archivierungs-Monat der `protokoll`-Tabelle (Format: `YYYYMM`, z.B. `202608`). Wird vom Pseudo-Cron automatisch gesetzt – **nicht manuell ändern**. |
 | `bart_V_betrag_limit` | number | antragstypen | `500` | Betragsgrenze für Antragstyp V (Verfügung) in Euro. Steuert die Monatssummen-Prüfung in `antrag_bearbeiten.php`. |
+| `bart_B_abstimmung_tage` | number | antragstypen | `7` | Abstimmungsdauer für B-Anträge in Tagen. Letzter Abstimmungstag ist `b_date` + N Tage (bis 24:00 Uhr); die automatische Auswertung erfolgt am Tag danach. Ca. 24 Stunden vor Fristende werden Erinnerungs-Mails verschickt. |
 
 Diese Schlüssel werden von `init-db.php` beim ersten Aufruf angelegt und sind über Admin → Systemkonfiguration einsehbar.
 

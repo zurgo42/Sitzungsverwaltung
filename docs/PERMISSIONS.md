@@ -219,6 +219,19 @@ if ($current_user['funktion'] == 'VA') {
 2. **Funktion ist additiv**: Manche Funktionen (GF, VA) geben zusätzliche Rechte unabhängig von aktiv
 3. **Kombinationsprüfung**: Immer beide Felder prüfen für vollständige Berechtigungsprüfung
 
+### Kalender
+
+- Ansehen: alle eingeloggten Mitglieder (Sichtbarkeit je Termin: alle / Rollen / Teilnehmerliste; der Ersteller sieht eigene Termine immer)
+- Anlegen: alle Rollen außer `mitglied`
+- Bearbeiten/Löschen: Ersteller oder Admin
+- Sichtbarkeit "Rollen": nur durch Admins wählbar
+
+Details: [KALENDER.md](KALENDER.md)
+
+### Audit-Log
+
+Das Datenbank-Protokoll (`svaudit_log`) ist nur im Admin-Tab einsehbar. Siehe [audit-logging.md](audit-logging.md).
+
 ---
 
 ## Migration & Kompatibilität

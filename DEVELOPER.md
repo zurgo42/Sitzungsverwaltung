@@ -39,7 +39,9 @@ Alle produktiven PHP-Skripte liegen im Root. Wartungs-, Diagnose- und Migrations
 ├── notification_mailer.php     # Ereignisgetriebenes Benachrichtigungssystem
 ├── antragstypen_helper.php     # Konfigurationsfunktionen für Antragstypen
 ├── voting_helper.php           # Abstimmungs-Logik, beschluss_annehmen()
-├── protokoll_helper.php        # Aktions-Protokollierung
+├── protokoll_helper.php        # Aktions-Protokollierung (Tabelle protokoll)
+├── audit_pdo.php               # AuditPDO: Audit-Log aller DB-Schreibzugriffe (svaudit_log)
+├── voting_reminder.php         # Abstimmungs-Erinnerung, offene Abstimmungen/Fristen
 │
 ├── antrag_neu.php              # Antrag erstellen
 ├── antrag_bearbeiten.php       # Antrag bearbeiten (Formular + Aktionen)
@@ -53,8 +55,9 @@ Alle produktiven PHP-Skripte liegen im Root. Wartungs-, Diagnose- und Migrations
 ├── process_todos.php           # TODO-Aktionen
 ├── process_protocol.php        # Protokoll-Aktionen
 ├── process_admin.php           # Admin-Aktionen
+├── process_kalender.php        # Kalender-Aktionen (create/update/delete_event)
 │
-├── tab_*.php                   # Tab-Views (dashboard, meetings, agenda, …)
+├── tab_*.php                   # Tab-Views (meetings, agenda, kalender, …)
 ├── tab_agenda_display_*.php    # Sitzungs-Ansichten je Status
 │
 ├── opinion_views/              # Unterviews für Meinungsbild-Tool
@@ -78,6 +81,7 @@ Alle produktiven PHP-Skripte liegen im Root. Wartungs-, Diagnose- und Migrations
 │
 ├── docs/                       # Technische Dokumentation
 │   ├── audit-logging.md
+│   ├── KALENDER.md
 │   ├── ANTRAGSTYPEN_KONFIGURATION.md
 │   ├── session-cookie-configuration.md
 │   └── …
@@ -106,7 +110,11 @@ Alle produktiven PHP-Skripte liegen im Root. Wartungs-, Diagnose- und Migrations
 
 ### Übersicht der Tabellen
 
-Die Anwendung verwendet 24 Tabellen, gruppiert in folgende Bereiche:
+Die vollständige und maßgebliche Tabellenliste steht in `tools/init-db.php` (derzeit über 50 Tabellen mit Präfix `sv`). Die folgende Übersicht beschreibt nur die Kernbereiche und ist nicht vollständig. Zuletzt hinzugekommen:
+
+- `svaudit_log` – Audit-Log aller DB-Schreibzugriffe (siehe Audit-Logging)
+- `svevents`, `svevents_participants` – Kalender-Termine und Teilnehmerliste (`target_type = 'list'`); siehe `docs/KALENDER.md`
+- `svvote_reminders` – gesendete Abstimmungs-Erinnerungen (PK `antrnr` + `member_id`); wird von `voting_reminder.php` automatisch angelegt
 
 #### 1. Core-Tabellen
 
@@ -509,10 +517,10 @@ nm_event_*()  →  nm_notify_all()  →  nm_enqueue()
 **Ereignisfunktionen:**
 | Funktion | Ereignis | Ziel-URL |
 |---|---|---|
-| `nm_event_antrag_neu` | Neuer Antrag | `antrag_bearbeiten.php?antrnr=…` |
-| `nm_event_antrag_geaendert` | Antrag bearbeitet | `antrag_bearbeiten.php?antrnr=…` |
+| `nm_event_antrag_neu` | Neuer Antrag (beim ersten Speichern mit Titel in `antrag_bearbeiten.php`, nicht beim Anlegen in `antrag_neu.php`) | `antrag_bearbeiten.php?antrnr=…` |
+| `nm_event_antrag_geaendert` | Antrag bearbeitet (ab dem zweiten Speichern) | `antrag_bearbeiten.php?antrnr=…`; Abstimmberechtigte eines B-Antrags: `abstimmungen.php?antrnr=…` |
 | `nm_event_antrag_hinweis` | Hinweis zu Antrag | `abstimmungen.php?antrnr=…` |
-| `nm_event_antrag_abstimmung` | Abstimmung gestartet | `abstimmungen.php?antrnr=…` |
+| `nm_event_antrag_abstimmung` | Abstimmung gestartet (nennt den letzten Abstimmungstag) | `abstimmungen.php?antrnr=…` |
 | `nm_event_antrag_beschlossen` | Abstimmung beendet | `antrag_bearbeiten.php?antrnr=…` |
 | `nm_event_top_neu` | Neuer TOP | `index.php?tab=agenda&meeting_id=…` |
 | `nm_event_top_kommentar` | TOP-Kommentar | `index.php?tab=agenda&meeting_id=…` |
@@ -530,6 +538,18 @@ nm_event_top_kommentar($pdo, $meeting_id, $title, $date, $name,
 ```
 
 **Adapter-Regel:** `nm_notify_all()` ruft intern `get_all_members($pdo)` auf — kein direkter SQL-Zugriff auf `berechtigte` oder `svmembers`.
+
+#### voting_reminder.php
+
+**Abstimmungsfrist und Erinnerung:**
+- Abstimmungsdauer N = `svconfig.bart_B_abstimmung_tage` (Standard 7), `voting_duration_days($pdo)`
+- Letzter Abstimmungstag = `b_date` + N Tage (bis 24:00 Uhr); automatische Auswertung (`auswerten_abstimmung($pdo, $antrnr, true)`) am Tag danach (Bedingung `b_date < heute - N`) in `pseudo_cron.php` und `cron_notifications.php`. Anträge ohne `b_date` werden nicht automatisch ausgewertet
+- `get_open_votings($pdo, $member_id = null)` – offene B-Anträge mit Frist und noch fehlenden Stimmen (VName1-6 / Votum1-6); genutzt von der Erinnerung und vom Kalender (Fristen)
+- `send_voting_deadline_reminders($pdo)` – Mail ca. 24 h vor Fristende an alle, die noch nicht abgestimmt haben; nicht abschaltbar; einmal pro Antrag und Mitglied (Tabelle `svvote_reminders`, wird automatisch angelegt). Aufgerufen aus `pseudo_cron.php` und `cron_notifications.php`
+
+#### module_notifications.php
+
+Benachrichtigungskachel im Dashboard: "Hallo <Vorname>!"-Begrüßung, offene Anträge/Abstimmungen/Finanzfreigaben und – nur wenn die VTool-Tabelle `freigabe` existiert – die Anzahl offener VTool-Zahlungsfreigaben (`f1-f6` / `vf1-vf6`) mit Link auf `https://aktive.mensa.de/vorstand/vtool.php?steuer=9`.
 
 #### opinion_functions.php
 **Meinungsbild-Tool Helpers:**
@@ -623,13 +643,13 @@ $data = get_data_from_db($pdo);
 ```
 
 **Tab-Übersicht:**
-- `tab_dashboard.php` - Dashboard mit Übersichten
 - `tab_meetings.php` - Meeting-Liste
 - `tab_termine.php` - Terminplanung-UI
 - `tab_opinion.php` - Meinungsbild-Routing
 - `tab_members.php` - Mitglieder-Liste (Admin)
 - `tab_todos.php` - TODO-Verwaltung
-- `tab_admin_log.php` - Audit-Log (Admin)
+- `tab_kalender.php` - Kalender (Termine, Sitzungen, Abstimmungsfristen), Backend `process_kalender.php`
+- `tab_admin.php` - Admin-Bereich, enthält u.a. die Anzeige des Datenbank-Audit-Logs (`svaudit_log`)
 
 #### opinion_views/*.php
 **Unterviews für Meinungsbild-Tool:**
@@ -654,7 +674,12 @@ if ($view === 'list') {
 
 ### Cronjob-Dateien
 
-#### cron_poll_reminders.php
+#### pseudo_cron.php / cron_notifications.php
+**Zweck:** Zeitgesteuerte Aufgaben ohne eigenen Cronjob (`pseudo_cron.php`, wird bei Seitenaufrufen geladen) bzw. stündlich per echtem Cronjob (`cron_notifications.php`, schließt die Lücken bei Inaktivität)
+**Enthält u.a.:** Meeting-Erinnerungen, Auswertung abgelaufener Abstimmungen (siehe `voting_reminder.php`), Abstimmungs-Erinnerungen, Tagesordnungs-Erinnerungen, Mail-Benachrichtigungen, Monatsarchivierung des `protokoll`
+
+
+#### cron_send_poll_reminders.php
 **Zweck:** Erinnerungs-E-Mails für Terminabstimmungen
 **Ablauf:**
 1. Finde alle Polls mit `reminder_enabled=1 AND reminder_sent=0`
@@ -666,7 +691,7 @@ if ($view === 'list') {
 
 **Cronjob-Einrichtung:**
 ```bash
-0 8 * * * /usr/bin/php /pfad/zu/cron_poll_reminders.php
+0 8 * * * /usr/bin/php /pfad/zu/cron_send_poll_reminders.php
 ```
 
 #### cron_delete_expired_opinions.php
@@ -681,7 +706,7 @@ if ($view === 'list') {
 0 2 * * * /usr/bin/php /pfad/zu/cron_delete_expired_opinions.php
 ```
 
-#### cron_process_mail_queue.php
+#### process_mail_queue.php
 **Zweck:** E-Mail-Warteschlange abarbeiten
 **Ablauf:**
 1. Lade Mails mit `status='pending' ORDER BY priority DESC, created_at ASC LIMIT 50`
@@ -694,7 +719,7 @@ if ($view === 'list') {
 
 **Cronjob:**
 ```bash
-*/5 * * * * /usr/bin/php /pfad/zu/cron_process_mail_queue.php
+*/5 * * * * /usr/bin/php /pfad/zu/process_mail_queue.php
 ```
 
 ## Code-Konventionen
@@ -744,8 +769,9 @@ echo htmlspecialchars($user_input);
 
 ### Session-Management
 
-**Session immer am Anfang starten:**
+**Session immer am Anfang starten – `session_config.php` MUSS vorher geladen werden** (gilt auch für eigenständige Prozessoren wie `process_kalender.php`):
 ```php
+require_once __DIR__ . '/session_config.php';
 session_start();
 ```
 
@@ -777,10 +803,14 @@ if (!in_array($user['role'], ['vorstand', 'gf'])) {
 
 ### Audit-Logging
 
-**Admin-Aktionen werden geloggt:**
+Es gibt zwei Protokolle (Details: `docs/audit-logging.md`):
+
+**1. Datenbank-Audit-Log (automatisch):** `audit_pdo.php` stellt `AuditPDO` und `AuditStatement` bereit. `config.php` erzeugt `$pdo` als `AuditPDO` (siehe `config.example.php`); jedes `INSERT`/`UPDATE`/`DELETE`/`REPLACE` (prepared Statements via `ATTR_STATEMENT_CLASS` und `exec()`) wird samt eingesetzten Parameterwerten in `svaudit_log` geschrieben (Tabelle aus `tools/init-db.php`). Anzeige für Admins im Admin-Tab "Datenbank-Protokoll (Audit-Log)" mit Filtern und SQL-Modal. Fehler im Audit-Log brechen die Hauptaktion nie ab.
+
+**2. Aktions-Protokoll (explizit):**
 ```php
-log_admin_action($pdo, $admin_id, 'delete_meeting', 'Meeting gelöscht',
-                 'meeting', $meeting_id, $old_values, null);
+[$mnr, $kurz] = get_protokoll_user($current_user);
+protokoll($pdo, $mnr, $kurz, 'Antrag-Speichern', "Antrag $antrnr gespeichert");
 ```
 
 ### Vertraulichkeit

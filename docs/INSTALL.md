@@ -77,10 +77,10 @@ define('BASE_URL', 'https://ihre-domain.de/sitzungsverwaltung');
 
 #### Option A: Via init-db.php (Empfohlen für Neuinstallationen)
 
-1. Öffnen Sie im Browser: `https://ihre-domain.de/sitzungsverwaltung/init-db.php`
+1. Öffnen Sie im Browser: `https://ihre-domain.de/sitzungsverwaltung/tools/init-db.php`
 2. Das Skript erstellt automatisch:
    - Die Datenbank (falls sie noch nicht existiert)
-   - Alle 26 Tabellen (inkl. Dokumentenverwaltung)
+   - Alle Tabellen (über 50, u.a. Dokumentenverwaltung, Kalender `svevents`, Audit-Log `svaudit_log`)
    - Den erforderlichen Trigger
    - 13 Meinungsbild-Templates
    - **Einen Default-Admin-Benutzer** (wenn members-Tabelle leer ist)
@@ -113,7 +113,7 @@ EXIT;
 mysql -u sitzung_user -p sitzungsverwaltung < /pfad/zu/init-db.sql
 ```
 
-Hinweis: Es gibt keine `init-db.sql` Datei. Verwenden Sie stattdessen `init-db.php` über den Browser oder führen Sie die SQL-Befehle aus den Migrations-Dateien manuell aus.
+Hinweis: Es gibt keine `init-db.sql` Datei. Verwenden Sie stattdessen `tools/init-db.php` über den Browser oder führen Sie die SQL-Befehle aus den Migrations-Dateien manuell aus.
 
 #### Option C: Via phpMyAdmin
 
@@ -121,7 +121,7 @@ Hinweis: Es gibt keine `init-db.sql` Datei. Verwenden Sie stattdessen `init-db.p
 2. Erstellen Sie eine neue Datenbank: `sitzungsverwaltung`
    - Zeichensatz: `utf8mb4`
    - Kollation: `utf8mb4_unicode_ci`
-3. Führen Sie `init-db.php` über den Browser aus (siehe Option A)
+3. Führen Sie `tools/init-db.php` über den Browser aus (siehe Option A)
 
 ### 4. Verzeichnisse erstellen und Berechtigungen setzen
 
@@ -213,19 +213,26 @@ crontab -e
 # Folgende Zeilen hinzufügen:
 
 # Poll-Erinnerungen prüfen (täglich um 8:00 Uhr)
-0 8 * * * /usr/bin/php /var/www/html/sitzungsverwaltung/cron_poll_reminders.php
+0 8 * * * /usr/bin/php /var/www/html/sitzungsverwaltung/cron_send_poll_reminders.php
 
 # Abgelaufene Opinion-Polls löschen (täglich um 2:00 Uhr)
 0 2 * * * /usr/bin/php /var/www/html/sitzungsverwaltung/cron_delete_expired_opinions.php
 
 # E-Mail-Warteschlange abarbeiten (alle 5 Minuten)
-*/5 * * * * /usr/bin/php /var/www/html/sitzungsverwaltung/cron_process_mail_queue.php
+*/5 * * * * /usr/bin/php /var/www/html/sitzungsverwaltung/process_mail_queue.php
+
+# Benachrichtigungen, Abstimmungsfristen und Abstimmungs-Erinnerungen (stündlich)
+0 * * * * /usr/bin/php /var/www/html/sitzungsverwaltung/cron_notifications.php
 ```
+
+Hinweis: Ohne echten Cronjob übernimmt `pseudo_cron.php` (wird bei Seitenaufrufen ausgeführt) die Auswertung abgelaufener Abstimmungen und den Versand der Abstimmungs-Erinnerungen (ca. 24 Stunden vor Fristende). `cron_notifications.php` schließt Lücken bei Inaktivität.
+
+Nach Updates immer `tools/init-db.php` erneut aufrufen: Neue Tabellen (z.B. `svaudit_log`, `svevents`, `svevents_participants`) und Spalten werden idempotent ergänzt. Das Audit-Log setzt zusätzlich voraus, dass die `config.php` `$pdo` als `AuditPDO` erzeugt (siehe `config.example.php` und `docs/audit-logging.md`).
 
 Testen Sie die Cronjobs manuell:
 
 ```bash
-php /var/www/html/sitzungsverwaltung/cron_poll_reminders.php
+php /var/www/html/sitzungsverwaltung/cron_send_poll_reminders.php
 ```
 
 ## E-Mail-Konfiguration
@@ -255,7 +262,7 @@ Oder laden Sie PHPMailer manuell herunter und kopieren Sie es nach `/lib/PHPMail
 Für größere Installationen empfohlen:
 
 1. E-Mails werden in die Tabelle `mail_queue` geschrieben
-2. Der Cronjob `cron_process_mail_queue.php` versendet sie asynchron
+2. Der Cronjob `process_mail_queue.php` versendet sie asynchron
 3. Konfigurieren Sie den Cronjob (siehe oben)
 
 ## Sicherheit
@@ -285,10 +292,10 @@ Für größere Installationen empfohlen:
 
 4. **init-db.php und Demo-Tools löschen oder schützen:**
    ```bash
-   rm init-db.php
+   rm tools/init-db.php
    rm tools/demo_export.php tools/demo_import.php
    # Oder:
-   chmod 000 init-db.php
+   chmod 000 tools/init-db.php
    chmod 000 tools/demo_export.php tools/demo_import.php
    ```
 

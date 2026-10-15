@@ -147,6 +147,10 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
   - Status: ANGENOMMEN/ABGELEHNT/VERTAGT
   - Integration mit beschluesse-Tabelle
   - Automatische Protokollierung
+  - **Abstimmungsdauer** (Admin-Einstellung `bart_B_abstimmung_tage`, Standard 7 Tage): Der Antrag steht ab Einstellung (B-Nummer, "In Abstimmung seit") die vollen N Tage zur Abstimmung; letzter Abstimmungstag ist bis 24:00 Uhr, die automatische Auswertung erfolgt am Tag danach
+  - **Erinnerung:** Ca. 24 Stunden vor Fristende erhalten alle Abstimmberechtigten, die noch nicht abgestimmt haben, automatisch eine E-Mail (nicht abschaltbar, einmal pro Antrag und Mitglied)
+  - Abstimmberechtigte sehen in der Antragsliste den Button "Ansehen und Abstimmen"; abgegebene Voten können nicht mehr geändert werden
+  - E-Mail "Neuer Antrag" wird beim ersten Speichern mit Titel verschickt, danach "Antrag geändert"
   
 - **Beschlussbuch:**
   - Alle angenommenen Beschlüsse (VS-Präfix)
@@ -166,6 +170,15 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
   - Versionshistorie
 
 **Ideal für:** Vorstandsbeschlüsse, Ressortan­träge, Finanzfreigaben, Vereinsbeschlüsse
+
+### 📅 Kalender
+
+- **Terminübersicht:** Nächste 90 Tage, gruppiert nach Monat; Sitzungen werden automatisch übernommen
+- **Eigene Termine:** Typen Sitzung, Treffen, Abwesenheit, Frist, Sonstiges; wiederkehrend (wöchentlich, 14-tägig, monatlich, jährlich)
+- **Sichtbarkeit:** Alle, bestimmte Rollen (nur Admins) oder ausgewählte Teilnehmer
+- **Abstimmungsfristen:** Offene Abstimmungen, bei denen die eigene Stimme noch fehlt, erscheinen automatisch als "Frist"
+- **Rechte:** Mitglieder (Rolle `mitglied`) lesen nur; alle anderen Rollen legen Termine an, bearbeiten/löschen darf der Ersteller oder ein Admin
+- Details: [docs/KALENDER.md](docs/KALENDER.md)
 
 ### ✅ Aufgaben-Management (TODOs)
 
@@ -361,7 +374,7 @@ Die Sitzungsverwaltung unterstützt den gesamten Lebenszyklus von Meetings – v
 
 - **Zugriffskontrolle:** Rollenbasierte Berechtigungen
 - **Vertraulichkeit:** Separate Speicherung sensibler Daten
-- **Audit-Log:** Vollständige Protokollierung aller user-verursachten Datenbankänderungen (siehe `docs/audit-logging.md`)
+- **Audit-Log:** Alle schreibenden Datenbankzugriffe (INSERT/UPDATE/DELETE/REPLACE) werden automatisch samt SQL und Parameterwerten in `svaudit_log` protokolliert; Einsicht für Admins im Admin-Tab "Datenbank-Protokoll (Audit-Log)" (siehe `docs/audit-logging.md`)
 - **Anonymität:** Optionen für anonyme Teilnahme bei Umfragen
 - **Session-Management:** Automatischer Logout bei Inaktivität
 
@@ -373,7 +386,7 @@ Nach dem Login sehen Sie:
 
 - **Aktuelle Meetings:** Anstehende und laufende Sitzungen
 - **Meine TODOs:** Übersicht zugewiesener Aufgaben
-- **Benachrichtigungen:** Einladungen, Änderungen, Erinnerungen
+- **Benachrichtigungen:** Kachel mit persönlicher Begrüßung ("Hallo <Vorname>!") und offenen Hinweisen (u.a. Einladungen, Abstimmungen, Finanzfreigaben); offene VTool-Zahlungsfreigaben werden mit Link ins VTool angezeigt, sofern die VTool-Tabelle `freigabe` vorhanden ist
 
 ### Haupt-Tabs
 
@@ -385,10 +398,11 @@ Nach dem Login sehen Sie:
 6. **✅ Meine TODOs:** Aufgaben-Übersicht
 7. **🏖️ Vertretungen:** Abwesenheits- und Vertretungsverwaltung
 8. **🗳️ Meinungsbild:** Umfragen und Abstimmungen
-9. **📁 Dokumente:** Zentrale Dokumentenverwaltung
-10. **📋 Anträge:** Antrags- und Beschlussverwaltung (🆕 Vollständiges Workflow-System)
-11. **📖 Beschlussbuch:** Alle beschlossenen Anträge (VS-Nummer)
-12. **⚙️ Admin:** Verwaltung und Systemeinstellungen (nur für Admins)
+9. **📅 Kalender:** Terminübersicht der nächsten 90 Tage (Sitzungen, eigene Termine, Abstimmungsfristen)
+10. **📁 Dokumente:** Zentrale Dokumentenverwaltung
+11. **📋 Anträge:** Antrags- und Beschlussverwaltung (🆕 Vollständiges Workflow-System)
+12. **📖 Beschlussbuch:** Alle beschlossenen Anträge (VS-Nummer)
+13. **⚙️ Admin:** Verwaltung und Systemeinstellungen (nur für Admins)
 
 ## Typische Anwendungsszenarien
 
@@ -485,14 +499,15 @@ Nach dem Login sehen Sie:
 
 ## Installation
 
-Siehe [INSTALL.md](INSTALL.md) für detaillierte Installationsanweisungen.
+Siehe [docs/INSTALL.md](docs/INSTALL.md) für detaillierte Installationsanweisungen.
 
 ## Support und Dokumentation
 
-- **Installationsanleitung:** [INSTALL.md](INSTALL.md)
+- **Installationsanleitung:** [docs/INSTALL.md](docs/INSTALL.md)
 - **Entwickler-Dokumentation:** [DEVELOPER.md](DEVELOPER.md)
-- **Meinungsbild-Tool (Details):** [OPINION_TOOL_README.md](OPINION_TOOL_README.md)
-- **Dokumentenverwaltung (Details):** [DOCUMENTS_README.md](DOCUMENTS_README.md)
+- **Meinungsbild-Tool (Details):** [docs/OPINION_TOOL_README.md](docs/OPINION_TOOL_README.md)
+- **Dokumentenverwaltung (Details):** [docs/DOCUMENTS_README.md](docs/DOCUMENTS_README.md)
+- **Kalender:** [docs/KALENDER.md](docs/KALENDER.md)
 - **Audit-Log / Protokollierung:** [docs/audit-logging.md](docs/audit-logging.md)
 
 ## Lizenz

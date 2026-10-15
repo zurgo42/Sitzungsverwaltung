@@ -1,5 +1,59 @@
 # Aktions-Protokollierung (Audit-Log)
 
+Es gibt zwei voneinander unabhängige Protokolle:
+
+| Protokoll | Tabelle | Zweck | Gefüllt durch |
+|---|---|---|---|
+| **Datenbank-Protokoll (Audit-Log)** | `svaudit_log` | Technisches Log aller schreibenden SQL-Abfragen | automatisch (`audit_pdo.php`) |
+| **Aktions-Protokoll** | `protokoll` | Fachliche Aktionen mit Label (VTool-kompatibel) | explizit per `protokoll()` |
+
+## Datenbank-Protokoll (`svaudit_log`)
+
+`audit_pdo.php` stellt die Klassen `AuditPDO` (erweitert `PDO`) und `AuditStatement` bereit. `AuditPDO` registriert `AuditStatement` über `PDO::ATTR_STATEMENT_CLASS`; dadurch wird jedes `INSERT`, `UPDATE`, `DELETE` und `REPLACE` nach erfolgreicher Ausführung protokolliert – ohne Änderung am Anwendungscode. Auch direkte `exec()`-Aufrufe werden erfasst. `SELECT`-Abfragen und Schreibzugriffe auf `svaudit_log` selbst werden nicht protokolliert.
+
+### Einbindung
+
+Die zentrale Verbindung wird in `config.php` (Vorlage: `config.example.php`) aufgebaut:
+
+```php
+if (file_exists(__DIR__ . '/audit_pdo.php')) {
+    require_once __DIR__ . '/audit_pdo.php';
+}
+$pdo = class_exists('AuditPDO')
+    ? new AuditPDO($dsn, DB_USER, DB_PASS, $options)
+    : new PDO($dsn, DB_USER, DB_PASS, $options);
+```
+
+Ohne `audit_pdo.php` läuft die Anwendung unverändert mit normalem `PDO` (ohne Protokollierung). Bestehende `config.php`-Dateien müssen entsprechend angepasst werden.
+
+### Tabelle `svaudit_log`
+
+Die Tabelle wird von `tools/init-db.php` angelegt (nach einem Update `tools/init-db.php` erneut aufrufen).
+
+| Spalte | Beschreibung |
+|---|---|
+| `log_id` | Laufende Nummer |
+| `logged_at` | Zeitpunkt (DATETIME(3)) |
+| `member_id` | Eingeloggtes Mitglied (`$_SESSION['member_id']`), `NULL` bei Cron/extern |
+| `ip_address` | IP-Adresse (`cli` bei Kommandozeile) |
+| `script` | Aufrufendes Skript (`SCRIPT_NAME`) |
+| `action` | `INSERT`, `UPDATE`, `DELETE` oder `REPLACE` |
+| `table_name` | Betroffene Tabelle |
+| `affected_rows` | Anzahl betroffener Zeilen |
+| `query` | SQL-Abfrage **mit eingesetzten Parameterwerten** (max. 2000 Zeichen; Werte über 300 Zeichen werden gekürzt) |
+
+Die Parameterwerte werden nur für die Anzeige eingesetzt (`?` und benannte Parameter); ausgeführt wird weiterhin die parametrisierte Abfrage. Ein Fehler beim Schreiben des Logs wird nur per `error_log()` gemeldet und bricht die eigentliche Aktion nie ab.
+
+**Datenschutz:** Die gespeicherten Abfragen können personenbezogene Daten enthalten (z.B. Mitgliedsdaten, Kommentartexte). Zugriff nur für Admins. Die Tabelle wird nicht automatisch bereinigt oder archiviert.
+
+### Anzeige im Admin-Bereich
+
+Admin-Tab, Abschnitt **"Datenbank-Protokoll (Audit-Log)"** (`tab_admin.php`): Liste der neuesten Einträge mit Filtern (Mitglied bzw. "Cron / extern", Tabelle, Aktion, Datum von/bis, Anzahl 50-500) und Button zur Anzeige der vollständigen SQL-Abfrage in einem Modal-Dialog. Fehlt die Tabelle, erscheint ein Hinweis.
+
+---
+
+## Aktions-Protokoll (`protokoll`)
+
 Alle durch Benutzer verursachten Datenbankänderungen werden in der Tabelle `protokoll` festgehalten. Das System ist kompatibel mit dem Altformat des VTool-Protokolls.
 
 ## Zweck

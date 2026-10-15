@@ -144,12 +144,26 @@ add_external_access_log_table.sql
 
 ---
 
+## Neue Tabellen ohne SQL-Migrationsdatei (Stand 2026-10-15)
+
+Diese Tabellen/Spalten werden ausschließlich von `tools/init-db.php` angelegt (idempotent, bei Updates einfach erneut aufrufen):
+
+| Objekt | Zweck |
+|---|---|
+| `svaudit_log` | Audit-Log aller DB-Schreibzugriffe (siehe `docs/audit-logging.md`) |
+| `svevents`, `svevents_participants` | Kalender-Modul (siehe `docs/KALENDER.md`) |
+| `antraege.b_date` | Beginn der Abstimmung (A→B) |
+
+`svvote_reminders` (Abstimmungs-Erinnerungen) wird zur Laufzeit von `voting_reminder.php` automatisch angelegt.
+
+---
+
 ## Ablauf für Server-Updates
 
 ### Neue Installation:
 ```bash
 # 1. init-db.php ausführen
-php init-db.php
+php tools/init-db.php
 
 # 2. Fertig! (Alle Tabellen sind bereits vorhanden)
 ```

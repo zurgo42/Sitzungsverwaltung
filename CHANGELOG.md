@@ -6,6 +6,68 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ## [Unreleased]
 
+### Added (Neu)
+
+#### Generelles Audit-Log aller DB-Schreibzugriffe (2026-10-15)
+
+- `audit_pdo.php`: `AuditPDO` (erweitert `PDO`) und `AuditStatement` (über `PDO::ATTR_STATEMENT_CLASS`) protokollieren transparent jedes `INSERT`, `UPDATE`, `DELETE` und `REPLACE` (auch direkte `exec()`-Aufrufe) in der Tabelle `svaudit_log`
+  - Gespeichert werden Zeitpunkt, Mitglied (`$_SESSION['member_id']`, `NULL` bei Cron/extern), IP, aufrufendes Skript, Aktion, Tabelle, betroffene Zeilen und die SQL-Abfrage mit eingesetzten Parameterwerten (max. 2000 Zeichen, lange Werte werden auf 300 Zeichen gekürzt)
+  - Fehler beim Schreiben des Audit-Logs unterbrechen nie die eigentliche Aktion
+- `config.example.php`: Lädt `audit_pdo.php` (falls vorhanden) und erzeugt `$pdo` als `AuditPDO`, sonst als normales `PDO`
+- `tools/init-db.php`: Legt die Tabelle `svaudit_log` an
+- `tab_admin.php`: Neuer Abschnitt "Datenbank-Protokoll (Audit-Log)" im Admin-Tab mit Filtern und SQL-Anzeige per Modal-Dialog; Hinweis, falls die Tabelle noch fehlt
+- `docs/audit-logging.md`: Neuer Abschnitt zum Datenbank-Audit-Log (`svaudit_log`), klare Abgrenzung zum Aktions-Protokoll (`protokoll`)
+
+#### Kalender-Modul (2026-10-15)
+
+- Neuer Tab "Kalender" (`tab_kalender.php`, `process_kalender.php`), für alle eingeloggten Mitglieder sichtbar
+- Terminliste für die nächsten 90 Tage, gruppiert nach Monat; Sitzungen aus `svmeetings` erscheinen automatisch
+- Wiederkehrende Termine (wöchentlich, 14-tägig, monatlich, jährlich) werden dynamisch expandiert
+- Ereignistypen: Sitzung, Treffen, Abwesenheit, Frist, Sonstiges
+- Sichtbarkeit (`target_type`): alle, Rollen (nur Admins; vorstand/gf/assistenz) oder Auswahlliste (Häkchen, Teilnehmer nachträglich änderbar). Der Ersteller ist nicht automatisch Teilnehmer, sieht seine eigenen Termine aber immer
+- Rolle `mitglied` darf nur lesen; alle anderen Rollen dürfen Termine anlegen. Bearbeiten/Löschen nur Ersteller oder Admin (Soft-Delete: `status = 'deleted'`)
+- Offene Abstimmungen erscheinen für jedes Mitglied, das noch nicht abgestimmt hat, dynamisch als "Frist" (Link zu `abstimmungen.php`); diese Einträge werden nicht gespeichert
+- Neue Tabellen `svevents` und `svevents_participants` in `tools/init-db.php`; fehlen sie, zeigt der Tab einen Hinweis auf `tools/init-db.php`
+- Siehe `docs/KALENDER.md`
+
+#### Abstimmungs-Erinnerung (2026-10-15)
+
+- `voting_reminder.php`: `send_voting_deadline_reminders()` verschickt ca. 24 Stunden vor Ende der Abstimmung eine Erinnerungs-E-Mail an alle Abstimmberechtigten, die noch nicht abgestimmt haben (Antrag, Link zu `abstimmungen.php`, Hinweis auf "kein Votum" im Beschlussbuch)
+  - Nicht abschaltbar; je Antrag und Mitglied nur einmal (Tabelle `svvote_reminders`, wird automatisch angelegt)
+  - Aufruf aus `pseudo_cron.php` und `cron_notifications.php`
+- `get_open_votings()` liefert offene Abstimmungen mit Frist und fehlenden Stimmen (auch für die Kalender-Fristen)
+
+#### Benachrichtigungskachel: Begrüßung und VTool-Freigaben (2026-10-15)
+
+- `module_notifications.php`: Kachel (sobald Meldungen vorliegen) beginnt mit "Hallo <Vorname>!"
+- Abschnitt "offene Zahlungsfreigaben im VTool" (Anzahl der Datensätze, in denen das Mitglied in f1-f6 steht und das zugehörige vf1-vf6 noch nicht F/X/N ist) mit Link zu `https://aktive.mensa.de/vorstand/vtool.php?steuer=9`; wird nur angezeigt, wenn die Tabelle `freigabe` existiert
+
+### Changed (Geändert)
+
+#### Abstimmungsdauer und Auswertung (2026-10-15)
+
+- Die Abstimmung läuft die vollen N Tage (`svconfig`-Schlüssel `bart_B_abstimmung_tage`, Standard 7): Letzter Abstimmungstag ist `b_date` + N Tage (bis 24:00 Uhr). Die automatische Auswertung (`auswerten_abstimmung()` mit `force`) erfolgt erst am Tag danach (Bedingung `b_date < heute - N`) in `pseudo_cron.php` bzw. `cron_notifications.php`
+- Berichtigung zum Eintrag vom 2026-09-16: Anträge ohne `b_date` werden nicht mehr anhand des Datums in `antrnr` ausgewertet, sondern von der automatischen Auswertung übersprungen
+- Abstimmungs-Mail (`nm_event_antrag_abstimmung`) nennt jetzt den letzten Abstimmungstag
+
+#### Mail "Neuer Antrag" und "Antrag geändert" (2026-10-15)
+
+- "Neuer Antrag" wird nicht mehr beim Anlegen (`antrag_neu.php`) verschickt, sondern beim ersten Speichern mit Titel in `antrag_bearbeiten.php`; jedes weitere Speichern löst "Antrag geändert" aus
+- "Antrag geändert"-Mail führt Abstimmberechtigte eines B-Antrags direkt zu `abstimmungen.php`
+
+#### Antragsverwaltung (2026-10-15)
+
+- `tab_proposals.php`: "In Abstimmung seit" zeigt `b_date` (nicht mehr das Datum der Antragstellung)
+- Abstimmberechtigte (VName1-6) sehen bei B-Anträgen den Button "Ansehen und Abstimmen" mit Link zu `abstimmungen.php`; abgegebene Voten können angesehen, aber nicht mehr geändert werden
+
+### Fixed (Behoben)
+
+#### Diverse Korrekturen (2026-10-15)
+
+- MTool-Modus: `process_opinion.php` verwendet das per `mtool_mnr` übergebene Mitglied als Ersteller des Meinungsbilds statt des angemeldeten Admins
+- `berechtigte_editor.php`: Listenansicht hat einen Zurück-Link zu `index.php?tab=admin`
+- Session-Handling in eigenständigen Prozessoren (z.B. `process_kalender.php`): `session_config.php` muss vor `session_start()` geladen werden
+
 ### Fixed (Behoben)
 
 #### Antrag-Finalisierung erzeugte X- statt B-Präfix (2026-09-16)

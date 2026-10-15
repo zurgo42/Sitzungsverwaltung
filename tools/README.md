@@ -2,6 +2,8 @@
 
 Dieses Verzeichnis enthält alle Datenbank-Migrationen für die Sitzungsverwaltung.
 
+**Hinweis:** `init-db.php` legt alle aktuellen Tabellen idempotent an (u.a. `svaudit_log`, `svevents`, `svevents_participants`) und ergänzt fehlende Spalten. Nach jedem Update erneut aufrufen; für neuere Funktionen sind keine separaten SQL-Dateien nötig.
+
 ## Aktuelle Migrationen (Session: 2025-12-23)
 
 ### 1. Externe Teilnehmer für Meinungsbilder
