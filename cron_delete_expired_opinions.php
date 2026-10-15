@@ -18,6 +18,7 @@ if (php_sapi_name() !== 'cli') {
 
 // Autoload und Config laden
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/functions.php';   // stellt $pdo bereit (inkl. Audit-Log)
 
 // Logging-Funktion
 function log_message($message) {
