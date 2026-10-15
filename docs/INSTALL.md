@@ -10,6 +10,8 @@ Diese Anleitung beschreibt die Einrichtung der Sitzungsverwaltung auf einem Webs
 4. Dateien deployen. Der `AuditPDO`-Block in `config.php` ist optional (siehe `docs/audit-logging.md`).
 5. Smoke-Test: Tabs, Kalender, eine Abstimmung, Admin-Tab (Audit-Log), PHP-`error_log`.
 
+6. Optional (Feature „automatisch zur Abstimmung stellen"): `tools/migrate_auto_abstimmung.php?dry=1`, dann ohne `dry`. Das Skript fügt der Anträge-Tabelle genau eine Spalte `auto_abstimmung` hinzu (Standardwert 0, bestehende Programme sind nicht betroffen). Ohne diesen Schritt bleibt das Feature unsichtbar und inaktiv.
+
 Hinweis: Die automatische Auswertung von Abstimmungen erfolgt jetzt erst am Tag nach dem letzten Abstimmungstag (volle Abstimmungsdauer); laufende Abstimmungen verlängern sich dadurch um einen Tag. Beim ersten Cron-Lauf gehen Erinnerungsmails für Anträge raus, deren letzter Abstimmungstag heute ist.
 
 ## Voraussetzungen

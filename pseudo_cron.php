@@ -166,6 +166,15 @@ if ($should_run) {
             }
         }
 
+        // ---- Automatische Einstellung zur Abstimmung (Option am Antrag, nach Ablauf der Wartezeit) ----
+        if (file_exists(__DIR__ . '/antrag_auto_abstimmung.php')) {
+            require_once __DIR__ . '/antrag_auto_abstimmung.php';
+            $auto_n = auto_abstimmung_pruefen($pdo);
+            if ($auto_n > 0) {
+                @file_put_contents(__DIR__ . '/pseudo_cron.log', "[" . date('Y-m-d H:i:s') . "] Pseudo-Cron: {$auto_n} Antrag/Anträge automatisch zur Abstimmung gestellt\n", FILE_APPEND);
+            }
+        }
+
         // ---- Abstimmungs-Erinnerung (ca. 24 h vor Fristablauf, nicht abschaltbar) ----
         if (file_exists(__DIR__ . '/voting_reminder.php')) {
             require_once __DIR__ . '/voting_reminder.php';

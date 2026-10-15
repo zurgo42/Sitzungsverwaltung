@@ -119,6 +119,15 @@ if (defined('TABLE_ANTRAEGE') && function_exists('auswerten_abstimmung')) {
     }
 }
 
+// --- 2a. Automatische Einstellung zur Abstimmung (Option am Antrag, nach Ablauf der Wartezeit) ---
+if (file_exists(__DIR__ . '/antrag_auto_abstimmung.php')) {
+    require_once __DIR__ . '/antrag_auto_abstimmung.php';
+    $auto_n = auto_abstimmung_pruefen($pdo);
+    if ($auto_n > 0) {
+        $log("{$auto_n} Antrag/Anträge automatisch zur Abstimmung gestellt");
+    }
+}
+
 // --- 2b. Abstimmungs-Erinnerung (ca. 24 h vor Fristablauf, nicht abschaltbar) ---
 if (file_exists(__DIR__ . '/voting_reminder.php')) {
     require_once __DIR__ . '/voting_reminder.php';

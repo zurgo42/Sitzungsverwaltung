@@ -10,6 +10,7 @@ require_once 'config.php';
 require_once 'config_adapter.php';
 require_once 'member_functions.php';
 require_once __DIR__ . '/audit_loader.php';
+require_once __DIR__ . '/antrag_auto_abstimmung.php';
 require_once 'antragstypen_helper.php';
 require_once 'voting_helper.php';
 require_once 'protokoll_helper.php';
@@ -519,6 +520,13 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         $diff_felder['abstimmregel'] = [(string)($antrag['abstimmregel'] ?? 'einfach'), (string)$abstimmregel];
     }
 
+    // Option "automatisch zur Abstimmung stellen" (nur wenn Spalte vorhanden und Formularfeld gesendet)
+    $auto_neu = null;
+    if (antrag_auto_column_exists($pdo) && isset($post['auto_abstimmung_vorhanden'])) {
+        $auto_neu = isset($post['auto_abstimmung']) ? 1 : 0;
+        $diff_felder['auto_abstimmung'] = [(string)($antrag['auto_abstimmung'] ?? 0), (string)$auto_neu];
+    }
+
     $diff_parts = [];
     foreach ($diff_felder as $feld => [$alt_val, $neu_val]) {
         $part = protokoll_feld_diff($feld, $alt_val, $neu_val);
@@ -543,6 +551,10 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
 
     $update->execute($params);
 
+    if ($auto_neu !== null) {
+        $pdo->prepare("UPDATE " . TABLE_ANTRAEGE . " SET auto_abstimmung = ? WHERE antrnr = ?")->execute([$auto_neu, $antrnr]);
+    }
+
     return $prot_str;
 }
 
@@ -553,129 +565,8 @@ function finalisiereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     $post_save['action'] = 'save';
     speichereAntrag($pdo, $antrnr, $post_save, $antrag, $user);
 
-    // Antrag neu laden
-    $stmt = $pdo->prepare("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");
-    $stmt->execute([$antrnr]);
-    $antrag = $stmt->fetch();
-
-    if (empty($antrag['ressort1'])) throw new Exception("Ressort muss angegeben werden.");
-    if (empty($antrag['verant']) || strlen($antrag['verant']) < 3) throw new Exception("Verantwortlicher muss angegeben werden.");
-
-    $prefix = substr($antrnr, 0, 1);
-    if ($prefix !== 'A') throw new Exception("Nur Anträge im Editiermodus können finalisiert werden.");
-
-    // DEBUG: Ausgabe von bart
-    error_log("DEBUG finalisiereAntrag: bart=" . $antrag['bart'] . ", wichtig=" . ($antrag['wichtig'] ?? '0') . ", fin=" . ($antrag['fin'] ?? '0') . ", verf1=" . ($antrag['verf1'] ?? 'leer') . ", verf2=" . ($antrag['verf2'] ?? 'leer'));
-
-    // Abstimmende setzen je nach Beschlussart
-    $vname_fields = [];
-
-    if ($antrag['bart'] === 'V') {
-        // Verfügung: Alle mit Verfügungsberechtigung (aktiv >= 14) über Adapter
-        $all_members = get_all_members($pdo);
-        $verfuegungsber_members = array_filter($all_members, function($m) {
-            return isset($m['aktiv']) && $m['aktiv'] >= 14;
-        });
-        usort($verfuegungsber_members, function($a, $b) {
-            $diff = ($b['aktiv'] ?? 0) - ($a['aktiv'] ?? 0);
-            return $diff != 0 ? $diff : strcmp($a['first_name'] ?? '', $b['first_name'] ?? '');
-        });
-        $verfuegungsber = array_slice(array_column($verfuegungsber_members, 'member_id'), 0, 6);
-
-        if (empty($verfuegungsber)) {
-            throw new Exception("Keine Verfügungsberechtigten gefunden.");
-        }
-
-        for ($i = 0; $i < count($verfuegungsber); $i++) {
-            $vname_fields['VName' . ($i + 1)] = $verfuegungsber[$i];
-        }
-
-    } elseif ($antrag['bart'] === 'R') {
-        // Ressortbeschluss: Antragsteller + FVo (oder FVv wenn FVo = Antragsteller)
-        $vname_fields['VName1'] = $antrag['antrst'];
-
-        // FVo holen über Adapter
-        $all_members = get_all_members($pdo);
-        $fvo_member = null;
-        foreach ($all_members as $m) {
-            if (($m['funktion'] ?? '') === 'FVo' && ($m['aktiv'] ?? 0) >= 18) {
-                $fvo_member = $m;
-                break;
-            }
-        }
-        $fvo = $fvo_member ? $fvo_member['member_id'] : null;
-
-        if ($fvo && $fvo != $antrag['antrst']) {
-            // FVo ist nicht der Antragsteller -> FVo als VName2
-            $vname_fields['VName2'] = $fvo;
-        } else {
-            // FVo ist Antragsteller oder nicht vorhanden -> FVv als VName2
-            $fvv_member = null;
-            foreach ($all_members as $m) {
-                if (($m['funktion'] ?? '') === 'FVv' && ($m['aktiv'] ?? 0) >= 18) {
-                    $fvv_member = $m;
-                    break;
-                }
-            }
-            $fvv = $fvv_member ? $fvv_member['member_id'] : null;
-            if ($fvv) {
-                $vname_fields['VName2'] = $fvv;
-            } else {
-                throw new Exception("Kein Finanzvorstand (FVo/FVv) für Zweitstimme gefunden.");
-            }
-        }
-
-    } elseif ($antrag['bart'] === 'B') {
-        // Vorstandsbeschluss: Nur Vorstände (aktiv = 19) über Adapter
-        $all_members = get_all_members($pdo);
-        $vorstand_members = array_filter($all_members, function($m) {
-            return isset($m['aktiv']) && (int)$m['aktiv'] === 19;
-        });
-        usort($vorstand_members, function($a, $b) {
-            $diff = ($b['aktiv'] ?? 0) - ($a['aktiv'] ?? 0);
-            return $diff != 0 ? $diff : strcmp($a['first_name'] ?? '', $b['first_name'] ?? '');
-        });
-        $vorstand = array_slice(array_column($vorstand_members, 'member_id'), 0, 6);
-
-        if (empty($vorstand)) {
-            throw new Exception("Keine Vorstandsmitglieder gefunden.");
-        }
-
-        for ($i = 0; $i < count($vorstand); $i++) {
-            $vname_fields['VName' . ($i + 1)] = $vorstand[$i];
-        }
-    }
-
-    // Neue Nummer generieren: A → B (zur Abstimmung)
-    $neue_nr = 'B' . substr($antrnr, 1);
-
-    // VName-Felder in UPDATE-Statement aufbauen
-    $update_parts = ['antrnr = ?', 'b_date = CURDATE()'];
-    $update_values = [$neue_nr];
-
-    foreach ($vname_fields as $field => $value) {
-        $update_parts[] = "$field = ?";
-        $update_values[] = $value;
-    }
-
-    $update_values[] = $antrnr; // WHERE-Bedingung
-
-    $sql = "UPDATE " . TABLE_ANTRAEGE . " SET " . implode(', ', $update_parts) . " WHERE antrnr = ?";
-    $update = $pdo->prepare($sql);
-    $update->execute($update_values);
-
-    $_POST['neue_antrnr'] = $neue_nr;
-
-    // E-Mail-Benachrichtigung: Antrag zur Abstimmung eingestellt
-    if (!function_exists('nm_event_antrag_abstimmung') && file_exists(__DIR__ . '/notification_mailer.php')) {
-        require_once __DIR__ . '/notification_mailer.php';
-    }
-    if (function_exists('nm_event_antrag_abstimmung')) {
-        // Letzter Abstimmungstag = heute (b_date) + Abstimmungsdauer (Auswertung um 0 Uhr danach)
-        require_once __DIR__ . '/voting_reminder.php';
-        $letzter_tag = date('Y-m-d', strtotime('+' . voting_duration_days($pdo) . ' days'));
-        nm_event_antrag_abstimmung($pdo, $antrnr, $neue_nr, $antrag['titel'] ?? '', $letzter_tag, ($antrag['int_ext'] ?? 'e') === 'i');
-    }
+    $neue_nr = antrag_zur_abstimmung_stellen($pdo, $antrnr);
+    $_POST['neue_antrnr'] = $neue_nr ?: ('B' . substr($antrnr, 1));
 }
 
 // Löschen-Funktion
@@ -1411,6 +1302,23 @@ if ($user['aktiv'] >= 19) {
                         <?php if (($antrag['verf1'] ?? '') == $antrag['antrst']): ?>
                             <span style="color: var(--warning); font-weight: 600;">⚠️ Bitte nicht vergessen, dort dann abzustimmen!</span>
                         <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (substr($antrnr, 0, 1) === 'A' && antrag_auto_column_exists($pdo)): ?>
+                    <div style="background: #f1f8e9; padding: 10px; margin-bottom: 12px; border-radius: 4px; border-left: 3px solid #8bc34a;">
+                        <input type="hidden" name="auto_abstimmung_vorhanden" value="1">
+                        <div class="checkbox-inline">
+                            <input type="checkbox" id="auto_abstimmung" name="auto_abstimmung" value="1" <?= !empty($antrag['auto_abstimmung']) ? 'checked' : '' ?>>
+                            <label for="auto_abstimmung" style="margin: 0; font-size: 12px; font-weight: 600;">Nach Ablauf der Wartezeit automatisch zur Abstimmung stellen</label>
+                        </div>
+                        <div style="font-size: 11px; color: #555; margin-top: 4px;">
+                            Der Antrag wird dann ohne weiteres Zutun verbindlich eingestellt, sobald die Wartezeit abgelaufen ist.
+                            Voraussetzung: Ressort und Verantwortliche/r sind angegeben<?= in_array($antrag['bart'], ['V', 'R'], true) ? ' (bei Verfügung/Ressortbeschluss auch die Verfügungsberechtigten)' : '' ?>. Danach ist der Antrag nicht mehr änderbar.
+                            <?php if (!empty($antrag['auto_abstimmung']) && $blockiert): ?>
+                                <br><span style="color: #c0392b;">⚠️ Derzeit nicht möglich: <?= htmlspecialchars(implode(', ', $blockierung_grund)) ?></span>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 <?php endif; ?>
 

@@ -1482,6 +1482,17 @@ try {
         echo ".";
     }
 
+    // Migration: auto_abstimmung-Spalte in antraege (Option: nach Ablauf der Wartezeit automatisch zur Abstimmung stellen)
+    $auto_col = $pdo->query("
+        SELECT COLUMN_NAME FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . TABLE_ANTRAEGE . "' AND COLUMN_NAME = 'auto_abstimmung'
+    ")->fetch();
+    if (!$auto_col) {
+        echo "<p>Füge auto_abstimmung-Spalte zu " . TABLE_ANTRAEGE . " hinzu...</p>";
+        $pdo->exec("ALTER TABLE " . TABLE_ANTRAEGE . " ADD COLUMN auto_abstimmung TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Nach Wartezeit automatisch zur Abstimmung stellen'");
+        echo ".";
+    }
+
     // Migration: Foreign Key auf svmembers aus feedback-Tabelle entfernen
     // (Im Adapter-Modus kommen IDs aus berechtigte, nicht aus svmembers)
     $fk_check = $pdo->query("

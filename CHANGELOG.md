@@ -8,6 +8,12 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### Automatisch zur Abstimmung stellen nach Ablauf der Wartezeit (2026-10-18)
+
+- **Option am Antrag:** In „Antrag bearbeiten" (Abschnitt „Nächste Schritte") gibt es für Anträge im Editiermodus (A) den Haken „Nach Ablauf der Wartezeit automatisch zur Abstimmung stellen". Die Wartezeit ist die je Antragstyp konfigurierte (Admin: `bart_*_wartezeit_tage`); eine Wartezeitverkürzung (zwei Zustimmungen) zählt ebenfalls.
+- **Cron:** `auto_abstimmung_pruefen()` (neu: `antrag_auto_abstimmung.php`, aufgerufen im Pseudo-Cron und in `cron_notifications.php`) stellt solche Anträge ein, sobald Wartezeit und Pflichtangaben (Ressort, Verantwortliche/r, bei V/R die Verfügungsberechtigten) vorliegen; sonst bleibt der Antrag unverändert. Es gelten dieselben Regeln, Abstimmende und Mails wie bei „Verbindlich einstellen" (gemeinsame Funktion `antrag_zur_abstimmung_stellen()`); der Vorgang wird protokolliert (`Antrag-Auto-Finalisieren`). Schlägt eine Einstellung fehl, wird der Haken entfernt und der Fehler geloggt.
+- **Datenbank:** neue Spalte `auto_abstimmung TINYINT(1) NOT NULL DEFAULT 0` in der Anträge-Tabelle. Neuinstallation/`init-db.php` legt sie an; für laufende Installationen `tools/migrate_auto_abstimmung.php` (`?dry=1` = Trockenlauf). Ohne die Spalte ist das Feature inaktiv (kein Haken sichtbar, Cron ohne Wirkung).
+
 #### Sicherheit für laufende Installationen (2026-10-17)
 
 - **Fix `audit_pdo.php`:** `lastInsertId()` lieferte nach jedem Schreibzugriff die ID des Audit-Eintrags statt des eigentlichen Datensatzes; die ID wird jetzt vor dem Log-Eintrag gesichert.
