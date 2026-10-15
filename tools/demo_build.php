@@ -557,12 +557,13 @@ class DemoBuilder
         $row = [
             'meeting_id' => $mid, 'top_number' => $num, 'title' => $title, 'description' => $desc, 'category' => $cat,
             'proposal_text' => $o['proposal'] ?? null, 'antrnr' => $o['antrnr'] ?? null,
-            'priority' => '5.00', 'estimated_duration' => $o['dur'] ?? 15, 'protocol_notes' => $o['notes'] ?? null,
+            'priority' => $o['prio'] ?? '5.00', 'estimated_duration' => $o['dur'] ?? 15, 'protocol_notes' => $o['notes'] ?? null,
             'is_confidential' => $num >= 100 ? 1 : 0, 'is_active' => $o['active'] ?? 0,
             'created_by_member_id' => $by,
             'created_at' => date('Y-m-d H:i:s', strtotime($meeting['created_at'] . ' +1 day')),
         ];
         foreach (['vote_yes', 'vote_no', 'vote_abstain', 'vote_result'] as $k) if (isset($o[$k])) $row[$k] = $o[$k];
+        if (isset($o['updated'])) $row['updated_at'] = $o['updated'];
         if (isset($o['referent'])) $row['referent_member_id'] = $o['referent'];   // optionale Spalte (nicht in init-db)
         $row = $this->add('svagenda_items', $row, 'item_id');
         return $row['item_id'];
@@ -595,6 +596,111 @@ class DemoBuilder
         unset($it);
     }
 
+    /**
+     * TOP 0 (Wahl Sitzungsleitung/Protokollführung, Prio 9,9), TOP 99 (Verschiedenes, Prio 0,1) und - ab Sitzungsstart -
+     * TOP 999 (Sitzungsende, updated_at = Endzeitpunkt) für ALLE Sitzungen, wie process_meetings.php/process_agenda.php sie anlegen.
+     */
+    private function defaultTops()
+    {
+        foreach ($this->tables['svmeetings'] as $m) {
+            $mid = $m['meeting_id'];
+            $started = in_array($m['status'], ['active', 'ended', 'protocol_ready', 'archived'], true);
+            $notes0 = null;
+            if ($started) {
+                $notes0 = "Sitzungsleitung: " . $m['chairman_name'] . "\nProtokollführung: " . $m['secretary_name'] . "\nGäste: keine";
+            }
+            $t0 = $this->item($mid, 0, 'Wahl der Sitzungsleitung und Protokollführung', 'Formale Wahl, Organisatorisches', 'wahl',
+                $m['invited_by_member_id'], ['dur' => 5, 'prio' => '9.90', 'notes' => $notes0]);
+            $this->comment($t0, $m['invited_by_member_id'],
+                "Vorschlag:\nSitzungsleitung: " . $m['chairman_name'] . "\nProtokollführer: " . $m['secretary_name'],
+                null, null, date('Y-m-d H:i:s', strtotime($m['created_at'] . ' +1 hour')));
+            $this->item($mid, 99, 'Verschiedenes', 'Informationen, Ankündigungen und Sonstige Themen (keine Beschlüsse)', 'sonstiges',
+                $m['invited_by_member_id'], ['dur' => 0, 'prio' => '0.10']);
+            if ($started) {
+                $end = in_array($m['status'], ['ended', 'protocol_ready', 'archived'], true) ? $m['ended_at'] : $m['meeting_date'];
+                $this->item($mid, 999, 'Sitzungsende', 'Automatisch erfasst', 'information', $m['invited_by_member_id'],
+                    ['dur' => 1, 'prio' => '1.00', 'updated' => $end]);
+            }
+        }
+    }
+
+    /** Kurzprotokoll im Format von module_protocol.php::generate_protocol() (HTML-kodiert); liefert [öffentlich, intern] */
+    private function renderProtocol($mid)
+    {
+        $meeting = null;
+        foreach ($this->tables['svmeetings'] as $m) { if ($m['meeting_id'] == $mid) $meeting = $m; }
+        $t = function ($x) { return htmlspecialchars((string)$x); };
+        $lt = '&lt;'; $gt = '&gt;'; $q = '&quot;';
+        $end = null;
+        $items = [];
+        foreach ($this->tables['svagenda_items'] as $it) {
+            if ($it['meeting_id'] != $mid) continue;
+            if ($it['top_number'] == 999) { $end = $it['updated_at'] ?? null; continue; }
+            $items[] = $it;
+        }
+        usort($items, function ($a, $b) { return $a['top_number'] <=> $b['top_number']; });
+
+        $present = [];
+        foreach ($this->tables['svmeeting_participants'] as $pp) {
+            if ($pp['meeting_id'] != $mid) continue;
+            if ($pp['attendance_status'] === 'present') $present[] = $this->mname($pp['member_id']);
+            elseif ($pp['attendance_status'] === 'partial') $present[] = $this->mname($pp['member_id']) . ' (zeitweise)';
+        }
+        $head = function ($title) use ($meeting, $end, $t, $lt, $gt, $q, $present) {
+            $h = $lt . 'tr class=' . $q . 'mitr' . $q . $gt . $lt . 'td class=' . $q . 'mitr' . $q . $gt . $lt . 'h3' . $gt . $title . ':' . $lt . 'br' . $gt;
+            $h .= $t($meeting['meeting_name']) . $lt . 'br' . $gt . 'am ' . date('d.m.Y H:i', strtotime($meeting['meeting_date'])) . ' Uhr';
+            if ($end) {
+                $h .= ' bis ';
+                if (date('d.m.Y', strtotime($meeting['meeting_date'])) != date('d.m.Y', strtotime($end))) $h .= date('d.m.Y', strtotime($end)) . ' ';
+                $h .= date('H:i', strtotime($end)) . ' Uhr ';
+            }
+            if (!strpos($meeting['location'], 'nline')) $h .= 'in ';
+            $h .= $t($meeting['location']);
+            $h .= $lt . '/h3' . $gt . $lt . 'strong' . $gt . 'Teilgenommen haben: ' . $lt . '/strong' . $gt . $t(implode(', ', $present));
+            $h .= $lt . 'br' . $gt . $lt . 'strong' . $gt . 'Sitzungsleitung: ' . $lt . '/strong' . $gt . $t($meeting['chairman_name']);
+            $h .= ', ' . $lt . 'strong' . $gt . 'Protokoll: ' . $lt . '/strong' . $gt . $t($meeting['secretary_name']);
+            return $h;
+        };
+        $pub = $head('Protokoll');
+        $int = '';
+        $intExists = false;
+        foreach ($items as $it) {
+            if ($it['top_number'] == 0) {
+                if (!empty($it['protocol_notes'])) {
+                    $pub .= $lt . 'br' . $gt . $lt . 'br' . $gt . $lt . 'strong' . $gt . 'Eröffnung:' . $lt . '/strong' . $gt . $lt . 'br' . $gt . nl2br($t($it['protocol_notes']));
+                }
+                continue;
+            }
+            $conf = !empty($it['is_confidential']);
+            $b = $lt . 'br' . $gt . $lt . 'br' . $gt . $lt . 'strong' . $gt . 'TOP ' . $it['top_number'] . ': ' . $t($it['title']) . $lt . '/strong' . $gt . $lt . 'br' . $gt;
+            if ($it['category'] === 'antrag_beschluss' && !empty($it['proposal_text'])) {
+                $b .= $lt . 'em' . $gt . 'Antragstext: ' . nl2br($t($it['proposal_text'])) . $lt . '/em' . $gt . $lt . 'br' . $gt;
+            }
+            $b .= !empty($it['protocol_notes']) ? nl2br($t($it['protocol_notes']))
+                : $lt . 'em style=' . $q . 'color: #999;' . $q . $gt . '(noch kein Protokoll)' . $lt . '/em' . $gt;
+            if (!empty($it['vote_result'])) {
+                $b .= $lt . 'br' . $gt . $lt . 'strong' . $gt . 'Abstimmungsergebnis: ' . $lt . '/strong' . $gt;
+                $b .= in_array($it['vote_result'], ['einvernehmlich', 'einstimmig'], true) ? ucfirst($it['vote_result'])
+                    : ($it['vote_yes'] ?? 0) . ' Ja, ' . ($it['vote_no'] ?? 0) . ' Nein, ' . ($it['vote_abstain'] ?? 0) . ' Enthaltung - ' . ucfirst($it['vote_result']);
+            }
+            if ($conf) {
+                if (!$intExists) { $int = $head('Internes Protokoll'); $intExists = true; }
+                $int .= $b;
+            } else {
+                $pub .= $b;
+            }
+        }
+        if ($end) {
+            $pub .= $lt . 'br' . $gt . $lt . 'strong' . $gt . 'Sitzungsende: ' . date('H:i', strtotime($end)) . ' Uhr' . $lt . '/strong' . $gt;
+            if ($intExists) {
+                $int .= $lt . 'br' . $gt . $lt . 'strong' . $gt . 'Sitzungsende am ' . date('d.m.Y', strtotime($end)) . ' um ' . date('H:i', strtotime($end)) . ' Uhr' . $lt . '/strong' . $gt;
+            }
+        }
+        $pub .= $lt . '/td' . $gt . $lt . '/tr' . $gt;
+        if ($intExists) $int .= $lt . '/td' . $gt . $lt . '/tr' . $gt;
+        return [$pub, $intExists ? $int : ''];
+    }
+
     private function agendaItems()
     {
         $o = $this;
@@ -604,7 +710,6 @@ class DemoBuilder
         $i3 = $this->item(50, 3, 'Ersatzbeschaffung Vereinsserver', 'Beschlussfassung über den Antrag zur Ersatzbeschaffung (laufende Abstimmung).', 'antrag_beschluss', 4, ['antrnr' => DEMO_REMINDER_ANTRNR, 'proposal' => 'Der Vorstand beschließt die Ersatzbeschaffung des Vereinsservers.', 'dur' => 10]);
         $i4 = $this->item(50, 4, 'Wahl: Vertretung im Ausschuss Finanzen', 'Ein Mitglied des Vorstands soll in den Ausschuss Finanzen entsandt werden.', 'wahl', 1, ['dur' => 10]);
         $i5 = $this->item(50, 101, 'Personalangelegenheit Geschäftsstelle (vertraulich)', 'Vertraulicher TOP, nur für Vorstand, GF und Assistenz sichtbar.', 'aussprache', 4, ['dur' => 20]);
-        $i6 = $this->item(50, 5, 'Sonstiges', 'Offene Punkte und Termine.', 'sonstiges', 4, ['dur' => 5]);
         $this->comment($i2, 1, 'Ich würde gern über einen zweiten Veranstaltungstag sprechen.', 8, 35, $this->dt(-1, '09:12'));
         $this->comment($i2, 2, 'Die Raumfrage sollte vorher geklärt sein.', 7, 25, $this->dt(-1, '11:40'));
         $this->comment($i2, 8, 'Marketing braucht den Termin bis Ende Januar.', 9, 30, $this->dt(0, '07:55'));
@@ -641,7 +746,6 @@ class DemoBuilder
         $l1 = $this->item(40, 1, 'Begrüßung und Regularien', 'Feststellung der Beschlussfähigkeit.', 'information', 4, ['dur' => 5, 'notes' => 'Beschlussfähig: 5 von 6 Eingeladenen anwesend.']);
         $l2 = $this->item(40, 2, 'Rücklagenbildung für Immobilienerwerb', 'Aussprache zum laufenden Antrag.', 'antrag_beschluss', 1, ['antrnr' => 'B' . $this->ymd(-11) . '01', 'dur' => 25, 'active' => 1]);
         $l3 = $this->item(40, 3, 'Stimmungsbild: Termin Mitgliederversammlung', 'Der Vorstand holt ein Stimmungsbild ein.', 'diskussion', 2, ['dur' => 10]);
-        $this->item(40, 4, 'Wahl der Protokollführung', 'Wahl für das nächste Quartal.', 'wahl', 4, ['dur' => 5]);
         $this->item(40, 101, 'Vertragsverhandlung (vertraulich)', 'Vertraulicher TOP zu laufenden Verhandlungen.', 'aussprache', 4, ['dur' => 15]);
         foreach ($this->tables['svmeetings'] as &$mm) { if ($mm['meeting_id'] == 40) $mm['active_item_id'] = $l2; }
         unset($mm);
@@ -685,24 +789,12 @@ class DemoBuilder
         $r3 = $this->item(10, 1, 'Gehaltsrahmen Geschäftsstelle 2027', 'Beschlussfassung (vertraulich).', 'antrag_beschluss', 4, ['antrnr' => 'VS' . $this->ymd(-70) . '01', 'dur' => 20, 'vote_yes' => 3, 'vote_no' => 0, 'vote_abstain' => 0, 'vote_result' => 'einstimmig', 'notes' => 'Einstimmig beschlossen.']);
         $r4 = $this->item(10, 2, 'Jahresabschluss', 'Vorstellung durch die Finanzen.', 'bericht', 1, ['dur' => 25, 'notes' => 'Zur Kenntnis genommen.']);
 
+        $this->defaultTops();
         $this->recomputeItemRatings();
 
         // ---------- Protokolle ----------
-        $proto = [
-            20 => null,
-            30 => [
-                "Protokoll Vorstandssitzung\nTOP 1 Regularien: Tagesordnung ohne Änderung genehmigt.\nTOP 2 Flyer Herbstkampagne: Einstimmig angenommen (VS" . $this->ymd(-5) . "01).\nTOP 3 Jahresplanung Veranstaltungen: Termine werden im Kalender eingetragen.\n",
-                "Interner Teil\nTOP 101: Vertrauliche Mitteilung zu laufenden Gesprächen; nicht zur Weitergabe.\n",
-            ],
-            11 => [
-                "Protokoll Vorstandssitzung\nTOP 1 Regularien: Beschlussfähig.\nTOP 2 Beitragsordnung: Entwurf wird von der GF überarbeitet.\n",
-                "Interner Teil\nKeine vertraulichen Punkte.\n",
-            ],
-            10 => [
-                "Protokoll Vorstandssitzung\nTOP 1 Gehaltsrahmen: Einstimmig beschlossen.\nTOP 2 Jahresabschluss: Zur Kenntnis genommen.\n",
-                "Interner Teil\nDetails zum Gehaltsrahmen siehe Anlage (nur Vorstand).\n",
-            ],
-        ];
+        $proto = [];
+        foreach ([10, 11, 30] as $pm) $proto[$pm] = $this->renderProtocol($pm);
         foreach ($proto as $mid => $p) {
             if (!$p) continue;
             foreach ($this->tables['svmeetings'] as &$mm) {
@@ -719,9 +811,10 @@ class DemoBuilder
                     'change_request' => 'Die Antragsnummer im Protokoll ist unvollständig.', 'created_at' => $this->dt(-3, '20:15')], 'request_id');
             }
         }
-        // Sitzung 20: Protokoll im Entwurf (nur Arbeitsstand)
+        // Sitzung 20: Protokoll aus den TOPs erzeugt (noch nicht zur Durchsicht freigegeben)
+        $p20 = $this->renderProtocol(20);
         foreach ($this->tables['svmeetings'] as &$mm) {
-            if ($mm['meeting_id'] == 20) { $mm['protokoll'] = "ENTWURF\nTOP 1 Regularien ...\nTOP 2 Moderationskoffer: einstimmig.\nTOP 3 Mitgliederversammlung: 5. Dezember (3 Ja, 1 Nein, 1 Enthaltung).\n"; }
+            if ($mm['meeting_id'] == 20) { $mm['protokoll'] = $p20[0]; $mm['prot_intern'] = $p20[1]; }
         }
         unset($mm);
     }

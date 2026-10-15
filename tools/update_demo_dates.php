@@ -278,7 +278,8 @@ function demo_shift_timeline($pdo, $delta) {
     demo_shift_table($pdo, 'svabsences', ['start_date', 'end_date', 'created_at'], $delta);
     demo_shift_table($pdo, 'svevents', ['start_datetime', 'end_datetime', 'recurrence_end_date'], $delta, "event_type = 'abwesenheit' AND (recurrence IS NULL OR recurrence = 'none')");
     demo_shift_table($pdo, 'svnotifications', ['created_at'], $delta);
-    demo_shift_table($pdo, 'svagenda_items', ['created_at'], $delta);
+    // updated_at explizit mitverschieben (TOP 999 = Sitzungsende; ON UPDATE würde sonst "jetzt" eintragen)
+    demo_shift_table($pdo, 'svagenda_items', ['created_at', 'updated_at'], $delta);
     foreach (['svagenda_comments', 'svagenda_live_comments', 'svagenda_post_comments', 'svagenda_personal_notes', 'svprotocols', 'svprotocol_change_requests', 'svvotes', 'feedback'] as $t) {
         demo_shift_table($pdo, $t, ['created_at'], $delta);
     }
@@ -313,6 +314,42 @@ function demo_daily_refresh($pdo, $force = false) {
         }
     }
     update_demo_dynamic_dates($pdo);
+    demo_regenerate_protocols($pdo);
+}
+
+/**
+ * Kurzprotokolle der abgeschlossenen Demo-Sitzungen mit dem echten Generator neu erzeugen, damit Datum und Zeiten
+ * im Protokolltext zu den (verschobenen) Sitzungsdaten passen.
+ */
+function demo_regenerate_protocols($pdo) {
+    try {
+        if (!function_exists('generate_protocol')) {
+            if (!function_exists('get_member_by_id')) return;   // außerhalb der Anwendung (z. B. direkt nach Import)
+            require_once __DIR__ . '/../module_helpers.php';
+            require_once __DIR__ . '/../module_protocol.php';
+        }
+        $meetings = $pdo->query("SELECT * FROM svmeetings WHERE meeting_id IN (10, 11, 20, 30) AND status IN ('ended', 'protocol_ready', 'archived')")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($meetings as $meeting) {
+            $mid = (int)$meeting['meeting_id'];
+            $items = $pdo->prepare("SELECT * FROM svagenda_items WHERE meeting_id = ? ORDER BY top_number");
+            $items->execute([$mid]);
+            $pids = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
+            $pids->execute([$mid]);
+            $participants = [];
+            foreach ($pids->fetchAll(PDO::FETCH_COLUMN) as $member_id) {
+                $m = get_member_by_id($pdo, $member_id);
+                if ($m) $participants[] = $m;
+            }
+            $prot = generate_protocol($pdo, $meeting, $items->fetchAll(PDO::FETCH_ASSOC), $participants);
+            $pdo->prepare("UPDATE svmeetings SET protokoll = ?, prot_intern = ? WHERE meeting_id = ?")
+                ->execute([$prot['public'], $prot['confidential'], $mid]);
+            $upd = $pdo->prepare("UPDATE svprotocols SET content = ? WHERE meeting_id = ? AND protocol_type = ?");
+            $upd->execute([$prot['public'], $mid, 'public']);
+            $upd->execute([$prot['confidential'], $mid, 'confidential']);
+        }
+    } catch (Throwable $e) {
+        error_log('Demo-Protokolle neu erzeugen fehlgeschlagen: ' . $e->getMessage());
+    }
 }
 
 /** Erinnerungs-Antrag nach versehentlicher Auswertung (VS-/X-Nummer) wieder als B-Antrag herstellen */
