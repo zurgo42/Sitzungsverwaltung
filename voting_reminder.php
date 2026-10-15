@@ -11,8 +11,12 @@
  */
 
 function voting_duration_days($pdo) {
-    $stmt = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'bart_B_abstimmung_tage' LIMIT 1");
-    return $stmt ? (int)($stmt->fetchColumn() ?: 7) : 7;
+    try {
+        $stmt = $pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'bart_B_abstimmung_tage' LIMIT 1");
+        return $stmt ? max(1, (int)($stmt->fetchColumn() ?: 7)) : 7;
+    } catch (\Throwable $e) {
+        return 7;
+    }
 }
 
 /**
@@ -20,6 +24,15 @@ function voting_duration_days($pdo) {
  * Rückgabe: Liste aus ['antrnr','titel','deadline'(Y-m-d H:i:s),'missing'=>[member_id,...]]
  */
 function get_open_votings($pdo, $member_id = null) {
+    try {
+        return get_open_votings_unsafe($pdo, $member_id);
+    } catch (\Throwable $e) {
+        error_log('get_open_votings: ' . $e->getMessage());
+        return [];
+    }
+}
+
+function get_open_votings_unsafe($pdo, $member_id = null) {
     if (!defined('TABLE_ANTRAEGE')) return [];
 
     $dauer = voting_duration_days($pdo);
@@ -27,7 +40,7 @@ function get_open_votings($pdo, $member_id = null) {
     for ($i = 1; $i <= 6; $i++) {
         $cols .= ", VName$i, Votum$i, VBedenk$i";
     }
-    $stmt = @$pdo->query("
+    $stmt = $pdo->query("
         SELECT antrnr, titel, b_date $cols
         FROM " . TABLE_ANTRAEGE . "
         WHERE antrnr LIKE 'B%' AND LENGTH(antrnr) >= 8 AND b_date IS NOT NULL
@@ -60,19 +73,28 @@ function get_open_votings($pdo, $member_id = null) {
 }
 
 function send_voting_deadline_reminders($pdo) {
+    try {
+        return send_voting_deadline_reminders_unsafe($pdo);
+    } catch (\Throwable $e) {
+        error_log('send_voting_deadline_reminders: ' . $e->getMessage());
+        return 0;
+    }
+}
+
+function send_voting_deadline_reminders_unsafe($pdo) {
     if (!function_exists('multipartmail') && file_exists(__DIR__ . '/mail_functions.php')) {
         require_once __DIR__ . '/mail_functions.php';
     }
     if (!function_exists('multipartmail') || !function_exists('get_member_by_id')) return 0;
 
-    @$pdo->exec("CREATE TABLE IF NOT EXISTS svvote_reminders (
+    $pdo->exec("CREATE TABLE IF NOT EXISTS svvote_reminders (
         antrnr VARCHAR(50) NOT NULL,
         member_id INT NOT NULL,
         sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (antrnr, member_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    $cfg = @$pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'meeting_system_url' LIMIT 1");
+    $cfg = $pdo->query("SELECT config_value FROM svconfig WHERE config_key = 'meeting_system_url' LIMIT 1");
     $base = $cfg ? rtrim(trim((string)$cfg->fetchColumn()), '/') : '';
     if ($base === '' && defined('APP_URL')) $base = rtrim(APP_URL, '/');
 

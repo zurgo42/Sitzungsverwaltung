@@ -7,9 +7,9 @@
 require_once("config.php");
 require_once("config_adapter.php");   // Konfiguration für Mitgliederquelle
 require_once("member_functions.php"); // Prozedurale Wrapper-Funktionen
-require_once(__DIR__ . "/audit_pdo.php");
+require_once __DIR__ . '/audit_loader.php';
 try {
-    $pdo = new AuditPDO(
+    $pdo = sv_new_pdo(
         "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
         DB_USER,
         DB_PASS,

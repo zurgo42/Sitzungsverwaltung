@@ -54,12 +54,12 @@ if ($is_sitzungsverwaltung) {
     if (!defined('DB_HOST')) {
         require_once __DIR__ . '/config.php';
     }
-    require_once __DIR__ . '/audit_pdo.php';
+    require_once __DIR__ . '/audit_loader.php';
 
     // PDO-Verbindung initialisieren falls noch nicht vorhanden
     if (!isset($pdo)) {
         try {
-            $pdo = new AuditPDO(
+            $pdo = sv_new_pdo(
                 "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
                 DB_USER,
                 DB_PASS,

@@ -58,6 +58,20 @@ class AuditStatement extends PDOStatement {
 class AuditPDO extends PDO {
 
     private bool $inAudit = false;
+    private ?string $savedLastId = null;
+    private ?bool $logAvailable = null;
+
+    /**
+     * Der Audit-INSERT würde sonst die von MySQL gemerkte LAST_INSERT_ID() überschreiben –
+     * Code, der nach einem INSERT lastInsertId() aufruft, bekäme die ID des Log-Eintrags.
+     * Deshalb wird der Wert vor dem Log-Eintrag gesichert und hier zurückgegeben.
+     */
+    public function lastInsertId(?string $name = null): string|false {
+        if ($name === null && $this->savedLastId !== null) {
+            return $this->savedLastId;
+        }
+        return parent::lastInsertId($name);
+    }
 
     public function __construct(string $dsn, string $user, string $pass, array $opts = []) {
         parent::__construct($dsn, $user, $pass, $opts);
@@ -87,8 +101,18 @@ class AuditPDO extends PDO {
 
         $this->inAudit = true;
         try {
+            // Wert der eigentlichen Anweisung sichern, bevor der Log-Eintrag ihn überschreibt
+            $this->savedLastId = parent::lastInsertId();
+
             $table = self::extractTable($verb, $q);
             if ($table === 'svaudit_log') return;
+
+            // Fehlt die Log-Tabelle (noch nicht migriert), still deaktivieren statt bei jedem Schreibzugriff zu scheitern
+            if ($this->logAvailable === null) {
+                $chk = parent::query("SHOW TABLES LIKE 'svaudit_log'");
+                $this->logAvailable = ($chk !== false && $chk->fetchColumn() !== false);
+            }
+            if (!$this->logAvailable) return;
 
             $member_id = isset($_SESSION['member_id']) ? (int)$_SESSION['member_id'] : null;
 

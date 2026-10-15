@@ -198,8 +198,8 @@ define('FOOTER_DATENSCHUTZ_URL', 'https://geschäftsordnung.com/?page_id=54');
 // ============= PDO-DATENBANKVERBINDUNG =============
 // Zentrale PDO-Verbindung für alle Skripte
 // Vermeidet redundante Definitionen in einzelnen Dateien
-if (file_exists(__DIR__ . '/audit_pdo.php')) {
-    require_once __DIR__ . '/audit_pdo.php';
+if (file_exists(__DIR__ . '/audit_loader.php')) {
+    require_once __DIR__ . '/audit_loader.php';
 }
 try {
     $pdo = class_exists('AuditPDO')
