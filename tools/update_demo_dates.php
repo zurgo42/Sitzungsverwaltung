@@ -373,6 +373,44 @@ function demo_restore_reminder_antrag($pdo, $antraege) {
 }
 
 /**
+ * Beispiel-Antrag "automatisch zur Abstimmung stellen" (laufende Nummer DEMO_AUTO_ANTRNR_SUFFIX) im Kreislauf halten:
+ *  - A (wartet): Haken bleibt gesetzt; der Cron stellt ihn nach Ablauf der Wartezeit ein (A -> B).
+ *  - B (automatisch eingestellt): nach 2 Tagen zurück auf A mit neuer Nummer, deren Wartezeit in 2 Tagen endet.
+ * Nur wirksam, wenn für Typ B eine Wartezeit konfiguriert ist und die Spalte auto_abstimmung existiert.
+ */
+function demo_cycle_auto_antrag($pdo, $antraege) {
+    $cfg = $pdo->query("SELECT config_key, config_value FROM svconfig WHERE config_key IN ('bart_B_wartezeit_aktiv', 'bart_B_wartezeit_tage')")->fetchAll(PDO::FETCH_KEY_PAIR);
+    $tage = (int)($cfg['bart_B_wartezeit_tage'] ?? 0);
+    if (empty($cfg['bart_B_wartezeit_aktiv']) || $tage < 2) return;
+
+    $col = $pdo->prepare("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = 'auto_abstimmung'");
+    $col->execute([$antraege]);
+    if ((int)$col->fetchColumn() === 0) return;
+
+    $st = $pdo->prepare("SELECT antrnr, b_date FROM `$antraege` WHERE antrnr REGEXP ? LIMIT 1");
+    $st->execute(['^[AB][0-9]{6}' . DEMO_AUTO_ANTRNR_SUFFIX . '$']);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$row) return;
+
+    if ($row['antrnr'][0] === 'A') {
+        $pdo->prepare("UPDATE `$antraege` SET auto_abstimmung = 1 WHERE antrnr = ?")->execute([$row['antrnr']]);
+        return;
+    }
+    if (empty($row['b_date']) || $row['b_date'] > date('Y-m-d', strtotime('-2 days'))) return;   // erst nach 2 Tagen zurücksetzen
+
+    $neu = 'A' . date('ymd', strtotime('-' . ($tage - 2) . ' days')) . DEMO_AUTO_ANTRNR_SUFFIX;
+    $sets = ['antrnr = ?', 'b_date = NULL', 'auto_abstimmung = 1'];
+    for ($i = 1; $i <= 6; $i++) {
+        array_push($sets, "VName$i = NULL", "Votum$i = NULL", "VBegr$i = NULL", "VProt$i = NULL", "VBedenk$i = NULL", "VDat$i = NULL");
+    }
+    $pdo->prepare("UPDATE `$antraege` SET " . implode(', ', $sets) . " WHERE antrnr = ?")->execute([$neu, $row['antrnr']]);
+    try {
+        $pdo->prepare("DELETE FROM svvote_reminders WHERE antrnr = ?")->execute([$row['antrnr']]);
+    } catch (Exception $e) {
+    }
+}
+
+/**
  * Hält zeitabhängige Demo-Daten aktuell. Jeder Block ist unabhängig (fehlende Tabellen/Spalten
  * in älteren Installationen brechen die anderen Blöcke nicht ab).
  *
@@ -393,6 +431,12 @@ function update_demo_dynamic_dates($pdo) {
     try {
         $antraege = demo_antraege_table();
         $dauer = demo_voting_days($pdo);
+
+        try {
+            demo_cycle_auto_antrag($pdo, $antraege);
+        } catch (Exception $e) {
+            error_log("Demo date update (Auto-Abstimmungs-Beispiel) failed: " . $e->getMessage());
+        }
 
         try {
             demo_restore_reminder_antrag($pdo, $antraege);

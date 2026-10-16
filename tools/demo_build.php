@@ -400,6 +400,7 @@ class DemoBuilder
             'created_at' => $o['created'] ?? $this->dt(-2, '10:00'),
         ];
         if (isset($o['b_date'])) $row['b_date'] = $o['b_date'];
+        if (isset($o['auto'])) $row['auto_abstimmung'] = $o['auto'];
         if (!empty($o['votes'])) $row += $this->votePad($o['votes']);
         $this->add('svantraege', $row);
         return $row;
@@ -437,6 +438,16 @@ class DemoBuilder
             'Der Mietvertrag läuft Ende nächsten Jahres aus.',
             ['fin' => 12000, 'fintext' => 'Geschätzte jährliche Mehrkosten', 'int_ext' => 'i', 'r1' => 7, 'verant' => 'Thomas Winter',
              'lzugriff' => $this->dt(-2, '15:10'), 'created' => $this->dt(-2, '15:00'), 'verein' => 'S']);
+
+        // Beispiel "automatisch zur Abstimmung stellen": Wartezeit endet in 2 Tagen, danach stellt der Cron den Antrag ein
+        // (update_demo_dates.php hält den Zyklus aufrecht; nur wirksam, wenn für Typ B eine Wartezeit konfiguriert ist)
+        $wz = 14;
+        foreach ($this->tables['svconfig'] ?? [] as $c) { if ($c['config_key'] === 'bart_B_wartezeit_tage') $wz = max(2, (int)$c['config_value']); }
+        $this->antrag('A' . $this->ymd(-($wz - 2)) . DEMO_AUTO_ANTRNR_SUFFIX, 'B', 7, 'Anschaffung von Präsentationstechnik für die Sitzungen',
+            'Der Vorstand beschließt die Anschaffung eines Beamers mit Leinwand für die Geschäftsstelle.',
+            'Für hybride Sitzungen wird dauerhaft geeignete Technik benötigt. Der Antrag ist so eingestellt, dass er nach Ablauf der Wartezeit automatisch zur Abstimmung gestellt wird.',
+            ['fin' => 890, 'fintext' => 'Beamer, Leinwand und Zubehör', 'int_ext' => 'e', 'r1' => 3, 'verant' => 'Mia Technik', 'auto' => 1,
+             'lzugriff' => $this->dt(-1, '14:20'), 'created' => $this->dt(-($wz - 2), '10:00')]);
 
         // --- B: in Abstimmung ---
         $vd = function ($off, $time = '18:30') { return $this->dt($off, $time); };

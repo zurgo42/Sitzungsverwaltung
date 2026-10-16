@@ -157,6 +157,16 @@ function demo_analyze_checks(array $data, array $cols = [])
     $add($g, 'Stimmen: fehlend (0), abgegeben (1), Bedenkzeit (5), befangen (6)', !$miss, $miss ? 'fehlt: ' . implode(', ', $miss) : '');
     $add($g, 'Beschlossene Anträge haben Beschlussbuch-Eintrag (svbeschluesse), davon einer intern (int_ext = i)', count($rows('svbeschluesse')) >= count($VS) && count($where('svbeschluesse', function ($b) { return ($b['int_ext'] ?? '') === 'i'; })) > 0, count($rows('svbeschluesse')) . ' Einträge');
 
+    // ---------- Beispiel: automatisch zur Abstimmung stellen ----------
+    $g = 'Beispiel-Antrag "automatisch zur Abstimmung stellen"';
+    $auto = $where('svantraege', function ($a) { return (bool)preg_match('/^[AB][0-9]{6}' . DEMO_AUTO_ANTRNR_SUFFIX . '$/', $a['antrnr']); });
+    $auto = $auto ? $auto[0] : null;
+    $add($g, 'Antrag mit laufender Nummer ' . DEMO_AUTO_ANTRNR_SUFFIX . ' vorhanden', (bool)$auto, $builder ? '' : 'nur im Stand von demo_build.php enthalten', !$builder);
+    if ($auto) {
+        $add($g, 'Haken auto_abstimmung gesetzt', !empty($auto['auto_abstimmung']));
+        $add($g, 'Ressort und Verantwortliche/r angegeben (Voraussetzung für die automatische Einstellung)', !empty($auto['ressort1']) && !empty($auto['verant']));
+    }
+
     // ---------- Erinnerungs-Antrag ----------
     $g = 'Erinnerungs-Antrag (24h-Abstimmungserinnerung)';
     $rem = $where('svantraege', function ($a) { return $a['antrnr'] === DEMO_REMINDER_ANTRNR; });
