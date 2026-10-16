@@ -160,8 +160,8 @@ function antrag_zur_abstimmung_stellen($pdo, $antrnr) {
 }
 
 /**
- * Anträge mit gesetztem Haken "automatisch zur Abstimmung stellen" einstellen, sobald die Wartezeit
- * abgelaufen ist (oder per Wartezeitverkürzung aufgehoben wurde) und alle Pflichtangaben vorliegen.
+ * Anträge mit gesetztem Haken "automatisch zur Abstimmung stellen" einstellen, sobald die (für den Antragstyp
+ * konfigurierte) Wartezeit abgelaufen ist (oder per Wartezeitverkürzung aufgehoben wurde) und alle Pflichtangaben vorliegen.
  * Gibt die Anzahl eingestellter Anträge zurück. Wirft nie eine Exception.
  */
 function auto_abstimmung_pruefen($pdo) {
@@ -186,7 +186,8 @@ function auto_abstimmung_pruefen($pdo) {
             $ts = strtotime('20' . substr($antrnr, 1, 2) . '-' . substr($antrnr, 3, 2) . '-' . substr($antrnr, 5, 2));
             if (!$ts) continue;
             $wz = berechne_wartezeit($a['bart'], $ts, $config);
-            $wartezeit_erfuellt = !$wz['aktiv'] || $wz['erfuellt'] || (!empty($a['verk1']) && !empty($a['verk2']));
+            if (!$wz['aktiv']) continue;   // Typ ohne konfigurierte Wartezeit: keine automatische Einstellung
+            $wartezeit_erfuellt = $wz['erfuellt'] || (!empty($a['verk1']) && !empty($a['verk2']));
             if (!$wartezeit_erfuellt) continue;
 
             // Pflichtangaben wie bei "Verbindlich einstellen"; fehlt etwas, bleibt der Antrag unverändert liegen

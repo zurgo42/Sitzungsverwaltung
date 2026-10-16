@@ -1305,7 +1305,7 @@ if ($user['aktiv'] >= 19) {
                     </div>
                 <?php endif; ?>
 
-                <?php if (substr($antrnr, 0, 1) === 'A' && antrag_auto_column_exists($pdo)): ?>
+                <?php if (substr($antrnr, 0, 1) === 'A' && antrag_auto_column_exists($pdo) && berechne_wartezeit($antrag['bart'], time(), $bart_config)['aktiv']): ?>
                     <div style="background: #f1f8e9; padding: 10px; margin-bottom: 12px; border-radius: 4px; border-left: 3px solid #8bc34a;">
                         <input type="hidden" name="auto_abstimmung_vorhanden" value="1">
                         <div class="checkbox-inline">
