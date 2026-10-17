@@ -301,7 +301,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = "Antrag wurde verbindlich eingestellt.";
                 // Redirect to updated antrnr
                 $neue_nr = $_POST['neue_antrnr'] ?? $neue_nr;
-                header("Location: antrag_bearbeiten.php?antrnr=" . urlencode($neue_nr) . "&msg=finalized");
+                if (substr($neue_nr, 0, 2) === 'VS') {
+                    // Verfügung: direkt beschlossen und im Beschlussbuch - keine Abstimmung
+                    header("Location: antrag_ansehen.php?antrnr=" . urlencode($neue_nr));
+                } else {
+                    header("Location: antrag_bearbeiten.php?antrnr=" . urlencode($neue_nr) . "&msg=finalized");
+                }
                 exit;
 
             case 'delete':
@@ -826,7 +831,7 @@ if ($user['aktiv'] >= 19) {
                     <?php if ($antrag['bart'] === 'V' || $antrag['bart'] === 'R'): ?>
                         <div class="form-group">
                             <label for="verf1" class="<?= empty($antrag['verf1']) ? 'warning' : '' ?>">
-                                Abstimmung durch (1.) <?= empty($antrag['verf1']) ? '<span class="required">*</span>' : '' ?>
+                                <?= $antrag['bart'] === 'V' ? 'Verfügung durch' : 'Abstimmung durch (1.)' ?> <?= empty($antrag['verf1']) ? '<span class="required">*</span>' : '' ?>
                             </label>
                             <select id="verf1" name="verf1" class="<?= empty($antrag['verf1']) ? 'warning-border' : '' ?>">
                                 <option value="">-- Bitte wählen --</option>
@@ -1298,8 +1303,12 @@ if ($user['aktiv'] >= 19) {
 
                 <?php if ($wartezeit === 'erfüllt' && ($antrag['bart'] === 'V' || $antrag['bart'] === 'R')): ?>
                     <div class="status-box">
-                        Die Wartezeit ist erfüllt; du kannst den Antrag zur Abstimmung stellen.
-                        <?php if (($antrag['verf1'] ?? '') == $antrag['antrst']): ?>
+                        <?php if ($antrag['bart'] === 'V'): ?>
+                            Die Wartezeit ist erfüllt. Mit „Verbindlich einstellen" gilt die Verfügung als beschlossen und wird ins Beschlussbuch eingetragen; eine Abstimmung ist nicht erforderlich.
+                        <?php else: ?>
+                            Die Wartezeit ist erfüllt; du kannst den Antrag zur Abstimmung stellen (durch die beiden angegebenen Personen).
+                        <?php endif; ?>
+                        <?php if ($antrag['bart'] === 'R' && ($antrag['verf1'] ?? '') == $antrag['antrst']): ?>
                             <span style="color: var(--warning); font-weight: 600;">⚠️ Bitte nicht vergessen, dort dann abzustimmen!</span>
                         <?php endif; ?>
                     </div>
@@ -1314,7 +1323,7 @@ if ($user['aktiv'] >= 19) {
                         </div>
                         <div style="font-size: 11px; color: #555; margin-top: 4px;">
                             Der Antrag wird dann ohne weiteres Zutun verbindlich eingestellt, sobald die Wartezeit abgelaufen ist.
-                            Voraussetzung: Ressort und Verantwortliche/r sind angegeben<?= in_array($antrag['bart'], ['V', 'R'], true) ? ' (bei Verfügung/Ressortbeschluss auch die Verfügungsberechtigten)' : '' ?>. Danach ist der Antrag nicht mehr änderbar.
+                            <?= $antrag['bart'] === 'V' ? 'Bei einer Verfügung gilt sie dann direkt als beschlossen (Eintrag im Beschlussbuch, keine Abstimmung). ' : '' ?>Voraussetzung: Ressort und Verantwortliche/r sind angegeben<?= in_array($antrag['bart'], ['V', 'R'], true) ? ' (bei Verfügung/Ressortbeschluss auch die Verfügungsberechtigten)' : '' ?>. Danach ist der Antrag nicht mehr änderbar.
                             <?php if (!empty($antrag['auto_abstimmung']) && $blockiert): ?>
                                 <br><span style="color: #c0392b;">⚠️ Derzeit nicht möglich: <?= htmlspecialchars(implode(', ', $blockierung_grund)) ?></span>
                             <?php endif; ?>
@@ -1327,7 +1336,7 @@ if ($user['aktiv'] >= 19) {
 
                     <?php if ($kann_finalisieren): ?>
                         <button type="button" class="btn btn-success" id="finalizeButton"
-                                onclick="if(!confirm('Antrag verbindlich einstellen? Nicht mehr änderbar!')) return; var f=this.form; var h=f.querySelector('#_finalize_hidden'); if(!h){h=document.createElement('input');h.type='hidden';h.name='action';h.value='finalize';h.id='_finalize_hidden';f.appendChild(h);} this.disabled=true; this.textContent='⏳ Wird eingestellt…'; f.submit();">
+                                onclick="if(!confirm('<?= $antrag['bart'] === 'V' ? 'Verfügung verbindlich einstellen? Sie gilt damit als beschlossen und wird ins Beschlussbuch eingetragen. Nicht mehr änderbar!' : 'Antrag verbindlich einstellen? Nicht mehr änderbar!' ?>')) return; var f=this.form; var h=f.querySelector('#_finalize_hidden'); if(!h){h=document.createElement('input');h.type='hidden';h.name='action';h.value='finalize';h.id='_finalize_hidden';f.appendChild(h);} this.disabled=true; this.textContent='⏳ Wird eingestellt…'; f.submit();">
                             ✅ Verbindlich einstellen
                         </button>
                     <?php elseif (substr($antrnr, 0, 1) === 'A'): ?>

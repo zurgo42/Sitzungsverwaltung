@@ -370,7 +370,7 @@ function format_antrag_text($text) {
 }
 
 /** Beschluss annehmen: antrnr B→VS, Eintrag in TABLE_BESCHLUESSE */
-function beschluss_annehmen($pdo, $antrnr, $antrag) {
+function beschluss_annehmen($pdo, $antrnr, $antrag, $dafuer_override = null) {
     // VS-Nummer unabhängig generieren – beide Tabellen prüfen, damit manuell nachgetragene
     // Einträge in TABLE_BESCHLUESSE nicht zu Kollisionen führen
     $date_part = date('ymd');
@@ -412,6 +412,7 @@ function beschluss_annehmen($pdo, $antrnr, $antrag) {
     }
 
     $dafuer_text = ($alle_ja && $hat_vote) ? 'einstimmig' : implode(', ', $stimmen);
+    if ($dafuer_override !== null) $dafuer_text = $dafuer_override;   // z. B. Verfügung ohne Abstimmung
 
     // Ressort-Namen aus R-Kennung auflösen
     $ressort_parts = [];
@@ -450,6 +451,8 @@ function beschluss_annehmen($pdo, $antrnr, $antrag) {
         $dafuer_text,
         $antrag['abstimmregel'] ?? 'einfach',
     ]);
+
+    return $neue_nr;
 }
 
 /** Beschluss ablehnen: antrnr B→X */

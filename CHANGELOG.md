@@ -8,6 +8,14 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### Fix: Verfügung ohne Abstimmung, Ressortbeschluss mit den angegebenen Personen (2026-10-19)
+
+- **Verfügung (Typ V):** „Verbindlich einstellen" (auch die automatische Einstellung) beschließt die Verfügung sofort: Der Antrag erhält eine VS-Nummer und wird ins Beschlussbuch eingetragen („Verfügung von <Name>"), es gibt keine Abstimmung mehr. Vorher wurden bis zu sechs Mitglieder mit aktiv ≥ 14 als Abstimmende eingetragen. Mail „Verfügung beschlossen"; Weiterleitung auf die Ansicht des Beschlusses.
+- **Ressortbeschluss (Typ R):** Die Abstimmung wird für die beiden im Antrag angegebenen Personen (`verf1`, `verf2`) angelegt. Vorher wurden Antragsteller und FVo/FVv eingetragen, ohne Rücksicht auf die Auswahl im Antrag.
+- Oberfläche: Beschriftung „Verfügung durch", angepasste Hinweise und Sicherheitsabfrage bei Verfügungen.
+- Bereits laufende Abstimmungen zu Verfügungen werden unverändert wie bisher ausgewertet.
+- Demo: Verfügungen sind ohne Abstimmung beschlossen (Beschlussbuch „Verfügung von …"), das frühere V-Beispiel in Abstimmung ist ein Vorstandsbeschluss.
+
 #### Automatisch zur Abstimmung stellen nach Ablauf der Wartezeit (2026-10-18)
 
 - **Option am Antrag:** In „Antrag bearbeiten" (Abschnitt „Nächste Schritte") gibt es für Anträge im Editiermodus (A) den Haken „Nach Ablauf der Wartezeit automatisch zur Abstimmung stellen". Die Wartezeit ist die je Antragstyp konfigurierte (Admin: `bart_*_wartezeit_tage`); eine Wartezeitverkürzung (zwei Zustimmungen) zählt ebenfalls.

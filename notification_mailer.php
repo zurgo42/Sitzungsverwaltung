@@ -307,17 +307,18 @@ function nm_event_antrag_abstimmung($pdo, $antrnr, $neue_nr, $titel, $frist_datu
     });
 }
 
-function nm_event_antrag_beschlossen($pdo, $antrnr, $titel, $angenommen, $is_confidential = false) {
+function nm_event_antrag_beschlossen($pdo, $antrnr, $titel, $angenommen, $is_confidential = false, $verfuegung = false) {
     $ergebnis = $angenommen ? 'Angenommen' : 'Abgelehnt';
+    if ($verfuegung) $ergebnis = 'Verfügt (ohne Abstimmung beschlossen)';
     $url = nm_deep_url($pdo, 'antrag_bearbeiten.php?antrnr=' . urlencode($antrnr));
-    nm_notify_all($pdo, 'antrag_beschlossen', function($m) use ($antrnr, $titel, $ergebnis, $angenommen, $url, $pdo, $is_confidential) {
+    nm_notify_all($pdo, 'antrag_beschlossen', function($m) use ($antrnr, $titel, $ergebnis, $angenommen, $url, $pdo, $is_confidential, $verfuegung) {
         if ($is_confidential && !($m['is_confidential'] ?? 0)) return null;
-        $subj  = 'Abstimmungsergebnis: ' . $titel;
-        $txt   = "Abstimmung abgeschlossen:\n\nNr.: {$antrnr}\nTitel: {$titel}\nErgebnis: {$ergebnis}\n\nLink: {$url}";
+        $subj  = ($verfuegung ? 'Verfügung beschlossen: ' : 'Abstimmungsergebnis: ') . $titel;
+        $txt   = ($verfuegung ? "Verfügung beschlossen (keine Abstimmung erforderlich):" : "Abstimmung abgeschlossen:") . "\n\nNr.: {$antrnr}\nTitel: {$titel}\nErgebnis: {$ergebnis}\n\nLink: {$url}";
         $color = $angenommen ? '#1a7c3e' : '#c0392b';
-        $badge = $angenommen ? '✓ Angenommen' : '✗ Abgelehnt';
+        $badge = $verfuegung ? '✓ Verfügt' : ($angenommen ? '✓ Angenommen' : '✗ Abgelehnt');
         $html  = nm_html_wrap($pdo,
-            '<h2 style="margin:0 0 16px;color:#1a1a1a;font-size:18px;">Abstimmungsergebnis</h2>'
+            '<h2 style="margin:0 0 16px;color:#1a1a1a;font-size:18px;">' . ($verfuegung ? 'Verfügung beschlossen' : 'Abstimmungsergebnis') . '</h2>'
             . '<table style="border-collapse:collapse;margin-bottom:16px;">'
             . nm_tbl_row('Nr.', $antrnr) . nm_tbl_row('Titel', $titel) . '</table>'
             . '<p style="margin:0;font-size:20px;font-weight:700;color:' . $color . ';">'

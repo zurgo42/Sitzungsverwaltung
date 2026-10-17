@@ -463,10 +463,11 @@ class DemoBuilder
              'hinweis' => $h(-$d + 1, 'J. Sommer', 'Zwei Angebote verglichen, Variante B ist wirtschaftlicher.', '11:00'),
              'votes' => [[2, 1, $vd16(-$d + 1, '20:10'), 'Notwendig und wirtschaftlich.'], [3, 0], [1, 0]]]);
 
-        $this->antrag('B' . $this->ymd(-9) . '01', 'V', 4, 'Beauftragung externer Steuerberatung für das Rumpfgeschäftsjahr',
+        // Verfügungen (V) werden nie abgestimmt; dieses Beispiel ist daher ein Vorstandsbeschluss (als Abstimmung im Gesamtvorstand eingestellt)
+        $this->antrag('B' . $this->ymd(-9) . '01', 'B', 4, 'Beauftragung externer Steuerberatung für das Rumpfgeschäftsjahr',
             'Der Verein beauftragt eine Steuerberatung für die Abschlussarbeiten zum Preis von bis zu 450 Euro.',
             'Die Abschlussarbeiten übersteigen die Kapazität der Geschäftsstelle.',
-            ['fin' => 450, 'fintext' => 'Pauschalhonorar', 'status' => 'E', 'r1' => 1, 'verant' => 'Hans Lehmann', 'verf1' => 1,
+            ['fin' => 450, 'fintext' => 'Pauschalhonorar', 'wichtig' => '1', 'status' => 'E', 'r1' => 1, 'verant' => 'Hans Lehmann',
              'b_date' => $this->day(-2), 'created' => $this->dt(-9, '10:00'), 'lzugriff' => $this->dt(-2, '09:00'),
              'votes' => [
                  [2, 1, $vd16(-1, '19:00')],
@@ -500,7 +501,7 @@ class DemoBuilder
         $vs = [
             // Nummer-Offset, laufende Nr, bart, antrst, titel, beschluss, begr, fin, fintext, int_ext, regel, r1, votes, dafuer
             [-1, 1, 'V', 7, 'Anschaffung eines Moderationskoffers', 'Der Verein beschafft einen Moderationskoffer für bis zu 180 Euro.', 'Workshops werden bisher mit privatem Material durchgeführt.', 180, 'Moderationskoffer inkl. Material', 'e', 'einfach', 5,
-                [[2, 1], [3, 1], [1, 1], [4, 1], [7, 1], [5, 1]], 'einstimmig'],
+                [], ''],
             [-5, 1, 'R', 8, 'Druck von Flyern für die Herbstkampagne', 'Für die Herbstkampagne werden Flyer für bis zu 950 Euro gedruckt.', 'Die Kampagne soll neue Mitglieder gewinnen.', 950, 'Druckkosten 5.000 Stück', 'e', 'einfach', 4,
                 [[8, 1], [1, 1]], 'einstimmig'],
             [-47, 2, 'B', 2, 'Mitgliederversammlung 2026: Termin und Ort', 'Die Mitgliederversammlung findet am Samstag, dem 5. Dezember, im Bürgerhaus statt.', 'Der Saal steht an diesem Termin zur Verfügung.', 0, null, 'e', 'einfach', 5,
@@ -510,14 +511,23 @@ class DemoBuilder
         ];
         foreach ($vs as [$off, $nn, $bart, $antrst, $titel, $besch, $begr, $fin, $fintext, $ie, $regel, $res, $votes, $dafuer]) {
             $nr = 'VS' . $this->ymd($off) . sprintf('%02d', $nn);
-            $war = 'B' . $this->ymd($off - 9) . sprintf('%02d', $nn);
+            $direkt = ($bart === 'V');   // Verfügung: ohne Abstimmung beschlossen (war = A-Nummer, keine Stimmen, kein b_date)
+            $war = ($direkt ? 'A' : 'B') . $this->ymd($off - 9) . sprintf('%02d', $nn);
             $v = [];
             foreach ($votes as $e) { $v[] = [$e[0], $e[1], $this->dt($off, '20:' . sprintf('%02d', 10 + count($v))), $e[3] ?? null]; }
-            $this->antrag($nr, $bart, $antrst, $titel, $besch, $begr, [
+            if ($direkt) {
+                $v = [];
+                $dafuer = 'Verfügung von ' . $this->mname($antrst);
+            }
+            $opt = [
                 'fin' => $fin, 'fintext' => $fintext, 'int_ext' => $ie, 'regel' => $regel, 'r1' => $res, 'status' => 'G',
-                'war' => $war, 'ergebnis' => 'angenommen', 'b_date' => $this->day($off - $this->bDauer), 'votes' => $v,
+                'war' => $war, 'ergebnis' => 'angenommen', 'votes' => $v,
                 'created' => $this->dt($off - 12, '10:00'), 'lzugriff' => $this->dt($off, '20:30'), 'verant' => $this->mname($antrst),
-            ]);
+            ];
+            if (!$direkt) $opt['b_date'] = $this->day($off - $this->bDauer);
+            if ($direkt) $opt['verf1'] = $antrst;
+            if ($bart === 'R' && count($votes) >= 2) { $opt['verf1'] = $votes[0][0]; $opt['verf2'] = $votes[1][0]; }
+            $this->antrag($nr, $bart, $antrst, $titel, $besch, $begr, $opt);
             $ressort_name = $this->tables['svressorts'][$res - 1]['Ressort'];
             $this->add('svbeschluesse', [
                 'antrnr' => $nr, 'fertig' => 'F', 'titel' => $titel, 'beschluss' => $besch, 'begr' => $begr,

@@ -49,59 +49,32 @@ function antrag_zur_abstimmung_stellen($pdo, $antrnr) {
     $vname_fields = [];
 
     if ($antrag['bart'] === 'V') {
-        // Verfügung: Alle mit Verfügungsberechtigung (aktiv >= 14) über Adapter
-        $all_members = get_all_members($pdo);
-        $verfuegungsber_members = array_filter($all_members, function($m) {
-            return isset($m['aktiv']) && $m['aktiv'] >= 14;
-        });
-        usort($verfuegungsber_members, function($a, $b) {
-            $diff = ($b['aktiv'] ?? 0) - ($a['aktiv'] ?? 0);
-            return $diff != 0 ? $diff : strcmp($a['first_name'] ?? '', $b['first_name'] ?? '');
-        });
-        $verfuegungsber = array_slice(array_column($verfuegungsber_members, 'member_id'), 0, 6);
+        // Verfügung: Keine Abstimmung. Mit "Verbindlich einstellen" ist die Verfügung beschlossen und wird
+        // direkt ins Beschlussbuch eingetragen (VS-Nummer, Beschluss-Eintrag).
+        if (empty($antrag['verf1'])) throw new Exception("Verfügungsberechtigte/r muss angegeben werden.");
+        require_once __DIR__ . '/voting_helper.php';
+        $verf = get_member_by_id($pdo, $antrag['verf1']);
+        $verf_name = $verf ? trim($verf['first_name'] . ' ' . $verf['last_name']) : ('ID' . $antrag['verf1']);
+        $vs_nr = beschluss_annehmen($pdo, $antrnr, $antrag, 'Verfügung von ' . $verf_name);
 
-        if (empty($verfuegungsber)) {
-            throw new Exception("Keine Verfügungsberechtigten gefunden.");
+        if (!function_exists('nm_event_antrag_beschlossen') && file_exists(__DIR__ . '/notification_mailer.php')) {
+            require_once __DIR__ . '/notification_mailer.php';
         }
-
-        for ($i = 0; $i < count($verfuegungsber); $i++) {
-            $vname_fields['VName' . ($i + 1)] = $verfuegungsber[$i];
+        if (function_exists('nm_event_antrag_beschlossen')) {
+            nm_event_antrag_beschlossen($pdo, $vs_nr, $antrag['titel'] ?? '', true, ($antrag['int_ext'] ?? 'e') === 'i', true);
         }
+        return $vs_nr;
 
     } elseif ($antrag['bart'] === 'R') {
-        // Ressortbeschluss: Antragsteller + FVo (oder FVv wenn FVo = Antragsteller)
-        $vname_fields['VName1'] = $antrag['antrst'];
-
-        // FVo holen über Adapter
-        $all_members = get_all_members($pdo);
-        $fvo_member = null;
-        foreach ($all_members as $m) {
-            if (($m['funktion'] ?? '') === 'FVo' && ($m['aktiv'] ?? 0) >= 18) {
-                $fvo_member = $m;
-                break;
-            }
+        // Ressortbeschluss: Abstimmung durch die beiden im Antrag angegebenen Personen (verf1 und verf2)
+        if (empty($antrag['verf1']) || empty($antrag['verf2'])) {
+            throw new Exception("Beide Verfügungsberechtigte müssen angegeben sein.");
         }
-        $fvo = $fvo_member ? $fvo_member['member_id'] : null;
-
-        if ($fvo && $fvo != $antrag['antrst']) {
-            // FVo ist nicht der Antragsteller -> FVo als VName2
-            $vname_fields['VName2'] = $fvo;
-        } else {
-            // FVo ist Antragsteller oder nicht vorhanden -> FVv als VName2
-            $fvv_member = null;
-            foreach ($all_members as $m) {
-                if (($m['funktion'] ?? '') === 'FVv' && ($m['aktiv'] ?? 0) >= 18) {
-                    $fvv_member = $m;
-                    break;
-                }
-            }
-            $fvv = $fvv_member ? $fvv_member['member_id'] : null;
-            if ($fvv) {
-                $vname_fields['VName2'] = $fvv;
-            } else {
-                throw new Exception("Kein Finanzvorstand (FVo/FVv) für Zweitstimme gefunden.");
-            }
+        if ($antrag['verf1'] == $antrag['verf2']) {
+            throw new Exception("Die Verfügungsberechtigten dürfen nicht identisch sein.");
         }
+        $vname_fields['VName1'] = $antrag['verf1'];
+        $vname_fields['VName2'] = $antrag['verf2'];
 
     } elseif ($antrag['bart'] === 'B') {
         // Vorstandsbeschluss: Nur Vorstände (aktiv = 19) über Adapter
