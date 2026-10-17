@@ -534,11 +534,12 @@ foreach (['V', 'R', 'B'] as $typ) {
                 echo '</div>';
             }
         } elseif ($prefix_a === 'V') {
-            if (preg_match('/^V(\d{6})/', $a['antrnr'], $matches)) {
+            // Beschlossene Anträge tragen die Nummer VS + JJMMTT + lfd. Nr. (ältere Nummern: V + JJMMTT)
+            if (preg_match('/^VS?(\d{6})/', $a['antrnr'], $matches)) {
                 $datum_str = $matches[1];
                 $datum = '20' . substr($datum_str, 0, 2) . '-' . substr($datum_str, 2, 2) . '-' . substr($datum_str, 4, 2);
                 echo '<div style="background: rgba(76, 175, 80, 0.15); padding: 6px 10px; border-radius: 4px; margin-bottom: 10px; font-size: 12px; color: #2e7d32; font-weight: 600;">';
-                echo '✓ Beschlossen am ' . date('d.m.Y', strtotime($datum));
+                echo ($a['bart'] === 'V' ? '✓ Verfügt und abgeschlossen am ' : '✓ Beschlossen am ') . date('d.m.Y', strtotime($datum));
                 echo '</div>';
             }
         }

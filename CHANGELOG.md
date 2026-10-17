@@ -8,6 +8,11 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### Fix: Abschluss-Hinweis bei Verfügungen (2026-10-21)
+
+- `antrag_ansehen.php`: Beschlossene Anträge (VS-Nummer) zeigen oben „✓ Abgeschlossen" (bei Verfügungen: „Diese Verfügung ist beschlossen (ohne Abstimmung) und im Beschlussbuch eingetragen"). Das Beschlussdatum („Verfügt am"/„Beschlossen am") kommt bei fehlenden Stimmen aus der VS-Nummer; vorher fehlte es bei Verfügungen ganz, weil es nur aus dem letzten Votum bestimmt wurde.
+- `tab_proposals.php`: Erkennung der Nummern `VS…` im Status-Hinweis korrigiert.
+
 #### Schutz vor zu früher Auswertung von Abstimmungen (2026-10-20)
 
 - `auswerten_abstimmung()` führt eine erzwungene Auswertung (Fristablauf) nur noch aus, wenn `b_date` gesetzt und die Abstimmungszeit tatsächlich abgelaufen ist (`b_date < heute - Abstimmungsdauer`). Jeder Aufrufer ist damit abgesichert; andernfalls wird nichts geändert und ein Hinweis ins Fehlerprotokoll geschrieben.

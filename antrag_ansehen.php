@@ -413,6 +413,15 @@ $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: ''
             }
             ?>
 
+            <?php if ($prefix === 'V'): ?>
+            <div style="background: #e8f5e9; border: 2px solid #4caf50; border-radius: 8px; padding: 12px; margin: 20px 0; text-align: center; font-weight: 700; color: #2e7d32;">
+                ✓ Abgeschlossen
+                <div style="font-size: 13px; font-weight: 400; margin-top: 4px;">
+                    <?= $antrag['bart'] === 'V' ? 'Diese Verfügung ist beschlossen (ohne Abstimmung) und im Beschlussbuch eingetragen.' : 'Dieser Antrag ist beschlossen und im Beschlussbuch eingetragen.' ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="grid-2col">
                 <?php
                 // Abstimmungs- und Beschlussdatum
@@ -442,10 +451,15 @@ $second_entity = $second_entity_stmt ? ($second_entity_stmt->fetchColumn() ?: ''
                     <div class="compact-value"><?= date('d.m.Y', strtotime($abstimmung_seit)) ?></div>
                 </div>
                     <?php endif;
-                    if ($prefix === 'V' && $letztes_votum): ?>
+                    // Beschlussdatum: letztes Votum, sonst (Verfügung ohne Abstimmung) Datum aus der VS-Nummer
+                    $beschluss_am = $letztes_votum ? date('d.m.Y H:i', strtotime($letztes_votum)) : null;
+                    if (!$beschluss_am && preg_match('/^VS?(\d{2})(\d{2})(\d{2})/', $antrnr, $bm)) {
+                        $beschluss_am = $bm[3] . '.' . $bm[2] . '.20' . $bm[1];
+                    }
+                    if ($prefix === 'V' && $beschluss_am): ?>
                 <div class="compact-row">
-                    <div class="compact-label">Beschlossen am:</div>
-                    <div class="compact-value" style="font-weight: 600; color: var(--success);"><?= date('d.m.Y H:i', strtotime($letztes_votum)) ?></div>
+                    <div class="compact-label"><?= $antrag['bart'] === 'V' ? 'Verfügt am:' : 'Beschlossen am:' ?></div>
+                    <div class="compact-value" style="font-weight: 600; color: var(--success);"><?= htmlspecialchars($beschluss_am) ?></div>
                 </div>
                     <?php endif;
                 endif; ?>
