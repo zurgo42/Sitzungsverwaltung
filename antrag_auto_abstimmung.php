@@ -101,8 +101,9 @@ function antrag_zur_abstimmung_stellen($pdo, $antrnr) {
     $neue_nr = 'B' . substr($antrnr, 1);
 
     // VName-Felder in UPDATE-Statement aufbauen
-    $update_parts = ['antrnr = ?', 'b_date = CURDATE()'];
-    $update_values = [$neue_nr];
+    // b_date aus PHP-Datum (nicht CURDATE()): gleiche Zeitzone wie der Fristvergleich im Cron
+    $update_parts = ['antrnr = ?', 'b_date = ?'];
+    $update_values = [$neue_nr, date('Y-m-d')];
 
     foreach ($vname_fields as $field => $value) {
         $update_parts[] = "$field = ?";

@@ -8,6 +8,11 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### Schutz vor zu früher Auswertung von Abstimmungen (2026-10-20)
+
+- `auswerten_abstimmung()` führt eine erzwungene Auswertung (Fristablauf) nur noch aus, wenn `b_date` gesetzt und die Abstimmungszeit tatsächlich abgelaufen ist (`b_date < heute - Abstimmungsdauer`). Jeder Aufrufer ist damit abgesichert; andernfalls wird nichts geändert und ein Hinweis ins Fehlerprotokoll geschrieben.
+- `b_date` wird beim Einstellen aus dem PHP-Datum gesetzt (statt `CURDATE()` der Datenbank), damit Einstellung und Fristvergleich dieselbe Zeitzone nutzen.
+
 #### Fix: Verfügung ohne Abstimmung, Ressortbeschluss mit den angegebenen Personen (2026-10-19)
 
 - **Verfügung (Typ V):** „Verbindlich einstellen" (auch die automatische Einstellung) beschließt die Verfügung sofort: Der Antrag erhält eine VS-Nummer und wird ins Beschlussbuch eingetragen („Verfügung von <Name>"), es gibt keine Abstimmung mehr. Vorher wurden bis zu sechs Mitglieder mit aktiv ≥ 14 als Abstimmende eingetragen. Mail „Verfügung beschlossen"; Weiterleitung auf die Ansicht des Beschlusses.

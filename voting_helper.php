@@ -239,6 +239,17 @@ function auswerten_abstimmung($pdo, $antrnr, $force = false) {
 
     if (!$antrag) return;
 
+    // Sicherung: Eine erzwungene Auswertung (Fristablauf) ist nur zulässig, wenn die Abstimmungszeit tatsächlich
+    // abgelaufen ist (b_date + Abstimmungsdauer liegt vor heute). Schützt vor zu früher Auswertung durch jeden Aufrufer.
+    if ($force) {
+        require_once __DIR__ . '/voting_reminder.php';
+        $b_date = $antrag['b_date'] ?? null;
+        if (empty($b_date) || $b_date >= date('Y-m-d', strtotime('-' . voting_duration_days($pdo) . ' days'))) {
+            error_log("auswerten_abstimmung($antrnr): Abstimmungszeit noch nicht abgelaufen oder b_date fehlt - keine erzwungene Auswertung");
+            return;
+        }
+    }
+
     $abstimmende = 0;
     $abgestimmt  = 0;
     $ja = $nein = $enthaltung = $rueckverweis = $bedenkzeit = $befangen = 0;
