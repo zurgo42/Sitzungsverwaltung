@@ -101,7 +101,7 @@ foreach ($antraege as $a) {
     if (substr($a['antrnr'], 0, 1) !== 'B') continue;
     for ($i = 1; $i <= 6; $i++) {
         $vid = (int)($a["VName$i"] ?? 0);
-        if ($vid > 0 && (int)($a["Votum$i"] ?? 0) === 0) {
+        if ($vid > 0 && in_array((int)($a["Votum$i"] ?? 0), [0, 5], true)) {   // 0 = offen, 5 = Bedenkzeit
             $voter_ids[$vid] = true;
         }
     }
@@ -520,8 +520,11 @@ foreach (['V', 'R', 'B'] as $typ) {
                 $noch_offen = [];
                 for ($i = 1; $i <= 6; $i++) {
                     $vid = (int)($a["VName$i"] ?? 0);
-                    if ($vid > 0 && (int)($a["Votum$i"] ?? 0) === 0) {
-                        $noch_offen[] = htmlspecialchars($voter_kurzn[$vid] ?? ('ID'.$vid));
+                    $votum_i = (int)($a["Votum$i"] ?? 0);
+                    if ($vid > 0 && ($votum_i === 0 || $votum_i === 5)) {
+                        // Bedenkzeit (5) zählt wie offen: die Abstimmung ist erst beendet, wenn alle Eingetragenen abgestimmt haben
+                        $noch_offen[] = htmlspecialchars($voter_kurzn[$vid] ?? ('ID'.$vid))
+                            . ($votum_i === 5 ? ' (Bedenkzeit' . (!empty($a["VBedenk$i"]) ? ' bis ' . date('d.m.', strtotime($a["VBedenk$i"])) : '') . ')' : '');
                     }
                 }
                 echo '<div style="background: rgba(250, 170, 0, 0.2); padding: 6px 10px; border-radius: 4px; margin-bottom: 10px; font-size: 12px; color: #000; font-weight: 600;">';

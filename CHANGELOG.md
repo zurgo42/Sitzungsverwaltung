@@ -8,6 +8,10 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### Fix: Antragsliste zeigt Bedenkzeit als „noch offen" (2026-10-22)
+
+- `tab_proposals.php`: Wer Bedenkzeit gewählt hat (Votum 5), gilt in „noch offen: …" als offen (mit „Bedenkzeit bis TT.MM."), nicht mehr als abgestimmt. Zuvor stand „alle abgestimmt", obwohl die Auswertung (`auswerten_abstimmung()`) auf die Bedenkzeit wartet.
+
 #### Fix: Abschluss-Hinweis bei Verfügungen (2026-10-21)
 
 - `antrag_ansehen.php`: Beschlossene Anträge (VS-Nummer) zeigen oben „✓ Abgeschlossen" (bei Verfügungen: „Diese Verfügung ist beschlossen (ohne Abstimmung) und im Beschlussbuch eingetragen"). Das Beschlussdatum („Verfügt am"/„Beschlossen am") kommt bei fehlenden Stimmen aus der VS-Nummer; vorher fehlte es bei Verfügungen ganz, weil es nur aus dem letzten Votum bestimmt wurde.
