@@ -362,16 +362,26 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
         $antrst = $post['antrst'];
     }
 
+    // Beschlussart ändern (nur im Editiermodus): z. B. Verfügung -> Ressortbeschluss, wenn der Betrag das Limit überschreitet
+    $ziel_bart = $antrag['bart'] ?? 'V';
+    if (substr($antrnr, 0, 1) === 'A' && !empty($post['bart_neu']) && $post['bart_neu'] !== $ziel_bart
+        && in_array($post['bart_neu'], ['V', 'R', 'B'], true)) {
+        if (!ist_typ_aktiv($post['bart_neu'], $bart_config)) {
+            throw new Exception("Dieser Antragstyp ist nicht aktiviert.");
+        }
+        $ziel_bart = $post['bart_neu'];
+    }
+
     // Monatssummen-Prüfung für Verfügungen
     $v_limit = (float)($bart_config['bart_V_betrag_limit'] ?? 500);
     $monatslimit = (float)($bart_config['bart_verfuegung_monatslimit'] ?? 2000);
     $monatssumme = berechneMonatssumme($pdo, $antrst, $antrnr, $v_limit);
-    if ($fin <= $v_limit && ($monatssumme + $fin) > $monatslimit) {
+    if ($ziel_bart === 'V' && $fin <= $v_limit && ($monatssumme + $fin) > $monatslimit) {
         throw new Exception("Monatliche Verfügungsgrenze von " . number_format($monatslimit, 0, ',', '.') . "€ überschritten! Aktuelle Summe: " . number_format($monatssumme, 2, ',', '.') . "€");
     }
 
     // Betragsvalidierung basierend auf Antragstyp
-    $current_bart = $antrag['bart'] ?? 'V';
+    $current_bart = $ziel_bart;
     $betrag_check = validiere_betrag($current_bart, $fin, $bart_config);
     if (!$betrag_check['valid']) {
         throw new Exception($betrag_check['message']);
@@ -410,9 +420,9 @@ function speichereAntrag($pdo, $antrnr, $post, $antrag, $user) {
     if ($wichtig > 0) {
         $bart = 'B'; // Immer Vorstandsbeschluss wenn wichtig gesetzt
         error_log("DEBUG: bart='B' (wichtig=" . $wichtig . ")");
-    } elseif (!empty($antrag['bart']) && in_array($antrag['bart'], ['V', 'R', 'B'])) {
-        // Vorhandenen bart beibehalten (wurde bei Erstellung gewählt)
-        $bart = $antrag['bart'];
+    } elseif (!empty($ziel_bart) && in_array($ziel_bart, ['V', 'R', 'B'])) {
+        // bart beibehalten (bei Erstellung gewählt) bzw. im Editiermodus gewählte neue Beschlussart
+        $bart = $ziel_bart;
         error_log("DEBUG: bart='" . $bart . "' (bereits gesetzt)");
     } else {
         // Fallback: automatische Berechnung (für alte Anträge ohne gesetzten bart)
@@ -824,8 +834,22 @@ if ($user['aktiv'] >= 19) {
                 <!-- Zeile 1: Beschlussart - Abstimmung 1 - Abstimmung 2 -->
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Beschlussart</label>
-                        <input type="text" value="<?= htmlspecialchars(get_typ_bezeichnung($antrag['bart'], $bart_config) ?? '') ?>" class="read-only" readonly>
+                        <label for="bart_neu">Beschlussart</label>
+                        <?php if (substr($antrnr, 0, 1) === 'A'): ?>
+                            <select id="bart_neu" name="bart_neu">
+                                <?php
+                                $bart_auswahl = get_aktive_typen($bart_config);
+                                if (!isset($bart_auswahl[$antrag['bart']])) $bart_auswahl[$antrag['bart']] = get_typ_bezeichnung($antrag['bart'], $bart_config);
+                                foreach ($bart_auswahl as $b_key => $b_name): ?>
+                                    <option value="<?= htmlspecialchars($b_key) ?>" <?= $antrag['bart'] === $b_key ? 'selected' : '' ?>><?= htmlspecialchars($b_name) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div style="font-size: 11px; color: #666; margin-top: 2px;">
+                                Beschlussart ändern (z. B. bei Überschreiten des Betragslimits) und speichern; danach erscheinen die passenden Felder.
+                            </div>
+                        <?php else: ?>
+                            <input type="text" value="<?= htmlspecialchars(get_typ_bezeichnung($antrag['bart'], $bart_config) ?? '') ?>" class="read-only" readonly>
+                        <?php endif; ?>
                     </div>
 
                     <?php if ($antrag['bart'] === 'V' || $antrag['bart'] === 'R'): ?>

@@ -8,6 +8,11 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### Beschlussart im Editiermodus änderbar (2026-10-23)
+
+- „Antrag bearbeiten": Im Editiermodus (A) ist die Beschlussart jetzt wählbar (Verfügung / Ressortbeschluss / Vorstandsbeschluss, soweit aktiviert). Vorher war das Feld schreibgeschützt, obwohl die Fehlermeldung bei Überschreiten des Betragslimits „Bitte wähle einen anderen Typ" empfahl. Die Betragsprüfung gilt für die neu gewählte Art; nach dem Speichern erscheinen die passenden Felder (z. B. 2. Abstimmende bei Ressortbeschluss).
+- Die Prüfung der monatlichen Verfügungsgrenze gilt nur noch für Verfügungen; ein Wechsel zum Ressortbeschluss („sonst Ressortbeschluss") ist damit nicht mehr blockiert.
+
 #### Fix: Antragsliste zeigt Bedenkzeit als „noch offen" (2026-10-22)
 
 - `tab_proposals.php`: Wer Bedenkzeit gewählt hat (Votum 5), gilt in „noch offen: …" als offen (mit „Bedenkzeit bis TT.MM."), nicht mehr als abgestimmt. Zuvor stand „alle abgestimmt", obwohl die Auswertung (`auswerten_abstimmung()`) auf die Bedenkzeit wartet.
