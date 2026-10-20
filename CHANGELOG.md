@@ -8,6 +8,10 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### welcome.php: Funktionsliste nach Menü-Reihenfolge und Modulschaltern (2026-10-26)
+
+- Die Funktionsliste der Demo-Startseite folgt der Reihenfolge der Tabs; eingeschaltete Bereiche stehen zuerst, per Modulschalter ausgeschaltete danach ausgegraut mit Fußnote. Neu in der Liste: MV-Beschlüsse und Hinweiskasten.
+
 #### Drei Demo-Versionen; Antrags-TOPs ohne Modul „Anträge" (2026-10-25)
 
 - **Demo-Versionen:** „Vollausstattung" und „Einfachausstattung" sind vorgegeben (aus `demo_data.json`, von `demo_build.php`); „aktuell" ist der zuletzt selbst gespeicherte Stand (`demo_data_aktuell.json`, geschrieben von `demo_export.php`, nicht im Repository). `demo_import.php?profil=voll|einfach|aktuell` lädt die gewählte Version und überschreibt den aktuellen Stand; im Admin-Bereich (System & Demo-Funktionen) stehen dafür drei Knöpfe. Beim Laden von „aktuell" gelten die mitgespeicherten Modulschalter.

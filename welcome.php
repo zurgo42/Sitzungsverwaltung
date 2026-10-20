@@ -27,6 +27,8 @@ try {
     die('<h1>Datenbankverbindung fehlgeschlagen</h1><p>' . htmlspecialchars($e->getMessage()) . '</p>');
 }
 
+require_once __DIR__ . '/module_config.php';
+
 // Demo-Mitglieder laden
 $demo_members = [];
 try {
@@ -124,6 +126,18 @@ if (isset($_GET['demo_email'])) {
             color: #333;
         }
 
+        /* Per Modulschalter ausgeschaltete Bereiche */
+        .feature-item.disabled {
+            opacity: 0.45;
+            filter: grayscale(1);
+        }
+
+        .features-footnote {
+            margin: 14px 0 0 0;
+            font-size: 0.82em;
+            color: #777;
+        }
+
         .demo-box {
             background: white;
             padding: 20px 25px;
@@ -210,52 +224,51 @@ if (isset($_GET['demo_email'])) {
         <!-- Features -->
         <div class="features-box">
             <h2>Was diese Anwendung leistet:</h2>
+            <?php
+            // Reihenfolge wie im Menü; Schlüssel = Modulschalter (null = fester Bereich, immer an)
+            $features = [
+                ['proposals', '📜', 'Anträge & Beschlüsse', 'Vollständiges Workflow-System für Vorstandsbeschlüsse und Anträge, automatische Nummernvergabe, konfigurierbare Antragstypen, Voting-Integration, Beschlussbuch für alle beschlossenen Anträge'],
+                [null, '🤝', 'Sitzungen', 'Sitzungsplanung mit Video-Links, Teilnehmerverwaltung, Status-Workflow (Vorbereitung → Aktiv → Beendet → Protokoll)'],
+                [null, '📋', 'Tagesordnung', 'TOPs mit Kategorien, Kommentare zur Vorbereitung, Live-Diskussion während Sitzung, Abstimmungsverwaltung'],
+                [null, '📄', 'Protokolle', 'Automatische Protokollerstellung aus TOPs, Freigabe-Workflow, Änderungswünsche, PDF-Export, Archivierung'],
+                [null, '📆', 'Termin finden', 'Terminabstimmung per Umfrage, automatische Kalendereinträge (.ics), Übersicht geplanter Termine'],
+                [null, '✅', 'Erledigen', 'Persönliche Aufgabenliste mit Fälligkeiten, Prioritäten, Benachrichtigungen, Kalender-Export (.ics)'],
+                ['opinion', '📊', 'Meinungsbild', 'Anonyme Umfragen zur Stimmungsabfrage, schnelles Feedback-Tool, Ergebnisauswertung in Echtzeit'],
+                ['kalender', '📅', 'Kalender', 'Termine der nächsten 90 Tage, Sitzungen automatisch eingebunden, wiederkehrende Termine, Abstimmungsfristen mit E-Mail-Erinnerung'],
+                [null, '📁', 'Dokumente', 'Zentrale Dokumentenverwaltung, Kategorisierung, Freigabe-Verwaltung, Versionierung, Archiv-Funktion'],
+                ['mv_beschluesse', '📜', 'MV-Beschlüsse', 'Beschlüsse der Mitgliederversammlung erfassen und nachschlagen'],
+                ['texte', '✍️', 'Textbearbeitung', 'Gemeinsames Erstellen von Texten (Pressemitteilungen, Stellungnahmen), absatzweise Bearbeitung mit Lock-System, Online-User-Anzeige, Versionierung'],
+                ['vertretung', '🏖️', 'Abwesenheiten', 'Abwesenheitsverwaltung mit Zeiträumen, Vertretungsregelungen, automatische Anzeige in Meeting-Planung'],
+                ['hinweise', '🔔', 'Hinweiskasten', 'Persönliche Übersicht offener Abstimmungen, Aufgaben, Termine und Abwesenheiten am Seitenanfang'],
+            ];
+            // Eingeschaltete Bereiche zuerst (in Menü-Reihenfolge), danach die ausgeschalteten (ausgegraut)
+            $features_an = [];
+            $features_aus = [];
+            foreach ($features as $f) {
+                if ($f[0] === null || sv_module_enabled($pdo, $f[0])) {
+                    $features_an[] = $f;
+                } else {
+                    $features_aus[] = $f;
+                }
+            }
+            ?>
             <div class="features-grid">
+                <?php foreach ($features_an as $f): ?>
                 <div class="feature-item">
-                    <span class="icon">📆</span>
-                    <span class="text"><strong>Termine:</strong> Terminabstimmung per Umfrage, automatische Kalendereinträge (.ics), Übersicht geplanter Termine</span>
+                    <span class="icon"><?= $f[1] ?></span>
+                    <span class="text"><strong><?= htmlspecialchars($f[2]) ?>:</strong> <?= htmlspecialchars($f[3]) ?></span>
                 </div>
-                <div class="feature-item">
-                    <span class="icon">🤝</span>
-                    <span class="text"><strong>Sitzungen:</strong> Sitzungsplanung mit Video-Links, Teilnehmerverwaltung, Status-Workflow (Vorbereitung → Aktiv → Beendet → Protokoll)</span>
+                <?php endforeach; ?>
+                <?php foreach ($features_aus as $f): ?>
+                <div class="feature-item disabled" title="In dieser Installation ausgeschaltet">
+                    <span class="icon"><?= $f[1] ?></span>
+                    <span class="text"><strong><?= htmlspecialchars($f[2]) ?>:</strong> <?= htmlspecialchars($f[3]) ?> <sup>1</sup></span>
                 </div>
-                <div class="feature-item">
-                    <span class="icon">📋</span>
-                    <span class="text"><strong>Tagesordnung:</strong> TOPs mit Kategorien, Kommentare zur Vorbereitung, Live-Diskussion während Sitzung, Abstimmungsverwaltung</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">📜</span>
-                    <span class="text"><strong>Anträge & Beschlüsse:</strong> Vollständiges Workflow-System für Vorstandsbeschlüsse und Anträge, automatische Nummernvergabe, konfigurierbare Antragstypen, Voting-Integration, Beschlussbuch für alle beschlossenen Anträge</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">✍️</span>
-                    <span class="text"><strong>Textbearbeitung:</strong> Gemeinsames Erstellen von Texten (Pressemitteilungen, Stellungnahmen), absatzweise Bearbeitung mit Lock-System, Online-User-Anzeige, Versionierung</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">📄</span>
-                    <span class="text"><strong>Protokolle:</strong> Automatische Protokollerstellung aus TOPs, Freigabe-Workflow, Änderungswünsche, PDF-Export, Archivierung</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">✅</span>
-                    <span class="text"><strong>Erledigen:</strong> Persönliche Aufgabenliste mit Fälligkeiten, Prioritäten, Benachrichtigungen, Kalender-Export (.ics)</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">🏖️</span>
-                    <span class="text"><strong>Abwesenheiten:</strong> Abwesenheitsverwaltung mit Zeiträumen, Vertretungsregelungen, automatische Anzeige in Meeting-Planung</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">📊</span>
-                    <span class="text"><strong>Meinungsbild:</strong> Anonyme Umfragen zur Stimmungsabfrage, schnelles Feedback-Tool, Ergebnisauswertung in Echtzeit</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">📅</span>
-                    <span class="text"><strong>Kalender:</strong> Termine der nächsten 90 Tage, Sitzungen automatisch eingebunden, wiederkehrende Termine, Abstimmungsfristen mit E-Mail-Erinnerung</span>
-                </div>
-                <div class="feature-item">
-                    <span class="icon">📁</span>
-                    <span class="text"><strong>Dokumente:</strong> Zentrale Dokumentenverwaltung, Kategorisierung, Freigabe-Verwaltung, Versionierung, Archiv-Funktion</span>
-                </div>
+                <?php endforeach; ?>
             </div>
+            <?php if ($features_aus): ?>
+            <p class="features-footnote"><sup>1</sup> Ausgegraut: Dieser Bereich ist in dieser Installation per Modulschalter ausgeschaltet. Er kann im Admin-Bereich (Module) zugeschaltet werden.</p>
+            <?php endif; ?>
         </div>
 
         <!-- Demo Login -->
