@@ -384,6 +384,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_external']))
         $show_mnr_section = false;
         ?>
 
+        <?php
+        // Mitglieder, die über den öffentlichen Wrapper (ohne SSO) kommen, werden hier nicht erkannt.
+        // Link auf dieselbe Seite im geschützten Bereich anbieten: dort erkennt die SSO-Anmeldung das Mitglied automatisch.
+        $_mlogin_docroot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/');
+        $_mlogin_dir     = str_replace('\\', '/', __DIR__);
+        $_mlogin_file    = (($poll_type ?? '') === 'termine') ? 'terminplanung_standalone.php' : 'opinion_standalone.php';
+        $_mlogin_rel     = ($_mlogin_docroot !== '' && strpos($_mlogin_dir, $_mlogin_docroot) === 0) ? substr($_mlogin_dir, strlen($_mlogin_docroot)) : null;
+        $_mlogin_now     = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+        if ($_mlogin_rel !== null && rtrim($_mlogin_rel, '/') !== $_mlogin_now):
+            $_mlogin_param = !empty($_GET['token']) ? 'token=' . urlencode($_GET['token']) : 'poll_id=' . intval($poll_id ?? 0);
+            $_mlogin_url = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST']
+                . $_mlogin_rel . '/' . $_mlogin_file . '?' . $_mlogin_param;
+        ?>
+        <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin-bottom: 25px; border-radius: 4px;">
+            <strong style="color: #2e7d32;">👤 Du bist Mitglied?</strong>
+            <p style="margin: 8px 0 0 0; color: #1b5e20; line-height: 1.5;">
+                Dann <a href="<?php echo htmlspecialchars($_mlogin_url); ?>">melde dich hier an</a> – du wirst automatisch erkannt und musst keine Angaben machen.
+            </p>
+        </div>
+        <?php endif; ?>
+
         <div class="intro-text">
             <p>Um an dieser Umfrage teilzunehmen, benötigen wir einige Angaben von dir. Deine Daten werden vertraulich behandelt und ausschließlich für diese Umfrage verwendet.</p>
         </div>

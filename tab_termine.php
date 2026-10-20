@@ -1212,6 +1212,22 @@ if (isset($_SESSION['error'])) {
                     📋 Kopieren
                 </button>
             </div>
+            <?php if ($use_token && empty($GLOBALS['external_link_ohne_oeffentliche_url'])): ?>
+            <?php
+            // Zusätzlich: Link für Mitglieder (geschützter Bereich, SSO erkennt das Mitglied automatisch)
+            $member_link = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST']
+                . rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/')
+                . '/terminplanung_standalone.php?token=' . urlencode($poll['access_token']);
+            ?>
+            <p style="margin: 14px 0 6px 0; color: #666;">Für Mitglieder (Anmeldung wird automatisch erkannt):</p>
+            <div class="poll-link-container" style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="poll_member_link_<?php echo $poll_id; ?>" value="<?php echo htmlspecialchars($member_link); ?>" readonly onclick="this.select()"
+                       style="flex: 1; padding: 10px; font-size: 13px; font-family: monospace; border: 1px solid #ccc; background: white; border-radius: 4px;">
+                <button type="button" class="btn-secondary" onclick="copyToClipboard('<?php echo htmlspecialchars($member_link, ENT_QUOTES); ?>')" style="padding: 10px 20px; white-space: nowrap;">
+                    📋 Kopieren
+                </button>
+            </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
 
