@@ -1626,26 +1626,39 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
                 <!-- Demo Export -->
                 <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
-                    <h5 style="margin-top: 0; color: #007bff;">📦 Demo-Daten exportieren</h5>
+                    <h5 style="margin-top: 0; color: #007bff;">📦 Aktuellen Stand als Demo-Version speichern</h5>
                     <p style="font-size: 14px; color: #666;">
-                        Exportiert den aktuellen Datenbankstand als Demo-Daten-Datei.
-                        Nützlich wenn du einen neuen Demo-Stand erstellen möchtest.
+                        Speichert den aktuellen Datenbankstand als Demo-Version „aktuell". Die beiden vorgegebenen Versionen
+                        (Vollausstattung, Einfachausstattung) bleiben unverändert.
                     </p>
                     <a href="tools/demo_export.php" class="btn" style="background-color: #007bff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank">
-                        📦 Export starten
+                        📦 Als „aktuell" speichern
                     </a>
                 </div>
 
-                <!-- Demo Import/Reset -->
+                <!-- Demo-Version wählen (überschreibt den aktuellen Stand) -->
                 <div style="border: 1px solid #dc3545; padding: 15px; border-radius: 5px; background-color: #fff5f5;">
-                    <h5 style="margin-top: 0; color: #dc3545;">♻️ Datenbank auf Demo-Stand zurücksetzen</h5>
+                    <h5 style="margin-top: 0; color: #dc3545;">♻️ Demo-Version laden</h5>
                     <p style="font-size: 14px; color: #666;">
-                        <strong>ACHTUNG:</strong> Löscht ALLE aktuellen Daten und lädt Demo-Daten ein.
+                        <strong>ACHTUNG:</strong> Die gewählte Version überschreibt den aktuellen Stand und löscht alle aktuellen Daten.
                         Dieser Vorgang kann nicht rückgängig gemacht werden!
                     </p>
-                    <a href="tools/demo_import.php" class="btn btn-danger" style="background-color: #dc3545; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block; margin-top: 10px;" target="_blank" onclick="return confirm('WARNUNG: Dies löscht ALLE aktuellen Daten!\n\nMöchtest du wirklich fortfahren?');">
-                        ♻️ Demo-Reset durchführen
-                    </a>
+                    <?php $demo_aktuell_da = file_exists(__DIR__ . '/tools/demo_data_aktuell.json'); ?>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                        <a href="tools/demo_import.php?profil=voll" class="btn btn-danger" style="background-color: #dc3545; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block;" target="_blank" onclick="return confirm('WARNUNG: Dies löscht ALLE aktuellen Daten!\n\nMöchtest du wirklich fortfahren?');">
+                            ♻️ Vollausstattung (vorgegeben)
+                        </a>
+                        <a href="tools/demo_import.php?profil=einfach" class="btn btn-danger" style="background-color: #dc3545; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block;" target="_blank" onclick="return confirm('WARNUNG: Dies löscht ALLE aktuellen Daten!\n\nMöchtest du wirklich fortfahren?');">
+                            ♻️ Einfachausstattung (vorgegeben)
+                        </a>
+                        <?php if ($demo_aktuell_da): ?>
+                        <a href="tools/demo_import.php?profil=aktuell" class="btn btn-danger" style="background-color: #6c757d; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; display: inline-block;" target="_blank" onclick="return confirm('WARNUNG: Dies löscht ALLE aktuellen Daten!\n\nMöchtest du wirklich fortfahren?');">
+                            ♻️ Aktuelle Version (gespeichert <?= date('d.m.Y H:i', filemtime(__DIR__ . '/tools/demo_data_aktuell.json')) ?>)
+                        </a>
+                        <?php else: ?>
+                        <span style="font-size: 13px; color: #888;">Aktuelle Version: noch nicht gespeichert.</span>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
 
@@ -1653,8 +1666,8 @@ document.getElementById('editAdminAbsenceModal')?.addEventListener('click', func
                 <h5 style="margin-top: 0;">💡 Workflow</h5>
                 <ol style="font-size: 14px; margin: 0;">
                     <li>Erstelle in der Anwendung verschiedene Meetings, TODOs, Kommentare etc.</li>
-                    <li>Exportiere diese als Demo-Daten (erzeugt <code>demo_data.json</code>)</li>
-                    <li>Wenn du den Demo-Stand wiederherstellen möchtest, nutze "Demo-Reset"</li>
+                    <li>Speichere diesen Stand als Demo-Version „aktuell" (erzeugt <code>demo_data_aktuell.json</code>)</li>
+                    <li>Zum Wiederherstellen oder Wechseln lädst du eine der drei Versionen: Vollausstattung, Einfachausstattung oder „aktuell"</li>
                 </ol>
             </div>
         </div>

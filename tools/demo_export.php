@@ -281,7 +281,7 @@ if (!$password_correct) {
 
         // JSON-Datei erstellen
         $json = json_encode($export_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        $filename = __DIR__ . '/demo_data.json';
+        $filename = DEMO_FILE_AKTUELL;   // eigener Stand = Demo-Version "aktuell" (die vorgegebene demo_data.json bleibt unberührt)
         file_put_contents($filename, $json);
 
         // Warnung bei zu wenig Daten
@@ -346,10 +346,10 @@ if (!$password_correct) {
         echo '<div class="info">';
         echo '<h3>📋 Nächste Schritte - So überträgst du die Daten auf einen anderen Server</h3>';
         echo '<ol>';
-        echo '<li><strong>Export erfolgreich!</strong> Die Datei <code>demo_data.json</code> wurde im <code>tools/</code>-Verzeichnis erstellt</li>';
+        echo '<li><strong>Export erfolgreich!</strong> Die Datei <code>demo_data_aktuell.json</code> (Demo-Version „aktuell") wurde im <code>tools/</code>-Verzeichnis erstellt</li>';
         echo '<li><strong>Datei auf neuen Server kopieren:</strong>';
         echo '<ul>';
-        echo '<li>Lade die Datei <code>tools/demo_data.json</code> herunter</li>';
+        echo '<li>Lade die Datei <code>tools/demo_data_aktuell.json</code> herunter</li>';
         echo '<li>Lade sie auf dem Zielserver in das gleiche <code>tools/</code>-Verzeichnis hoch</li>';
         echo '</ul></li>';
         echo '<li><strong>Auf dem Zielserver:</strong>';
@@ -366,8 +366,8 @@ if (!$password_correct) {
         // Download-Link für die JSON-Datei
         echo '<div class="card">';
         echo '<h3>💾 Datei herunterladen</h3>';
-        echo '<p>Klicke hier, um die demo_data.json direkt herunterzuladen:</p>';
-        echo '<a href="demo_data.json" download class="btn">⬇️ demo_data.json herunterladen</a>';
+        echo '<p>Klicke hier, um die demo_data_aktuell.json direkt herunterzuladen:</p>';
+        echo '<a href="demo_data_aktuell.json" download class="btn">⬇️ demo_data_aktuell.json herunterladen</a>';
         echo ' ';
         echo '<a href="demo_analyze.php" class="btn" style="background: #6c757d;">🔍 JSON-Datei analysieren</a>';
         echo '</div>';

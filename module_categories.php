@@ -47,13 +47,18 @@ function render_category_select($name, $id, $selected = 'information', $onchange
     }
     echo ' style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">';
 
+    // Ohne Modul "Anträge/Beschlüsse" gibt es keine neuen Antrags-TOPs (bestehende bleiben auswählbar)
+    global $pdo;
+    $antraege_aktiv = !function_exists('sv_module_enabled') || !isset($pdo) || sv_module_enabled($pdo, 'proposals');
+
     foreach ($categories as $key => $cat) {
+        if ($key === 'antrag_beschluss' && !$antraege_aktiv && $selected !== 'antrag_beschluss') continue;
         $selected_attr = ($key === $selected) ? ' selected' : '';
         $label = $cat['label'];
 
         // Spezielle Labels für antrag_beschluss basierend auf allow_decisions
         if ($key === 'antrag_beschluss') {
-            $label = $allow_decisions ? 'Antrag und Beschluss' : 'Antrag vorbereiten';
+            $label = !$antraege_aktiv ? 'Beschluss' : ($allow_decisions ? 'Antrag und Beschluss' : 'Antrag vorbereiten');
         }
 
         echo '<option value="' . $key . '"' . $selected_attr . '>';

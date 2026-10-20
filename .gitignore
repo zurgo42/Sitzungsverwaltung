@@ -1,6 +1,7 @@
 uploads/
 main-backup-*.zip
 tools/demo_data.json
+tools/demo_data_aktuell.json
 tools/backups/
 
 # Config-Dateien (enthalten produktivspezifische Einstellungen)

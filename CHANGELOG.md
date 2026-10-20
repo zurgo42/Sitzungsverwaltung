@@ -8,6 +8,11 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### Drei Demo-Versionen; Antrags-TOPs ohne Modul „Anträge" (2026-10-25)
+
+- **Demo-Versionen:** „Vollausstattung" und „Einfachausstattung" sind vorgegeben (aus `demo_data.json`, von `demo_build.php`); „aktuell" ist der zuletzt selbst gespeicherte Stand (`demo_data_aktuell.json`, geschrieben von `demo_export.php`, nicht im Repository). `demo_import.php?profil=voll|einfach|aktuell` lädt die gewählte Version und überschreibt den aktuellen Stand; im Admin-Bereich (System & Demo-Funktionen) stehen dafür drei Knöpfe. Beim Laden von „aktuell" gelten die mitgespeicherten Modulschalter.
+- **TOPs ohne Modul „Anträge/Beschlüsse":** Die Kategorie „Antrag/Beschluss" wird bei neuen TOPs nicht mehr angeboten (bestehende bleiben als „Beschluss" erhalten), die Antrags-Verknüpfung und der Hinweis „Eintrag ins Beschlussbuch" werden ausgeblendet, es werden keine Anträge angelegt und keine Beschlussbuch-Einträge geschrieben. Der TOP wird wie jeder andere behandelt; Ergebnis steht im Protokoll.
+
 #### Modulschalter und zwei Demo-Ausstattungen (2026-10-24)
 
 - **Modulschalter** (`module_config.php`, Admin → Datenbank-Initialisierung → „Module"): Anträge/Beschlüsse, Meinungsbild, Kalender, MV-Beschlüsse, Textbearbeitung, Abwesenheiten und der Hinweiskasten am Seitenanfang sind einzeln ein- und ausschaltbar; dazu die Profile „Einfachausstattung" und „Vollausstattung". Fest enthalten bleiben Sitzungen/Tagesordnung, Protokolle, Termin finden, ToDo, Dokumente, Nachrichten und Admin.

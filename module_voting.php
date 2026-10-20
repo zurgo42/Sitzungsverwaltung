@@ -193,7 +193,7 @@ function render_voting_ui($item, $voting, $current_user, $meeting, $pdo) {
                                style="width: 100%; padding: 6px; border: 1px solid #ffc107; border-radius: 4px; font-size: 13px;">
                     </div>
 
-                    <?php if (!empty($item['antrnr'])): ?>
+                    <?php if (!empty($item['antrnr']) && function_exists('sv_module_enabled') && sv_module_enabled($GLOBALS['pdo'], 'proposals')): ?>
                     <!-- Checkbox für Antragsabstimmung (nur wenn Antrag verknüpft) -->
                     <div style="margin-bottom: 10px; padding: 10px; background: #fff8dc; border: 1px solid #ffc107; border-radius: 4px;">
                         <label style="display: flex; align-items: center; cursor: pointer;">

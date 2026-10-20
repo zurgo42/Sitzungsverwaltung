@@ -94,7 +94,10 @@ if (!$password_correct) {
     exit;
 }
 
-$demo_file = __DIR__ . '/demo_data.json';
+// Demo-Version: 'voll' und 'einfach' (vorgegeben, aus demo_data.json) oder 'aktuell' (zuletzt gespeicherter eigener Stand)
+$demo_profil = $_POST['profil'] ?? ($_GET['profil'] ?? 'voll');
+if (!in_array($demo_profil, ['voll', 'einfach', 'aktuell'], true)) $demo_profil = 'voll';
+$demo_file = ($demo_profil === 'aktuell') ? DEMO_FILE_AKTUELL : DEMO_FILE_BASIS;
 $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
 
 ?>
@@ -238,7 +241,7 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             <ol>
                 <li>✓ <code>config.php</code> hat <code>DEMO_MODE_ENABLED = true</code> <?php echo DEMO_MODE_ENABLED ? '✅' : '❌'; ?></li>
                 <li>✓ <code>tools/init-db.php</code> wurde ausgeführt (Tabellen existieren)</li>
-                <li>✓ <code>tools/demo_data.json</code> existiert <?php echo file_exists($demo_file) ? '✅' : '❌'; ?></li>
+                <li>✓ <code><?php echo htmlspecialchars('tools/' . basename($demo_file)); ?></code> existiert <?php echo file_exists($demo_file) ? '✅' : '❌'; ?></li>
             </ol>
             <?php if (!DEMO_MODE_ENABLED): ?>
                 <p style="color: #dc3545; font-weight: bold;">⚠️ DEMO_MODE_ENABLED ist auf false! Setze es auf true in config.php</p>
@@ -305,12 +308,15 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
         echo '<h3>⚠️ WARNUNG</h3>';
         echo '<p><strong>Dieser Vorgang kann nicht rückgängig gemacht werden!</strong></p>';
         echo '<p>Alle bestehenden Meeting-Daten werden unwiderruflich gelöscht.</p>';
-        $profil_vorwahl = (($_GET['profil'] ?? '') === 'einfach') ? 'einfach' : 'voll';
+        $profil_vorwahl = $demo_profil;
+        $aktuell_da = file_exists(DEMO_FILE_AKTUELL);
         echo '<form method="post">';
         echo '<input type="hidden" name="confirm" value="yes">';
-        echo '<p><strong>Welche Demo soll eingespielt werden?</strong></p>';
-        echo '<p><label><input type="radio" name="profil" value="voll"' . ($profil_vorwahl === 'voll' ? ' checked' : '') . '> <strong>Vollausstattung</strong> – alle Bereiche (Anträge, Meinungsbild, Kalender, MV-Beschlüsse, Textbearbeitung, Abwesenheiten, Hinweiskasten)</label><br>';
-        echo '<label><input type="radio" name="profil" value="einfach"' . ($profil_vorwahl === 'einfach' ? ' checked' : '') . '> <strong>Einfachausstattung</strong> – Sitzungen, Protokolle, Termin finden, ToDo, Dokumente, Nachrichten, Admin</label></p>';
+        echo '<p><strong>Welche Demo-Version soll eingespielt werden?</strong> Sie überschreibt den aktuellen Stand.</p>';
+        echo '<p><label><input type="radio" name="profil" value="voll"' . ($profil_vorwahl === 'voll' ? ' checked' : '') . '> <strong>Vollausstattung</strong> (vorgegeben) – alle Bereiche (Anträge, Meinungsbild, Kalender, MV-Beschlüsse, Textbearbeitung, Abwesenheiten, Hinweiskasten)</label><br>';
+        echo '<label><input type="radio" name="profil" value="einfach"' . ($profil_vorwahl === 'einfach' ? ' checked' : '') . '> <strong>Einfachausstattung</strong> (vorgegeben) – Sitzungen, Protokolle, Termin finden, ToDo, Dokumente, Nachrichten, Admin</label><br>';
+        echo '<label><input type="radio" name="profil" value="aktuell"' . ($profil_vorwahl === 'aktuell' ? ' checked' : '') . ($aktuell_da ? '' : ' disabled') . '> <strong>Aktuelle Version</strong> – zuletzt selbst gespeicherter Stand'
+            . ($aktuell_da ? ' (gespeichert ' . date('d.m.Y H:i', filemtime(DEMO_FILE_AKTUELL)) . ')' : ' (noch nicht gespeichert – zuerst „Export starten" im Admin-Bereich)') . '</label></p>';
         echo '<button type="submit" class="btn btn-danger">🗑️ Ja, alle Daten löschen und Demo-Daten importieren</button>';
         echo '</form>';
         echo '</div>';
@@ -539,9 +545,12 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
             }
             // Gewählte Demo-Ausstattung (Modulschalter) anwenden
             require_once __DIR__ . '/../module_config.php';
-            $demo_profil = (($_POST['profil'] ?? '') === 'einfach') ? 'einfach' : 'voll';
-            sv_module_profil_anwenden($pdo, $demo_profil);
-            echo '<p style="color: green;">✓ Ausstattung: ' . ($demo_profil === 'einfach' ? 'Einfachausstattung' : 'Vollausstattung') . '</p>';
+            if ($demo_profil === 'aktuell') {
+                echo '<p style="color: green;">✓ Aktuelle Version geladen (Modulschalter wie gespeichert)</p>';
+            } else {
+                sv_module_profil_anwenden($pdo, $demo_profil);
+                echo '<p style="color: green;">✓ Ausstattung: ' . ($demo_profil === 'einfach' ? 'Einfachausstattung' : 'Vollausstattung') . '</p>';
+            }
             echo '</div>';
 
             // Fehler anzeigen (falls vorhanden)

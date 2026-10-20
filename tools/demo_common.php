@@ -33,6 +33,11 @@ define('DEMO_REMINDER_OPEN_SLOTS', [2, 3]);
 /** svconfig-Schlüssel: Datum, auf das sich alle relativen Demo-Datumsangaben beziehen */
 define('DEMO_ANCHOR_KEY', 'demo_anchor_date');
 
+// Drei Demo-Versionen: 'voll' und 'einfach' kommen aus demo_data.json (vorgegeben, von demo_build.php erzeugt),
+// 'aktuell' ist der zuletzt mit demo_export.php gespeicherte eigene Stand (demo_data_aktuell.json).
+define('DEMO_FILE_BASIS', __DIR__ . '/demo_data.json');
+define('DEMO_FILE_AKTUELL', __DIR__ . '/demo_data_aktuell.json');
+
 // Beispiel-Antrag für "automatisch zur Abstimmung stellen": laufende Nummer 77 (Präfix A = wartet, B = automatisch eingestellt).
 // Wirkt nur, wenn für Typ B eine Wartezeit konfiguriert ist (bart_B_wartezeit_aktiv/-tage); siehe update_demo_dates.php
 define('DEMO_AUTO_ANTRNR_SUFFIX', '77');

@@ -797,7 +797,7 @@ foreach ($agenda_items as $item):
         <?php endif; ?>
 
         <!-- Vollständiger Antrag bei verlinktem Antrag -->
-        <?php if ($item['antrnr']): ?>
+        <?php if ($item['antrnr'] && sv_module_enabled($pdo, 'proposals')): ?>
             <?php
             // Antragsdaten laden
             $antrag_stmt = $pdo->prepare("SELECT titel, beschluss FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ?");

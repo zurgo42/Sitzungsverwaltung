@@ -135,7 +135,7 @@ if (isset($_POST['add_agenda_item'])) {
             $proposal_text = '';
 
             // Wenn Kategorie "antrag_beschluss" und Beschlusstext vorhanden: Vollständigen Antrag erstellen
-            if ($category === 'antrag_beschluss' && !empty($_POST['proposal_beschluss'])) {
+            if ($category === 'antrag_beschluss' && !empty($_POST['proposal_beschluss']) && sv_module_enabled($pdo, 'proposals')) {
                 // Validierung der Pflichtfelder
                 $validation_errors = [];
                 if (empty(trim($_POST['proposal_beschluss']))) {
@@ -1852,7 +1852,7 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
             $proposal_text = '';
 
             // Wenn Kategorie "antrag_beschluss" und Beschlusstext vorhanden: Vollständigen Antrag erstellen
-            if ($category === 'antrag_beschluss' && !empty($_POST['proposal_beschluss'])) {
+            if ($category === 'antrag_beschluss' && !empty($_POST['proposal_beschluss']) && sv_module_enabled($pdo, 'proposals')) {
                 // Validierung der Pflichtfelder
                 $validation_errors = [];
                 if (empty(trim($_POST['proposal_beschluss']))) {
@@ -3018,7 +3018,7 @@ if (isset($_POST['close_voting']) && $meeting['status'] === 'active') {
         $beschluss_saved = false;
 
         // Unterscheidung: Antragsabstimmung (voting_question leer + antrnr vorhanden) vs. Stimmungsbild
-        $is_proposal_vote = ($item && !empty($item['antrnr']) && empty($voting['voting_question']));
+        $is_proposal_vote = ($item && !empty($item['antrnr']) && empty($voting['voting_question']) && sv_module_enabled($pdo, 'proposals'));
 
         if ($is_proposal_vote) {
             // ANTRAGSABSTIMMUNG: Kompaktes Format
