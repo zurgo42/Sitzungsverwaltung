@@ -90,6 +90,14 @@ if ($is_sitzungsverwaltung) {
     require_once __DIR__ . '/module_config.php';
     sv_module_guard($pdo, 'opinion');   // Bereich ausgeschaltet -> Abbruch
 
+    // Öffentlicher Wrapper (kein SSO): Weitergabe-Links auf die tatsächlich aufgerufene Wrapper-URL beziehen,
+    // auch wenn der Wrapper $OPINION_PUBLIC_URL nicht setzt (sonst käme der Pfad im geschützten Bereich).
+    if (!empty($OPINION_PUBLIC_MODE) && empty($OPINION_PUBLIC_URL) && !empty($_SERVER['SCRIPT_NAME'])) {
+        $OPINION_PUBLIC_URL = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http')
+            . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['SCRIPT_NAME'];
+        $GLOBALS['OPINION_PUBLIC_URL'] = $OPINION_PUBLIC_URL;
+    }
+
     // In Sitzungsverwaltung: Adapter-System nutzen
     require_once __DIR__ . '/member_functions.php';
     require_once __DIR__ . '/opinion_functions.php';
