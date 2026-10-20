@@ -353,11 +353,14 @@ function generate_external_access_link($poll_type, $poll_id_or_token, $use_token
         }
     }
 
-    // Auto-Erkennung: nur HTTP_HOST, kein BASE_URL (der zeigt auf den geschützten SV-Bereich)
-    // Für andere Pfade bitte svconfig.terminplanung_standalone_url konfigurieren
+    // Rückfall ohne konfigurierte öffentliche URL: das Skript im Verzeichnis der Sitzungsverwaltung (dort liegt es sicher).
+    // Der Link funktioniert dann nur für Eingeloggte; für Externe die öffentliche URL in svconfig
+    // (terminplanung_standalone_url / opinion_standalone_url) eintragen.
+    $GLOBALS['external_link_ohne_oeffentliche_url'] = true;
     $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
     $file = ($poll_type === 'termine') ? 'terminplanung_standalone.php' : 'opinion_standalone.php';
-    return $protocol . '://' . $_SERVER['HTTP_HOST'] . '/' . $file . '?' . $param;
+    $dir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+    return $protocol . '://' . $_SERVER['HTTP_HOST'] . $dir . '/' . $file . '?' . $param;
 }
 
 /**

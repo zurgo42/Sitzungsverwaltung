@@ -1192,6 +1192,12 @@ if (isset($_SESSION['error'])) {
                 }
                 ?>
             </p>
+            <?php if (!empty($GLOBALS['external_link_ohne_oeffentliche_url'])): ?>
+            <p style="margin: 0 0 10px 0; font-size: 12px; color: #856404;">
+                ℹ️ Dieser Link führt in den geschützten Bereich und funktioniert nur für eingeloggte Mitglieder.
+                Für Externe muss der Admin die öffentliche URL der Terminplanung hinterlegen (Admin → Datenbank-Initialisierung → Benachrichtigungen → „Öffentliche URL Terminplanung").
+            </p>
+            <?php endif; ?>
             <div class="poll-link-container" style="display: flex; gap: 10px; align-items: center;">
                 <input type="text"
                        id="poll_link_<?php echo $poll_id; ?>"
