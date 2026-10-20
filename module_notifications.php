@@ -19,6 +19,10 @@
  * @return void (gibt direkt HTML aus)
  */
 function render_user_notifications($pdo, $member_id, $options = []) {
+    require_once __DIR__ . '/module_config.php';
+    if (!sv_module_enabled($pdo, 'hinweise')) {
+        return;   // Hinweiskasten ist ausgeschaltet
+    }
     // Mitglied-Rolle ermitteln - über Adapter!
     $member = get_member_by_id($pdo, $member_id);
     $member_role = $member['role'] ?? '';
@@ -42,6 +46,10 @@ function render_user_notifications($pdo, $member_id, $options = []) {
                 break;
             }
         }
+    }
+
+    if (!sv_module_enabled($pdo, 'proposals')) {
+        $pending_votes = [];   // ohne Modul Anträge keine Abstimmungshinweise
     }
 
     if (!empty($pending_votes)) {
@@ -128,7 +136,7 @@ function render_user_notifications($pdo, $member_id, $options = []) {
     $stmt_opinions->execute([$member_id, $member_id, $member_id]);
     $open_opinions = $stmt_opinions->fetch()['count'];
 
-    if ($open_opinions > 0) {
+    if ($open_opinions > 0 && sv_module_enabled($pdo, 'opinion')) {
         $notifications[] = [
             'type' => 'opinions',
             'icon' => '📊',
@@ -310,7 +318,7 @@ function render_user_notifications($pdo, $member_id, $options = []) {
     }
 
     // 9. ABWESENHEITEN (AM ENDE, NACH TERMINEN)
-    if (empty($options['hide_absences'])) {
+    if (empty($options['hide_absences']) && sv_module_enabled($pdo, 'vertretung')) {
         $all_absences = get_absences_with_names($pdo, "a.end_date >= CURDATE()");
 
         // is_current Flag hinzufügen

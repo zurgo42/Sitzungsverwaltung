@@ -28,6 +28,9 @@ $pdo = sv_new_pdo(
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
 );
 
+require_once __DIR__ . '/module_config.php';
+sv_module_guard($pdo, 'proposals');   // Bereich ausgeschaltet -> Abbruch
+
 // User-Daten über Adapter laden
 $user = get_member_by_id($pdo, $_SESSION['member_id']);
 if (!$user) die("Benutzer nicht gefunden.");

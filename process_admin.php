@@ -1925,6 +1925,25 @@ if (isset($_POST['send_test_mail_form'])) {
 // ============================================
 
 // ============================================================
+// Modulschalter speichern
+// POST-Parameter: save_modules, profil (voll|einfach) oder module[<name>]
+// ============================================================
+if (isset($_POST['save_modules'])) {
+    require_once __DIR__ . '/module_config.php';
+    try {
+        if (in_array($_POST['profil'] ?? '', ['voll', 'einfach'], true)) {
+            sv_module_profil_anwenden($pdo, $_POST['profil']);
+            $success_message = 'Profil „' . ($_POST['profil'] === 'einfach' ? 'Einfachausstattung' : 'Vollausstattung') . '" angewendet.';
+        } else {
+            sv_module_speichern($pdo, $_POST['module'] ?? []);
+            $success_message = 'Modulschalter gespeichert.';
+        }
+    } catch (PDOException $e) {
+        $error_message = "Fehler beim Speichern: " . $e->getMessage();
+    }
+}
+
+// ============================================================
 // Dokumenten-Tab-Konfiguration speichern
 // POST-Parameter: save_documents_config, documents_mode, documents_external_url
 // ============================================================

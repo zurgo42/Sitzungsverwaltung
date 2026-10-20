@@ -29,6 +29,7 @@ require_once 'config.php';                    // Datenbankverbindung und Konstan
 require_once 'config_adapter.php';            // Konfiguration für Mitgliederquelle
 require_once 'member_functions.php';          // Prozedurale Wrapper-Funktionen für Mitglieder
 require_once 'functions.php';                 // Wiederverwendbare Funktionen
+require_once 'module_config.php';             // Modulschalter (Bereiche ein-/ausschalten)
 require_once 'antragstypen_helper.php'; // Antragstypen-Konfiguration
 require_once 'voting_helper.php';    // Abstimmungsregeln
 require_once 'protokoll_helper.php';          // Aktions-Protokollierung
@@ -427,6 +428,13 @@ try {
 // Aktiven Tab aus URL ermitteln (Standard: 'meetings')
 $active_tab = $_GET['tab'] ?? 'meetings';
 
+// Ausgeschaltete Bereiche nicht anzeigen und nicht verarbeiten
+$sv_tab_modul = sv_modul_tab_zuordnung();
+if (isset($sv_tab_modul[$active_tab]) && !sv_module_enabled($pdo, $sv_tab_modul[$active_tab])) {
+    header('Location: index.php');
+    exit;
+}
+
 // Meeting-ID aus URL holen (falls vorhanden)
 $current_meeting_id = isset($_GET['meeting_id']) ? intval($_GET['meeting_id']) : null;
 
@@ -798,10 +806,12 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
     <div class="navigation">
         <!-- 1. ZEILE -->
 
-        <!-- Anträge & Beschlüsse-Tab (immer sichtbar) -->
+        <!-- Anträge & Beschlüsse-Tab (Modul 'proposals') -->
+        <?php if (sv_module_enabled($pdo, 'proposals')): ?>
         <a href="?tab=proposals" class="<?php echo $active_tab === 'proposals' ? 'active' : ''; ?>">
             📋 Anträge/Beschlüsse
         </a>
+        <?php endif; ?>
 
         <!-- Sitzungen-Tab (immer sichtbar) -->
         <a href="?tab=meetings" class="<?php echo $active_tab === 'meetings' ? 'active' : ''; ?>">
@@ -831,15 +841,19 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
             ✅ ToDo/Erledigen
         </a>
 
-        <!-- Meinungsbild-Tab (immer sichtbar) -->
+        <!-- Meinungsbild-Tab (Modul 'opinion') -->
+        <?php if (sv_module_enabled($pdo, 'opinion')): ?>
         <a href="?tab=opinion" class="<?php echo $active_tab === 'opinion' ? 'active' : ''; ?>">
             📊 Meinungsbild
         </a>
+        <?php endif; ?>
 
-        <!-- Kalender-Tab (immer sichtbar) -->
+        <!-- Kalender-Tab (Modul 'kalender') -->
+        <?php if (sv_module_enabled($pdo, 'kalender')): ?>
         <a href="?tab=kalender" class="<?php echo $active_tab === 'kalender' ? 'active' : ''; ?>">
             📅 Kalender
         </a>
+        <?php endif; ?>
 
         <!-- 2. ZEILE -->
 
@@ -866,10 +880,12 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         </a>
         <?php endif; ?>
 
-        <!-- MV-Beschlüsse -->
+        <!-- MV-Beschlüsse (Modul 'mv_beschluesse') -->
+        <?php if (sv_module_enabled($pdo, 'mv_beschluesse')): ?>
         <a href="?tab=mv_beschluesse" class="<?php echo $active_tab === 'mv_beschluesse' ? 'active' : ''; ?>">
             📜 MV-Beschlüsse
         </a>
+        <?php endif; ?>
 
         <!-- Textbearbeitung-Tab (nur für Vorstand/GF/Assistenz/Führungsteam, NICHT für Mitglied) -->
         <?php
@@ -877,7 +893,7 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         $user_role = strtolower($current_user['role'] ?? '');
         $has_texte_access = in_array($user_role, ['vorstand', 'gf', 'assistenz', 'fuehrungsteam']) && $user_role !== 'mitglied';
 
-        if ($has_texte_access):
+        if ($has_texte_access && sv_module_enabled($pdo, 'texte')):
         ?>
         <a href="?tab=texte"
            class="<?php echo $active_tab === 'texte' ? 'active' : ''; ?>">
@@ -886,7 +902,7 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         <?php endif; ?>
 
         <!-- Abwesenheiten-Tab (nur für Leadership) -->
-        <?php if (in_array(strtolower($current_user['role']), ['vorstand', 'gf', 'assistenz', 'führungsteam'])): ?>
+        <?php if (sv_module_enabled($pdo, 'vertretung') && in_array(strtolower($current_user['role']), ['vorstand', 'gf', 'assistenz', 'führungsteam'])): ?>
         <a href="?tab=vertretung" class="<?php echo $active_tab === 'vertretung' ? 'active' : ''; ?>">
             🏖️ Abwesenheiten
         </a>

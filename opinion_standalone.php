@@ -87,6 +87,9 @@ if ($is_sitzungsverwaltung) {
         }
     }
 
+    require_once __DIR__ . '/module_config.php';
+    sv_module_guard($pdo, 'opinion');   // Bereich ausgeschaltet -> Abbruch
+
     // In Sitzungsverwaltung: Adapter-System nutzen
     require_once __DIR__ . '/member_functions.php';
     require_once __DIR__ . '/opinion_functions.php';

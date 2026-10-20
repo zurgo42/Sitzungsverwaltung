@@ -1140,6 +1140,39 @@ body.dark-mode .init-danger-list {
         </div>
     </div>
 
+    <!-- MODULSCHALTER -->
+    <div class="admin-section">
+        <h3 class="admin-section-header init-section-header" onclick="toggleSection(this)">
+            🧩 Module (Bereiche ein-/ausschalten)
+        </h3>
+        <div class="admin-section-content collapsed">
+            <?php require_once __DIR__ . '/module_config.php'; ?>
+            <p style="color:#555;font-size:13px;margin-bottom:14px;">
+                Fest enthalten sind Sitzungen/Tagesordnung, Protokolle, Termin finden, ToDo, Dokumente, Nachrichten und Admin.
+                Alle anderen Bereiche lassen sich hier ein- und ausschalten. Ausgeschaltete Bereiche verschwinden aus dem Menü und sind nicht aufrufbar; die Daten bleiben erhalten.
+            </p>
+            <form method="POST" action="?tab=admin_init">
+                <input type="hidden" name="save_modules" value="1">
+                <div style="display:flex;flex-direction:column;gap:10px;max-width:640px;">
+                    <?php foreach (sv_modul_definitionen() as $mkey => $mdef): ?>
+                        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+                            <input type="checkbox" name="module[<?= $mkey ?>]" value="1" style="margin-top:3px;"
+                                   <?= sv_module_enabled($pdo, $mkey) ? 'checked' : '' ?>>
+                            <span><strong><?= htmlspecialchars($mdef[0]) ?></strong>
+                                <br><small style="color:#888;"><?= htmlspecialchars($mdef[1]) ?></small></span>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+                <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+                    <button type="submit" class="btn-primary">Auswahl speichern</button>
+                    <button type="submit" name="profil" value="einfach" class="btn-secondary"
+                            onclick="return confirm('Einfachausstattung anwenden? Alle optionalen Bereiche werden ausgeschaltet.');">Einfachausstattung</button>
+                    <button type="submit" name="profil" value="voll" class="btn-secondary">Vollausstattung</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- DOKUMENTEN-TAB-KONFIGURATION -->
     <div class="admin-section">
         <h3 class="admin-section-header init-section-header" onclick="toggleSection(this)">

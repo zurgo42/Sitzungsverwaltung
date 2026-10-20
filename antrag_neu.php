@@ -34,6 +34,9 @@ $pdo = sv_new_pdo(
     ]
 );
 
+require_once __DIR__ . '/module_config.php';
+sv_module_guard($pdo, 'proposals');   // Bereich ausgeschaltet -> Abbruch
+
 // Berechtigung prüfen: aktiv > 10 erforderlich
 $current_user = get_member_by_id($pdo, $current_user_id);
 if (!$current_user || (int)($current_user['aktiv'] ?? 0) <= 10) {

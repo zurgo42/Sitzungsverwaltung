@@ -8,6 +8,13 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### Modulschalter und zwei Demo-Ausstattungen (2026-10-24)
+
+- **Modulschalter** (`module_config.php`, Admin → Datenbank-Initialisierung → „Module"): Anträge/Beschlüsse, Meinungsbild, Kalender, MV-Beschlüsse, Textbearbeitung, Abwesenheiten und der Hinweiskasten am Seitenanfang sind einzeln ein- und ausschaltbar; dazu die Profile „Einfachausstattung" und „Vollausstattung". Fest enthalten bleiben Sitzungen/Tagesordnung, Protokolle, Termin finden, ToDo, Dokumente, Nachrichten und Admin.
+- Ausgeschaltete Bereiche verschwinden aus dem Menü, ein direkter Aufruf (`?tab=…`, `abstimmungen.php`, `beschlussbuch.php`, `antrag_*.php`, `opinion_standalone.php`, `process_kalender.php`) wird abgewiesen. Daten bleiben erhalten. Abstimmungs- und Abwesenheitshinweise im Hinweiskasten entfallen mit ihren Bereichen.
+- Gespeichert in `svconfig` (`module_<name>`, Kategorie `modules`). Fehlt ein Schlüssel, ist der Bereich eingeschaltet: bestehende Installationen (auch die Adapter-Version) ändern sich nicht.
+- **Demo:** `tools/demo_import.php` fragt nach der Ausstattung (Voll oder Einfach, auch vorwählbar per `?profil=einfach`) und setzt die Modulschalter entsprechend.
+
 #### Beschlussart im Editiermodus änderbar (2026-10-23)
 
 - „Antrag bearbeiten": Im Editiermodus (A) ist die Beschlussart jetzt wählbar (Verfügung / Ressortbeschluss / Vorstandsbeschluss, soweit aktiviert). Vorher war das Feld schreibgeschützt, obwohl die Fehlermeldung bei Überschreiten des Betragslimits „Bitte wähle einen anderen Typ" empfahl. Die Betragsprüfung gilt für die neu gewählte Art; nach dem Speichern erscheinen die passenden Felder (z. B. 2. Abstimmende bei Ressortbeschluss).

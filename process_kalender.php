@@ -27,6 +27,9 @@ if (!isset($_SESSION['member_id'])) {
     exit;
 }
 
+require_once __DIR__ . '/module_config.php';
+sv_module_guard($pdo, 'kalender');   // Bereich ausgeschaltet -> Abbruch
+
 $current_user = get_member_by_id($pdo, (int)$_SESSION['member_id']);
 if (!$current_user) {
     $_SESSION['error'] = 'Benutzer nicht gefunden.';

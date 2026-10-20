@@ -305,8 +305,12 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
         echo '<h3>⚠️ WARNUNG</h3>';
         echo '<p><strong>Dieser Vorgang kann nicht rückgängig gemacht werden!</strong></p>';
         echo '<p>Alle bestehenden Meeting-Daten werden unwiderruflich gelöscht.</p>';
+        $profil_vorwahl = (($_GET['profil'] ?? '') === 'einfach') ? 'einfach' : 'voll';
         echo '<form method="post">';
         echo '<input type="hidden" name="confirm" value="yes">';
+        echo '<p><strong>Welche Demo soll eingespielt werden?</strong></p>';
+        echo '<p><label><input type="radio" name="profil" value="voll"' . ($profil_vorwahl === 'voll' ? ' checked' : '') . '> <strong>Vollausstattung</strong> – alle Bereiche (Anträge, Meinungsbild, Kalender, MV-Beschlüsse, Textbearbeitung, Abwesenheiten, Hinweiskasten)</label><br>';
+        echo '<label><input type="radio" name="profil" value="einfach"' . ($profil_vorwahl === 'einfach' ? ' checked' : '') . '> <strong>Einfachausstattung</strong> – Sitzungen, Protokolle, Termin finden, ToDo, Dokumente, Nachrichten, Admin</label></p>';
         echo '<button type="submit" class="btn btn-danger">🗑️ Ja, alle Daten löschen und Demo-Daten importieren</button>';
         echo '</form>';
         echo '</div>';
@@ -533,6 +537,11 @@ $confirmed = isset($_POST['confirm']) && $_POST['confirm'] === 'yes';
                 update_demo_meeting_dates($pdo);
                 echo '<p style="color: green;">✓ Datumsangaben auf heute ausgerichtet</p>';
             }
+            // Gewählte Demo-Ausstattung (Modulschalter) anwenden
+            require_once __DIR__ . '/../module_config.php';
+            $demo_profil = (($_POST['profil'] ?? '') === 'einfach') ? 'einfach' : 'voll';
+            sv_module_profil_anwenden($pdo, $demo_profil);
+            echo '<p style="color: green;">✓ Ausstattung: ' . ($demo_profil === 'einfach' ? 'Einfachausstattung' : 'Vollausstattung') . '</p>';
             echo '</div>';
 
             // Fehler anzeigen (falls vorhanden)
