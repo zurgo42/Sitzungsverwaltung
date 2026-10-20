@@ -240,6 +240,11 @@ if ($access_token) {
     // Poll-ID für weitere Verarbeitung
     $poll_id_param = $poll['poll_id'];
 
+    // Token zeigt auf genau diese Umfrage: poll_id auch für tab_opinion.php (liest sie aus $_GET) setzen
+    if (empty($_GET['poll_id'])) {
+        $_GET['poll_id'] = $poll_id_param;
+    }
+
     // Automatisch zur Teilnahme-Ansicht
     if (!isset($_GET['view'])) {
         $_GET['view'] = 'participate';

@@ -185,6 +185,15 @@ if ($access_token) {
 
     // Poll-ID für weitere Verarbeitung
     $poll_id_param = $poll['poll_id'];
+
+    // Token zeigt auf genau diese Umfrage: poll_id/view für die Anzeige setzen (Dashboard und tab_termine.php lesen sie aus $_GET).
+    // Ohne das wurde bei Token-Links die Übersicht statt der Umfrage gezeigt.
+    if (empty($_GET['poll_id'])) {
+        $_GET['poll_id'] = $poll_id_param;
+    }
+    if (!isset($_GET['view'])) {
+        $_GET['view'] = 'poll';
+    }
 }
 
 // ============================================
