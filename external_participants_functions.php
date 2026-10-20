@@ -353,12 +353,17 @@ function generate_external_access_link($poll_type, $poll_id_or_token, $use_token
         }
     }
 
-    // Rückfall ohne konfigurierte öffentliche URL: das Skript im Verzeichnis der Sitzungsverwaltung (dort liegt es sicher).
-    // Der Link funktioniert dann nur für Eingeloggte; für Externe die öffentliche URL in svconfig
-    // (terminplanung_standalone_url / opinion_standalone_url) eintragen.
-    $GLOBALS['external_link_ohne_oeffentliche_url'] = true;
+    // Rückfall ohne konfigurierte öffentliche URL:
+    // 1. Liegt im Wurzelverzeichnis der Domain eine gleichnamige Datei (öffentlicher Wrapper), zeigt der Link dorthin.
+    // 2. Sonst auf das Skript im Verzeichnis der Sitzungsverwaltung (funktioniert nur für Eingeloggte; für Externe die
+    //    öffentliche URL in svconfig terminplanung_standalone_url / opinion_standalone_url eintragen).
     $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
     $file = ($poll_type === 'termine') ? 'terminplanung_standalone.php' : 'opinion_standalone.php';
+    $docroot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/');
+    if ($docroot !== '' && is_file($docroot . '/' . $file)) {
+        return $protocol . '://' . $_SERVER['HTTP_HOST'] . '/' . $file . '?' . $param;
+    }
+    $GLOBALS['external_link_ohne_oeffentliche_url'] = true;
     $dir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
     return $protocol . '://' . $_SERVER['HTTP_HOST'] . $dir . '/' . $file . '?' . $param;
 }
