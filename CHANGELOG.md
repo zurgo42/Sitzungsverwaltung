@@ -11,6 +11,7 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 #### Fix: Link zur individuellen Terminabfrage / zum Meinungsbild (2026-10-27)
 
 - `generate_external_access_link()`: Ohne konfigurierte öffentliche URL (`svconfig.terminplanung_standalone_url` bzw. `opinion_standalone_url`) wurde der Link auf das **Wurzelverzeichnis der Domain** geraten (`https://domain/terminplanung_standalone.php`), das bei Installation in einem Unterverzeichnis auf eine falsche Seite führt. Jetzt zeigt der Rückfall auf das Verzeichnis der Sitzungsverwaltung (funktioniert für eingeloggte Mitglieder).
+- `terminplanung_standalone.php` im öffentlichen Wrapper-Modus (`$TERMINPLANUNG_PUBLIC_MODE`): Die eigene URL (Formular-Ziele, Weitergabe-Links) stammt jetzt aus der aufgerufenen Wrapper-URL statt aus dem echten Dateipfad im geschützten Bereich; der Wrapper muss `$TERMINPLANUNG_PUBLIC_URL` nicht mehr setzen. Zuvor führten Links auf der öffentlichen Seite in den SSO-geschützten Bereich.
 - Terminabfrage: Hinweis unter dem Link, wenn keine öffentliche URL hinterlegt ist (Externe brauchen die öffentliche URL des Wrappers, siehe `terminplanung_public.EXAMPLE.php`).
 
 #### welcome.php: Funktionsliste nach Menü-Reihenfolge und Modulschaltern (2026-10-26)

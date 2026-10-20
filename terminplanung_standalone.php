@@ -497,6 +497,16 @@ $_tp_abspath = realpath(__FILE__);
 $_tp_relpath = str_replace('\\', '/', substr($_tp_abspath, strlen($_tp_docroot)));
 // Interne URL (zum Navigieren innerhalb der geschützten Umgebung)
 $terminplanung_self_url = $_tp_proto . '://' . $_SERVER['HTTP_HOST'] . $_tp_relpath;
+// Öffentlicher Wrapper (kein SSO): Die kanonische URL aus __FILE__ zeigt in den geschützten Bereich. Dort würden
+// Nichtmitglieder an der Anmeldung scheitern ("seltsame Seite"). Deshalb die tatsächlich aufgerufene URL des
+// Wrappers verwenden - auch wenn der Wrapper $TERMINPLANUNG_PUBLIC_URL nicht setzt.
+if (!empty($TERMINPLANUNG_PUBLIC_MODE) && !empty($_SERVER['SCRIPT_NAME'])) {
+    $terminplanung_self_url = $_tp_proto . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['SCRIPT_NAME'];
+    if (empty($TERMINPLANUNG_PUBLIC_URL)) {
+        $TERMINPLANUNG_PUBLIC_URL = $terminplanung_self_url;
+        $GLOBALS['TERMINPLANUNG_PUBLIC_URL'] = $terminplanung_self_url;   // für generate_external_access_link()
+    }
+}
 $terminplanung_self     = basename(__FILE__); // für relative Links (gleiche Directory)
 // Öffentliche URL für Weitergabe-Links: vom Wrapper gesetzt ($TERMINPLANUNG_PUBLIC_URL),
 // sonst intern (nur sinnvoll wenn die Umgebung selbst öffentlich ist)
