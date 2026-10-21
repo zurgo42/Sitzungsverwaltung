@@ -20,7 +20,9 @@ require_once __DIR__ . '/file_helpers.php';
 
 // ── Zugriffsebene des aktuellen Nutzers ──────────────────────────────────────
 $user_aktiv   = (int)($current_user['aktiv'] ?? get_member_access_level($current_user));
-$user_is_admin = is_admin_user($current_user) || $user_aktiv >= 18;
+// $DOK_READONLY (z. B. von dokumente_mtool.php gesetzt): nur Ansicht, keine Bearbeitung/Uploads/Einstellungen -
+// auch nicht für Admins; serverseitig wird jede Änderung abgewiesen.
+$user_is_admin = (is_admin_user($current_user) || $user_aktiv >= 18) && empty($DOK_READONLY);
 
 // Kategorien (identisch mit altem System)
 $kat = ['', 'Satzung', 'Ordnungen', 'Richtlinien', 'Formulare',

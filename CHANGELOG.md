@@ -11,6 +11,7 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 #### Dokumentensammlung in MTool einbinden (2026-10-30)
 
 - Neu: `dokumente_mtool.php` für Seiten, die nur `$MNr` kennen (z. B. `MTool/mtool.php`): lädt `functions.php`, ermittelt das Mitglied aus `$MNr` und bindet `tab_dokumente_allgemein.php` ein. Die alte include-Zeile wird einfach durch `include '../Sitzungsverwaltung/dokumente_mtool.php';` ersetzt.
+- Über `dokumente_mtool.php` ist die Sammlung standardmäßig **schreibgeschützt** (`$DOK_READONLY = true`, auch für Admins): keine Bearbeiten-/Upload-/Einstellungsformulare, Änderungen werden serverseitig abgewiesen. Wer in `mtool.php` vor dem include `$DOK_READONLY = false;` setzt, erhält die Bearbeitung.
 - `tab_dokumente_allgemein.php` erhält Parameter der aufrufenden URL (z. B. `?steuer=…`) bei Suche, Filter, Reset und „alle“; das Einstellungsformular (Verzeichnis/Basis-URL) zeigt außerhalb von `index.php` auf den Admin-Bereich der Sitzungsverwaltung.
 
 #### Dokumentensammlung (tab_dokumente_allgemein.php): Dateiname ändern (2026-10-29)
