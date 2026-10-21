@@ -93,11 +93,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dok_action'])) {
                         } else {
                             $new_name = $prefix . $clean . ($ext !== '' ? '.' . $ext : '');
                             if ($new_name !== $row['name']) {
-                                $old_path = $row['verz'] . $row['name'];
+                                $old_path = dok_find_file($row['verz'], $row['name']);
                                 $new_path = $row['verz'] . $new_name;
-                                if (!file_exists($old_path)) {
+                                if ($old_path === null) {
                                     $flash_ok = '';
-                                    $flash_err = 'Dateiname nicht geändert: Die Datei wurde auf dem Server nicht gefunden.';
+                                    $flash_err = 'Dateiname nicht geändert: Die Datei wurde auf dem Server nicht gefunden (gesucht: '
+                                        . $row['verz'] . $row['name'] . ').';
                                 } elseif (file_exists($new_path)) {
                                     $flash_ok = '';
                                     $flash_err = 'Dateiname nicht geändert: Eine Datei mit diesem Namen existiert bereits.';
@@ -333,6 +334,49 @@ if ($has_sammler_tbl) {
 }
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────────────────
+/**
+ * Findet die Datei zu einem in der Datenbank gespeicherten Namen auch dann, wenn Schreibweise oder Kodierung abweichen
+ * (Umlaute/Leerzeichen: URL- oder HTML-kodiert, ISO-8859-1 statt UTF-8, zerlegte Umlaute). Gibt den echten Pfad oder null zurück.
+ */
+function dok_find_file(string $verz, string $name): ?string {
+    if (file_exists($verz . $name)) return $verz . $name;
+
+    $norm = function (string $s): string {
+        $s = rawurldecode(str_replace('+', '%2B', $s));          // %20, %C3%84 ... (Plus-Zeichen bleibt)
+        $s = html_entity_decode($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');   // &auml; ...
+        if (!mb_check_encoding($s, 'UTF-8')) {
+            $s = mb_convert_encoding($s, 'UTF-8', 'ISO-8859-1');   // Latin-1-Bytes -> UTF-8
+        }
+        if (class_exists('Normalizer')) {
+            $s = Normalizer::normalize($s, Normalizer::FORM_C) ?: $s;   // zerlegte Umlaute zusammensetzen
+        }
+        return $s;
+    };
+
+    // Typische Varianten direkt probieren
+    $candidates = [
+        rawurldecode($name),
+        urldecode($name),
+        html_entity_decode($name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+        mb_convert_encoding($name, 'ISO-8859-1', 'UTF-8'),
+        mb_convert_encoding($name, 'UTF-8', 'ISO-8859-1'),
+    ];
+    foreach ($candidates as $c) {
+        if ($c !== '' && file_exists($verz . $c)) return $verz . $c;
+    }
+
+    // Verzeichnis durchsuchen und normalisiert vergleichen
+    $dir = @scandir($verz);
+    if ($dir) {
+        $want = $norm($name);
+        foreach ($dir as $f) {
+            if ($f === '.' || $f === '..') continue;
+            if ($norm($f) === $want) return $verz . $f;
+        }
+    }
+    return null;
+}
+
 /** Dateinamen für den Server bereinigen (ohne Endung): Umlaute umschreiben, nur A-Z a-z 0-9 . _ -, max. 100 Zeichen */
 function dok_clean_basename(string $base, string $ext): string {
     $base = trim($base);
