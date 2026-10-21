@@ -384,6 +384,10 @@ if ($has_sammler_tbl) {
 }
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────────────────
+/** Beschreibungen aus dem älteren System enthalten teils <br> als Text: als Zeilenumbruch behandeln (Rest bleibt escaped) */
+function dok_text(string $s): string {
+    return preg_replace('#<br\s*/?>#i', "\n", $s);
+}
 function dok_ext(string $name): string {
     $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
     return $ext ?: '–';
@@ -422,6 +426,8 @@ function dok_href(array $doc): string {
 .dok-kat-pill.on  { background:#667eea; color:#fff; border-color:#667eea; }
 .dok-kat-pill.off { background:#f0f0f0; color:#555; border-color:#ddd; }
 .dok-kat-pill.off:hover { border-color:#999; }
+.dok-root, .dok-root .dok-toolbar, .dok-root .dok-toolbar > div, .dok-root .dok-kat-pills, .dok-root .dok-edit-form,
+.dok-root .dok-table th, .dok-root .dok-table td, .dok-root .dok-cat-head, .dok-root summary, .dok-root p { text-align:left; }
 .dok-table { width:100%; border-collapse:collapse; font-size:13px; }
 .dok-table th { background:#667eea; color:#fff; padding:8px 10px; text-align:left; font-weight:600; }
 .dok-table td { padding:8px 10px; border-bottom:1px solid #eee; vertical-align:top; }
@@ -478,6 +484,7 @@ body.dark-mode .dok-config-box code {
 }
 </style>
 
+<div class="dok-root">
 <h2>📁 Dokumentensammlung</h2>
 
 <?php if ($flash_ok):  ?><div class="flash-ok">✅ <?= htmlspecialchars($flash_ok) ?></div><?php endif; ?>
@@ -693,8 +700,8 @@ body.dark-mode .dok-config-box code {
         <td>
             <?php if ($doc['beschreibung']): ?>
             <details>
-                <summary class="dok-desc" style="cursor:pointer;"><?= htmlspecialchars(mb_strimwidth($doc['beschreibung'], 0, 100, '…')) ?></summary>
-                <p style="font-size:12px;margin:4px 0;"><?= nl2br(htmlspecialchars($doc['beschreibung'])) ?></p>
+                <summary class="dok-desc" style="cursor:pointer;"><?= htmlspecialchars(mb_strimwidth(str_replace("\n", ' ', dok_text($doc['beschreibung'])), 0, 100, '…')) ?></summary>
+                <p style="font-size:12px;margin:4px 0;"><?= nl2br(htmlspecialchars(dok_text($doc['beschreibung']))) ?></p>
                 <?php if (!$is_link && !in_array(strtolower(dok_ext($doc['name'])), ['pdf'])):
                     // Kein Embed für Nicht-PDF-Dateien
                 elseif (!$is_link):
@@ -941,3 +948,4 @@ function updatePill(cb, i) {
     if (pill) pill.className = 'dok-kat-pill ' + (cb.checked ? 'on' : 'off');
 }
 </script>
+</div>
