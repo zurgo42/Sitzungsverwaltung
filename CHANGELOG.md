@@ -8,6 +8,11 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### Dokumentensammlung in MTool einbinden (2026-10-30)
+
+- Neu: `dokumente_mtool.php` für Seiten, die nur `$MNr` kennen (z. B. `MTool/mtool.php`): lädt `functions.php`, ermittelt das Mitglied aus `$MNr` und bindet `tab_dokumente_allgemein.php` ein. Die alte include-Zeile wird einfach durch `include '../Sitzungsverwaltung/dokumente_mtool.php';` ersetzt.
+- `tab_dokumente_allgemein.php` erhält Parameter der aufrufenden URL (z. B. `?steuer=…`) bei Suche, Filter, Reset und „alle“; das Einstellungsformular (Verzeichnis/Basis-URL) zeigt außerhalb von `index.php` auf den Admin-Bereich der Sitzungsverwaltung.
+
 #### Dokumentensammlung (tab_dokumente_allgemein.php): Dateiname ändern (2026-10-29)
 
 - Im Bearbeiten-Bereich der Dokumentensammlung (Tabelle `dokumente`) gibt es das Feld „Dateiname“. Beim Speichern wird die Datei im Upload-Verzeichnis umbenannt und `name` aktualisiert; der Name erscheint in der Liste unter dem Titel („📎 Name“). Endung und die Präfixe `xxx` (verborgen) / `vvv` (überholt) bleiben erhalten; Namen werden bereinigt (Umlaute umschrieben, nur A-Z a-z 0-9 . _ -, max. 100 Zeichen); bei vorhandenem Namen oder fehlender Datei wird nichts geändert. Links sind ausgenommen. Weitergegebene Links auf den alten Dateinamen funktionieren danach nicht mehr (Kurz-URL nutzen).

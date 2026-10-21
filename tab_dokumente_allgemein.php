@@ -5,7 +5,8 @@
  * Ersatz für das alte dokumente.php im neuen Look & Feel.
  * Kann als "PHP-Skript einbinden" im Admin-Steuerungsbereich konfiguriert werden.
  *
- * Benötigt: $pdo, $current_user (aus dem einbindenden index.php-Kontext)
+ * Benötigt: $pdo, $current_user (aus dem einbindenden index.php-Kontext).
+ * Aus anderen Seiten (z. B. MTool, das nur $MNr kennt): dokumente_mtool.php einbinden.
  */
 
 // Sicherstellen, dass Kontext vorhanden ist
@@ -37,6 +38,23 @@ if (!$table_ok) {
     echo '⚠️ Die Tabelle <code>dokumente</code> existiert noch nicht. ';
     echo '<a href="tools/install_dokumente.php">→ Jetzt anlegen</a></div>';
     return;
+}
+
+// ── Einbindung aus anderer Seite (z. B. MTool): Parameter der aufrufenden URL (steuer=…) erhalten ──
+$dok_filter_keys = ['stichwort', 'sort', 'nuroeff', 'vorver', 'kalle'];
+$dok_keep = [];
+foreach ($_GET as $k => $v) {
+    if (in_array($k, $dok_filter_keys, true) || preg_match('/^kaus\d+$/', $k) || is_array($v)) continue;
+    $dok_keep[$k] = $v;
+}
+if (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php') {
+    $dok_admin_url = '?tab=admin_init';
+} else {
+    // Einstellungsformular gehört zum Admin-Bereich der Sitzungsverwaltung: absolute URL dorthin
+    $dok_docroot = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/');
+    $dok_rel     = (strpos(str_replace('\\', '/', __DIR__), $dok_docroot) === 0) ? substr(str_replace('\\', '/', __DIR__), strlen($dok_docroot)) : '';
+    $dok_admin_url = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '')
+        . $dok_rel . '/index.php?tab=admin_init';
 }
 
 // ── Upload-Verzeichnis (Server-Pfad) und Basis-URL aus svconfig ──────────────
@@ -569,7 +587,9 @@ body.dark-mode .dok-config-box code {
 
 <!-- ── Filter-Toolbar ── -->
 <form method="GET" action="" id="dok-filter-form" style="margin-bottom:12px;">
-    <input type="hidden" name="tab" value="documents">
+    <?php foreach ($dok_keep as $k => $v): ?>
+    <input type="hidden" name="<?= htmlspecialchars($k) ?>" value="<?= htmlspecialchars($v) ?>">
+    <?php endforeach; ?>
     <div class="dok-toolbar">
         <div>
             <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px;">Suche</label>
@@ -601,7 +621,7 @@ body.dark-mode .dok-config-box code {
         </div>
         <?php endif; ?>
         <button type="submit" class="btn-primary" style="padding:7px 18px;align-self:flex-end;">🔍 Filtern</button>
-        <a href="?tab=documents" class="btn-primary" style="padding:7px 14px;align-self:flex-end;background:#999;display:inline-block;border-radius:4px;color:#fff;text-decoration:none;font-size:13px;">↺ Reset</a>
+        <a href="?<?= htmlspecialchars(http_build_query($dok_keep)) ?>" class="btn-primary" style="padding:7px 14px;align-self:flex-end;background:#999;display:inline-block;border-radius:4px;color:#fff;text-decoration:none;font-size:13px;">↺ Reset</a>
     </div>
 
     <!-- Kategorie-Pills -->
@@ -614,7 +634,7 @@ body.dark-mode .dok-config-box code {
             <?= htmlspecialchars($kat[$i]) ?>
         </label>
         <?php endfor; ?>
-        <a href="?tab=documents&kalle=1<?= $sort?"&sort=$sort":'' ?>" style="font-size:12px;align-self:center;color:#667eea;text-decoration:none;">alle</a>
+        <a href="?<?= htmlspecialchars(http_build_query($dok_keep + ['kalle' => 1] + ($sort ? ['sort' => $sort] : []))) ?>" style="font-size:12px;align-self:center;color:#667eea;text-decoration:none;">alle</a>
     </div>
 </form>
 
@@ -884,7 +904,7 @@ body.dark-mode .dok-config-box code {
     ⚙️ Verzeichnis &amp; URL konfigurieren
 </button>
 <div class="accordion-content dok-config-box" style="padding:14px;border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:18px;">
-    <form method="POST" action="?tab=admin_init" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:780px;">
+    <form method="POST" action="<?= htmlspecialchars($dok_admin_url) ?>" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:780px;">
         <input type="hidden" name="save_notifications" value="1">
         <div>
             <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px;">Server-Pfad (Upload-Verzeichnis)</label>
