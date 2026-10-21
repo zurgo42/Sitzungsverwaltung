@@ -916,7 +916,7 @@ if ($show_sammler):
 
 <!-- Admin: Upload-Verzeichnis konfigurieren -->
 <?php if ($user_is_admin): ?>
-<button class="accordion-button" onclick="toggleAccordion(this)" style="margin-top:8px;background:#555;">
+<button class="accordion-button" onclick="toggleAccordion(this)" style="margin-top:8px;background:#555;color:#fff;">
     ⚙️ Verzeichnis &amp; URL konfigurieren
 </button>
 <div class="accordion-content dok-config-box" style="padding:14px;border:1px solid #ddd;border-radius:0 0 6px 6px;margin-bottom:18px;">
