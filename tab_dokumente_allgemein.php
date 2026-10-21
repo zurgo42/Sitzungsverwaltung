@@ -78,6 +78,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dok_action'])) {
                     $id,
                 ]);
                 $flash_ok = 'Eintrag gespeichert.';
+
+                // Dateiname ändern (nur Dateien, keine Links): Datei auf dem Server und Name in der Liste
+                if (isset($_POST['new_name']) && trim($_POST['new_name']) !== '') {
+                    $row = $pdo->query("SELECT verz, name FROM dokumente WHERE id=$id")->fetch();
+                    if ($row && $row['verz'] !== '' && strpos($row['name'], '://') === false) {
+                        $prefix = in_array(substr($row['name'], 0, 3), ['xxx', 'vvv'], true) ? substr($row['name'], 0, 3) : '';
+                        $cur    = substr($row['name'], strlen($prefix));
+                        $ext    = pathinfo($cur, PATHINFO_EXTENSION);
+                        $clean  = dok_clean_basename($_POST['new_name'], $ext);
+                        if ($clean === '') {
+                            $flash_ok = '';
+                            $flash_err = 'Der neue Dateiname enthält keine verwendbaren Zeichen.';
+                        } else {
+                            $new_name = $prefix . $clean . ($ext !== '' ? '.' . $ext : '');
+                            if ($new_name !== $row['name']) {
+                                $old_path = $row['verz'] . $row['name'];
+                                $new_path = $row['verz'] . $new_name;
+                                if (!file_exists($old_path)) {
+                                    $flash_ok = '';
+                                    $flash_err = 'Dateiname nicht geändert: Die Datei wurde auf dem Server nicht gefunden.';
+                                } elseif (file_exists($new_path)) {
+                                    $flash_ok = '';
+                                    $flash_err = 'Dateiname nicht geändert: Eine Datei mit diesem Namen existiert bereits.';
+                                } elseif (!@rename($old_path, $new_path)) {
+                                    $flash_ok = '';
+                                    $flash_err = 'Dateiname nicht geändert: Umbenennen auf dem Server nicht möglich (Rechte prüfen).';
+                                } else {
+                                    try {
+                                        $pdo->prepare("UPDATE dokumente SET name=? WHERE id=?")->execute([$new_name, $id]);
+                                        $flash_ok = 'Eintrag gespeichert. Dateiname geändert in ' . $new_name . '.';
+                                    } catch (Throwable $e) {
+                                        @rename($new_path, $old_path);
+                                        $flash_ok = '';
+                                        $flash_err = 'Dateiname nicht geändert: Datenbankfehler.';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
         } elseif ($action === 'new_link') {
@@ -293,6 +333,17 @@ if ($has_sammler_tbl) {
 }
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────────────────
+/** Dateinamen für den Server bereinigen (ohne Endung): Umlaute umschreiben, nur A-Z a-z 0-9 . _ -, max. 100 Zeichen */
+function dok_clean_basename(string $base, string $ext): string {
+    $base = trim($base);
+    if ($ext !== '' && strcasecmp(substr($base, -strlen($ext) - 1), '.' . $ext) === 0) {
+        $base = substr($base, 0, -strlen($ext) - 1);   // versehentlich mit eingegebene Endung entfernen
+    }
+    $base = strtr($base, ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue', 'ß' => 'ss']);
+    $base = preg_replace('/[^A-Za-z0-9._-]+/', '_', $base);
+    $base = trim(preg_replace('/_+/', '_', $base), '._-');
+    return substr($base, 0, 100);
+}
 function dok_ext(string $name): string {
     $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
     return $ext ?: '–';
@@ -585,6 +636,9 @@ body.dark-mode .dok-config-box code {
             <a href="<?= $href ?>" target="doku" class="dok-title-link" rel="noopener">
                 <?= htmlspecialchars($doc['titel'] ?: $doc['name']) ?>
             </a>
+            <?php if (!$is_link && $doc['titel']): ?>
+                <br><small style="color:#999;">📎 <?= htmlspecialchars($doc['name']) ?></small>
+            <?php endif; ?>
             <?php if ($doc['version']): ?>
                 <span class="dok-badge-ext"><?= htmlspecialchars($doc['version']) ?></span>
             <?php endif; ?>
@@ -637,6 +691,19 @@ body.dark-mode .dok-config-box code {
                         <label>Titel</label>
                         <input type="text" name="titel" value="<?= htmlspecialchars($doc['titel']) ?>">
                     </div>
+                    <?php if (!$is_link && $doc['verz'] !== ''):
+                        $edit_prefix = in_array(substr($doc['name'], 0, 3), ['xxx', 'vvv'], true) ? substr($doc['name'], 0, 3) : '';
+                        $edit_cur    = substr($doc['name'], strlen($edit_prefix));
+                        $edit_ext    = pathinfo($edit_cur, PATHINFO_EXTENSION);
+                        $edit_base   = ($edit_ext !== '') ? substr($edit_cur, 0, -strlen($edit_ext) - 1) : $edit_cur;
+                    ?>
+                    <div style="grid-column:span 2;">
+                        <label>Dateiname<?= $edit_prefix ? ' (Präfix „' . $edit_prefix . '“ bleibt)' : '' ?></label>
+                        <input type="text" name="new_name" maxlength="100" value="<?= htmlspecialchars($edit_base) ?>">
+                        <small style="color:#888;font-size:11px;">Endung <?= $edit_ext !== '' ? '.' . htmlspecialchars($edit_ext) : '' ?> bleibt. Die Datei wird auf dem Server umbenannt;
+                            bereits weitergegebene Links auf den alten Dateinamen funktionieren danach nicht mehr (dafür ggf. Kurz-URL nutzen).</small>
+                    </div>
+                    <?php endif; ?>
                     <div>
                         <label>Kurz-URL</label>
                         <input type="text" name="kurzurl" value="<?= htmlspecialchars($doc['kurzurl']) ?>">
