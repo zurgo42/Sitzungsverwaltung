@@ -643,7 +643,7 @@ body.dark-mode .dok-config-box code {
             <?= htmlspecialchars($kat[$i]) ?>
         </label>
         <?php endfor; ?>
-        <a href="?<?= htmlspecialchars(http_build_query($dok_keep + ['kalle' => 1] + ($sort ? ['sort' => $sort] : []))) ?>" style="font-size:12px;align-self:center;color:#667eea;text-decoration:none;">alle</a>
+        <a href="?<?= htmlspecialchars(http_build_query($dok_keep + ['kalle' => 1] + ($sort ? ['sort' => $sort] : []))) ?>" class="dok-kat-pill" style="text-decoration:none;background:#fff;color:#667eea;border-color:#667eea;">alle</a>
     </div>
 </form>
 
@@ -828,6 +828,12 @@ body.dark-mode .dok-config-box code {
 </table>
 <?php endif; ?>
 
+<?php
+// Sammler nur zeigen, wenn Einträge vorhanden sind. Leer: ausschließlich für Admins in der Sitzungsverwaltung (zum Anlegen);
+// im schreibgeschützten MTool-Modus ist $user_is_admin false, dort bleibt ein leerer Sammler unsichtbar.
+$show_sammler = !empty($sammler) || $user_is_admin;
+if ($show_sammler):
+?>
 <!-- ── Sammler (Link-Kollektionen) ── -->
 <div class="dok-section-head">🗂 Sammler – externe Dokumentenkollektionen</div>
 
@@ -905,6 +911,7 @@ body.dark-mode .dok-config-box code {
     </form>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 <?php endif; ?>
 
 <!-- Admin: Upload-Verzeichnis konfigurieren -->
