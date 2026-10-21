@@ -78,10 +78,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dok_action'])) {
     } else {
         $action = $_POST['dok_action'];
 
+        try {
         if ($action === 'save_meta') {
             // Metadaten eines vorhandenen Eintrags speichern
             $id = (int)($_POST['dok_id'] ?? 0);
+            $zu_lang = '';
             if ($id > 0) {
+                // Eingaben gegen die Spaltenlängen der Tabelle prüfen (die Tabelle stammt teils aus dem älteren System)
+                $col_len = [];
+                foreach ($pdo->query("SELECT COLUMN_NAME, CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS
+                                      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'dokumente'")->fetchAll(PDO::FETCH_NUM) as $c) {
+                    $col_len[strtolower($c[0])] = $c[1] !== null ? (int)$c[1] : null;
+                }
+                foreach (['titel' => 'Titel', 'kurzurl' => 'Kurz-URL', 'version' => 'Version', 'adminbem' => 'Admin-Bemerkung'] as $f => $label) {
+                    $len = mb_strlen(trim($_POST[$f] ?? ''));
+                    if (!empty($col_len[$f]) && $len > $col_len[$f]) {
+                        $zu_lang = $label . ' ist zu lang (' . $len . ' Zeichen, in dieser Datenbank erlaubt: ' . $col_len[$f] . ').';
+                        break;
+                    }
+                }
+            }
+            if ($zu_lang !== '') {
+                $flash_err = 'Nicht gespeichert: ' . $zu_lang;
+            } elseif ($id > 0) {
                 $stmt = $pdo->prepare("UPDATE dokumente SET
                     titel=?, beschreibung=?, stichworte=?, version=?,
                     kurzurl=?, zugriff=?, k1=?, adminbem=?, datum=?
@@ -303,6 +322,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dok_action'])) {
                 $pdo->prepare("DELETE FROM doksammler WHERE id=?")->execute([$sid]);
                 $flash_ok = 'Link-Sammlung gelöscht.';
             }
+        }
+        } catch (PDOException $e) {
+            // Datenbankfehler (z. B. Wert zu lang für die Spalte) als Meldung statt als Fatal Error anzeigen
+            error_log('Dokumentensammlung: ' . $e->getMessage());
+            $flash_ok  = '';
+            $flash_err = 'Nicht gespeichert (Datenbankfehler): ' . $e->getMessage();
         }
     }
 }
