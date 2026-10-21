@@ -278,6 +278,63 @@ function upload_document($pdo, $file, $data, $member_id) {
 /**
  * Aktualisiert ein Dokument
  */
+/**
+ * Benennt die Datei eines lokalen Dokuments um (Admin): Datei auf dem Server, filename, filepath und
+ * original_filename (Anzeige in Liste/Detail und Name beim Herunterladen) erhalten den neuen Namen.
+ * Die Dateiendung bleibt unverändert. Der Name wird für Dateisysteme bereinigt (Umlaute umschrieben,
+ * Leerzeichen -> Unterstrich, nur A-Z a-z 0-9 . _ -), maximal 100 Zeichen.
+ */
+function rename_document_file($pdo, $document_id, $new_basename) {
+    $doc = get_document_by_id($pdo, $document_id);
+    if (!$doc) return ['success' => false, 'message' => 'Dokument nicht gefunden'];
+    if (!empty($doc['external_url']) || empty($doc['filepath'])) {
+        return ['success' => false, 'message' => 'Externe Dokumente haben keine Datei zum Umbenennen'];
+    }
+
+    $ext = pathinfo($doc['filepath'], PATHINFO_EXTENSION);
+    $base = trim((string)$new_basename);
+    // Endung, die der Admin versehentlich mit eingegeben hat, entfernen
+    if ($ext !== '' && strcasecmp(substr($base, -strlen($ext) - 1), '.' . $ext) === 0) {
+        $base = substr($base, 0, -strlen($ext) - 1);
+    }
+    $base = strtr($base, ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue', 'ß' => 'ss']);
+    $base = preg_replace('/[^A-Za-z0-9._-]+/', '_', $base);
+    $base = trim(preg_replace('/_+/', '_', $base), '._-');
+    $base = substr($base, 0, 100);
+    if ($base === '') {
+        return ['success' => false, 'message' => 'Der neue Dateiname enthält keine verwendbaren Zeichen'];
+    }
+
+    $new_filename = $ext !== '' ? $base . '.' . $ext : $base;
+    if ($new_filename === $doc['filename'] && $new_filename === $doc['original_filename']) {
+        return ['success' => true, 'message' => 'Dateiname unverändert', 'changed' => false];
+    }
+
+    $old_path = __DIR__ . '/' . $doc['filepath'];
+    $new_rel  = ltrim(str_replace('\\', '/', dirname($doc['filepath'])) . '/' . $new_filename, './');
+    $new_path = __DIR__ . '/' . $new_rel;
+
+    if (!file_exists($old_path)) {
+        return ['success' => false, 'message' => 'Die Datei wurde auf dem Server nicht gefunden'];
+    }
+    if ($new_path !== $old_path && file_exists($new_path)) {
+        return ['success' => false, 'message' => 'Eine Datei mit diesem Namen existiert bereits'];
+    }
+    if ($new_path !== $old_path && !@rename($old_path, $new_path)) {
+        return ['success' => false, 'message' => 'Die Datei konnte nicht umbenannt werden (Schreibrechte?)'];
+    }
+
+    try {
+        $stmt = $pdo->prepare("UPDATE svdocuments SET filename = ?, original_filename = ?, filepath = ? WHERE document_id = ?");
+        $stmt->execute([$new_filename, $new_filename, $new_rel, $document_id]);
+    } catch (\Throwable $e) {
+        if ($new_path !== $old_path) @rename($new_path, $old_path);   // Datenbankfehler: Datei zurückbenennen
+        return ['success' => false, 'message' => 'Fehler beim Speichern des Dateinamens: ' . $e->getMessage()];
+    }
+
+    return ['success' => true, 'message' => 'Dateiname geändert in ' . $new_filename, 'changed' => true];
+}
+
 function update_document($pdo, $document_id, $data, $member_id = null) {
     // Prüfen ob Dokument existiert
     $doc = get_document_by_id($pdo, $document_id);

@@ -8,6 +8,10 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 ### Added (Neu)
 
+#### Dokumente: Dateiname ändern (2026-10-28)
+
+- Admins können beim Bearbeiten eines Dokuments den Dateinamen ändern (`rename_document_file()`, Feld „Dateiname“ in der Bearbeitungsansicht). Die Datei wird auf dem Server umbenannt; `filename`, `filepath` und `original_filename` erhalten den neuen Namen, der auch in der Liste („📎 Name“ unter dem Titel), in der Detailansicht und als Name beim Herunterladen erscheint. Endung bleibt unverändert; Umlaute werden umschrieben, Leerzeichen zu „_“, erlaubt sind A-Z a-z 0-9 . _ - (max. 100 Zeichen). Existiert der Name schon, wird abgelehnt; bei Datenbankfehlern wird die Datei zurückbenannt. Externe Links sind ausgenommen.
+
 #### Fix: Link zur individuellen Terminabfrage / zum Meinungsbild (2026-10-27)
 
 - `generate_external_access_link()`: Ohne konfigurierte öffentliche URL (`svconfig.terminplanung_standalone_url` bzw. `opinion_standalone_url`) wurde der Link auf das **Wurzelverzeichnis der Domain** geraten (`https://domain/terminplanung_standalone.php`), das bei Installation in einem Unterverzeichnis auf eine falsche Seite führt. Jetzt gilt: Liegt im Wurzelverzeichnis der Domain eine gleichnamige Datei (öffentlicher Wrapper), zeigt der Link dorthin (wie zuvor); sonst auf das Verzeichnis der Sitzungsverwaltung (funktioniert für eingeloggte Mitglieder). Ein erster Zwischenstand zeigte immer auf den geschützten Bereich, wodurch Besucher als Mitglieder erkannt wurden und kein Registrierungsformular (Name, E-Mail) erhielten.

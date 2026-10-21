@@ -160,6 +160,16 @@ if (isset($_POST['action']) && $_POST['action'] === 'update') {
 
     $result = update_document($pdo, $document_id, $data, $_SESSION['member_id']);
 
+    // Dateiname ändern (nur lokale Dokumente, nur Admin; Server-Datei und Anzeigename)
+    if ($result['success'] && $document_source !== 'link' && isset($_POST['new_filename'])) {
+        $rename = rename_document_file($pdo, $document_id, $_POST['new_filename']);
+        if (!$rename['success']) {
+            $result = $rename;
+        } elseif (!empty($rename['changed'])) {
+            $result['message'] .= ' – ' . $rename['message'];
+        }
+    }
+
     if ($result['success']) {
         $_SESSION['success'] = $result['message'];
     } else {

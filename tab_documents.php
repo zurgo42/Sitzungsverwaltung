@@ -416,6 +416,9 @@ if ($view === 'list') {
                                             <?php if ($doc['description']): ?>
                                                 <br><small class="text-muted"><?= htmlspecialchars(mb_substr($doc['description'], 0, 80)) ?><?= mb_strlen($doc['description']) > 80 ? '...' : '' ?></small>
                                             <?php endif; ?>
+                                            <?php if (empty($doc['external_url']) && !empty($doc['original_filename'])): ?>
+                                                <br><small class="text-muted">📎 <?= htmlspecialchars($doc['original_filename']) ?></small>
+                                            <?php endif; ?>
                                         </td>
                                         <td><span class="badge bg-info"><?= htmlspecialchars($cat_label) ?></span></td>
                                         <td><?= $doc['version'] ? '<span class="badge bg-secondary">v' . htmlspecialchars($doc['version']) . '</span>' : '-' ?></td>
@@ -845,6 +848,22 @@ elseif ($view === 'edit' && $is_admin && $document_id) {
                                     <input type="text" name="title" class="form-control" required
                                            value="<?= htmlspecialchars($doc['title']) ?>">
                                 </div>
+
+                                <?php if (empty($doc['external_url']) && !empty($doc['filepath'])):
+                                    $fn_ext  = pathinfo($doc['filepath'], PATHINFO_EXTENSION);
+                                    $fn_base = ($fn_ext !== '') ? substr($doc['original_filename'] ?: $doc['filename'], 0, -strlen($fn_ext) - 1) : ($doc['original_filename'] ?: $doc['filename']);
+                                ?>
+                                <div class="mb-3">
+                                    <label class="form-label">Dateiname</label>
+                                    <div class="input-group">
+                                        <input type="text" name="new_filename" class="form-control" maxlength="100"
+                                               value="<?= htmlspecialchars($fn_base) ?>">
+                                        <?php if ($fn_ext !== ''): ?><span class="input-group-text">.<?= htmlspecialchars($fn_ext) ?></span><?php endif; ?>
+                                    </div>
+                                    <div class="form-text">Name der Datei auf dem Server und beim Herunterladen. Kurze Namen sind leichter zu zitieren.
+                                        Erlaubt: Buchstaben, Ziffern, Punkt, Unterstrich, Bindestrich (Umlaute werden umschrieben, Leerzeichen zu „_“).</div>
+                                </div>
+                                <?php endif; ?>
 
                                 <div class="mb-3">
                                     <label class="form-label">Kategorie *</label>
