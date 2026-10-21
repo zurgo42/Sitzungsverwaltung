@@ -15,6 +15,7 @@ if (!isset($pdo) || !isset($current_user)) {
 }
 
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/file_helpers.php';
 
 // ── Zugriffsebene des aktuellen Nutzers ──────────────────────────────────────
 $user_aktiv   = (int)($current_user['aktiv'] ?? get_member_access_level($current_user));
@@ -86,14 +87,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dok_action'])) {
                         $prefix = in_array(substr($row['name'], 0, 3), ['xxx', 'vvv'], true) ? substr($row['name'], 0, 3) : '';
                         $cur    = substr($row['name'], strlen($prefix));
                         $ext    = pathinfo($cur, PATHINFO_EXTENSION);
-                        $clean  = dok_clean_basename($_POST['new_name'], $ext);
+                        $clean  = sv_clean_filename($_POST['new_name'], $ext);
                         if ($clean === '') {
                             $flash_ok = '';
                             $flash_err = 'Der neue Dateiname enthält keine verwendbaren Zeichen.';
                         } else {
                             $new_name = $prefix . $clean . ($ext !== '' ? '.' . $ext : '');
                             if ($new_name !== $row['name']) {
-                                $loc      = dok_locate($row['verz'], $row['name']);
+                                $loc      = sv_locate_file($row['verz'], $row['name']);
                                 $old_path = $loc['pfad'];
                                 $new_path = ($old_path !== null) ? dirname($old_path) . '/' . $new_name : '';
                                 if ($old_path === null) {
@@ -191,41 +192,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dok_action'])) {
             if ($id > 0) {
                 // Datei umbenennen: Präfix xxx
                 $row = $pdo->query("SELECT verz, name FROM dokumente WHERE id=$id")->fetch();
+                $flash_ok = 'Eintrag verborgen.';
                 if ($row && $row['verz'] && $row['name'] && substr($row['name'], 0, 3) !== 'xxx') {
-                    $old = $row['verz'] . $row['name'];
-                    $new = $row['verz'] . 'xxx' . $row['name'];
-                    if (file_exists($old)) rename($old, $new);
-                    $pdo->prepare("UPDATE dokumente SET name=?, zugriff=99 WHERE id=?")
-                        ->execute(['xxx' . $row['name'], $id]);
+                    $loc = sv_locate_file($row['verz'], $row['name']);
+                    if ($loc['pfad'] !== null) {
+                        $real = basename($loc['pfad']);   // tatsächlicher Dateiname auf dem Server (Datenbank wird daran angeglichen)
+                        $new = dirname($loc['pfad']) . '/xxx' . $real;
+                        if (@rename($loc['pfad'], $new)) {
+                            $pdo->prepare("UPDATE dokumente SET name=?, zugriff=99 WHERE id=?")
+                                ->execute(['xxx' . $real, $id]);
+                        } else {
+                            $flash_ok = '';
+                            $flash_err = 'Nicht verborgen: Die Datei konnte nicht umbenannt werden (Rechte prüfen).';
+                        }
+                    } else {
+                        // Datei nicht auffindbar: Eintrag trotzdem verbergen, aber warnen (Datei bleibt unter dem alten Namen abrufbar)
+                        $pdo->prepare("UPDATE dokumente SET zugriff=99 WHERE id=?")->execute([$id]);
+                        $flash_err = 'Eintrag verborgen, aber die Datei wurde auf dem Server nicht gefunden und konnte nicht umbenannt werden. Durchsucht: '
+                            . implode(' | ', $loc['versucht']);
+                    }
                 } else {
                     $pdo->prepare("UPDATE dokumente SET zugriff=99 WHERE id=?")->execute([$id]);
                 }
-                $flash_ok = 'Eintrag verborgen.';
             }
 
         } elseif ($action === 'mark_old') {
             $id = (int)($_POST['dok_id'] ?? 0);
             if ($id > 0) {
                 $row = $pdo->query("SELECT verz, name FROM dokumente WHERE id=$id")->fetch();
+                $flash_ok = 'Als überholt markiert.';
                 if ($row && $row['verz'] && $row['name']
                     && substr($row['name'], 0, 3) !== 'vvv' && substr($row['name'], 0, 3) !== 'xxx') {
-                    $old = $row['verz'] . $row['name'];
-                    $new = $row['verz'] . 'vvv' . $row['name'];
-                    if (file_exists($old)) rename($old, $new);
-                    $pdo->prepare("UPDATE dokumente SET name=? WHERE id=?")->execute(['vvv' . $row['name'], $id]);
+                    $loc = sv_locate_file($row['verz'], $row['name']);
+                    if ($loc['pfad'] !== null) {
+                        $real = basename($loc['pfad']);   // tatsächlicher Dateiname auf dem Server (Datenbank wird daran angeglichen)
+                        $new = dirname($loc['pfad']) . '/vvv' . $real;
+                        if (@rename($loc['pfad'], $new)) {
+                            $pdo->prepare("UPDATE dokumente SET name=? WHERE id=?")->execute(['vvv' . $real, $id]);
+                        } else {
+                            $flash_ok = '';
+                            $flash_err = 'Nicht markiert: Die Datei konnte nicht umbenannt werden (Rechte prüfen).';
+                        }
+                    } else {
+                        $flash_ok = '';
+                        $flash_err = 'Nicht markiert: Die Datei wurde auf dem Server nicht gefunden. Durchsucht: ' . implode(' | ', $loc['versucht']);
+                    }
                 }
-                $flash_ok = 'Als überholt markiert.';
             }
 
         } elseif ($action === 'delete') {
             $id = (int)($_POST['dok_id'] ?? 0);
             if ($id > 0) {
                 $row = $pdo->query("SELECT verz, name FROM dokumente WHERE id=$id")->fetch();
-                if ($row && $row['verz'] && $row['name'] && file_exists($row['verz'] . $row['name'])) {
-                    unlink($row['verz'] . $row['name']);
+                $flash_ok = 'Eintrag gelöscht.';
+                if ($row && $row['verz'] && $row['name'] && strpos($row['name'], '://') === false) {
+                    $loc = sv_locate_file($row['verz'], $row['name']);
+                    if ($loc['pfad'] !== null) {
+                        @unlink($loc['pfad']);
+                    } else {
+                        $flash_ok = 'Eintrag gelöscht. Hinweis: Die Datei wurde auf dem Server nicht gefunden und ist ggf. noch vorhanden. Durchsucht: '
+                            . implode(' | ', $loc['versucht']);
+                    }
                 }
                 $pdo->prepare("DELETE FROM dokumente WHERE id=?")->execute([$id]);
-                $flash_ok = 'Eintrag gelöscht.';
             }
 
         } elseif ($action === 'save_sammler') {
@@ -335,85 +364,6 @@ if ($has_sammler_tbl) {
 }
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────────────────
-/**
- * Findet die Datei zu einem in der Datenbank gespeicherten Namen auch dann, wenn Schreibweise oder Kodierung abweichen
- * (Umlaute/Leerzeichen: URL- oder HTML-kodiert, ISO-8859-1 statt UTF-8, zerlegte Umlaute). Gibt den echten Pfad oder null zurück.
- */
-function dok_find_file(string $verz, string $name): ?string {
-    if (file_exists($verz . $name)) return $verz . $name;
-
-    $norm = function (string $s): string {
-        $s = rawurldecode(str_replace('+', '%2B', $s));          // %20, %C3%84 ... (Plus-Zeichen bleibt)
-        $s = html_entity_decode($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');   // &auml; ...
-        if (!mb_check_encoding($s, 'UTF-8')) {
-            $s = mb_convert_encoding($s, 'UTF-8', 'ISO-8859-1');   // Latin-1-Bytes -> UTF-8
-        }
-        if (class_exists('Normalizer')) {
-            $s = Normalizer::normalize($s, Normalizer::FORM_C) ?: $s;   // zerlegte Umlaute zusammensetzen
-        }
-        return $s;
-    };
-
-    // Typische Varianten direkt probieren
-    $candidates = [
-        rawurldecode($name),
-        urldecode($name),
-        html_entity_decode($name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
-        mb_convert_encoding($name, 'ISO-8859-1', 'UTF-8'),
-        mb_convert_encoding($name, 'UTF-8', 'ISO-8859-1'),
-    ];
-    foreach ($candidates as $c) {
-        if ($c !== '' && file_exists($verz . $c)) return $verz . $c;
-    }
-
-    // Verzeichnis durchsuchen und normalisiert vergleichen
-    $dir = @scandir($verz);
-    if ($dir) {
-        $want = $norm($name);
-        foreach ($dir as $f) {
-            if ($f === '.' || $f === '..') continue;
-            if ($norm($f) === $want) return $verz . $f;
-        }
-    }
-    return null;
-}
-
-/**
- * Sucht die Datei eines Eintrags. Ein relatives Verzeichnis (z. B. "../docs/") stammt oft aus dem älteren System und
- * bezieht sich dort auf ein anderes Arbeitsverzeichnis; deshalb werden mehrere Basisverzeichnisse probiert
- * (aktuelles Verzeichnis, Verzeichnis dieses Skripts, dessen Eltern, DOCUMENT_ROOT).
- * Rückgabe: ['pfad' => gefundener Pfad|null, 'versucht' => [durchsuchte Verzeichnisse]]
- */
-function dok_locate(string $verz, string $name): array {
-    $bases = [''];
-    if ($verz !== '' && $verz[0] !== '/' && !preg_match('/^[A-Za-z]:[\\\\\/]/', $verz)) {
-        $bases = ['', __DIR__ . '/', dirname(__DIR__) . '/', dirname(__DIR__, 2) . '/'];
-        if (!empty($_SERVER['DOCUMENT_ROOT'])) $bases[] = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/';
-    }
-    $tried = [];
-    foreach ($bases as $base) {
-        $dir = $base . $verz;
-        if (substr($dir, -1) !== '/') $dir .= '/';
-        $real = is_dir($dir) ? (realpath($dir) ?: $dir) : $dir;
-        if (in_array($real, $tried, true)) continue;
-        $tried[] = $real;
-        $found = dok_find_file($dir, $name);
-        if ($found !== null) return ['pfad' => $found, 'versucht' => $tried];
-    }
-    return ['pfad' => null, 'versucht' => $tried];
-}
-
-/** Dateinamen für den Server bereinigen (ohne Endung): Umlaute umschreiben, nur A-Z a-z 0-9 . _ -, max. 100 Zeichen */
-function dok_clean_basename(string $base, string $ext): string {
-    $base = trim($base);
-    if ($ext !== '' && strcasecmp(substr($base, -strlen($ext) - 1), '.' . $ext) === 0) {
-        $base = substr($base, 0, -strlen($ext) - 1);   // versehentlich mit eingegebene Endung entfernen
-    }
-    $base = strtr($base, ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue', 'ß' => 'ss']);
-    $base = preg_replace('/[^A-Za-z0-9._-]+/', '_', $base);
-    $base = trim(preg_replace('/_+/', '_', $base), '._-');
-    return substr($base, 0, 100);
-}
 function dok_ext(string $name): string {
     $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
     return $ext ?: '–';
