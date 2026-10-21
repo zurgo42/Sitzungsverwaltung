@@ -93,12 +93,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dok_action'])) {
                         } else {
                             $new_name = $prefix . $clean . ($ext !== '' ? '.' . $ext : '');
                             if ($new_name !== $row['name']) {
-                                $old_path = dok_find_file($row['verz'], $row['name']);
-                                $new_path = $row['verz'] . $new_name;
+                                $loc      = dok_locate($row['verz'], $row['name']);
+                                $old_path = $loc['pfad'];
+                                $new_path = ($old_path !== null) ? dirname($old_path) . '/' . $new_name : '';
                                 if ($old_path === null) {
                                     $flash_ok = '';
-                                    $flash_err = 'Dateiname nicht geändert: Die Datei wurde auf dem Server nicht gefunden (gesucht: '
-                                        . $row['verz'] . $row['name'] . ').';
+                                    $flash_err = 'Dateiname nicht geändert: Die Datei "' . $row['name'] . '" wurde auf dem Server nicht gefunden. Durchsucht: '
+                                        . implode(' | ', $loc['versucht']);
                                 } elseif (file_exists($new_path)) {
                                     $flash_ok = '';
                                     $flash_err = 'Dateiname nicht geändert: Eine Datei mit diesem Namen existiert bereits.';
@@ -375,6 +376,31 @@ function dok_find_file(string $verz, string $name): ?string {
         }
     }
     return null;
+}
+
+/**
+ * Sucht die Datei eines Eintrags. Ein relatives Verzeichnis (z. B. "../docs/") stammt oft aus dem älteren System und
+ * bezieht sich dort auf ein anderes Arbeitsverzeichnis; deshalb werden mehrere Basisverzeichnisse probiert
+ * (aktuelles Verzeichnis, Verzeichnis dieses Skripts, dessen Eltern, DOCUMENT_ROOT).
+ * Rückgabe: ['pfad' => gefundener Pfad|null, 'versucht' => [durchsuchte Verzeichnisse]]
+ */
+function dok_locate(string $verz, string $name): array {
+    $bases = [''];
+    if ($verz !== '' && $verz[0] !== '/' && !preg_match('/^[A-Za-z]:[\\\\\/]/', $verz)) {
+        $bases = ['', __DIR__ . '/', dirname(__DIR__) . '/', dirname(__DIR__, 2) . '/'];
+        if (!empty($_SERVER['DOCUMENT_ROOT'])) $bases[] = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/';
+    }
+    $tried = [];
+    foreach ($bases as $base) {
+        $dir = $base . $verz;
+        if (substr($dir, -1) !== '/') $dir .= '/';
+        $real = is_dir($dir) ? (realpath($dir) ?: $dir) : $dir;
+        if (in_array($real, $tried, true)) continue;
+        $tried[] = $real;
+        $found = dok_find_file($dir, $name);
+        if ($found !== null) return ['pfad' => $found, 'versucht' => $tried];
+    }
+    return ['pfad' => null, 'versucht' => $tried];
 }
 
 /** Dateinamen für den Server bereinigen (ohne Endung): Umlaute umschreiben, nur A-Z a-z 0-9 . _ -, max. 100 Zeichen */

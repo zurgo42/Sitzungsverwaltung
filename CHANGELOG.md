@@ -11,7 +11,7 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 #### Dokumentensammlung (tab_dokumente_allgemein.php): Dateiname ändern (2026-10-29)
 
 - Im Bearbeiten-Bereich der Dokumentensammlung (Tabelle `dokumente`) gibt es das Feld „Dateiname“. Beim Speichern wird die Datei im Upload-Verzeichnis umbenannt und `name` aktualisiert; der Name erscheint in der Liste unter dem Titel („📎 Name“). Endung und die Präfixe `xxx` (verborgen) / `vvv` (überholt) bleiben erhalten; Namen werden bereinigt (Umlaute umschrieben, nur A-Z a-z 0-9 . _ -, max. 100 Zeichen); bei vorhandenem Namen oder fehlender Datei wird nichts geändert. Links sind ausgenommen. Weitergegebene Links auf den alten Dateinamen funktionieren danach nicht mehr (Kurz-URL nutzen).
-- Die Datei wird auch gefunden, wenn der gespeicherte Name von der Datei auf dem Server abweicht (URL- oder HTML-kodierte Umlaute/Leerzeichen, ISO-8859-1 statt UTF-8, zerlegte Umlaute); beim Umbenennen wird der Name in der Datenbank dann bereinigt. Bei Nichtfinden nennt die Meldung den gesuchten Pfad.
+- Die Datei wird auch gefunden, wenn der gespeicherte Name von der Datei auf dem Server abweicht (URL- oder HTML-kodierte Umlaute/Leerzeichen, ISO-8859-1 statt UTF-8, zerlegte Umlaute); beim Umbenennen wird der Name in der Datenbank dann bereinigt. Relative Verzeichnisse (z. B. `../docs/`) stammen oft aus dem älteren System und beziehen sich dort auf ein anderes Arbeitsverzeichnis; deshalb werden mehrere Basisverzeichnisse probiert (aktuelles Verzeichnis, Verzeichnis des Skripts, dessen Eltern, DOCUMENT_ROOT). Bei Nichtfinden nennt die Meldung die durchsuchten Verzeichnisse.
 
 #### Dokumente: Dateiname ändern (2026-10-28)
 
