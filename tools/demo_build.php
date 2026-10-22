@@ -628,7 +628,7 @@ class DemoBuilder
             $started = in_array($m['status'], ['active', 'ended', 'protocol_ready', 'archived'], true);
             $notes0 = null;
             if ($started) {
-                $notes0 = "Sitzungsleitung: " . $m['chairman_name'] . "\nProtokollführung: " . $m['secretary_name'] . "\nGäste: keine\nBeschlussfähigkeit: festgestellt\nZeitplan heute: wie in der Tagesordnung\nTermine: siehe Kalender\nRegularien: keine Besonderheiten";
+                $notes0 = "Sitzungsleitung: " . $m['chairman_name'] . "\nProtokollführung: " . $m['secretary_name'] . "\nGäste: keine";
             }
             $t0 = $this->item($mid, 0, 'Wahl der Sitzungsleitung und Protokollführung, Beschlussfähigkeit, Zeitplan heute, Termine, Regularien', 'Formale Wahl, Organisatorisches', 'wahl',
                 $m['invited_by_member_id'], ['dur' => 5, 'prio' => '9.90', 'notes' => $notes0]);
@@ -764,7 +764,7 @@ class DemoBuilder
         $this->item(65, 1, 'Projektfreigabe Mitgliederportal', 'Freigabe der ersten Projektphase.', 'antrag_beschluss', 3, ['dur' => 20, 'proposal' => 'Die erste Projektphase des Mitgliederportals wird freigegeben.']);
 
         // ---------- Sitzung 40 (aktiv, läuft) ----------
-        $l1 = $this->item(40, 1, 'Begrüßung und Regularien', 'Feststellung der Beschlussfähigkeit.', 'information', 4, ['dur' => 5, 'notes' => 'Beschlussfähig: 5 von 6 Eingeladenen anwesend.']);
+        $l1 = $this->item(40, 1, 'Begrüßung und Genehmigung der Tagesordnung', 'Genehmigung der Tagesordnung.', 'information', 4, ['dur' => 5, 'notes' => 'Tagesordnung ohne Änderung genehmigt.']);
         $l2 = $this->item(40, 2, 'Rücklagenbildung für Immobilienerwerb', 'Aussprache zum laufenden Antrag.', 'antrag_beschluss', 1, ['antrnr' => 'B' . $this->ymd(-11) . '01', 'dur' => 25, 'active' => 1]);
         $l3 = $this->item(40, 3, 'Stimmungsbild: Termin Mitgliederversammlung', 'Der Vorstand holt ein Stimmungsbild ein.', 'diskussion', 2, ['dur' => 10]);
         $this->item(40, 101, 'Vertragsverhandlung (vertraulich)', 'Vertraulicher TOP zu laufenden Verhandlungen.', 'aussprache', 4, ['dur' => 15]);
@@ -781,7 +781,7 @@ class DemoBuilder
         $this->add('svvotes', ['voting_id' => $v1['voting_id'], 'member_id' => 2, 'vote' => 'yes', 'created_at' => $this->dt(0, '08:42')], 'vote_id');
 
         // ---------- Sitzung 20 (beendet) ----------
-        $e1 = $this->item(20, 1, 'Begrüßung und Genehmigung des Protokolls', 'Regularien.', 'information', 4, ['dur' => 5, 'notes' => 'Protokoll der Vorsitzung ohne Einwände genehmigt.']);
+        $e1 = $this->item(20, 1, 'Begrüßung und Genehmigung des Protokolls', 'Genehmigung des Protokolls der letzten Sitzung.', 'information', 4, ['dur' => 5, 'notes' => 'Protokoll der Vorsitzung ohne Einwände genehmigt.']);
         $e2 = $this->item(20, 2, 'Moderationskoffer', 'Beschlussfassung über die Anschaffung.', 'antrag_beschluss', 5, ['antrnr' => 'VS' . $this->ymd(-1) . '01', 'dur' => 10, 'vote_yes' => 6, 'vote_no' => 0, 'vote_abstain' => 0, 'vote_result' => 'einstimmig', 'notes' => 'Einstimmig beschlossen (VS' . $this->ymd(-1) . '01).']);
         $e3 = $this->item(20, 3, 'Planung Mitgliederversammlung', 'Termin, Ort und Tagesordnung.', 'diskussion', 2, ['dur' => 30, 'vote_yes' => 3, 'vote_no' => 1, 'vote_abstain' => 1, 'vote_result' => 'angenommen', 'notes' => 'Terminvorschlag 5. Dezember angenommen. ToDo: Saal reservieren.']);
         $e4 = $this->item(20, 4, 'Bericht Geschäftsführung', 'Mitgliederzahlen und Liquidität.', 'bericht', 4, ['dur' => 15, 'notes' => 'Liquidität unproblematisch. Mitgliederzahl stabil.']);
@@ -799,13 +799,13 @@ class DemoBuilder
         $this->add('svagenda_personal_notes', ['item_id' => $e3, 'member_id' => 7, 'note_text' => 'Den 12. Dezember als Alternative anbieten.', 'created_at' => $this->dt(-1, '19:40')], 'note_id');
 
         // ---------- Sitzung 30 (Protokoll liegt vor) ----------
-        $p1 = $this->item(30, 1, 'Regularien', 'Beschlussfähigkeit und Tagesordnung.', 'information', 4, ['dur' => 5, 'notes' => 'Tagesordnung ohne Änderung genehmigt.']);
+        $p1 = $this->item(30, 1, 'Genehmigung der Tagesordnung', 'Tagesordnung und letztes Protokoll.', 'information', 4, ['dur' => 5, 'notes' => 'Tagesordnung ohne Änderung genehmigt.']);
         $p2 = $this->item(30, 2, 'Druck von Flyern für die Herbstkampagne', 'Beschlussfassung.', 'antrag_beschluss', 8, ['antrnr' => 'VS' . $this->ymd(-5) . '01', 'dur' => 10, 'vote_yes' => 2, 'vote_no' => 0, 'vote_abstain' => 0, 'vote_result' => 'einstimmig', 'notes' => 'Einstimmig angenommen.']);
         $p3 = $this->item(30, 3, 'Jahresplanung Veranstaltungen', 'Terminübersicht für das nächste Jahr.', 'diskussion', 9, ['dur' => 25, 'notes' => 'Termine werden im Kalender eingetragen.']);
         $p4 = $this->item(30, 101, 'Vertrauliche Mitteilung', 'Nur für berechtigte Teilnehmer.', 'information', 4, ['dur' => 10, 'notes' => 'Siehe internes Protokoll.']);
 
         // ---------- Archivierte Sitzungen ----------
-        $r1 = $this->item(11, 1, 'Regularien', 'Beschlussfähigkeit.', 'information', 4, ['dur' => 5, 'notes' => 'Beschlussfähig.']);
+        $r1 = $this->item(11, 1, 'Genehmigung des letzten Protokolls', 'Protokoll der letzten Sitzung.', 'information', 4, ['dur' => 5, 'notes' => 'Ohne Einwände genehmigt.']);
         $r2 = $this->item(11, 2, 'Beitragsordnung (Vorbesprechung)', 'Erste Aussprache.', 'diskussion', 4, ['dur' => 30, 'notes' => 'Entwurf wird von der GF überarbeitet.']);
         $r3 = $this->item(10, 1, 'Gehaltsrahmen Geschäftsstelle 2027', 'Beschlussfassung (vertraulich).', 'antrag_beschluss', 4, ['antrnr' => 'VS' . $this->ymd(-70) . '01', 'dur' => 20, 'vote_yes' => 3, 'vote_no' => 0, 'vote_abstain' => 0, 'vote_result' => 'einstimmig', 'notes' => 'Einstimmig beschlossen.']);
         $r4 = $this->item(10, 2, 'Jahresabschluss', 'Vorstellung durch die Finanzen.', 'bericht', 1, ['dur' => 25, 'notes' => 'Zur Kenntnis genommen.']);
