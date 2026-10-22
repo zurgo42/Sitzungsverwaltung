@@ -11,6 +11,7 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 #### Dokumentensammlung in MTool einbinden (2026-10-30)
 
 - Neu: `dokumente_mtool.php` für Seiten, die nur `$MNr` kennen (z. B. `MTool/mtool.php`): lädt `functions.php`, ermittelt das Mitglied aus `$MNr` und bindet `tab_dokumente_allgemein.php` ein. Die alte include-Zeile wird einfach durch `include '../Sitzungsverwaltung/dokumente_mtool.php';` ersetzt.
+- Fix: Felder mit NULL in der Tabelle `dokumente` (älteres System) lösten `htmlspecialchars(): Passing null`-Meldungen aus; bei Formularfeldern standen diese Meldungen im `value`-Attribut und wurden beim Speichern als Text in die Datenbank geschrieben („Data too long for column kurzurl“). NULL wird jetzt beim Laden als leerer Wert behandelt.
 - Speichern prüft Titel, Kurz-URL, Version und Admin-Bemerkung gegen die tatsächlichen Spaltenlängen der Tabelle `dokumente` (stammt teils aus dem älteren System) und meldet „... ist zu lang (N Zeichen, erlaubt: M)“; Datenbankfehler in den Aktionen werden als Meldung statt als Fatal Error angezeigt.
 - Der Bereich „Sammler“ wird nur gezeigt, wenn Einträge vorhanden sind; leer sehen ihn nur Admins in der Sitzungsverwaltung (zum Anlegen). Der Link „alle“ bei den Kategorien ist ein Button.
 - Layout: Die Dokumentensammlung ist jetzt in `<div class="dok-root">` gekapselt und linksbündig, auch wenn die einbindende Seite (MTool) Tabellenzellen zentriert. Beschreibungen mit `<br>` als Text aus dem älteren System werden als Zeilenumbruch dargestellt.

@@ -400,6 +400,15 @@ $order_sql = match($sort) {
 $stmt_docs = $pdo->prepare("SELECT id, verz, name, datum, groesse, kurzurl, titel, zugriff, k1, version, beschreibung, stichworte, adminbem FROM dokumente $where_sql $order_sql");
 $stmt_docs->execute($params_q);
 $docs = $stmt_docs->fetchAll(PDO::FETCH_ASSOC);
+// Tabellen aus dem älteren System enthalten NULL statt leerer Werte: als '' behandeln (sonst PHP-8.1+-Deprecated-Meldungen
+// im Text, bei Formularfeldern sogar im value-Attribut -> beim Speichern landet die Meldung als Wert in der Datenbank)
+$dok_null_zu_leer = function (array $rows): array {
+    foreach ($rows as &$r) {
+        foreach ($r as $k => $v) { if ($v === null) $r[$k] = ''; }
+    }
+    return $rows;
+};
+$docs = $dok_null_zu_leer($docs);
 
 // ── Sammler laden ─────────────────────────────────────────────────────────────
 $sammler = [];
@@ -407,6 +416,7 @@ $sammler_tbl = @$pdo->query("SHOW TABLES LIKE 'doksammler'");
 $has_sammler_tbl = $sammler_tbl && $sammler_tbl->rowCount() > 0;
 if ($has_sammler_tbl) {
     $sammler = $pdo->query("SELECT * FROM doksammler ORDER BY sort_nr ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $sammler = $dok_null_zu_leer($sammler);
 }
 
 // ── Hilfsfunktionen ──────────────────────────────────────────────────────────
