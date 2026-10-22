@@ -7,6 +7,7 @@
 require_once("config.php");
 require_once("config_adapter.php");   // Konfiguration für Mitgliederquelle
 require_once("member_functions.php"); // Prozedurale Wrapper-Funktionen
+require_once(__DIR__ . "/agenda_defaults.php");
 require_once __DIR__ . '/audit_loader.php';
 try {
     $pdo = sv_new_pdo(
@@ -290,7 +291,7 @@ function create_standard_tops($pdo, $meeting_id, $creator_id) {
         // TOP 0 - Antrag/Beschluss
         $stmt = $pdo->prepare("INSERT INTO svagenda_items 
                 (meeting_id, top_number, title, description, category, priority, estimated_duration, is_confidential, created_by_member_id) 
-                VALUES (?, 0, 'Wahl der Sitzungsleitung und Protokollführung, Beschlussfähigkeit, Zeitplan heute, Termine, Regularien', 'Formale Wahl zu Beginn der Sitzung', 'antrag_beschluss', 10.00, 5, 0, ?)");
+                VALUES (?, 0, '" . SV_TOP0_TITLE . "', 'Formale Wahl zu Beginn der Sitzung', 'antrag_beschluss', 10.00, 5, 0, ?)");
         $stmt->execute([$meeting_id, $creator_id]);
         
         // TOP 99 - Sonstiges

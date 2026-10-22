@@ -97,6 +97,8 @@ function can_delete_meeting($meeting, $current_user) {
     return $is_admin;
 }
 
+require_once __DIR__ . '/agenda_defaults.php';
+
 /**
  * Erstellt automatisch TOP 0 und TOP 99
  * 
@@ -153,8 +155,8 @@ function create_default_tops($pdo, $meeting_id, $creator_member_id, $chairman_me
     ");
     $stmt->execute([
         $meeting_id,
-        'Wahl der Sitzungsleitung und Protokollführung, Beschlussfähigkeit, Zeitplan heute, Termine, Regularien',
-        'Formale Wahl, Organisatorisches',
+        SV_TOP0_TITLE,
+        SV_TOP0_DESC,
         $creator_member_id
     ]);
 
@@ -179,8 +181,8 @@ function create_default_tops($pdo, $meeting_id, $creator_member_id, $chairman_me
     ");
     $stmt->execute([
         $meeting_id,
-        'Verschiedenes',
-        'Informationen, Ankündigungen und Sonstige Themen (keine Beschlüsse)',
+        SV_TOP99_TITLE,
+        SV_TOP99_DESC,
         $creator_member_id
     ]);
 }

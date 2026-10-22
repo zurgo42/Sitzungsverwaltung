@@ -31,6 +31,9 @@ define('DEMO_REMINDER_ANTRNR', 'B26010101');
 define('DEMO_REMINDER_OPEN_SLOTS', [2, 3]);
 
 /** svconfig-Schlüssel: Datum, auf das sich alle relativen Demo-Datumsangaben beziehen */
+// Vorgaben für automatisch angelegte TOPs (TOP 0/99): gleiche Quelle wie die Anwendung
+require_once __DIR__ . '/../agenda_defaults.php';
+
 define('DEMO_ANCHOR_KEY', 'demo_anchor_date');
 
 // Drei Demo-Versionen: 'voll' und 'einfach' kommen aus demo_data.json (vorgegeben, von demo_build.php erzeugt),

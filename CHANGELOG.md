@@ -26,6 +26,7 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 - Die Dateisuche liegt jetzt in `file_helpers.php` (`sv_find_file()`, `sv_locate_file()`, `sv_clean_filename()`) und wird auch von „Verbergen", „Als überholt" und „Löschen" genutzt. Findet eine Aktion die Datei nicht, meldet sie das und nennt die durchsuchten Verzeichnisse (vorher wurde nur die Datenbank geändert, die Datei blieb unter dem alten Namen abrufbar). Zusätzlich erkannt: doppelt kodierte Umlaute (UTF-8 als Latin-1/cp1252 gespeichert). Beim Verbergen/Überholt-Markieren wird der Datenbankname dem tatsächlichen Dateinamen angeglichen.
 
 #### TOP 0: Titel um Beschlussfähigkeit, Zeitplan, Termine und Regularien erweitert (2026-10-31)
+  - Texte der automatischen TOPs (0 und 99) an einer Stelle (`agenda_defaults.php`), gemeinsam genutzt von Anwendung und Demo-Generator – die Demo-Sitzungen entstehen damit von vornherein mit dem richtigen TOP 0
 
 - Der automatisch angelegte TOP 0 heißt jetzt „Wahl der Sitzungsleitung und Protokollführung, Beschlussfähigkeit, Zeitplan heute, Termine, Regularien“ (`process_meetings.php`, `functions.php`). Das Protokollfeld von TOP 0 wird beim Sitzungsstart unverändert nur mit Sitzungsleitung, Protokollführung und Gästen vorbelegt: die neuen Stichworte werden nur bei Bedarf protokolliert. Bereits angelegte Sitzungen behalten ihren bisherigen TOP 0. In den Demo-Daten gibt es keine Doppelung mehr (TOP 1 heißt dort z. B. „Genehmigung der Tagesordnung“).
 

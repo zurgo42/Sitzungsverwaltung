@@ -630,12 +630,12 @@ class DemoBuilder
             if ($started) {
                 $notes0 = "Sitzungsleitung: " . $m['chairman_name'] . "\nProtokollführung: " . $m['secretary_name'] . "\nGäste: keine";
             }
-            $t0 = $this->item($mid, 0, 'Wahl der Sitzungsleitung und Protokollführung, Beschlussfähigkeit, Zeitplan heute, Termine, Regularien', 'Formale Wahl, Organisatorisches', 'wahl',
+            $t0 = $this->item($mid, 0, SV_TOP0_TITLE, SV_TOP0_DESC, 'wahl',
                 $m['invited_by_member_id'], ['dur' => 5, 'prio' => '9.90', 'notes' => $notes0]);
             $this->comment($t0, $m['invited_by_member_id'],
                 "Vorschlag:\nSitzungsleitung: " . $m['chairman_name'] . "\nProtokollführer: " . $m['secretary_name'],
                 null, null, date('Y-m-d H:i:s', strtotime($m['created_at'] . ' +1 hour')));
-            $this->item($mid, 99, 'Verschiedenes', 'Informationen, Ankündigungen und Sonstige Themen (keine Beschlüsse)', 'sonstiges',
+            $this->item($mid, 99, SV_TOP99_TITLE, SV_TOP99_DESC, 'sonstiges',
                 $m['invited_by_member_id'], ['dur' => 0, 'prio' => '0.10']);
             if ($started) {
                 $end = in_array($m['status'], ['ended', 'protocol_ready', 'archived'], true) ? $m['ended_at'] : $m['meeting_date'];
