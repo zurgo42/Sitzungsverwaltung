@@ -628,9 +628,9 @@ class DemoBuilder
             $started = in_array($m['status'], ['active', 'ended', 'protocol_ready', 'archived'], true);
             $notes0 = null;
             if ($started) {
-                $notes0 = "Sitzungsleitung: " . $m['chairman_name'] . "\nProtokollführung: " . $m['secretary_name'] . "\nGäste: keine";
+                $notes0 = "Sitzungsleitung: " . $m['chairman_name'] . "\nProtokollführung: " . $m['secretary_name'] . "\nGäste: keine\nBeschlussfähigkeit: festgestellt\nZeitplan heute: wie in der Tagesordnung\nTermine: siehe Kalender\nRegularien: keine Besonderheiten";
             }
-            $t0 = $this->item($mid, 0, 'Wahl der Sitzungsleitung und Protokollführung', 'Formale Wahl, Organisatorisches', 'wahl',
+            $t0 = $this->item($mid, 0, 'Wahl der Sitzungsleitung und Protokollführung, Beschlussfähigkeit, Zeitplan heute, Termine, Regularien', 'Formale Wahl, Organisatorisches', 'wahl',
                 $m['invited_by_member_id'], ['dur' => 5, 'prio' => '9.90', 'notes' => $notes0]);
             $this->comment($t0, $m['invited_by_member_id'],
                 "Vorschlag:\nSitzungsleitung: " . $m['chairman_name'] . "\nProtokollführer: " . $m['secretary_name'],

@@ -290,7 +290,7 @@ function create_standard_tops($pdo, $meeting_id, $creator_id) {
         // TOP 0 - Antrag/Beschluss
         $stmt = $pdo->prepare("INSERT INTO svagenda_items 
                 (meeting_id, top_number, title, description, category, priority, estimated_duration, is_confidential, created_by_member_id) 
-                VALUES (?, 0, 'Wahl von Sitzungsleitung und Protokoll', 'Formale Wahl zu Beginn der Sitzung', 'antrag_beschluss', 10.00, 5, 0, ?)");
+                VALUES (?, 0, 'Wahl der Sitzungsleitung und Protokollführung, Beschlussfähigkeit, Zeitplan heute, Termine, Regularien', 'Formale Wahl zu Beginn der Sitzung', 'antrag_beschluss', 10.00, 5, 0, ?)");
         $stmt->execute([$meeting_id, $creator_id]);
         
         // TOP 99 - Sonstiges

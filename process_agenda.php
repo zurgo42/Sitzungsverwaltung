@@ -2163,7 +2163,11 @@ if (isset($_POST['start_meeting']) && ($is_secretary || $is_chairman) && $meetin
 
         $top0_protocol = "Sitzungsleitung: " . $chairman_name . "\n";
         $top0_protocol .= "Protokollführung: " . $secretary_name . "\n";
-        $top0_protocol .= "Gäste: ";
+        $top0_protocol .= "Gäste: \n";
+        $top0_protocol .= "Beschlussfähigkeit: \n";
+        $top0_protocol .= "Zeitplan heute: \n";
+        $top0_protocol .= "Termine: \n";
+        $top0_protocol .= "Regularien: ";
 
         $stmt = $pdo->prepare("
             UPDATE svagenda_items

@@ -143,7 +143,7 @@ function create_default_tops($pdo, $meeting_id, $creator_member_id, $chairman_me
         ");
     }
 
-    // TOP 0: Wahl der Sitzungsleitung und Protokollführung - Kategorie: wahl
+    // TOP 0: Wahl der Sitzungsleitung und Protokollführung, Beschlussfähigkeit, Zeitplan heute, Termine, Regularien - Kategorie: wahl
     // Priorität: 9.9, Dauer: 5 Min
     $stmt = $pdo->prepare("
         INSERT INTO svagenda_items
@@ -153,7 +153,7 @@ function create_default_tops($pdo, $meeting_id, $creator_member_id, $chairman_me
     ");
     $stmt->execute([
         $meeting_id,
-        'Wahl der Sitzungsleitung und Protokollführung',
+        'Wahl der Sitzungsleitung und Protokollführung, Beschlussfähigkeit, Zeitplan heute, Termine, Regularien',
         'Formale Wahl, Organisatorisches',
         $creator_member_id
     ]);
