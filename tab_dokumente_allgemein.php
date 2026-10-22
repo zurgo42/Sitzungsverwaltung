@@ -93,7 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dok_action'])) {
                 foreach (['titel' => 'Titel', 'kurzurl' => 'Kurz-URL', 'version' => 'Version', 'adminbem' => 'Admin-Bemerkung'] as $f => $label) {
                     $len = mb_strlen(trim($_POST[$f] ?? ''));
                     if (!empty($col_len[$f]) && $len > $col_len[$f]) {
-                        $zu_lang = $label . ' ist zu lang (' . $len . ' Zeichen, in dieser Datenbank erlaubt: ' . $col_len[$f] . ').';
+                        $zu_lang = $label . ' ist zu lang (' . $len . ' Zeichen, in dieser Datenbank erlaubt: ' . $col_len[$f] . '). Gesendet wurde: "'
+                            . mb_substr(trim($_POST[$f] ?? ''), 0, 60) . (mb_strlen(trim($_POST[$f] ?? '')) > 60 ? '…' : '') . '"';
                         break;
                     }
                 }
