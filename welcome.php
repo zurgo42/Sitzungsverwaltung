@@ -5,6 +5,7 @@
 
 session_start();
 require_once 'config.php';
+require_once 'branding.php';
 
 // Wenn bereits eingeloggt, zur Hauptseite weiterleiten
 if (isset($_SESSION['member_id'])) {
@@ -209,21 +210,33 @@ if (isset($_GET['demo_email'])) {
                 grid-template-columns: 1fr;
             }
         }
+        .app-lead { margin: 0 0 16px; color: var(--text-secondary, #555); line-height: 1.5; }
+        .app-sub { margin: 0 0 12px; font-size: 1.05em; }
     </style>
 </head>
 <body>
     <!-- HEADER -->
+    <?php $sv_org_name = defined('ORG_NAME') ? trim((string)ORG_NAME) : ''; $sv_org_logo = defined('ORG_LOGO') ? trim((string)ORG_LOGO) : ''; ?>
     <div class="header">
-        <h1>🏛️ Sitzungsverwaltung</h1>
-        <div class="user-info">
-            <span>Demo-Modus</span>
+        <div class="header-inner header-dreiteilig">
+            <a href="?" class="header-brand">
+                <?php if ($sv_org_logo !== ''): ?><img src="<?php echo htmlspecialchars($sv_org_logo); ?>" alt="" class="header-logo"><?php endif; ?>
+                <span class="brand">
+                    <span class="orgname"><?php echo $sv_org_name !== '' ? htmlspecialchars($sv_org_name) : ($sv_org_logo === '' ? '🏛️ ' : '') . 'Sitzungsverwaltung'; ?></span>
+                    <span class="appname"><b><?php echo SV_APP_NAME; ?></b> · <?php echo SV_APP_TAG; ?></span>
+                </span>
+            </a>
+            <div class="header-mitte"><h1>Demo</h1></div>
+            <div class="user-info"><span>Demo-Modus</span></div>
         </div>
     </div>
 
     <div class="welcome-content">
         <!-- Features -->
         <div class="features-box">
-            <h2>Was diese Anwendung leistet:</h2>
+            <h2><?php echo SV_APP_NAME; ?> – <?php echo SV_APP_TAG; ?></h2>
+            <p class="app-lead"><?php echo SV_APP_LONG; ?>: vorbereiten, diskutieren, abstimmen, dokumentieren. Die Anwendung arbeitet mit dem Mitglieder-Informationssystem MISS zusammen und teilt Mitglieder, Anmeldung und Aussehen mit ihm.</p>
+            <h3 class="app-sub">Was <?php echo SV_APP_NAME; ?> leistet:</h3>
             <?php
             // Reihenfolge wie im Menü; Schlüssel = Modulschalter (null = fester Bereich, immer an)
             $features = [

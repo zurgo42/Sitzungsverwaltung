@@ -26,6 +26,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Konfiguration laden
 require_once 'config.php';                    // Datenbankverbindung und Konstanten
+require_once 'branding.php';                  // Anwendungsname (KONA)
 require_once 'config_adapter.php';            // Konfiguration für Mitgliederquelle
 require_once 'member_functions.php';          // Prozedurale Wrapper-Funktionen für Mitglieder
 require_once 'functions.php';                 // Wiederverwendbare Funktionen
@@ -530,7 +531,7 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $sso_config ? $sso_config['page_title'] : 'Sitzungsverwaltung'; ?></title>
+    <title><?php echo $sso_config ? $sso_config['page_title'] : SV_APP_NAME . ' – Sitzungsverwaltung'; ?></title>
 
     <!-- KRITISCH: Dark Mode Flash Prevention - MUSS VOR allem anderen kommen! -->
 
@@ -751,44 +752,45 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
     <?php endif; ?>
 </head>
 <body>
-    <!-- HEADER mit Benutzerinfo -->
+    <!-- HEADER: links Logo, Vereinsname und Anwendungsname, Mitte Bereichsname, rechts Benutzer -->
+    <?php
+    $sv_org_name = defined('ORG_NAME') ? trim((string)ORG_NAME) : '';
+    $sv_org_logo = $sso_config && !empty($sso_config['logo_path']) ? $sso_config['logo_path'] : (defined('ORG_LOGO') ? trim((string)ORG_LOGO) : '');
+    $sv_bereiche = ['proposals' => 'Anträge/Beschlüsse', 'meetings' => 'Sitzungen', 'agenda' => 'Tagesordnung', 'protokolle' => 'Protokolle',
+        'termine' => 'Termin finden', 'todos' => 'ToDo/Erledigen', 'opinion' => 'Meinungsbild', 'kalender' => 'Kalender', 'documents' => 'Dokumente',
+        'mv_beschluesse' => 'MV-Beschlüsse', 'texte' => 'Texte', 'vertretung' => 'Vertretung', 'admin' => 'Administration', 'admin_init' => 'Administration'];
+    $sv_bereich = $sv_bereiche[$active_tab] ?? ucfirst((string)$active_tab);
+    ?>
     <div class="header">
-        <div class="header-inner">
-            <?php if ($sso_config && !empty($sso_config['logo_path'])): ?>
-            <!-- Logo für SSOdirekt-Modus -->
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <img src="<?php echo $sso_config['logo_path']; ?>"
-                     alt="Logo"
-                     style="height: <?php echo $sso_config['logo_height']; ?>;">
-                <h1 style="margin: 0;">Sitzungsverwaltung</h1>
-            </div>
-            <?php else: ?>
-            <h1>🏛️ Sitzungsverwaltung</h1>
-            <?php endif; ?>
+        <div class="header-inner header-dreiteilig">
+            <a href="?" class="header-brand" title="Zur Startseite">
+                <?php if ($sv_org_logo !== ''): ?>
+                <img src="<?php echo htmlspecialchars($sv_org_logo); ?>" alt="" class="header-logo"<?php echo $sso_config && !empty($sso_config['logo_height']) ? ' style="height:' . htmlspecialchars($sso_config['logo_height']) . ';"' : ''; ?>>
+                <?php endif; ?>
+                <span class="brand">
+                    <span class="orgname"><?php echo $sv_org_name !== '' ? htmlspecialchars($sv_org_name) : ($sv_org_logo === '' ? '🏛️ ' : '') . 'Sitzungsverwaltung'; ?></span>
+                    <span class="appname"><b><?php echo SV_APP_NAME; ?></b> · <?php echo SV_APP_TAG; ?></span>
+                </span>
+            </a>
+            <div class="header-mitte"><h1><?php echo htmlspecialchars($sv_bereich); ?></h1></div>
 
             <div class="user-info">
-                <!-- Benutzername anzeigen -->
-                <span><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?></span>
-
-                <!-- Rollen-Badge anzeigen (nur auf PC) -->
-                <span class="role-badge desktop-only role-<?php echo $current_user['role']; ?>">
-                    <?php echo ucfirst($current_user['role']); ?>
-                </span>
+                <div class="user-name">
+                    <span class="user-id">
+                        <span><?php echo htmlspecialchars($current_user['first_name'] . ' ' . $current_user['last_name']); ?></span>
+                        <span class="role-badge desktop-only role-<?php echo $current_user['role']; ?>"><?php echo ucfirst($current_user['role']); ?></span>
+                    </span>
+                    <?php if ($display_mode === 'SSOdirekt' && $sso_config): ?>
+                        <a href="<?php echo $sso_config['back_button_url']; ?>" class="logout-btn sso-back-button"><?php echo $sso_config['back_button_text']; ?></a>
+                    <?php else: ?>
+                        <a href="?logout=1" class="logout-btn">Abmelden</a>
+                    <?php endif; ?>
+                </div>
 
                 <!-- Dark Mode Toggle -->
                 <button class="dark-mode-toggle" id="darkModeToggle" title="Dunkelmodus umschalten">
                     <span class="icon">🌙</span>
                 </button>
-
-                <?php if ($display_mode === 'SSOdirekt' && $sso_config): ?>
-                    <!-- Zurück-Button für SSOdirekt-Modus -->
-                    <a href="<?php echo $sso_config['back_button_url']; ?>" class="logout-btn sso-back-button">
-                        <?php echo $sso_config['back_button_text']; ?>
-                    </a>
-                <?php else: ?>
-                    <!-- Normaler Logout-Button -->
-                    <a href="?logout=1" class="logout-btn">Abmelden</a>
-                <?php endif; ?>
 
                 <!-- Hamburger-Menü (nur auf Mobile) -->
                 <div class="hamburger-menu mobile-only" id="hamburger-menu">

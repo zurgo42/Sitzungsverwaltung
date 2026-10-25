@@ -95,6 +95,10 @@ define('TABLE_RESSORTS_AKTIV', false);        // Hat die Ressort-Tabelle eine ak
 define('TABLE_ANTRAEGE_HAS_ABSTIMMREGEL', false); // Hat die Anträge-Tabelle abstimmregel-Spalte? (VTool: false, Login-System: true)
 
 // ============= VOREINSTELLUNGEN FÜR MEETINGS =============
+// Kopfzeile: Vereinsname und Logo (optional; ohne Angabe steht dort nur "Sitzungsverwaltung")
+define('ORG_NAME', '');            // z. B. 'Musterverein e. V.'
+define('ORG_LOGO', '');            // URL oder Pfad zum Logo, z. B. 'logo.png'
+
 define('DEFAULT_MEETING_NAME', 'Vorstandssitzung');
 define('DEFAULT_LOCATION', 'Online per Jitsi');
 define('DEFAULT_VIDEO_LINK', 'https://meet.zurgo.de/');
