@@ -346,7 +346,7 @@ if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Login - Sitzungsverwaltung</title>
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="style.css?v=<?php echo @filemtime(__DIR__ . '/style.css') ?: time(); ?>">
     </head>
     <body>
         <div class="login-container">
@@ -644,7 +644,7 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
         }
     </style>
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=<?php echo @filemtime(__DIR__ . '/style.css') ?: time(); ?>">
 
     <?php if ($sso_config): ?>
     <!-- Custom Styling für SSOdirekt-Modus (Version 2.0 - Light/Dark Mode Support) -->
