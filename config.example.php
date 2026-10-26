@@ -164,6 +164,8 @@ define('DEBUG_MODE', IS_LOCAL);  // Automatisch aktiviert in lokaler Umgebung
 // ============= STANDALONE-SKRIPTE =============
 // Pfad zu standalone-Skripten (für externe Teilnehmer ohne Login)
 // Kann sein: '/' (root), '/Sitzungsverwaltung', '/public' etc.
+// Der Verzeichnisname ist frei wählbar und gehört nur in diese Datei: z. B. '/Sitzungsverwaltung' im Adapterbetrieb (Mensa),
+// '/KONA' bei einer eigenständigen Installation. Im Programm selbst steht der Name nirgends fest.
 // Wichtig: Dieses Verzeichnis darf NICHT durch .htaccess passwortgeschützt sein!
 define('STANDALONE_PATH', '/Sitzungsverwaltung');
 
