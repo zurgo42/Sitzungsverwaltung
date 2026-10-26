@@ -27,6 +27,7 @@ Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
 - TOP-Antragsteller: Auswahl bietet jetzt auch nicht eingeladene Mitglieder an (bisher nur Sitzungsteilnehmer) (2026-10-26)
 - TOP-Dateiupload: verständliche Fehlertexte (Server-Limit upload_max_filesize/post_max_size, nicht beschreibbares Verzeichnis); PHP-Meldungen können die Antwort nicht mehr verderben (2026-10-26)
+- TOP-Dateiupload im Adapter-Betrieb: Fehler 1452 (Fremdschlüssel auf svmembers) abgefangen; `tools/migrate_attachments_fk.php` entfernt den Fremdschlüssel dauerhaft (2026-10-26)
 #### TOP 0: Titel um Beschlussfähigkeit, Zeitplan, Termine und Regularien erweitert (2026-10-31)
   - Texte der automatischen TOPs (0 und 99) an einer Stelle (`agenda_defaults.php`), gemeinsam genutzt von Anwendung und Demo-Generator – die Demo-Sitzungen entstehen damit von vornherein mit dem richtigen TOP 0
 

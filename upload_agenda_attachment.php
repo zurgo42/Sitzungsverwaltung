@@ -167,7 +167,7 @@ for ($i = 0; $i < $file_count; $i++) {
             (item_id, filename, original_filename, filepath, filesize, filetype, uploaded_by_member_id)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([
+        $params = [
             $item_id,
             $safe_filename,
             $file_name,
@@ -175,7 +175,16 @@ for ($i = 0; $i < $file_count; $i++) {
             $file_size,
             $mime_type,
             $current_member_id
-        ]);
+        ];
+        try {
+            $stmt->execute($params);
+        } catch (PDOException $fk) {
+            // Adapter-Betrieb: Mitglieds-IDs stammen aus berechtigte, nicht aus svmembers -> Fremdschlüssel (1452) greift nicht.
+            // Dann ohne Uploader speichern; tools/migrate_attachments_fk.php entfernt den Fremdschlüssel dauerhaft.
+            if (strpos($fk->getMessage(), '1452') === false) throw $fk;
+            $params[6] = null;
+            $stmt->execute($params);
+        }
 
         $uploaded_files[] = [
             'attachment_id' => $pdo->lastInsertId(),
