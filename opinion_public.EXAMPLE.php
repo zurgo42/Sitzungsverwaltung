@@ -37,4 +37,4 @@ $OPINION_PUBLIC_URL = 'https://ihre-domain.de/pfad-zum-oeffentlichen-bereich/opi
 
 // ANPASSEN: Absoluter Pfad zur echten opinion_standalone.php
 // (im SSO-geschützten Verzeichnis)
-require_once '/srv/www/vhosts/aktive/htdocs/vorstand/KONA/opinion_standalone.php';
+require_once '/srv/www/vhosts/aktive/htdocs/vorstand/Sitzungsverwaltung/opinion_standalone.php';

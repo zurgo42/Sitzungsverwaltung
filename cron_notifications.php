@@ -5,11 +5,11 @@
  * Kann auf zwei Arten eingesetzt werden:
  *
  * 1. Include im bestehenden Cron-Skript (empfohlen):
- *      require_once '/pfad/zu/vorstand/KONA/cron_notifications.php';
+ *      require_once '/pfad/zu/vorstand/Sitzungsverwaltung/cron_notifications.php';
  *    Das Cron-Skript muss $pdo vorher bereitgestellt haben.
  *
  * 2. Direkte Ausführung via PHP-CLI (eigenständig):
- *      php /pfad/zu/vorstand/KONA/cron_notifications.php
+ *      php /pfad/zu/vorstand/Sitzungsverwaltung/cron_notifications.php
  *
  * Der pseudo_cron.php übernimmt weiterhin die Echtzeit-Verarbeitung während
  * aktiver Nutzung; dieses Skript schließt die Lücken bei Inaktivität.

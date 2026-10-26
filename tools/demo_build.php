@@ -257,12 +257,12 @@ class DemoBuilder
 
         // Benachrichtigungen / Mail (nur Fake-Adressen und -URLs)
         $c('agenda_reminder_default_emails', 'vorstand@example.org', 'text', 'Standard-Empfänger für Agenda-Erinnerungsmail (kommagetrennt, leer = nur Teilnehmer)', 'notifications');
-        $c('meeting_system_url', 'https://demo.example.org/KONA', 'text', 'Basis-URL des Sitzungssystems für Links in Mails (z.B. https://example.com/vorstand/KONA)', 'notifications');
-        $c('opinion_standalone_url', 'https://demo.example.org/KONA/opinion_standalone.php', 'text', 'Öffentliche URL des Meinungsbild-Standalone-Links. Überschreibt den automatisch erzeugten Link.', 'notifications');
-        $c('terminplanung_standalone_url', 'https://demo.example.org/KONA/terminplanung_standalone.php', 'text', 'Öffentliche URL des Terminplanung-Standalone-Links. Überschreibt den automatisch erzeugten Link.', 'notifications');
+        $c('meeting_system_url', 'https://demo.example.org/Sitzungsverwaltung', 'text', 'Basis-URL des Sitzungssystems für Links in Mails (z.B. https://example.com/vorstand/Sitzungsverwaltung)', 'notifications');
+        $c('opinion_standalone_url', 'https://demo.example.org/Sitzungsverwaltung/opinion_standalone.php', 'text', 'Öffentliche URL des Meinungsbild-Standalone-Links. Überschreibt den automatisch erzeugten Link.', 'notifications');
+        $c('terminplanung_standalone_url', 'https://demo.example.org/Sitzungsverwaltung/terminplanung_standalone.php', 'text', 'Öffentliche URL des Terminplanung-Standalone-Links. Überschreibt den automatisch erzeugten Link.', 'notifications');
         $c('mail_from_name', 'Sitzungstool (Demo)', 'text', 'Absender-Name für Benachrichtigungs-Mails (z.B. Sitzungstool)', 'notifications');
         $c('notification_digest_hour', '7', 'text', 'Uhrzeit (Stunde) für den täglichen Benachrichtigungs-Digest', 'notifications');
-        $c('base_url', 'https://demo.example.org/KONA', 'text', 'Basis-URL für Links in Benachrichtigungen (Fallback)', 'system');
+        $c('base_url', 'https://demo.example.org/Sitzungsverwaltung', 'text', 'Basis-URL für Links in Benachrichtigungen (Fallback)', 'system');
 
         // System / Dokumenten-Tab
         $c('documents_mode', 'internal', 'text', 'Dokumenten-Tab-Modus (internal/external/include)', 'system');

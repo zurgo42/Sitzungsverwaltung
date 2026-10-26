@@ -960,7 +960,7 @@ body.dark-mode .init-danger-list {
                                 ];
                                 $placeholder_map = [
                                     'agenda_reminder_default_emails'  => 'mail@beispiel.de, mail2@beispiel.de',
-                                    'meeting_system_url'              => 'https://example.com/vorstand/KONA',
+                                    'meeting_system_url'              => 'https://example.com/vorstand/Sitzungsverwaltung',
                                     'opinion_standalone_url'          => 'https://example.com/meinungsbild.php',
                                     'terminplanung_standalone_url'    => 'https://example.com/termine.php',
                                     'mail_from_name'                  => 'Sitzungstool',

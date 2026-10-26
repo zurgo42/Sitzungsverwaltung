@@ -16,7 +16,7 @@ function sv_org_name(?PDO $pdo = null): string
 }
 
 /**
- * Basispfad der Anwendung auf dem Server (z. B. "/KONA" oder "/Sitzungsverwaltung"): STANDALONE_PATH aus der config.php,
+ * Basispfad der Anwendung auf dem Server (z. B. "/Sitzungsverwaltung"): STANDALONE_PATH aus der config.php,
  * sonst aus dem Pfad des laufenden Skripts. Ohne Schrägstrich am Ende; im Wurzelverzeichnis ein leerer Text.
  */
 function sv_base_path(): string

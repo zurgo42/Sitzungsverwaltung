@@ -61,7 +61,7 @@ Oder nutze das bereitgestellte Update-Script (siehe unten).
 ### 4. Testen
 
 ```
-http://localhost/KONA/?tab=documents
+http://localhost/Sitzungsverwaltung/?tab=documents
 ```
 
 ## 📖 Verwendung
@@ -130,7 +130,7 @@ Die Zugriffskontrolle basiert auf dem bestehenden Rollen-System:
 ## 📂 Dateistruktur
 
 ```
-/KONA
+/Sitzungsverwaltung
 ├── documents_functions.php      # Hilfsfunktionen
 ├── process_documents.php        # Backend (POST-Handler)
 ├── tab_documents.php            # Frontend (UI)

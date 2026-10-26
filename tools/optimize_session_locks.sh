@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fügt session_write_close() zu allen collab_text API-Endpunkten hinzu
 
-cd /home/user/KONA/api
+cd /home/user/Sitzungsverwaltung/api
 
 for file in collab_text_*.php; do
     # Skip if already contains session_write_close

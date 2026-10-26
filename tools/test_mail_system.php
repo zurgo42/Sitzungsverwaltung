@@ -3,7 +3,7 @@
  * test_mail_system.php - Test-Script für Mail-System
  *
  * VERWENDUNG:
- * 1. Via Browser: http://localhost/KONA/test_mail_system.php
+ * 1. Via Browser: http://localhost/Sitzungsverwaltung/test_mail_system.php
  * 2. Via CLI: php test_mail_system.php
  *
  * Testet alle Mail-Backends und zeigt Ergebnisse an.
@@ -197,7 +197,7 @@ if (!$is_cli) {
     echo "Aktiviert: " . (defined('MAIL_ENABLED') && MAIL_ENABLED ? 'Ja' : 'Nein') . "\n\n";
 
     echo "Verwendung:\n";
-    echo "  Via Browser: http://localhost/KONA/test_mail_system.php\n\n";
+    echo "  Via Browser: http://localhost/Sitzungsverwaltung/test_mail_system.php\n\n";
 
     echo "Code-Beispiel:\n";
     echo "  <?php\n";

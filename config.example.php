@@ -163,9 +163,9 @@ define('DEBUG_MODE', IS_LOCAL);  // Automatisch aktiviert in lokaler Umgebung
 
 // ============= STANDALONE-SKRIPTE =============
 // Pfad zu standalone-Skripten (für externe Teilnehmer ohne Login)
-// Kann sein: '/' (root), '/KONA', '/public' etc.
+// Kann sein: '/' (root), '/Sitzungsverwaltung', '/public' etc.
 // Wichtig: Dieses Verzeichnis darf NICHT durch .htaccess passwortgeschützt sein!
-define('STANDALONE_PATH', '/KONA');
+define('STANDALONE_PATH', '/Sitzungsverwaltung');
 
 // ============= DEMO-MODUS =============
 // WICHTIG: Auf dem echten Produktivserver auf false setzen!
