@@ -633,7 +633,7 @@ if (basename($_SERVER['PHP_SELF']) === 'mail_standalone.php' && !isset($GLOBALS[
                         </tr>
                         <tr>
                             <td>Modus</td>
-                            <td><strong><?= $is_sitzungsverwaltung ? 'Integriert (Sitzungsverwaltung)' : 'Standalone' ?></strong></td>
+                            <td><strong><?= $is_sitzungsverwaltung ? 'Integriert (KONA)' : 'Standalone' ?></strong></td>
                         </tr>
                         <tr>
                             <td>Mail-Versand</td>

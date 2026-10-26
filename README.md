@@ -1,4 +1,6 @@
-# Sitzungsverwaltung
+# KONA – Konferenz- und Antragstool (Sitzungsverwaltung)
+
+KONA gehört zu einer Familie: **MISS** (Mitglieder-Informations- und Service-System), **KONA** (Sitzungen, Anträge, Beschlüsse) und **VERA** (Versammlungsorganisation). Alle drei zeigen in der Kopfzeile Logo, Vereinsname und Anwendungsname. Vereinsname und Logo: `ORG_NAME` und `ORG_LOGO` in der `config.php`; ohne Eintrag wird bei gemeinsamer Datenbank der Vereinsname aus MISS übernommen und das Standardzeichen (`logo.php`) verwendet. Für dasselbe Logo wie in MISS: `define('ORG_LOGO', '../MISS/logo.php');`.
 
 Eine webbasierte Komplettlösung für die professionelle Organisation, Durchführung und Dokumentation von Meetings, Sitzungen und Gremiensitzungen.
 
@@ -522,4 +524,4 @@ Organisationen, Vereine, Vorstände, Gremien und Teams, die ihre Meetings profes
 
 ---
 
-**Viel Erfolg bei der Nutzung der Sitzungsverwaltung!**
+**Viel Erfolg mit KONA!**

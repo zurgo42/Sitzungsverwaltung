@@ -95,7 +95,8 @@ define('TABLE_RESSORTS_AKTIV', false);        // Hat die Ressort-Tabelle eine ak
 define('TABLE_ANTRAEGE_HAS_ABSTIMMREGEL', false); // Hat die Anträge-Tabelle abstimmregel-Spalte? (VTool: false, Login-System: true)
 
 // ============= VOREINSTELLUNGEN FÜR MEETINGS =============
-// Kopfzeile: Vereinsname und Logo (optional; ohne Angabe steht dort nur "Sitzungsverwaltung")
+// Kopfzeile: Vereinsname und Logo (optional). Ohne ORG_NAME wird bei gemeinsamer Datenbank der Vereinsname aus MISS (md_settings org.name) übernommen;
+// ohne ORG_LOGO erscheint das Standardzeichen (logo.php). Dasselbe Logo wie MISS: define('ORG_LOGO', '../MISS/logo.php');
 define('ORG_NAME', '');            // z. B. 'Musterverein e. V.'
 define('ORG_LOGO', '');            // URL oder Pfad zum Logo, z. B. 'logo.png'
 

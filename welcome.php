@@ -77,7 +77,7 @@ if (isset($_GET['demo_email'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sitzungsverwaltung - Demo</title>
+    <title>Demo - KONA</title>
     <link rel="stylesheet" href="style.css?v=<?php echo @filemtime(__DIR__ . '/style.css') ?: time(); ?>">
     <style>
         .welcome-content {
@@ -216,13 +216,13 @@ if (isset($_GET['demo_email'])) {
 </head>
 <body>
     <!-- HEADER -->
-    <?php $sv_org_name = defined('ORG_NAME') ? trim((string)ORG_NAME) : ''; $sv_org_logo = defined('ORG_LOGO') ? trim((string)ORG_LOGO) : ''; ?>
+    <?php $sv_org_name = sv_org_name($pdo); $sv_org_logo = sv_org_logo($sv_org_name); ?>
     <div class="header">
         <div class="header-inner header-dreiteilig">
             <a href="?" class="header-brand">
-                <?php if ($sv_org_logo !== ''): ?><img src="<?php echo htmlspecialchars($sv_org_logo); ?>" alt="" class="header-logo"><?php endif; ?>
+                <img src="<?php echo htmlspecialchars($sv_org_logo); ?>" alt="" class="header-logo">
                 <span class="brand">
-                    <span class="orgname"><?php echo $sv_org_name !== '' ? htmlspecialchars($sv_org_name) : ($sv_org_logo === '' ? '🏛️ ' : '') . 'Sitzungsverwaltung'; ?></span>
+                    <span class="orgname"><?php echo htmlspecialchars($sv_org_name !== '' ? $sv_org_name : 'Sitzungsverwaltung'); ?></span>
                     <span class="appname"><b><?php echo SV_APP_NAME; ?></b> · <?php echo SV_APP_TAG; ?></span>
                 </span>
             </a>

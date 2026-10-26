@@ -1,4 +1,4 @@
-# Installationsanleitung - Sitzungsverwaltung
+# Installationsanleitung - KONA (Sitzungsverwaltung)
 
 Diese Anleitung beschreibt die Einrichtung der Sitzungsverwaltung auf einem Webserver.
 
@@ -425,4 +425,4 @@ Falls Sie eine ältere Version aktualisieren:
 
 ---
 
-**Viel Erfolg mit Ihrer Sitzungsverwaltung!**
+**Viel Erfolg mit KONA!**

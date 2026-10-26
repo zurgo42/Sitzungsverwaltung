@@ -1,6 +1,6 @@
 <?php
 /**
- * index.php - Hauptdatei der Sitzungsverwaltung
+ * index.php - Hauptdatei von KONA (Sitzungsverwaltung)
  *
  * Diese Datei ist der zentrale Einstiegspunkt der Anwendung und koordiniert:
  * - Login/Logout-Verwaltung
@@ -146,7 +146,7 @@ function show_access_denied_page($title, $message, $details = '') {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Zugriff verweigert - Sitzungsverwaltung</title>
+        <title>Zugriff verweigert - KONA</title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
@@ -345,13 +345,14 @@ if (REQUIRE_LOGIN && !isset($_SESSION['member_id'])) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Login - Sitzungsverwaltung</title>
+        <title>Login - KONA</title>
         <link rel="stylesheet" href="style.css?v=<?php echo @filemtime(__DIR__ . '/style.css') ?: time(); ?>">
     </head>
     <body>
         <div class="login-container">
             <div class="login-box">
-                <h1>🏛️ Sitzungsverwaltung</h1>
+                <h1>🏛️ <?php echo SV_APP_NAME; ?></h1>
+                <p style="text-align:center;color:#666;margin:-8px 0 16px;"><?php echo SV_APP_TAG; ?></p>
 
                 <?php if (isset($login_error)): ?>
                     <div class="error-message"><?php echo $login_error; ?></div>
@@ -531,7 +532,7 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $sso_config ? $sso_config['page_title'] : SV_APP_NAME . ' – Sitzungsverwaltung'; ?></title>
+    <title><?php echo $sso_config ? $sso_config['page_title'] : SV_APP_NAME . ' – ' . SV_APP_TAG; ?></title>
 
     <!-- KRITISCH: Dark Mode Flash Prevention - MUSS VOR allem anderen kommen! -->
 
@@ -754,8 +755,8 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
 <body>
     <!-- HEADER: links Logo, Vereinsname und Anwendungsname, Mitte Bereichsname, rechts Benutzer -->
     <?php
-    $sv_org_name = defined('ORG_NAME') ? trim((string)ORG_NAME) : '';
-    $sv_org_logo = $sso_config && !empty($sso_config['logo_path']) ? $sso_config['logo_path'] : (defined('ORG_LOGO') ? trim((string)ORG_LOGO) : '');
+    $sv_org_name = sv_org_name($pdo);
+    $sv_org_logo = $sso_config && !empty($sso_config['logo_path']) ? $sso_config['logo_path'] : sv_org_logo($sv_org_name);
     $sv_bereiche = ['proposals' => 'Anträge/Beschlüsse', 'meetings' => 'Sitzungen', 'agenda' => 'Tagesordnung', 'protokolle' => 'Protokolle',
         'termine' => 'Termin finden', 'todos' => 'ToDo/Erledigen', 'opinion' => 'Meinungsbild', 'kalender' => 'Kalender', 'documents' => 'Dokumente',
         'mv_beschluesse' => 'MV-Beschlüsse', 'texte' => 'Texte', 'vertretung' => 'Vertretung', 'admin' => 'Administration', 'admin_init' => 'Administration'];
@@ -768,7 +769,7 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                 <img src="<?php echo htmlspecialchars($sv_org_logo); ?>" alt="" class="header-logo"<?php echo $sso_config && !empty($sso_config['logo_height']) ? ' style="height:' . htmlspecialchars($sso_config['logo_height']) . ';"' : ''; ?>>
                 <?php endif; ?>
                 <span class="brand">
-                    <span class="orgname"><?php echo $sv_org_name !== '' ? htmlspecialchars($sv_org_name) : ($sv_org_logo === '' ? '🏛️ ' : '') . 'Sitzungsverwaltung'; ?></span>
+                    <span class="orgname"><?php echo htmlspecialchars($sv_org_name !== '' ? $sv_org_name : 'Sitzungsverwaltung'); ?></span>
                     <span class="appname"><b><?php echo SV_APP_NAME; ?></b> · <?php echo SV_APP_TAG; ?></span>
                 </span>
             </a>

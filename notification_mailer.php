@@ -200,7 +200,7 @@ function nm_html_wrap($pdo, $content_html) {
         . '<div style="padding:12px 28px;background:#f8f9fb;border-top:1px solid #e4e7ec;">'
         . '<p style="margin:0;font-size:11px;color:#999;">'
         . 'Du kannst diese Mails jederzeit abbestellen oder andere neu bestellen: '
-        . '<a href="' . $prefs . '" style="color:#0055aa;text-decoration:none;">E-Mail-Benachrichtigungen in der Sitzungsverwaltung bearbeiten</a>'
+        . '<a href="' . $prefs . '" style="color:#0055aa;text-decoration:none;">E-Mail-Benachrichtigungen in KONA bearbeiten</a>'
         . '</p></div></div></body></html>';
 }
 

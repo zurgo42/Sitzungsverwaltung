@@ -41,7 +41,7 @@ $funktion_options = [
     'JT'   => 'JT – Jahrestreffen-Organisation',
     'TM'   => 'TM – Teamleitung',
     'FP'   => 'FP – Finanzprüfung',
-    'SV'   => 'SV – Sitzungsverwaltung',
+    'SV'   => 'KONA – Sitzungsverwaltung',
     'MB'   => 'MB – Mitgliederbetreuung',
     'Ka'   => 'Ka – Kasse',
     'Orga' => 'Orga – Organisation',
@@ -546,7 +546,7 @@ if ($flash) {
 <div class="page-header">
     <h1>👥 Berechtigte verwalten</h1>
     <span class="hint"><?= count($list) ?> Einträge</span>
-    <a href="index.php?tab=admin" class="back-link">← Zurück zur Sitzungsverwaltung</a>
+    <a href="index.php?tab=admin" class="back-link">← Zurück zu KONA</a>
 </div>
 
 <div class="card">

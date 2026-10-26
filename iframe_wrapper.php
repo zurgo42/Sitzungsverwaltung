@@ -51,7 +51,7 @@ if (!isset($current_user) || !$current_user) {
     <html>
     <head>
         <meta charset="UTF-8">
-        <title>Sitzungsverwaltung - Nicht angemeldet</title>
+        <title>KONA - Nicht angemeldet</title>
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -72,7 +72,7 @@ if (!isset($current_user) || !$current_user) {
     <body>
         <div class="error-box">
             <h2>⚠️ Nicht angemeldet</h2>
-            <p>Sie müssen angemeldet sein, um die Sitzungsverwaltung zu nutzen.</p>
+            <p>Sie müssen angemeldet sein, um KONA zu nutzen.</p>
             <p><a href="javascript:parent.location.reload()">Seite neu laden</a></p>
 
             <?php if (isset($_GET['debug'])): ?>
