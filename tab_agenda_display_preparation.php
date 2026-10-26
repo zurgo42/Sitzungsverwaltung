@@ -673,6 +673,17 @@ if ($can_move_tops) {
                             <?= htmlspecialchars($rm['first_name'] . ' ' . $rm['last_name']) ?>
                         </option>
                     <?php endforeach; ?>
+                    <?php
+                    // Auch nicht eingeladene Mitglieder anbieten (z. B. wer den Antrag stellt, aber nicht teilnimmt)
+                    $ref_other = array_filter(get_all_members($pdo), fn($m) => !in_array($m['member_id'], $ref_participant_ids));
+                    usort($ref_other, fn($a, $b) => strcasecmp($a['last_name'], $b['last_name']));
+                    if ($ref_other): ?>
+                        <optgroup label="Weitere Mitglieder (nicht eingeladen)">
+                        <?php foreach ($ref_other as $rm): ?>
+                            <option value="<?= (int)$rm['member_id'] ?>"><?= htmlspecialchars($rm['first_name'] . ' ' . $rm['last_name']) ?></option>
+                        <?php endforeach; ?>
+                        </optgroup>
+                    <?php endif; ?>
                 </select>
             </div>
             <?php endif; ?>
@@ -930,6 +941,16 @@ foreach ($agenda_items as $item):
                                 <?= htmlspecialchars($rm2['first_name'] . ' ' . $rm2['last_name']) ?>
                             </option>
                         <?php endforeach; ?>
+                        <?php
+                        $ref_other2 = array_filter(get_all_members($pdo), fn($m) => !in_array($m['member_id'], $ref_ids2));
+                        usort($ref_other2, fn($a, $b) => strcasecmp($a['last_name'], $b['last_name']));
+                        if ($ref_other2): ?>
+                            <optgroup label="Weitere Mitglieder (nicht eingeladen)">
+                            <?php foreach ($ref_other2 as $rm2): ?>
+                                <option value="<?= (int)$rm2['member_id'] ?>" <?= ($rm2['member_id'] == $cur_referent) ? 'selected' : '' ?>><?= htmlspecialchars($rm2['first_name'] . ' ' . $rm2['last_name']) ?></option>
+                            <?php endforeach; ?>
+                            </optgroup>
+                        <?php endif; ?>
                     </select>
                 </div>
                 <?php endif; ?>

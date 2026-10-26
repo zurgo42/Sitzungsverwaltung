@@ -12,27 +12,52 @@ require_once 'member_functions.php';
 
 header('Content-Type: application/json');
 
+// PHP-Meldungen (Warnings/Deprecated) dürfen die JSON-Antwort nicht verderben
+ini_set('display_errors', '0');
+ob_start();
+function upload_json($data) {
+    ob_end_clean();
+    echo json_encode($data);
+    exit;
+}
+
+// Lesbare Texte zu den PHP-Upload-Fehlercodes
+function upload_error_text($code) {
+    switch ($code) {
+        case UPLOAD_ERR_INI_SIZE:   return 'Datei größer als das Server-Limit upload_max_filesize (' . ini_get('upload_max_filesize') . ')';
+        case UPLOAD_ERR_FORM_SIZE:  return 'Datei größer als das im Formular erlaubte Limit';
+        case UPLOAD_ERR_PARTIAL:    return 'Datei wurde nur teilweise übertragen - bitte erneut versuchen';
+        case UPLOAD_ERR_NO_FILE:    return 'Keine Datei übertragen';
+        case UPLOAD_ERR_NO_TMP_DIR: return 'Auf dem Server fehlt das temporäre Upload-Verzeichnis';
+        case UPLOAD_ERR_CANT_WRITE: return 'Der Server konnte die Datei nicht schreiben';
+        default:                    return 'Upload-Fehler Code ' . $code;
+    }
+}
+
 // Nur POST erlaubt
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
-    exit;
+    upload_json(['success' => false, 'error' => 'Method not allowed']);
 }
 
 // Login prüfen
 if (!isset($_SESSION['member_id'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Not authenticated']);
-    exit;
+    upload_json(['success' => false, 'error' => 'Not authenticated']);
 }
 
 $current_member_id = $_SESSION['member_id'];
+
+// Wird post_max_size überschritten, verwirft PHP $_POST und $_FILES komplett
+if (empty($_POST) && empty($_FILES) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+    upload_json(['success' => false, 'error' => 'Die Datei ist zu groß für den Server (post_max_size = ' . ini_get('post_max_size') . ', upload_max_filesize = ' . ini_get('upload_max_filesize') . ').']);
+}
+
 $item_id = intval($_POST['item_id'] ?? 0);
 
 // Validierung
 if (!$item_id) {
-    echo json_encode(['success' => false, 'error' => 'Ungültige TOP-ID']);
-    exit;
+    upload_json(['success' => false, 'error' => 'Ungültige TOP-ID']);
 }
 
 // Berechtigung prüfen: User muss Teilnehmer sein, Admin sein, oder Einlader/Vorsitzender/Schriftführer
@@ -49,8 +74,7 @@ $stmt->execute([$item_id]);
 $item = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$item) {
-    echo json_encode(['success' => false, 'error' => 'TOP nicht gefunden']);
-    exit;
+    upload_json(['success' => false, 'error' => 'TOP nicht gefunden']);
 }
 
 // Berechtigung: Admin ODER Teilnehmer ODER Einlader/Vorsitzender/Schriftführer
@@ -68,20 +92,17 @@ $is_meeting_role = in_array($current_member_id, [
 ]);
 
 if (!$is_admin && !$is_participant && !$is_meeting_role) {
-    echo json_encode(['success' => false, 'error' => 'Keine Berechtigung']);
-    exit;
+    upload_json(['success' => false, 'error' => 'Keine Berechtigung']);
 }
 
 // Während preparation und active erlaubt
 if (!in_array($item['status'], ['preparation', 'active'])) {
-    echo json_encode(['success' => false, 'error' => 'Uploads nur während Vorbereitung und aktiver Sitzung erlaubt']);
-    exit;
+    upload_json(['success' => false, 'error' => 'Uploads nur während Vorbereitung und aktiver Sitzung erlaubt']);
 }
 
 // Datei-Upload prüfen
 if (!isset($_FILES['files'])) {
-    echo json_encode(['success' => false, 'error' => 'Keine Datei hochgeladen']);
-    exit;
+    upload_json(['success' => false, 'error' => 'Keine Datei hochgeladen']);
 }
 
 // Upload-Verzeichnis sicherstellen
@@ -106,7 +127,7 @@ for ($i = 0; $i < $file_count; $i++) {
 
     // Fehler prüfen
     if ($file_error !== UPLOAD_ERR_OK) {
-        $errors[] = "$file_name: Upload-Fehler Code $file_error";
+        $errors[] = "$file_name: " . upload_error_text($file_error);
         continue;
     }
 
@@ -135,7 +156,7 @@ for ($i = 0; $i < $file_count; $i++) {
 
     // Upload durchführen
     if (!move_uploaded_file($file_tmp, $filepath)) {
-        $errors[] = "$file_name: Fehler beim Speichern";
+        $errors[] = "$file_name: Fehler beim Speichern (Verzeichnis uploads/agenda_attachments/ nicht beschreibbar?)";
         continue;
     }
 
@@ -172,8 +193,9 @@ for ($i = 0; $i < $file_count; $i++) {
 }
 
 // Antwort
-echo json_encode([
+upload_json([
     'success' => count($uploaded_files) > 0,
     'uploaded' => $uploaded_files,
-    'errors' => $errors
+    'errors' => $errors,
+    'error' => count($uploaded_files) > 0 ? '' : implode(' / ', $errors)
 ]);
