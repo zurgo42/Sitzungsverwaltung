@@ -5,7 +5,7 @@
  * Cron-Job: Läuft jede Minute und prüft, ob in 30 Minuten ein Meeting beginnt
  *
  * Crontab-Eintrag:
- * * * * * * /usr/bin/php /pfad/zu/Sitzungsverwaltung/cron_meeting_reminders.php >> /var/log/meeting_reminders.log 2>&1
+ * * * * * * /usr/bin/php /pfad/zu/KONA/cron_meeting_reminders.php >> /var/log/meeting_reminders.log 2>&1
  */
 
 require_once __DIR__ . '/config.php';

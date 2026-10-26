@@ -1,6 +1,6 @@
 # KONA – Konferenz- und Antragstool (Sitzungsverwaltung)
 
-KONA gehört zu einer Familie: **MISS** (Mitglieder-Informations- und Service-System), **KONA** (Sitzungen, Anträge, Beschlüsse) und **VERA** (Versammlungsorganisation). Alle drei zeigen in der Kopfzeile Logo, Vereinsname und Anwendungsname. Vereinsname und Logo: `ORG_NAME` und `ORG_LOGO` in der `config.php`; ohne Eintrag wird bei gemeinsamer Datenbank der Vereinsname aus MISS übernommen und das Standardzeichen (`logo.php`) verwendet. Für dasselbe Logo wie in MISS: `define('ORG_LOGO', '../MISS/logo.php');`.
+KONA gehört zu einer Familie: **MISS** (Mitglieder-Informations- und Service-System), **KONA** (Sitzungen, Anträge, Beschlüsse) und **VERA** (Versammlungsorganisation). Alle drei zeigen in der Kopfzeile Logo, Vereinsname und Anwendungsname. Vereinsname und Logo stehen in der `config.php` (`ORG_NAME`, `ORG_LOGO`) und sind von MISS unabhängig, auch im Adapterbetrieb; ohne Eintrag erscheint das Standardzeichen (`logo.php`). Der Verzeichnisname auf dem Server ist frei wählbar; `STANDALONE_PATH` in der `config.php` muss dazu passen.
 
 Eine webbasierte Komplettlösung für die professionelle Organisation, Durchführung und Dokumentation von Meetings, Sitzungen und Gremiensitzungen.
 

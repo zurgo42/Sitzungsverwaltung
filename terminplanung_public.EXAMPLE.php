@@ -38,4 +38,4 @@ $TERMINPLANUNG_PUBLIC_URL = 'https://ihre-domain.de/pfad-zum-oeffentlichen-berei
 
 // ANPASSEN: Absoluter Pfad zur echten terminplanung_standalone.php
 // (im SSO-geschützten Verzeichnis)
-require_once '/srv/www/vhosts/aktive/htdocs/vorstand/Sitzungsverwaltung/terminplanung_standalone.php';
+require_once '/srv/www/vhosts/aktive/htdocs/vorstand/KONA/terminplanung_standalone.php';

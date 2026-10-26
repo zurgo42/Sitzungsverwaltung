@@ -11,7 +11,7 @@
  *    0 2 * * * /usr/bin/php /pfad/zu/cron_cleanup_external_participants.php >> /var/log/cleanup_external.log 2>&1
  *
  * 2. Via Browser (nur für Tests - sollte in Production deaktiviert werden):
- *    https://ihre-domain.de/Sitzungsverwaltung/cron_cleanup_external_participants.php
+ *    https://ihre-domain.de/KONA/cron_cleanup_external_participants.php
  *
  * 3. Via CLI:
  *    php cron_cleanup_external_participants.php

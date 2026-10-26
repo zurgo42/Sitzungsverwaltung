@@ -51,7 +51,7 @@ Dieses Verzeichnis enthält alle Datenbank-Migrationen für die Sitzungsverwaltu
 
 **Linux/Mac:**
 ```bash
-cd /pfad/zu/Sitzungsverwaltung/migrations
+cd /pfad/zu/KONA/migrations
 ./run_migrations.sh
 ```
 
@@ -71,19 +71,19 @@ Das Skript führt dich interaktiv durch alle Migrationen und fragt vor jeder Aus
 
 ```bash
 # Migration 1: Externe Teilnehmer
-mysql -u root -p Sitzungsverwaltung < /pfad/zu/Sitzungsverwaltung/migrations/add_external_participants.sql
+mysql -u root -p Sitzungsverwaltung < /pfad/zu/KONA/migrations/add_external_participants.sql
 
 # Migration 2: Externe Dokument-Links
-mysql -u root -p Sitzungsverwaltung < /pfad/zu/Sitzungsverwaltung/migrations/add_external_url_to_documents.sql
+mysql -u root -p Sitzungsverwaltung < /pfad/zu/KONA/migrations/add_external_url_to_documents.sql
 
 # Migration 3: Target Type (optional)
-mysql -u root -p Sitzungsverwaltung < /pfad/zu/Sitzungsverwaltung/migrations/add_target_type_to_polls.sql
+mysql -u root -p Sitzungsverwaltung < /pfad/zu/KONA/migrations/add_target_type_to_polls.sql
 ```
 
 **Aus dem Migrations-Verzeichnis (relative Pfade):**
 
 ```bash
-cd /pfad/zu/Sitzungsverwaltung/migrations
+cd /pfad/zu/KONA/migrations
 
 mysql -u root -p Sitzungsverwaltung < add_external_participants.sql
 mysql -u root -p Sitzungsverwaltung < add_external_url_to_documents.sql
@@ -192,7 +192,7 @@ Prüfe die MySQL-Zugangsdaten. Der User benötigt CREATE, ALTER und INDEX Berech
 
 ```cron
 # Täglich um 3 Uhr morgens
-0 3 * * * /usr/bin/php /pfad/zu/Sitzungsverwaltung/cron_cleanup_external_participants.php
+0 3 * * * /usr/bin/php /pfad/zu/KONA/cron_cleanup_external_participants.php
 ```
 
 ---

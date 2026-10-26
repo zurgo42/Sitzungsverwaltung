@@ -3,7 +3,7 @@
  * install_documents.php - Installations-Script für Dokumentenverwaltung
  *
  * VERWENDUNG:
- * 1. Via Browser: http://localhost/Sitzungsverwaltung/install_documents.php
+ * 1. Via Browser: http://localhost/KONA/install_documents.php
  * 2. Via CLI: php install_documents.php
  *
  * Führt folgende Schritte aus:
@@ -175,7 +175,7 @@ output_step('=== Installation abgeschlossen! ===', 'success');
 output_step('', 'info');
 output_step('Nächste Schritte:', 'info');
 output_step('1. Stelle sicher dass der Tab in index.php integriert ist', 'info');
-output_step('2. Öffne: http://localhost/Sitzungsverwaltung/?tab=documents', 'info');
+output_step('2. Öffne: http://localhost/KONA/?tab=documents', 'info');
 output_step('3. Als Admin anmelden und erstes Dokument hochladen', 'info');
 output_step('4. Siehe DOCUMENTS_README.md für weitere Informationen', 'info');
 

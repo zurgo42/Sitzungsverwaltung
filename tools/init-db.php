@@ -1291,7 +1291,7 @@ try {
              'Standard-Empfänger für Agenda-Erinnerungsmail (kommagetrennt, leer = nur Teilnehmer)',
              'notifications'],
             ['meeting_system_url', '', 'text',
-             'Basis-URL des Sitzungssystems für Links in Mails (z.B. https://example.com/vorstand/Sitzungsverwaltung)',
+             'Basis-URL des Sitzungssystems für Links in Mails (z.B. https://example.com/vorstand/KONA)',
              'notifications'],
             ['opinion_standalone_url', '', 'text',
              'Öffentliche URL des Meinungsbild-Standalone-Links (z.B. https://example.com/meinungsbild.php). Überschreibt den automatisch erzeugten Link.',

@@ -95,8 +95,8 @@ define('TABLE_RESSORTS_AKTIV', false);        // Hat die Ressort-Tabelle eine ak
 define('TABLE_ANTRAEGE_HAS_ABSTIMMREGEL', false); // Hat die Anträge-Tabelle abstimmregel-Spalte? (VTool: false, Login-System: true)
 
 // ============= VOREINSTELLUNGEN FÜR MEETINGS =============
-// Kopfzeile: Vereinsname und Logo (optional). Ohne ORG_NAME wird bei gemeinsamer Datenbank der Vereinsname aus MISS (md_settings org.name) übernommen;
-// ohne ORG_LOGO erscheint das Standardzeichen (logo.php). Dasselbe Logo wie MISS: define('ORG_LOGO', '../MISS/logo.php');
+// Kopfzeile: Vereinsname und Logo (unabhängig von MISS und von der Betriebsart, also auch im Adapterbetrieb).
+// Ohne ORG_NAME steht dort "Sitzungsverwaltung", ohne ORG_LOGO das Standardzeichen (logo.php, Wappen mit dem Anfangsbuchstaben).
 define('ORG_NAME', '');            // z. B. 'Musterverein e. V.'
 define('ORG_LOGO', '');            // URL oder Pfad zum Logo, z. B. 'logo.png'
 
@@ -163,9 +163,9 @@ define('DEBUG_MODE', IS_LOCAL);  // Automatisch aktiviert in lokaler Umgebung
 
 // ============= STANDALONE-SKRIPTE =============
 // Pfad zu standalone-Skripten (für externe Teilnehmer ohne Login)
-// Kann sein: '/' (root), '/Sitzungsverwaltung', '/public' etc.
+// Kann sein: '/' (root), '/KONA', '/public' etc.
 // Wichtig: Dieses Verzeichnis darf NICHT durch .htaccess passwortgeschützt sein!
-define('STANDALONE_PATH', '/Sitzungsverwaltung');
+define('STANDALONE_PATH', '/KONA');
 
 // ============= DEMO-MODUS =============
 // WICHTIG: Auf dem echten Produktivserver auf false setzen!

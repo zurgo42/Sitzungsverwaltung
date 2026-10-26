@@ -25,7 +25,7 @@ $order_mode = $_REQUEST['order_mode'] ?? 'new';
 $filterQuery = "&stichwort=" . urlencode($stichwort) . "&gueltig=$gueltig&view_type=$view_type&order_mode=$order_mode";
 
 // Basis-URL für absolute Verlinkung (Direktlinks zum Kopieren)
-$pureBaseUrl = "https://" . $_SERVER['HTTP_HOST'] . "/Sitzungsverwaltung/index.php?tab=mv_beschluesse";
+$pureBaseUrl = "https://" . $_SERVER['HTTP_HOST'] . sv_base_path() . "/index.php?tab=mv_beschluesse";
 
 // --- LÖSCH-LOGIK ---
 if ($isAdmin && isset($_GET['delete'])) {

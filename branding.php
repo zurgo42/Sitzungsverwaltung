@@ -7,29 +7,26 @@ if (!defined('SV_APP_TAG')) define('SV_APP_TAG', 'Konferenz- und Antragstool');
 if (!defined('SV_APP_LONG')) define('SV_APP_LONG', 'Konferenz- und Antragstool für Sitzungen, Anträge und Beschlüsse');
 
 /**
- * Vereinsname für die Kopfzeile: zuerst ORG_NAME aus der config.php, sonst (gemeinsame Datenbank mit MISS) der Vereinsname
- * aus dessen Einstellungen (md_settings: org.name), sonst leer.
+ * Vereinsname für die Kopfzeile: ORG_NAME aus der config.php (unabhängig von MISS und vom Betrieb mit oder ohne Adapter).
+ * Ohne Eintrag bleibt er leer, dann steht in der Kopfzeile "Sitzungsverwaltung".
  */
 function sv_org_name(?PDO $pdo = null): string
 {
-    static $name = null;
-    if ($name !== null) return $name;
-    $name = defined('ORG_NAME') ? trim((string)ORG_NAME) : '';
-    if ($name === '' && $pdo) {
-        try {
-            foreach (['org.name', 'club.name'] as $key) {
-                $st = $pdo->prepare('SELECT setting_value FROM md_settings WHERE setting_key = ?');
-                $st->execute([$key]);
-                $v = trim((string)$st->fetchColumn());
-                if ($v !== '') { $name = $v; break; }
-            }
-        } catch (Throwable $e) { /* MISS nicht installiert: kein Vereinsname */ }
-    }
-    return $name;
+    return defined('ORG_NAME') ? trim((string)ORG_NAME) : '';
 }
 
 /**
- * Logo für die Kopfzeile: ORG_LOGO aus der config.php (z. B. '../MISS/logo.php' für dasselbe Logo wie in MISS),
+ * Basispfad der Anwendung auf dem Server (z. B. "/KONA" oder "/Sitzungsverwaltung"): STANDALONE_PATH aus der config.php,
+ * sonst aus dem Pfad des laufenden Skripts. Ohne Schrägstrich am Ende; im Wurzelverzeichnis ein leerer Text.
+ */
+function sv_base_path(): string
+{
+    if (defined('STANDALONE_PATH') && trim((string)STANDALONE_PATH) !== '') return rtrim((string)STANDALONE_PATH, '/');
+    return rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+}
+
+/**
+ * Logo für die Kopfzeile: ORG_LOGO aus der config.php (Pfad oder URL, z. B. 'logo.png'),
  * sonst das Standardzeichen aus logo.php (Wappen mit dem Anfangsbuchstaben des Vereins).
  */
 function sv_org_logo(string $orgName = ''): string

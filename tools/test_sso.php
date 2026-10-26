@@ -3,7 +3,7 @@
  * test_sso.php - SSO-Konfiguration testen
  *
  * Dieses Skript hilft beim Debugging von SSO-Problemen.
- * Aufruf: https://ihre-domain.de/Sitzungsverwaltung/test_sso.php
+ * Aufruf: https://ihre-domain.de/KONA/test_sso.php
  */
 
 // Konfiguration laden
