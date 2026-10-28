@@ -81,9 +81,13 @@ if (isset($_GET['demo_email'])) {
     <link rel="stylesheet" href="style.css?v=<?php echo @filemtime(__DIR__ . '/style.css') ?: time(); ?>">
     <style>
         .welcome-content {
-            max-width: 1200px;
+            max-width: 1024px;   /* wie .header-inner und .content in style.css */
             margin: 20px auto;
-            padding: 0 15px;
+            padding: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .welcome-content { padding: 0 15px; }
         }
 
         .features-box {
