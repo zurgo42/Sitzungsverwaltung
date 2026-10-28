@@ -100,10 +100,7 @@ body {
 .container {
     max-width: 1024px;
     margin: 0 auto;
-    padding: 20px 0;   /* seitlich bündig mit Kopfzeile und Reitern (je 1024 px) */
-    /* body ist ein Flex-Container: ohne width würde der Bereich auf die Inhaltsbreite schrumpfen */
-    width: 100%;
-    box-sizing: border-box;
+    padding: 20px;
 }
 
 .content {
@@ -210,8 +207,6 @@ h3 {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
-    width: 100%;
-    box-sizing: border-box;
     max-width: 1024px;
     margin-left: auto;
     margin-right: auto;

@@ -647,6 +647,13 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
 
     <link rel="stylesheet" href="style.css?v=<?php echo @filemtime(__DIR__ . '/style.css') ?: time(); ?>">
 
+    <style>
+        /* Hauptseite: Inhalt und Reiter gleich breit wie der Header-Inhalt (1024 px). Der Body ist ein Flex-Container,
+           ohne width würden Container/Reiter auf die Inhaltsbreite schrumpfen. Nur hier, damit andere Seiten unberührt bleiben. */
+        body > .container { width: 100%; box-sizing: border-box; padding: 20px 0; }
+        body > .navigation, body > .tabs { width: 100%; box-sizing: border-box; }
+        @media (max-width: 1024px) { body > .container { padding: 20px 10px; } }
+    </style>
     <?php if ($sso_config): ?>
     <!-- Custom Styling für SSOdirekt-Modus (Version 2.0 - Light/Dark Mode Support) -->
     <style>
