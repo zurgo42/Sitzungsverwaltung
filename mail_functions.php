@@ -987,8 +987,11 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
     $meeting_link     = $meeting_base . '/index.php?tab=agenda&meeting_id=' . $meeting_id;
 
     $now_time = date('H:i');
-    $tpl_placeholders = ['{meeting_name}', '{meeting_date}', '{meeting_time}', '{now_time}'];
-    $tpl_values       = [$meeting_name,    $meeting_date_fmt, $meeting_time_fmt, $now_time];
+    // Wann ist die Sitzung? "Heute" (Mail kommt am Sitzungstag), "Morgen" oder "Am 12.11.2026"
+    $days_to_meeting = (int)round((strtotime(date('Y-m-d', strtotime($meeting['meeting_date']))) - strtotime(date('Y-m-d'))) / 86400);
+    $day_word = $days_to_meeting === 0 ? 'Heute' : ($days_to_meeting === 1 ? 'Morgen' : 'Am ' . $meeting_date_fmt);
+    $tpl_placeholders = ['{meeting_name}', '{meeting_date}', '{meeting_time}', '{now_time}', '{day}'];
+    $tpl_values       = [$meeting_name,    $meeting_date_fmt, $meeting_time_fmt, $now_time, $day_word];
 
     $subject_tpl = defined('AGENDA_REMINDER_SUBJECT') ? AGENDA_REMINDER_SUBJECT
                  : 'Tagesordnung: {meeting_name} am {meeting_date} um {meeting_time} Uhr';
@@ -999,9 +1002,11 @@ function send_agenda_reminder_mail($pdo, $meeting_id, $base_url = '') {
 
     // Einleitungstext: per Sitzung individuell, sonst aus Config, sonst eingebauter Fallback
     $default_intro_tpl = defined('AGENDA_REMINDER_INTRO') ? AGENDA_REMINDER_INTRO
-                       : 'Morgen um {meeting_time} Uhr ist {meeting_name}. Die Tagesordnung ist - Stand heute {now_time} Uhr:';
+                       : '{day} um {meeting_time} Uhr ist {meeting_name}. Die Tagesordnung ist - Stand heute {now_time} Uhr:';
+    // Ältere config.php-Texte beginnen fest mit "Morgen um": das Wort richtet sich nach dem Sitzungstag
+    $default_intro_tpl = preg_replace('/^Morgen (um )/u', '{day} $1', $default_intro_tpl);
     $default_intro = str_replace($tpl_placeholders, $tpl_values, $default_intro_tpl);
-    $intro_raw = !empty($meeting['agenda_reminder_intro']) ? trim($meeting['agenda_reminder_intro']) : $default_intro;
+    $intro_raw = !empty($meeting['agenda_reminder_intro']) ? str_replace($tpl_placeholders, $tpl_values, trim($meeting['agenda_reminder_intro'])) : $default_intro;
 
     // Mail-Inhalt aufbauen
     $text  = $intro_raw . "\n\n";

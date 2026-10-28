@@ -476,6 +476,7 @@ foreach ($agenda_items as $item):
     <!-- KURZPROTOKOLL FÜR PROTOKOLLFÜHRER -->
     <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 2px solid #2196f3; border-radius: 8px;">
         <h3 style="color: #1976d2; margin-bottom: 15px;">📋 Kurzprotokoll (Vorschau)</h3>
+        <?php render_end_time_form($pdo, $meeting); ?>
 
         <?php
         // Protokoll generieren

@@ -7,6 +7,36 @@
  */
 
 /**
+ * Endzeitpunkt der Sitzung: svmeetings.ended_at (wird beim Beenden gesetzt und vom Protokollführer korrigiert),
+ * sonst der Zeitstempel von TOP 999. Letzterer ändert sich bei jedem Speichern des TOPs und taugt nur als Rückfall.
+ */
+if (!function_exists('get_meeting_end_time')) {
+    function get_meeting_end_time($pdo, $meeting_id) {
+        $stmt = $pdo->prepare("SELECT ended_at FROM svmeetings WHERE meeting_id = ?");
+        $stmt->execute([$meeting_id]);
+        $end = $stmt->fetchColumn();
+        if ($end) return $end;
+        $stmt = $pdo->prepare("SELECT updated_at FROM svagenda_items WHERE top_number = 999 AND meeting_id = ?");
+        $stmt->execute([$meeting_id]);
+        return $stmt->fetchColumn() ?: null;
+    }
+}
+
+/**
+ * Formular zum Korrigieren des Sitzungsendes (nur für den Protokollführer, solange das Protokoll nicht genehmigt ist).
+ */
+function render_end_time_form($pdo, $meeting) {
+    $end = get_meeting_end_time($pdo, $meeting['meeting_id']);
+    $val = $end ? date('Y-m-d\TH:i', strtotime($end)) : '';
+    $mid = (int)$meeting['meeting_id'];
+    echo '<form method="POST" action="?tab=agenda&meeting_id=' . $mid . '" style="margin: 0 0 15px 0; padding: 12px; background: #fff8e1; border: 1px solid #ffc107; border-radius: 6px;">'
+       . '<label for="end_time_input"><strong>🕒 Sitzungsende</strong> (wird im Protokoll angezeigt):</label> '
+       . '<input type="datetime-local" id="end_time_input" name="meeting_end_time" value="' . htmlspecialchars($val) . '" required style="padding: 6px;"> '
+       . '<button type="submit" name="set_end_time" value="1" style="padding: 6px 14px; background: #ffc107; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Übernehmen</button>'
+       . '</form>';
+}
+
+/**
  * Generiert Kurzprotokoll aus allen TOPs
  * 
  * @return array ['public' => string, 'confidential' => string]
@@ -19,10 +49,8 @@ function generate_protocol($pdo, $meeting, $agenda_items, $participants) {
     
     // === HEADER: Meeting-Informationen ===
     
-    // Endzeitpunkt aus TOP 999 holen
-    $stmt = $pdo->prepare("SELECT updated_at FROM svagenda_items WHERE top_number = 999 AND meeting_id = ?");
-    $stmt->execute([$meeting['meeting_id']]);
-    $end_time = $stmt->fetchColumn();
+    // Endzeitpunkt der Sitzung (vom Protokollführer korrigierbar)
+    $end_time = get_meeting_end_time($pdo, $meeting['meeting_id']);
     
     // Meeting-Name und Zeit
     $protokoll .= htmlspecialchars($meeting['meeting_name'] ?? 'Ohne Namen') . '&lt;br&gt;am ' . 

@@ -233,7 +233,7 @@ require_once 'module_notifications.php';
             <div class="form-group" id="create_reminder_intro_group">
                 <label>Einleitungstext der Erinnerungsmail:</label>
                 <textarea name="agenda_reminder_intro" rows="3"
-                          placeholder="Leer = automatisch: &quot;Morgen um HH:MM Uhr ist [Sitzungsname]. Die Tagesordnung ist - Stand heute HH:MM Uhr:&quot;"
+                          placeholder="Leer = automatisch: &quot;Heute/Morgen um HH:MM Uhr ist [Sitzungsname]. Die Tagesordnung ist - Stand heute HH:MM Uhr:&quot;"
                           style="width: 100%; font-size: 14px; padding: 6px 8px; resize: vertical;"></textarea>
                 <small style="display: block; margin-top: 5px; color: #666;">
                     Erscheint vor der Themenliste. Leer lassen für den automatisch generierten Standardtext.
@@ -565,7 +565,7 @@ require_once 'module_notifications.php';
                                 $meeting_time_default = date('H:i', strtotime($m['meeting_date']));
                                 $meeting_name_esc = htmlspecialchars($m['meeting_name'] ?: 'Sitzung');
                                 $now_hhmm = date('H:i');
-                                $auto_placeholder = "Leer = automatisch: &quot;Morgen um {$meeting_time_default} Uhr ist {$meeting_name_esc}. Die Tagesordnung ist - Stand heute {$now_hhmm} Uhr:&quot;";
+                                $auto_placeholder = "Leer = automatisch: &quot;Heute/Morgen um {$meeting_time_default} Uhr ist {$meeting_name_esc}. Die Tagesordnung ist - Stand heute {$now_hhmm} Uhr:&quot;";
                             ?>
                             <textarea name="agenda_reminder_intro" rows="3"
                                       placeholder="<?php echo $auto_placeholder; ?>"

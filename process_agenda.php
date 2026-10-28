@@ -2349,6 +2349,36 @@ if (isset($_POST['save_ended_changes']) && $meeting['status'] === 'ended') {
 }
 
 /**
+ * Sitzungsende korrigieren (Protokollführer, solange das Protokoll noch nicht genehmigt ist)
+ */
+if (isset($_POST['set_end_time']) && $is_secretary && in_array($meeting['status'], ['ended', 'protocol_ready'])) {
+    require_once 'module_protocol.php';
+    $ts = strtotime((string)($_POST['meeting_end_time'] ?? ''));
+    if ($ts) {
+        $new_end = date('Y-m-d H:i:s', $ts);
+        [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
+        protokoll($pdo, $_prot_mnr, $_prot_kurz, 'Sitzungsende-Korrigieren', 'meeting_id:' . $current_meeting_id . ' ende:' . $new_end);
+        $pdo->prepare("UPDATE svmeetings SET ended_at = ? WHERE meeting_id = ?")->execute([$new_end, $current_meeting_id]);
+        // TOP 999 mitführen (updated_at wird ausdrücklich gesetzt, sonst würde es auf JETZT springen)
+        $pdo->prepare("UPDATE svagenda_items SET updated_at = ? WHERE meeting_id = ? AND top_number = 999")->execute([$new_end, $current_meeting_id]);
+        // Ist das Protokoll schon erzeugt (freigegeben), neu erzeugen, damit die Uhrzeit stimmt
+        if ($meeting['status'] === 'protocol_ready') {
+            $items_stmt = $pdo->prepare("SELECT * FROM svagenda_items WHERE meeting_id = ? ORDER BY top_number");
+            $items_stmt->execute([$current_meeting_id]);
+            $re_items = $items_stmt->fetchAll();
+            $re_parts = [];
+            $pstmt = $pdo->prepare("SELECT member_id FROM svmeeting_participants WHERE meeting_id = ?");
+            $pstmt->execute([$current_meeting_id]);
+            foreach ($pstmt->fetchAll(PDO::FETCH_COLUMN) as $pid) { $pm = get_member_by_id($pdo, $pid); if ($pm) $re_parts[] = $pm; }
+            $re = generate_protocol($pdo, array_merge($meeting, ['ended_at' => $new_end]), $re_items, $re_parts);
+            $pdo->prepare("UPDATE svmeetings SET protokoll = ?, prot_intern = ? WHERE meeting_id = ?")->execute([$re['public'], $re['confidential'], $current_meeting_id]);
+        }
+    }
+    header("Location: ?tab=agenda&meeting_id=$current_meeting_id");
+    exit;
+}
+
+/**
  * Protokoll zur Genehmigung freigeben (ended -> protocol_ready)
  */
 if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] === 'ended') {
@@ -2419,9 +2449,7 @@ if (isset($_POST['release_protocol']) && $is_secretary && $meeting['status'] ===
         
         // TODO für Sitzungsleiter erstellen mit vollständigen Sitzungsdaten
         $start_time = date('H:i', strtotime($meeting['meeting_date']));
-        $end_time_query = $pdo->prepare("SELECT updated_at FROM svagenda_items WHERE meeting_id = ? AND top_number = 999");
-        $end_time_query->execute([$current_meeting_id]);
-        $end_timestamp = $end_time_query->fetchColumn();
+        $end_timestamp = get_meeting_end_time($pdo, $current_meeting_id);
         $end_time = $end_timestamp ? date('H:i', strtotime($end_timestamp)) : '?';
         
         $todo_title = "Protokoll genehmigen: " . $meeting['meeting_name'] . " vom " . date('d.m.Y', strtotime($meeting['meeting_date']));
