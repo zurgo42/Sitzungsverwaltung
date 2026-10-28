@@ -920,6 +920,11 @@ $check_localstorage = !isset($_COOKIE['darkMode']);
                 ⚙️ Admin
             </a>
         <?php endif; ?>
+
+        <!-- Rückweg zum Einstieg (MISS oder Landingpage), wenn PORTAL_URL in config.php gesetzt ist -->
+        <?php if (defined('PORTAL_URL') && trim((string)PORTAL_URL) !== ''): ?>
+            <a href="<?php echo htmlspecialchars(trim((string)PORTAL_URL)); ?>">← <?php echo htmlspecialchars(defined('PORTAL_NAME') && trim((string)PORTAL_NAME) !== '' ? trim((string)PORTAL_NAME) : 'MISS'); ?></a>
+        <?php endif; ?>
     </div>
 
     <!-- HAUPTINHALT / CONTENT -->

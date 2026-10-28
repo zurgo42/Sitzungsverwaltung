@@ -169,6 +169,11 @@ define('DEBUG_MODE', IS_LOCAL);  // Automatisch aktiviert in lokaler Umgebung
 // Wichtig: Dieses Verzeichnis darf NICHT durch .htaccess passwortgeschützt sein!
 define('STANDALONE_PATH', '/Sitzungsverwaltung');
 
+// ============= RÜCKWEG ZUM EINSTIEG =============
+// Adresse von MISS oder der Landingpage des Vereins: in der Navigation erscheint ein Knopf "← MISS". Leer lassen, wenn es keinen Einstieg gibt.
+// define('PORTAL_URL', '/MISS/');
+// define('PORTAL_NAME', 'MISS');
+
 // ============= DEMO-MODUS =============
 // WICHTIG: Auf dem echten Produktivserver auf false setzen!
 // true  = Demo-Funktionen sind verfügbar (Datenbank-Reset-Button, Demo-Daten-Import)
