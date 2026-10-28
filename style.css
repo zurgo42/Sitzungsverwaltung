@@ -100,7 +100,7 @@ body {
 .container {
     max-width: 1024px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 20px 0;   /* seitlich bündig mit Kopfzeile und Reitern (je 1024 px) */
 }
 
 .content {
