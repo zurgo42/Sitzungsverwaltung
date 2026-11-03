@@ -114,7 +114,7 @@ if (isset($meeting) && $meeting) {
  * - add_agenda_item: 1
  * - title: String (required)
  * - description: String (optional)
- * - priority: Float (1-10, default: 5)
+ * - priority: Float (0-9, default: 5)
  * - duration: Int (Minuten, default: 15)
  * - is_confidential: Checkbox (1 oder nicht gesetzt)
  * 
@@ -722,7 +722,7 @@ if (isset($_POST['save_all_changes']) || isset($_POST['save_all_preparation'])) 
  * 
  * POST-Parameter:
  * - save_ratings_overview: 1
- * - priority_rating[item_id]: Float (1-10, optional)
+ * - priority_rating[item_id]: Float (0-9, optional)
  * - duration_estimate[item_id]: Int (Minuten, optional)
  * 
  * Besonderheit: Priorität und Dauer können unabhängig voneinander gespeichert werden

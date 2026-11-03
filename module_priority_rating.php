@@ -29,11 +29,11 @@ function render_priority_rating_form($item, $user_comment, $meeting_status) {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
             <div>
                 <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px;">
-                    Priorität (1-10):
+                    Priorität (0-9):
                 </label>
                 <input type="number" 
                        name="priority[<?php echo $item['item_id']; ?>]" 
-                       min="1" max="10" step="0.1" 
+                       min="0" max="9" step="0.1" 
                        value="<?php echo htmlspecialchars($priority_value); ?>"
                        placeholder="Optional"
                        style="width: 100%; padding: 6px; border: 1px solid #2196f3; border-radius: 4px;">

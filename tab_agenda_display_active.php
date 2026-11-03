@@ -582,8 +582,8 @@ render_simple_agenda_overview($agenda_items, $current_user, $current_meeting_id,
         ?>
         <div class="priority-duration-grid">
             <div class="form-group top-form-group">
-                <label style="font-weight: 600;">Priorität (1-10):</label>
-                <input type="number" name="priority" min="1" max="10" step="0.1" value="5" required>
+                <label style="font-weight: 600;">Priorität (0-9):</label>
+                <input type="number" name="priority" min="0" max="9" step="0.1" value="5" required>
             </div>
 
             <div class="form-group top-form-group">
@@ -848,7 +848,7 @@ foreach ($agenda_items as $item):
                         <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                         <label>Priorität:</label>
                         <input type="number" name="priority" value="<?php echo htmlspecialchars($item['priority']); ?>"
-                               min="1" max="10" step="0.1"
+                               min="0" max="9" step="0.1"
                                style="width: 50px; padding: 2px; border: 1px solid #2196f3; border-radius: 3px;">
                         <button type="submit" style="background: #2196f3; color: white; padding: 2px 8px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">
                             💾
