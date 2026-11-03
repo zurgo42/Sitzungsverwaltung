@@ -1,5 +1,14 @@
 <?php
 /**
+ * Die Spalten priority/priority_rating sind DECIMAL(3,2) (max. 9.99). Eingaben bis 10 (Formular) würden sonst
+ * "Out of range value" auslösen und den ganzen TOP verwerfen.
+ */
+if (!function_exists('sv_clamp_priority')) {
+    function sv_clamp_priority($v) {
+        return max(0.0, min(9.99, (float)$v));
+    }
+}
+/**
  * process_agenda.php - Verarbeitung von Tagesordnungs-Aktionen
  * Bereinigt: 29.10.2025 00:30 MEZ
  * Erweitert: 07.11.2025 - v2.1
@@ -116,7 +125,7 @@ if (isset($_POST['add_agenda_item'])) {
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $category = $_POST['category'] ?? 'information';
-    $priority = floatval($_POST['priority'] ?? 5.0);
+    $priority = sv_clamp_priority($_POST['priority'] ?? 5.0);
     $duration = intval($_POST['duration'] ?? 15);
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
 
@@ -621,7 +630,7 @@ if (isset($_POST['save_all_changes']) || isset($_POST['save_all_preparation'])) 
         // 2. Bewertungen speichern (Priorität/Dauer)
         foreach ($priorities as $item_id => $priority) {
             $item_id = intval($item_id);
-            $priority = ($priority !== '') ? floatval($priority) : null;
+            $priority = ($priority !== '') ? sv_clamp_priority($priority) : null;
             $duration = isset($durations[$item_id]) && $durations[$item_id] !== '' ? intval($durations[$item_id]) : null;
             
             // Nur speichern wenn mindestens ein Wert vorhanden
@@ -734,7 +743,7 @@ if (isset($_POST['save_ratings_overview'])) {
         
         foreach ($all_item_ids as $item_id) {
             $item_id = intval($item_id);
-            $priority = isset($priorities[$item_id]) && $priorities[$item_id] !== '' ? floatval($priorities[$item_id]) : null;
+            $priority = isset($priorities[$item_id]) && $priorities[$item_id] !== '' ? sv_clamp_priority($priorities[$item_id]) : null;
             $duration = isset($durations[$item_id]) && $durations[$item_id] !== '' ? intval($durations[$item_id]) : null;
             
             // Nur speichern wenn mindestens ein Wert vorhanden
@@ -1790,7 +1799,7 @@ if (isset($_POST['toggle_confidential']) && $is_secretary && $meeting['status'] 
  */
 if (isset($_POST['update_active_priority']) && $is_secretary && $meeting['status'] === 'active') {
     $item_id = intval($_POST['item_id'] ?? 0);
-    $priority = floatval($_POST['priority'] ?? 5.0);
+    $priority = sv_clamp_priority($_POST['priority'] ?? 5.0);
 
     if ($item_id && $priority >= 1 && $priority <= 10) {
         try {
@@ -1842,7 +1851,7 @@ if (isset($_POST['add_agenda_item_active']) && $is_secretary && $meeting['status
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $category = $_POST['category'] ?? 'information';
-    $priority = floatval($_POST['priority'] ?? 5.0);
+    $priority = sv_clamp_priority($_POST['priority'] ?? 5.0);
     $duration = intval($_POST['duration'] ?? 10);
     $is_confidential = isset($_POST['is_confidential']) ? 1 : 0;
 
