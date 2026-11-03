@@ -7,6 +7,8 @@
  * $MNr muss vor dem include gesetzt sein (wie bisher). Das Skript lädt Konfiguration und Mitgliederfunktionen
  * (functions.php), ermittelt das Mitglied aus $MNr und bindet tab_dokumente_allgemein.php ein.
  * Parameter der aufrufenden Seite (z. B. ?steuer=…) bleiben bei Suche/Filter erhalten.
+ * Ist die Mitgliedsnummer nicht als Berechtigter bekannt (normales Mitglied), erscheint die Ansicht für ein einfaches Mitglied (nur lesen).
+ * Ohne $MNr (nicht angemeldet) wird nichts angezeigt.
  * Über das MTool ist die Sammlung standardmäßig schreibgeschützt (auch für Admins); Bearbeiten weiterhin in der Sitzungsverwaltung.
  */
 if (empty($MNr)) {
@@ -30,8 +32,22 @@ try {
 
     $current_user = get_member_by_membership_number($pdo, $MNr);
     if (!$current_user) {
-        echo '<p style="color:#c00;padding:1em;">Dokumentensammlung: Mitglied zu dieser Mitgliedsnummer nicht gefunden.</p>';
-        return;
+        // Normales Mitglied ohne Eintrag in berechtigte (bzw. svmembers): $MNr stammt aus dem MTool-Login, die Seite ist also
+        // bereits angemeldet. Es wird die Ansicht für ein einfaches Mitglied gezeigt (aktiv 0, kein Admin, nur lesen).
+        $current_user = [
+            'member_id'         => 0,
+            'membership_number' => (string)$MNr,
+            'first_name'        => '',
+            'last_name'         => '',
+            'email'             => '',
+            'role'              => 'mitglied',
+            'role_display'      => 'Mitglied',
+            'aktiv'             => 0,
+            'funktion'          => '',
+            'is_admin'          => 0,
+            'is_confidential'   => 0,
+        ];
+        $DOK_READONLY = true;
     }
 
     // Standard: nur Ansicht (keine Bearbeitung, Uploads, Verzeichnis-Einstellungen), damit es keine Konflikte mit dem Upload-Verzeichnis
