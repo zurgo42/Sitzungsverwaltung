@@ -297,9 +297,26 @@ $can_edit_meeting = ($is_secretary || $is_chairman);
                     echo '❌ Diese Person ist nicht stimmberechtigt.';
                     break;
                 default:
-                    echo '❌ Ein Fehler ist aufgetreten.';
+                    // Kein bekannter Code: der Text selbst ist die Fehlermeldung (z. B. aus process_agenda.php)
+                    $err_text = trim((string)$_GET['error']);
+                    echo $err_text !== ''
+                        ? '❌ Fehler: ' . htmlspecialchars(mb_substr($err_text, 0, 500))
+                        : '❌ Ein Fehler ist aufgetreten.';
             }
             ?>
+            <?php if (!empty($_SESSION['top_input_lost'])): ?>
+                <details open style="margin-top: 10px;">
+                    <summary style="cursor: pointer; font-weight: 600;">📝 Ihre Eingabe wurde nicht gespeichert - hier zum Kopieren</summary>
+                    <?php foreach ($_SESSION['top_input_lost'] as $lost_key => $lost_val): ?>
+                        <div style="margin-top: 8px;">
+                            <small><?= htmlspecialchars($lost_key) ?></small>
+                            <textarea readonly rows="<?= min(12, max(1, substr_count($lost_val, "\n") + 1)) ?>" onfocus="this.select()"
+                                      style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit;"><?= htmlspecialchars($lost_val) ?></textarea>
+                        </div>
+                    <?php endforeach; ?>
+                </details>
+                <?php unset($_SESSION['top_input_lost']); ?>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 

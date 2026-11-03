@@ -123,8 +123,9 @@ if (isset($_POST['add_agenda_item'])) {
     if ($current_meeting_id && $title) {
         // Protokoll VOR der Transaktion schreiben – bleibt erhalten, auch wenn die DB-Operation später fehlschlägt
         [$_prot_mnr, $_prot_kurz] = get_protokoll_user($current_user);
-        $_prot_str = 'Sitzung ' . $current_meeting_id . ': ' . substr($title, 0, 80)
-            . ($description ? ' | ' . substr($description, 0, 120) : '');
+        // Vollständiger Text (nicht mehr auf 80/120 Zeichen gekürzt): dient als Sicherung gegen Eingabeverlust
+        $_prot_str = 'Sitzung ' . $current_meeting_id . ': ' . $title
+            . ($description ? ' | ' . $description : '');
         protokoll($pdo, $_prot_mnr, $_prot_kurz, 'TOP-Neu', $_prot_str);
 
         try {
@@ -286,6 +287,14 @@ if (isset($_POST['add_agenda_item'])) {
                 $pdo->rollBack();
             }
             error_log("FEHLER beim Hinzufügen des TOP: " . $e->getMessage() . " | Stack: " . $e->getTraceAsString());
+
+            // Eingabe sichern, damit sie nicht verloren geht (wird in tab_agenda.php einmalig angezeigt)
+            $_SESSION['top_input_lost'] = [];
+            foreach ($_POST as $k => $v) {
+                if (is_string($v) && $v !== '' && (in_array($k, ['title', 'description'], true) || strpos($k, 'proposal_') === 0)) {
+                    $_SESSION['top_input_lost'][$k] = $v;
+                }
+            }
 
             // Fehler an User anzeigen
             header("Location: ?tab=agenda&meeting_id=$current_meeting_id&error=" . urlencode($e->getMessage()));

@@ -106,7 +106,9 @@ require_once 'module_notifications.php';
                 echo '❌ Erinnerungsmail konnte nicht gesendet werden: Der Mail-Server hat die Zustellung abgelehnt.'
                    . ' Bitte im Apache Error-Log nach "mail() debug" suchen und den Server-Administrator kontaktieren.';
                 break;
-            default: echo '❌ Ein Fehler ist aufgetreten.';
+            default:
+                $err_text = trim((string)$_GET['error']);
+                echo $err_text !== '' ? '❌ Fehler: ' . htmlspecialchars(mb_substr($err_text, 0, 500)) : '❌ Ein Fehler ist aufgetreten.';
         }
         ?>
     </div>
