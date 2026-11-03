@@ -39,8 +39,8 @@ if (!$can_edit_meeting) {
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div class="form-group">
-                    <label style="font-weight: 600;">Priorität (0-9):</label>
-                    <input type="number" name="priority" min="0" max="9" step="0.1" value="5" required>
+                    <label style="font-weight: 600;">Priorität (1-9):</label>
+                    <input type="number" name="priority" min="1" max="9.9" step="0.1" value="5" required>
                 </div>
                 
                 <div class="form-group">

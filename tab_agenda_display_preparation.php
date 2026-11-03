@@ -628,8 +628,8 @@ if ($can_move_tops) {
             ?>
             <div class="priority-duration-grid">
                 <div class="form-group top-form-group">
-                    <label style="font-weight: 600;">Priorität (0-9):</label>
-                    <input type="number" name="priority" min="0" max="9" step="0.1" value="5" required>
+                    <label style="font-weight: 600;">Priorität (1-9):</label>
+                    <input type="number" name="priority" min="1" max="9.9" step="0.1" value="5" required>
                 </div>
 
                 <div class="form-group top-form-group">
