@@ -942,7 +942,7 @@ foreach ($agenda_items as $item):
                                     </div>
                                     <div>
                                         <a href="<?php echo htmlspecialchars($att['filepath']); ?>" download style="margin-right: 5px; font-size: 12px;">⬇️</a>
-                                        <?php if ($att['uploaded_by_member_id'] == $current_user['member_id'] || $is_admin): ?>
+                                        <?php if ($att['uploaded_by_member_id'] == $current_user['member_id'] || ($current_user['is_admin'] ?? 0) == 1): ?>
                                             <button onclick="deleteAttachment(<?php echo $att['attachment_id']; ?>, <?php echo $item['item_id']; ?>)" style="background: none; border: none; cursor: pointer; font-size: 12px;">🗑️</button>
                                         <?php endif; ?>
                                     </div>
