@@ -1192,6 +1192,7 @@ foreach ($agenda_items as $item):
                                       placeholder="Notizen zu diesem TOP..."
                                       style="width: 100%; padding: 8px; border: 1px solid #2196f3; border-radius: 4px;"><?php echo htmlspecialchars($item['protocol_notes'] ?? ''); ?></textarea>
                     </div>
+                    <?php require_once __DIR__ . '/agenda_attachments_view.php'; render_agenda_attachments_for_protocol($pdo, $item['item_id']); ?>
 
                     <?php
                     // ToDo-Vergabe (für Protokollant) - INNERHALB des Formulars!
