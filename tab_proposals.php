@@ -8,7 +8,8 @@
 $user_berecht_stmt = $pdo->prepare("SELECT * FROM berechtigte WHERE ID = ?");
 $user_berecht_stmt->execute([$current_user['member_id']]);
 $user_berecht = $user_berecht_stmt->fetch();
-$user_aktiv = $user_berecht['aktiv'] ?? 0;
+// Fehlt der Eintrag in berechtigte (z. B. andere Mitgliederquelle), gilt der aktiv-Wert aus dem Mitglieder-Adapter wie in antrag_neu.php
+$user_aktiv = (int)($user_berecht['aktiv'] ?? ($current_user['aktiv'] ?? 0));
 
 // Berechtigungen prüfen
 $kann_intern_sehen = (
