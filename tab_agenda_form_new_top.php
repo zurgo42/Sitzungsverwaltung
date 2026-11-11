@@ -30,6 +30,7 @@ if (!$can_edit_meeting) {
             <div class="form-group">
                 <label style="font-weight: 600;">Kategorie:</label>
                 <?php render_category_select('category', 'new_top_category', '', 'toggleProposalField(\'new_top\')'); ?>
+                <div id="new_top_sonstiges_hint" style="display:none; margin-top:6px; padding:8px; background:#f5f5f5; border-left:4px solid #9e9e9e; color:#555; font-size:13px;">Themen bitte unter Kommentare eintragen.</div>
             </div>
             
             <div class="form-group" id="new_top_proposal" style="display:none;">

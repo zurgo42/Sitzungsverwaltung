@@ -75,31 +75,21 @@ function render_category_select($name, $id, $selected = 'information', $onchange
 function render_category_javascript() {
     ?>
     <script>
-    // Antragstext-Feld bzw. vollständiges Antragsformular ein/ausblenden
+    // Antragstext-Feld bzw. vollständiges Antragsformular ein/ausblenden; bei "Sonstiges" stattdessen ein Hinweis
+    // (dort werden keine Anträge behandelt). prefix: z. B. 'new_top', 'active_new', 'edit_<ID>'
     function toggleProposalField(prefix) {
         const select = document.getElementById(prefix + '_category');
+        if (!select) return;
         const proposalDiv = document.getElementById(prefix + '_proposal');
-
-        if (select && proposalDiv) {
-            if (select.value === 'antrag_beschluss') {
-                proposalDiv.style.display = 'block';
-            } else {
-                proposalDiv.style.display = 'none';
-            }
-        }
+        const hintDiv = document.getElementById(prefix + '_sonstiges_hint');
+        if (proposalDiv) proposalDiv.style.display = (select.value === 'antrag_beschluss') ? 'block' : 'none';
+        if (hintDiv) hintDiv.style.display = (select.value === 'sonstiges') ? 'block' : 'none';
     }
 
-    // Bei Seitenlade alle Felder prüfen
+    // Bei Seitenlade alle Formulare prüfen
     document.addEventListener('DOMContentLoaded', function() {
-        // Neues TOP Formular
-        toggleProposalField('new_top');
-
-        // Alle Edit-Formulare
-        document.querySelectorAll('[id$="_category"]').forEach(function(select) {
-            const match = select.id.match(/edit_(\d+)_category/);
-            if (match) {
-                toggleProposalField('edit_' + match[1] + '_top');
-            }
+        document.querySelectorAll('select[id$="_category"]').forEach(function(select) {
+            toggleProposalField(select.id.replace(/_category$/, ''));
         });
     });
     </script>

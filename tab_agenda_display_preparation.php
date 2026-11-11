@@ -435,6 +435,7 @@ if ($can_move_tops) {
             <div class="form-group">
                 <label style="font-weight: 600;">Kategorie:</label>
                 <?php render_category_select('category', 'new_top_category', '', 'toggleProposalField(\'new_top\')', ($meeting['allow_decisions'] ?? 1) == 1); ?>
+                <div id="new_top_sonstiges_hint" style="display:none; margin-top:6px; padding:8px; background:#f5f5f5; border-left:4px solid #9e9e9e; color:#555; font-size:13px;">Themen bitte unter Kommentare eintragen.</div>
             </div>
 
             <?php if (($meeting['allow_decisions'] ?? 1) == 1): ?>
@@ -903,10 +904,11 @@ foreach ($agenda_items as $item):
                 
                 <div style="margin-bottom: 10px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">Kategorie:</label>
-                    <?php render_category_select('category', 'edit_category_' . $item['item_id'], $item['category'], 'toggleProposalField("edit_' . $item['item_id'] . '")', ($meeting['allow_decisions'] ?? 1) == 1); ?>
+                    <?php render_category_select('category', 'edit_' . $item['item_id'] . '_category', $item['category'], 'toggleProposalField("edit_' . $item['item_id'] . '")', ($meeting['allow_decisions'] ?? 1) == 1); ?>
+                    <div id="edit_<?php echo $item['item_id']; ?>_sonstiges_hint" style="display:<?php echo $item['category'] === 'sonstiges' ? 'block' : 'none'; ?>; margin-top:6px; padding:8px; background:#f5f5f5; border-left:4px solid #9e9e9e; color:#555; font-size:13px;">Themen bitte unter Kommentare eintragen.</div>
                 </div>
 
-                <div style="margin-bottom: 10px;" id="edit_<?php echo $item['item_id']; ?>_proposal" style="display: <?php echo $item['category'] === 'antrag_beschluss' ? 'block' : 'none'; ?>;">
+                <div id="edit_<?php echo $item['item_id']; ?>_proposal" style="margin-bottom: 10px; display: <?php echo $item['category'] === 'antrag_beschluss' ? 'block' : 'none'; ?>;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">📄 Antragstext:</label>
                     <textarea name="proposal_text" rows="3"
                               style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"><?php echo htmlspecialchars($item['proposal_text'] ?? ''); ?></textarea>
