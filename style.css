@@ -1162,10 +1162,10 @@ button:hover {
 }
 
 .other-todos-accordion-header {
-    background: var(--grau);
+    background: #fff3cd;
     padding: 15px 20px;
     cursor: pointer;
-    border: 1px solid #ddd;
+    border: 1px solid #ffc107;
     border-radius: 5px;
     font-weight: 600;
     display: flex;
@@ -1174,7 +1174,7 @@ button:hover {
 }
 
 .other-todos-accordion-header:hover {
-    background: #e8e8e8;
+    background: #ffecb3;
 }
 
 html.dark-mode .other-todos-accordion-header {

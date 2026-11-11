@@ -314,69 +314,12 @@ $is_admin = ($current_user['role'] ?? '') === 'assistenz' || ($current_user['is_
 <?php endif; ?>
 
 
-<!-- ERLEDIGTE EIGENE TODOS -->
-<?php if (!empty($own_todos_done)): ?>
-
-    <div class="own-todos-done-section">
-        <h3>Diese ToDos hast du bereits erledigt:</h3>
-        
-        <!-- DESKTOP: Tabelle -->
-        <table class="done-todos-table desktop-only">
-            <thead>
-                <tr>
-                    <th>Aufgabe</th>
-                    <th>Erledigt am</th>
-                    <th>Quelle</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($own_todos_done as $row): ?>
-                    <tr>
-                        <td>
-                            <strong><?php echo htmlspecialchars($row['title'] ?? ''); ?></strong><br>
-                            <small><?php echo htmlspecialchars(substr($row['description'] ?? '', 0, 80)); ?><?php echo strlen($row['description'] ?? '') > 80 ? '...' : ''; ?></small>
-                        </td>
-                        <td>
-                            <?php echo $row['completed_at'] ? date('d.m.Y', strtotime($row['completed_at'])) : '✅'; ?>
-                        </td>
-                        <td>
-                            <?php echo htmlspecialchars($row['meeting_name'] ?? 'Direkt erstellt'); ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-        
-        <!-- MOBILE: Cards -->
-        <div class="done-todos-cards mobile-only">
-            <?php foreach ($own_todos_done as $row): ?>
-                <div class="done-todo-card">
-                    <div class="done-todo-card-header">
-                        <strong><?php echo htmlspecialchars($row['title'] ?? ''); ?></strong>
-                        <span class="done-badge">✅ Erledigt</span>
-                    </div>
-                    <div class="done-todo-card-body">
-                        <?php echo htmlspecialchars(substr($row['description'] ?? '', 0, 80)); ?><?php echo strlen($row['description'] ?? '') > 80 ? '...' : ''; ?>
-                    </div>
-                    <div class="done-todo-card-footer">
-                        <span>📅 <?php echo $row['completed_at'] ? date('d.m.Y', strtotime($row['completed_at'])) : 'Erledigt'; ?></span>
-                        <span>📋 <?php echo htmlspecialchars($row['meeting_name'] ?? 'Direkt erstellt'); ?></span>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-        
-        <p class="info-text">Erledigte Aufgaben werden nach einiger Zeit automatisch gelöscht</p>
-    </div>
-<?php endif; ?>
-
-
 <!-- FREMDE TODOS -->
 <?php if (!empty($other_todos)): ?>
 
     <div class="other-todos-section">
         <div class="other-todos-accordion-header" onclick="this.classList.toggle('open'); this.nextElementSibling.classList.toggle('open');">
-            <span>Weitere öffentliche ToDos der anderen Aktiven (<?php echo count($other_todos); ?>)</span>
+            <span>ToDos der Kollegen (<?php echo count($other_todos); ?>) – private ToDos sind nur für Empfänger und Ersteller sichtbar</span>
             <span class="other-todos-arrow"></span>
         </div>
         <div class="other-todos-content">
@@ -457,4 +400,63 @@ $is_admin = ($current_user['role'] ?? '') === 'assistenz' || ($current_user['is_
         </div>
     </div>
 <?php endif; ?>
+
+
+<!-- ERLEDIGTE EIGENE TODOS -->
+<?php if (!empty($own_todos_done)): ?>
+
+    <div class="own-todos-done-section">
+        <h3>Diese ToDos hast du bereits erledigt:</h3>
+        
+        <!-- DESKTOP: Tabelle -->
+        <table class="done-todos-table desktop-only">
+            <thead>
+                <tr>
+                    <th>Aufgabe</th>
+                    <th>Erledigt am</th>
+                    <th>Quelle</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($own_todos_done as $row): ?>
+                    <tr>
+                        <td>
+                            <strong><?php echo htmlspecialchars($row['title'] ?? ''); ?></strong><br>
+                            <small><?php echo htmlspecialchars(substr($row['description'] ?? '', 0, 80)); ?><?php echo strlen($row['description'] ?? '') > 80 ? '...' : ''; ?></small>
+                        </td>
+                        <td>
+                            <?php echo $row['completed_at'] ? date('d.m.Y', strtotime($row['completed_at'])) : '✅'; ?>
+                        </td>
+                        <td>
+                            <?php echo htmlspecialchars($row['meeting_name'] ?? 'Direkt erstellt'); ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        
+        <!-- MOBILE: Cards -->
+        <div class="done-todos-cards mobile-only">
+            <?php foreach ($own_todos_done as $row): ?>
+                <div class="done-todo-card">
+                    <div class="done-todo-card-header">
+                        <strong><?php echo htmlspecialchars($row['title'] ?? ''); ?></strong>
+                        <span class="done-badge">✅ Erledigt</span>
+                    </div>
+                    <div class="done-todo-card-body">
+                        <?php echo htmlspecialchars(substr($row['description'] ?? '', 0, 80)); ?><?php echo strlen($row['description'] ?? '') > 80 ? '...' : ''; ?>
+                    </div>
+                    <div class="done-todo-card-footer">
+                        <span>📅 <?php echo $row['completed_at'] ? date('d.m.Y', strtotime($row['completed_at'])) : 'Erledigt'; ?></span>
+                        <span>📋 <?php echo htmlspecialchars($row['meeting_name'] ?? 'Direkt erstellt'); ?></span>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        
+        <p class="info-text">Erledigte Aufgaben werden nach einiger Zeit automatisch gelöscht</p>
+    </div>
+<?php endif; ?>
+
+
 
