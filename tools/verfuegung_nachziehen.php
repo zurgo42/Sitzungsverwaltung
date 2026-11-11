@@ -40,7 +40,7 @@ if (isset($_POST['selbst_loeschen'])) {
 // Einen Antrag beschließen
 if (isset($_POST['antrnr'], $_POST['bestaetigt'])) {
     $nr = $_POST['antrnr'];
-    $st = $pdo->prepare("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ? AND antrnr LIKE 'B%' AND bart = 'V'");
+    $st = $pdo->prepare("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr = ? AND antrnr LIKE 'B%' AND bart = 'V' AND (verf2 IS NULL OR verf2 = '')");
     $st->execute([$nr]);
     $antrag = $st->fetch(PDO::FETCH_ASSOC);
     if (!$antrag) {
@@ -62,7 +62,7 @@ if (isset($_POST['antrnr'], $_POST['bestaetigt'])) {
 }
 
 // Liste der betroffenen Anträge
-$rows = $pdo->query("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr LIKE 'B%' AND bart = 'V' ORDER BY antrnr")->fetchAll(PDO::FETCH_ASSOC);
+$rows = $pdo->query("SELECT * FROM " . TABLE_ANTRAEGE . " WHERE antrnr LIKE 'B%' AND bart = 'V' AND (verf2 IS NULL OR verf2 = '') ORDER BY antrnr")->fetchAll(PDO::FETCH_ASSOC);
 if (!$rows) {
     echo '<p>Keine Verfügungen mehr in Abstimmung - es ist nichts zu tun.</p>';
 }

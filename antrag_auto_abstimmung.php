@@ -48,8 +48,17 @@ function antrag_zur_abstimmung_stellen($pdo, $antrnr) {
     // Abstimmende setzen je nach Beschlussart
     $vname_fields = [];
 
-    if ($antrag['bart'] === 'V') {
-        // Verfügung: Keine Abstimmung. Mit "Verbindlich einstellen" ist die Verfügung beschlossen und wird
+    if ($antrag['bart'] === 'V' && !empty($antrag['verf2'])) {
+        // Verfügung mit zweiter Person: wie beim Ressortbeschluss müssen beide zustimmen (Abstimmung durch verf1 und verf2).
+        if (empty($antrag['verf1'])) throw new Exception("Verfügungsberechtigte/r muss angegeben werden.");
+        if ($antrag['verf1'] == $antrag['verf2']) {
+            throw new Exception("Die beiden Zustimmenden dürfen nicht identisch sein.");
+        }
+        $vname_fields['VName1'] = $antrag['verf1'];
+        $vname_fields['VName2'] = $antrag['verf2'];
+
+    } elseif ($antrag['bart'] === 'V') {
+        // Verfügung ohne zweite Person: Keine Abstimmung. Mit "Verbindlich einstellen" ist die Verfügung beschlossen und wird
         // direkt ins Beschlussbuch eingetragen (VS-Nummer, Beschluss-Eintrag).
         if (empty($antrag['verf1'])) throw new Exception("Verfügungsberechtigte/r muss angegeben werden.");
         require_once __DIR__ . '/voting_helper.php';
@@ -167,6 +176,7 @@ function auto_abstimmung_pruefen($pdo) {
             // Pflichtangaben wie bei "Verbindlich einstellen"; fehlt etwas, bleibt der Antrag unverändert liegen
             if (empty($a['ressort1']) || empty($a['verant']) || strlen($a['verant']) < 3) continue;
             if ($a['bart'] === 'V' && empty($a['verf1'])) continue;
+            if ($a['bart'] === 'V' && !empty($a['verf2']) && $a['verf1'] == $a['verf2']) continue;
             if ($a['bart'] === 'R' && (empty($a['verf1']) || empty($a['verf2']) || $a['verf1'] == $a['verf2'])) continue;
 
             try {

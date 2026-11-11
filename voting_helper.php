@@ -280,7 +280,14 @@ function auswerten_abstimmung($pdo, $antrnr, $force = false) {
     $regel = $antrag['abstimmregel'] ?? 'einfach';
 
     $nm_angenommen = null;
-    if ($antrag['bart'] === 'V' && (!isset($antrag['abstimmregel']) || $regel === 'einfach')) {
+    $anzahl_vname = 0;
+    for ($i = 1; $i <= 6; $i++) { if (!empty($antrag["VName$i"])) $anzahl_vname++; }
+
+    if ($antrag['bart'] === 'V' && $anzahl_vname == 2 && (!isset($antrag['abstimmregel']) || $regel === 'einfach')) {
+        // Verfügung mit zweiter Person (verf2): beide müssen zustimmen, wie beim Ressortbeschluss
+        if ($ja == 2 && $nein == 0) { beschluss_annehmen($pdo, $antrnr, $antrag); $nm_angenommen = true; }
+        else                         { beschluss_ablehnen($pdo, $antrnr); $nm_angenommen = false; }
+    } elseif ($antrag['bart'] === 'V' && (!isset($antrag['abstimmregel']) || $regel === 'einfach')) {
         if ($ja > 0 && $nein == 0) { beschluss_annehmen($pdo, $antrnr, $antrag); $nm_angenommen = true; }
         else                         { beschluss_ablehnen($pdo, $antrnr); $nm_angenommen = false; }
     } elseif ($antrag['bart'] === 'R' && (!isset($antrag['abstimmregel']) || $regel === 'einfach')) {

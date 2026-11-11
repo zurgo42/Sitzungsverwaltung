@@ -649,6 +649,11 @@ if ($antrag['bart'] === 'V' && empty($antrag['verf1'])) {
     $blockiert = true;
     $blockierung_grund[] = "Verfügungsberechtigter fehlt";
 }
+if ($antrag['bart'] === 'V' && !empty($antrag['verf2']) && $antrag['verf1'] == $antrag['verf2']) {
+    $blockiert = true;
+    $blockierung_grund[] = "Die beiden Zustimmenden dürfen nicht identisch sein";
+}
+$verf_zwei_personen = ($antrag['bart'] === 'V' && !empty($antrag['verf2']));
 if ($antrag['bart'] === 'R') {
     if (empty($antrag['verf1']) || empty($antrag['verf2'])) {
         $blockiert = true;
@@ -932,7 +937,28 @@ if ($user['aktiv'] >= 19) {
                         </div>
                         <?php else: ?>
                         <div class="form-group">
-                            <!-- Bei V: Leer -->
+                            <?php
+                            // Verfügung: optional zweite Person; jedes Vorstandsmitglied (aktiv 19) kommt in Frage
+                            $zweite_kandidaten = array_filter(get_all_members($pdo), function($m) {
+                                return isset($m['aktiv']) && (int)$m['aktiv'] === 19;
+                            });
+                            usort($zweite_kandidaten, function($a, $b) { return strcmp($a['first_name'] ?? '', $b['first_name'] ?? ''); });
+                            ?>
+                            <label for="verf2">Zweite Zustimmung durch (optional, Vorstand)</label>
+                            <select id="verf2" name="verf2">
+                                <option value="">-- keine (Verfügung gilt sofort) --</option>
+                                <?php foreach ($zweite_kandidaten as $m): ?>
+                                    <option value="<?= (int)$m['member_id'] ?>" <?= ($antrag['verf2'] ?? '') == $m['member_id'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($m['first_name'] . ' ' . $m['last_name']) ?><?= !empty($m['funktion']) ? ' (' . htmlspecialchars($m['funktion']) . ')' : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div style="font-size: 11px; color: #666; margin-top: 2px;">
+                                Leer: Die Verfügung gilt nach „Verbindlich einstellen“ sofort. Mit Angabe müssen beide zustimmen (wie beim Ressortbeschluss).
+                            </div>
+                            <?php if (!empty($antrag['verf1']) && !empty($antrag['verf2']) && $antrag['verf1'] == $antrag['verf2']): ?>
+                                <div class="field-warning">⚠️ Die beiden Personen dürfen nicht identisch sein!</div>
+                            <?php endif; ?>
                         </div>
                         <?php endif; ?>
 
@@ -1330,7 +1356,9 @@ if ($user['aktiv'] >= 19) {
 
                 <?php if ($wartezeit === 'erfüllt' && ($antrag['bart'] === 'V' || $antrag['bart'] === 'R')): ?>
                     <div class="status-box">
-                        <?php if ($antrag['bart'] === 'V'): ?>
+                        <?php if ($verf_zwei_personen): ?>
+                            Die Wartezeit ist erfüllt; du kannst die Verfügung zur Abstimmung stellen (beide angegebenen Personen müssen zustimmen).
+                        <?php elseif ($antrag['bart'] === 'V'): ?>
                             Die Wartezeit ist erfüllt. Mit „Verbindlich einstellen" gilt die Verfügung als beschlossen und wird ins Beschlussbuch eingetragen; eine Abstimmung ist nicht erforderlich.
                         <?php else: ?>
                             Die Wartezeit ist erfüllt; du kannst den Antrag zur Abstimmung stellen (durch die beiden angegebenen Personen).
@@ -1350,7 +1378,7 @@ if ($user['aktiv'] >= 19) {
                         </div>
                         <div style="font-size: 11px; color: #555; margin-top: 4px;">
                             Der Antrag wird dann ohne weiteres Zutun verbindlich eingestellt, sobald die Wartezeit abgelaufen ist.
-                            <?= $antrag['bart'] === 'V' ? 'Bei einer Verfügung gilt sie dann direkt als beschlossen (Eintrag im Beschlussbuch, keine Abstimmung). ' : '' ?>Voraussetzung: Ressort und Verantwortliche/r sind angegeben<?= in_array($antrag['bart'], ['V', 'R'], true) ? ' (bei Verfügung/Ressortbeschluss auch die Verfügungsberechtigten)' : '' ?>. Danach ist der Antrag nicht mehr änderbar.
+                            <?= $antrag['bart'] === 'V' ? ($verf_zwei_personen ? 'Bei dieser Verfügung müssen beide angegebenen Personen zustimmen. ' : 'Bei einer Verfügung gilt sie dann direkt als beschlossen (Eintrag im Beschlussbuch, keine Abstimmung). ') : '' ?>Voraussetzung: Ressort und Verantwortliche/r sind angegeben<?= in_array($antrag['bart'], ['V', 'R'], true) ? ' (bei Verfügung/Ressortbeschluss auch die Verfügungsberechtigten)' : '' ?>. Danach ist der Antrag nicht mehr änderbar.
                             <?php if (!empty($antrag['auto_abstimmung']) && $blockiert): ?>
                                 <br><span style="color: #c0392b;">⚠️ Derzeit nicht möglich: <?= htmlspecialchars(implode(', ', $blockierung_grund)) ?></span>
                             <?php endif; ?>
@@ -1363,7 +1391,7 @@ if ($user['aktiv'] >= 19) {
 
                     <?php if ($kann_finalisieren): ?>
                         <button type="button" class="btn btn-success" id="finalizeButton"
-                                onclick="if(!confirm('<?= $antrag['bart'] === 'V' ? 'Verfügung verbindlich einstellen? Sie gilt damit als beschlossen und wird ins Beschlussbuch eingetragen. Nicht mehr änderbar!' : 'Antrag verbindlich einstellen? Nicht mehr änderbar!' ?>')) return; var f=this.form; var h=f.querySelector('#_finalize_hidden'); if(!h){h=document.createElement('input');h.type='hidden';h.name='action';h.value='finalize';h.id='_finalize_hidden';f.appendChild(h);} this.disabled=true; this.textContent='⏳ Wird eingestellt…'; f.submit();">
+                                onclick="if(!confirm('<?= $verf_zwei_personen ? 'Verfügung verbindlich zur Abstimmung durch die beiden angegebenen Personen einstellen? Nicht mehr änderbar!' : ($antrag['bart'] === 'V' ? 'Verfügung verbindlich einstellen? Sie gilt damit als beschlossen und wird ins Beschlussbuch eingetragen. Nicht mehr änderbar!' : 'Antrag verbindlich einstellen? Nicht mehr änderbar!') ?>')) return; var f=this.form; var h=f.querySelector('#_finalize_hidden'); if(!h){h=document.createElement('input');h.type='hidden';h.name='action';h.value='finalize';h.id='_finalize_hidden';f.appendChild(h);} this.disabled=true; this.textContent='⏳ Wird eingestellt…'; f.submit();">
                             ✅ Verbindlich einstellen
                         </button>
                     <?php elseif (substr($antrnr, 0, 1) === 'A'): ?>
