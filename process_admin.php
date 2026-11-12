@@ -47,9 +47,45 @@ if ($init_confirmed && (time() - ($_SESSION['init_confirmed_at'] ?? 0)) > 1800) 
 if (isset($_GET['reset_init'])) {
     unset($_SESSION['init_confirmed']);
     unset($_SESSION['init_confirmed_at']);
+    unset($_SESSION['init_pw_ok_at']);
     header('Location: ?tab=admin');
     exit;
 }
+
+// ============================================
+// SYSTEM-ADMIN-PASSWORT für Grundkonfiguration/Initialisierung und kritische Systembereiche
+// (dasselbe Passwort wie bei den tools/*.php-Skripten: SYSTEM_ADMIN_PASSWORD in config.php; 30 Minuten gültig)
+// ============================================
+function sv_init_passwort_ok() {
+    return !empty($_SESSION['init_pw_ok_at']) && (time() - (int)$_SESSION['init_pw_ok_at']) <= 1800;
+}
+
+$init_pw_fehler = '';
+if (isset($_POST['init_system_password'])) {
+    $soll = defined('SYSTEM_ADMIN_PASSWORD') ? (string)SYSTEM_ADMIN_PASSWORD : '';
+    if ($soll === '') {
+        $init_pw_fehler = 'In der config.php ist kein SYSTEM_ADMIN_PASSWORD gesetzt.';
+    } elseif (hash_equals($soll, (string)$_POST['init_system_password'])) {
+        $_SESSION['init_pw_ok_at'] = time();
+        header('Location: ?tab=admin_init');
+        exit;
+    } else {
+        sleep(1);   // bremst Durchprobieren
+        error_log('Grundkonfiguration: falsches System-Admin-Passwort von Mitglied ' . ($current_user['member_id'] ?? '?') . ' (' . ($_SERVER['REMOTE_ADDR'] ?? '') . ')');
+        $init_pw_fehler = 'Das Passwort ist nicht korrekt.';
+    }
+}
+
+// Alle Aktionen der Grundkonfiguration nur mit gültigem System-Admin-Passwort
+foreach (['add_ressort', 'edit_ressort', 'delete_ressort', 'save_terminology', 'save_aktiv_levels', 'save_antragstypen',
+          'save_voting_rules', 'send_test_mail_form', 'save_modules', 'save_documents_config', 'save_notifications'] as $__init_aktion) {
+    if (isset($_POST[$__init_aktion]) && !sv_init_passwort_ok()) {
+        $_SESSION['error'] = 'Zugriff verweigert: Für die Grundkonfiguration ist das System-Admin-Passwort erforderlich.';
+        header('Location: ?tab=admin_init');
+        exit;
+    }
+}
+unset($__init_aktion);
 
 // ============================================
 // HILFSFUNKTIONEN

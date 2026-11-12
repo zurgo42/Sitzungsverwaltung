@@ -98,7 +98,28 @@ body.dark-mode .init-danger-list {
 
 <h2>⚠️ Grundkonfiguration / Initialisierung</h2>
 
-<?php if (!$init_confirmed): ?>
+<?php if (!sv_init_passwort_ok()): ?>
+    <!-- System-Admin-Passwort -->
+    <div class="init-confirm-box">
+        <h2>🔒 System-Admin-Passwort erforderlich</h2>
+        <p style="color:#666;">Die Grundkonfiguration und die kritischen Systembereiche (Zugriffs-Logs, Datenbank-Wartung, Datenbank-Protokoll, Produktions-System- und Demo-Funktionen) sind zusätzlich durch das System-Admin-Passwort geschützt. Die Freigabe gilt 30 Minuten.</p>
+        <?php if (!empty($init_pw_fehler)): ?>
+            <div class="error-message" style="margin-bottom:12px;">❌ <?php echo htmlspecialchars($init_pw_fehler); ?></div>
+        <?php endif; ?>
+        <?php if (!empty($_SESSION['error'])): ?>
+            <div class="error-message" style="margin-bottom:12px;">❌ <?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?></div>
+        <?php endif; ?>
+        <form method="POST" action="?tab=admin_init" autocomplete="off">
+            <input type="password" name="init_system_password" placeholder="System-Admin-Passwort" required autofocus
+                   style="width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;font-size:15px;box-sizing:border-box;">
+            <div style="display:flex;gap:15px;justify-content:center;margin-top:20px;">
+                <button type="submit" class="btn-danger" style="padding:12px 30px;font-size:16px;">🔓 Freischalten</button>
+                <a href="?tab=admin" class="btn-secondary" style="padding:12px 30px;font-size:16px;display:inline-block;text-decoration:none;">← Zurück</a>
+            </div>
+        </form>
+    </div>
+
+<?php elseif (!$init_confirmed): ?>
     <!-- Bestätigungs-Dialog -->
     <div class="init-confirm-box">
         <h2>⚠️ Sicherheitsbestätigung erforderlich</h2>
@@ -1235,6 +1256,8 @@ body.dark-mode .init-danger-list {
             </form>
         </div>
     </div>
+
+    <?php require __DIR__ . '/admin_kritische_bereiche.php'; ?>
 
     <!-- PLATZHALTER FÜR WEITERE BEREICHE -->
     <!-- Hier werden später weitere Konfigurationsbereiche hinzugefügt:
